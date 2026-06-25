@@ -1,13 +1,12 @@
 {
   "name": "Suplelive.ON",
   "short_name": "Suplelive.ON",
-  "description": "Sistema de controle de tarefas da equipe Suple",
+  "description": "Controle de tarefas",
   "start_url": "/supliveon.cont.tarefas/",
   "scope": "/supliveon.cont.tarefas/",
   "display": "standalone",
   "background_color": "#0d0d0d",
   "theme_color": "#0d0d0d",
-  "orientation": "landscape-primary",
   "icons": [
     {
       "src": "icon-192.png",
