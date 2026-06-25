@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Suplelive — Controle de Tarefas</title>
+<meta name="description" content="Suplelive.on — Controle de Tarefas">
+<meta name="theme-color" content="#0d0d0d">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Suplelive">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
 :root {
@@ -6111,6 +6119,18 @@ document.addEventListener('firebase-ready', function(){
   if(currentUser && db && fbConnected){ startFirebaseSync(); startDrogariasSync(); }
 });
 
+</script>
+<!-- PWA Service Worker -->
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js').then(reg=>{
+      console.log('[PWA] Service Worker registrado:', reg.scope);
+    }).catch(err=>{
+      console.warn('[PWA] SW não registrado:', err);
+    });
+  });
+}
 </script>
 </body>
 </html>
