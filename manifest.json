@@ -1,6 +1,6 @@
 {
-  "name": "Suplelive.on \u2014 Controle de Tarefas",
-  "short_name": "Suplelive",
+  "name": "Suplelive.ON",
+  "short_name": "Suplelive.ON",
   "description": "Sistema de controle de tarefas da equipe Suple",
   "start_url": "/supliveon.cont.tarefas/",
   "scope": "/supliveon.cont.tarefas/",
