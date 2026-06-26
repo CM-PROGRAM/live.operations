@@ -540,47 +540,55 @@ header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0
 
       <!-- CONFERENCIA DE ENTRADAS -->
       <div style="margin-top:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;" id="conf-entradas-wrap">
-        <!-- Header -->
-        <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div style="width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:13px;">📋</div>
-          <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">CONFERÊNCIA DE ENTRADAS</span>
-          <span id="conf-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
-          <div style="display:flex;align-items:center;gap:6px;background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:4px 10px;min-width:160px;max-width:260px;">
-            <span style="font-size:11px;color:var(--text-muted);">🔍</span>
-            <input id="conf-search" type="text" placeholder="Buscar SKU, produto, marca..." oninput="renderConferencia()"
-              style="background:none;border:none;outline:none;color:var(--text-primary);font-size:11px;font-family:var(--font-sans);width:100%;">
+        <!-- Header + thead sticky wrapper -->
+        <div id="conf-sticky-header" style="z-index:50;background:var(--bg-card);">
+          <!-- Header -->
+          <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div style="width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:13px;">📋</div>
+            <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">CONFERÊNCIA DE ENTRADAS</span>
+            <span id="conf-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
+            <div style="display:flex;align-items:center;gap:6px;background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:4px 10px;min-width:160px;max-width:260px;">
+              <span style="font-size:11px;color:var(--text-muted);">🔍</span>
+              <input id="conf-search" type="text" placeholder="Buscar SKU, produto, marca..." oninput="renderConferencia()"
+                style="background:none;border:none;outline:none;color:var(--text-primary);font-size:11px;font-family:var(--font-sans);width:100%;">
+            </div>
+            <button class="btn btn-sm" id="btn-new-conf" onclick="openConfModal(null)" style="font-size:11px;white-space:nowrap;display:none;">+ Novo Produto</button>
           </div>
-          <button class="btn btn-sm" id="btn-new-conf" onclick="openConfModal(null)" style="font-size:11px;white-space:nowrap;display:none;">+ Novo Produto</button>
+          <!-- Thead sticky (espelha scroll horizontal da tabela) -->
+          <div id="conf-thead-scroll" style="overflow-x:auto;overflow-y:hidden;scrollbar-width:none;">
+            <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1200px;">
+              <thead>
+                <tr style="background:var(--bg-surface);">
+                  <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;background:var(--bg-surface);">ULT. ATUAL.</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SKU</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">EAN</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);min-width:220px;">PRODUTO</th>
+                  <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">MARCA</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">IMAGENS</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">ATACADO</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">LOJA INT.</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VITALIFE</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VITALIFE 2X</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VXSHOP</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VXSHOP 2X</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP SUPLENIUM</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP SUPLENIUM 2X</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP PRIMEVITAMINAS</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP PRIMEVITAMINAS 2X</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">RD MARKETPLACE</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">MAGALU (VIX)</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">MAGALU (4VITA)</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">DROG PACHECO</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">DROG S. PAULO</th>
+                  <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">AÇÕES</th>
+                </tr>
+              </thead>
+            </table>
+          </div>
         </div>
         <!-- Tabela scroll horizontal -->
-        <div style="overflow-x:auto;">
+        <div id="conf-body-scroll" style="overflow-x:auto;" onscroll="document.getElementById('conf-thead-scroll').scrollLeft=this.scrollLeft">
           <table id="conf-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:1200px;">
-            <thead>
-              <tr style="background:var(--bg-surface);">
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;position:sticky;left:0;z-index:2;background:var(--bg-surface);">ULT. ATUAL.</th>
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SKU</th>
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">EAN</th>
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);min-width:220px;">PRODUTO</th>
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">MARCA</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">IMAGENS</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">ATACADO</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">LOJA INT.</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VITALIFE</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VITALIFE 2X</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VXSHOP</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">M.L VXSHOP 2X</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP SUPLENIUM</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP SUPLENIUM 2X</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP PRIMEVITAMINAS</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">SHP PRIMEVITAMINAS 2X</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">RD MARKETPLACE</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">MAGALU (VIX)</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">MAGALU (4VITA)</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">DROG PACHECO</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">DROG S. PAULO</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap;">AÇÕES</th>
-              </tr>
-            </thead>
             <tbody id="conf-tbody"></tbody>
           </table>
         </div>
@@ -6431,6 +6439,55 @@ document.getElementById('modal-confirm-btn').onclick=()=>{closeModal();if(modalC
 document.getElementById('modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeModal();};
 document.getElementById('rst-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeRstModal();};
 document.getElementById('conf-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeConfModal();};
+
+// Header fixo da Conferência de Entradas
+(function(){
+  const contentArea = document.querySelector('.content-area');
+  const stickyHeader = document.getElementById('conf-sticky-header');
+  const wrap = document.getElementById('conf-entradas-wrap');
+  const bodyScroll = document.getElementById('conf-body-scroll');
+  const headScroll = document.getElementById('conf-thead-scroll');
+  if(!contentArea||!stickyHeader||!wrap||!bodyScroll||!headScroll) return;
+
+  // Sync scroll horizontal
+  let syncing=false;
+  bodyScroll.addEventListener('scroll',function(){
+    if(syncing)return;syncing=true;
+    headScroll.scrollLeft=bodyScroll.scrollLeft;
+    syncing=false;
+  });
+  headScroll.addEventListener('scroll',function(){
+    if(syncing)return;syncing=true;
+    bodyScroll.scrollLeft=headScroll.scrollLeft;
+    syncing=false;
+  });
+
+  // Sticky via fixed ao rolar
+  const HEADER_H = 50; // altura do header global do app
+  function updateSticky(){
+    const wrapRect = wrap.getBoundingClientRect();
+    const headerH = stickyHeader.offsetHeight;
+    if(wrapRect.top < HEADER_H && wrapRect.bottom > HEADER_H + headerH){
+      // Fixar
+      stickyHeader.style.position='fixed';
+      stickyHeader.style.top=HEADER_H+'px';
+      stickyHeader.style.left=wrapRect.left+'px';
+      stickyHeader.style.width=wrapRect.width+'px';
+      stickyHeader.style.boxShadow='0 2px 8px rgba(0,0,0,.4)';
+      bodyScroll.style.marginTop=headerH+'px';
+    } else {
+      // Soltar
+      stickyHeader.style.position='';
+      stickyHeader.style.top='';
+      stickyHeader.style.left='';
+      stickyHeader.style.width='';
+      stickyHeader.style.boxShadow='';
+      bodyScroll.style.marginTop='';
+    }
+  }
+  contentArea.addEventListener('scroll', updateSticky);
+  window.addEventListener('resize', updateSticky);
+})();
 
 // Listener para quando Firebase CDN terminar de carregar
 document.addEventListener('firebase-ready', function(){
