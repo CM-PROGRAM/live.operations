@@ -293,10 +293,26 @@ header{background:var(--bg-card);border-bottom:1px solid var(--border);padding:0
 </div>
 
 <div id="app">
-  <header style="justify-content:center;">
+  <header style="justify-content:space-between;padding:0 20px;">
+    <div style="width:40px;"></div>
     <div class="header-brand" style="display:flex;flex-direction:column;align-items:center;gap:2px;">
       <div>Suple<span>live.on</span></div>
       <div style="font-size:9px;color:var(--text-muted);letter-spacing:4px;text-transform:uppercase;font-family:var(--font-mono);font-weight:400;">Controle de Tarefas</div>
+    </div>
+    <!-- Sino de notificações -->
+    <div style="position:relative;">
+      <button id="notif-btn" onclick="toggleNotifPanel()" style="background:none;border:none;cursor:pointer;font-size:20px;padding:4px 8px;border-radius:6px;color:var(--text-muted);transition:color .15s;position:relative;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'" title="Notificações">
+        🔔
+        <span id="notif-badge" style="display:none;position:absolute;top:0;right:0;background:var(--accent);color:#fff;font-size:9px;font-weight:700;font-family:var(--font-mono);border-radius:50%;width:16px;height:16px;line-height:16px;text-align:center;">0</span>
+      </button>
+      <!-- Painel dropdown -->
+      <div id="notif-panel" style="display:none;position:absolute;top:44px;right:0;width:340px;max-height:420px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:500;overflow:hidden;flex-direction:column;">
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+          <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Notificações</span>
+          <button onclick="marcarTodasLidas()" style="background:none;border:none;color:var(--accent);font-size:11px;cursor:pointer;font-family:var(--font-sans);font-weight:600;">Marcar todas como lidas</button>
+        </div>
+        <div id="notif-list" style="overflow-y:auto;max-height:360px;"></div>
+      </div>
     </div>
   </header>
   <div class="app-body">
@@ -1998,6 +2014,7 @@ function initApp(){
   _actLoginTs = Date.now();
   // buildTabs() cria o footer com avatar/nome/relógio/sair dinamicamente
   buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
+  initNotifListener();
 
 }
 
@@ -4692,11 +4709,15 @@ function renderUsersGrid(){
   if(!grid) return;
   grid.innerHTML='';
   const tabDefs=[
-    {id:'whatsapp',label:'Vendas WhatsApp'},{id:'plataformas',label:"Marketplace's"},
-    {id:'baixas',label:'Relat. Baixas DPSP'},
-    {id:'envios',label:'Rastreios'},{id:'devolucoes',label:'Devoluções'},
-    {id:'atendimentos',label:'Atendimentos'},{id:'anuncios',label:'Produtos'},
-    {id:'tarefas',label:'Taref. Colaboradores'},{id:'admin',label:'Adm. Master'}
+    {id:'whatsapp',label:'💬 Vendas WhatsApp'},
+    {id:'plataformas',label:"🛒 Marketplace's"},
+    {id:'baixas',label:'📋 Relat. Baixas DPSP'},
+    {id:'envios',label:'📦 Rastreios'},
+    {id:'devolucoes',label:'↩ Devoluções'},
+    {id:'atendimentos',label:'📞 Atendimentos'},
+    {id:'anuncios',label:'🏷 Produtos'},
+    {id:'tarefas',label:'📌 Atribuição Tarefas'},
+    {id:'admin',label:'⚙ Adm. Master'}
   ];
 
   const users = Object.entries(appState.users);
@@ -6738,18 +6759,132 @@ function saveAtividade(){
   if(!responsavel){showToast('Selecione o colaborador responsável','warn');return;}
   if(!vencimento){showToast('Informe a data de vencimento','warn');return;}
   if(!Array.isArray(appState.atividades))appState.atividades=[];
+
+  const isNova=!editId;
+  const vencFmt=new Date(vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const priorLabel={urgente:'🔴 Urgente',alta:'🟡 Alta',normal:'⚪ Normal'}[prioridade]||prioridade;
+
   if(editId){
     const idx=appState.atividades.findIndex(x=>x.id===editId);
-    if(idx>-1)appState.atividades[idx]={...appState.atividades[idx],titulo,descricao,responsavel,vencimento,prioridade};
+    const anterior=appState.atividades[idx]||{};
+    if(idx>-1)appState.atividades[idx]={...anterior,titulo,descricao,responsavel,vencimento,prioridade};
     showToast('Tarefa atualizada','success');
   } else {
-    appState.atividades.push({id:'atv_'+Date.now(),titulo,descricao,responsavel,vencimento,prioridade,status:'aberta',criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name});
+    appState.atividades.push({
+      id:'atv_'+Date.now(),titulo,descricao,responsavel,vencimento,prioridade,
+      status:'aberta',criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name
+    });
     showToast('Tarefa criada','success');
   }
-  saveState(appState);closeAtvModal();renderAtividades();
+  saveState(appState);
+
+  // ── Notificação ao colaborador ──────────────────────────────
+  const respUser=appState.users[responsavel];
+  const respNome=respUser?respUser.name:responsavel;
+  const notifMsg=isNova
+    ? `📌 Nova tarefa atribuída a você por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`
+    : `✏ Tarefa atualizada por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`;
+
+  // Salva no Firebase para que o colaborador leia ao logar/recarregar
+  if(db && fbConnected){
+    const notifRef=db.ref('suplelive/notificacoes/'+responsavel);
+    notifRef.push({
+      msg: notifMsg,
+      ts:  Date.now(),
+      lida:false,
+      tipo:'tarefa',
+      de:  currentUser.name
+    });
+  }
+
+  // Se o responsável for o próprio usuário logado, notifica imediatamente
+  if(responsavel===currentUser.key){
+    pushNotify('Tarefa atribuída',notifMsg);
+  }
+
+  closeAtvModal();renderAtividades();
 }
 
 document.getElementById('atv-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeAtvModal();};
+
+// ═══════════════════════════════════════════════════════
+// SISTEMA DE NOTIFICAÇÕES
+// ═══════════════════════════════════════════════════════
+let _notifRef = null;
+
+function initNotifListener(){
+  if(!db || !fbConnected || !currentUser) return;
+  _notifRef = db.ref('suplelive/notificacoes/'+currentUser.key);
+  _notifRef.on('value', snap=>{
+    const data = snap.val()||{};
+    const todas = Object.entries(data).map(([k,v])=>({fbKey:k,...v})).sort((a,b)=>b.ts-a.ts);
+    const naoLidas = todas.filter(n=>!n.lida);
+    // Badge
+    const badge = document.getElementById('notif-badge');
+    if(badge){
+      badge.style.display = naoLidas.length ? 'block' : 'none';
+      badge.textContent = naoLidas.length > 9 ? '9+' : naoLidas.length;
+    }
+    // Notificação push para novas mensagens não lidas
+    naoLidas.slice(0,1).forEach(n=>{
+      pushNotify('Nova tarefa atribuída', n.msg);
+    });
+    // Renderizar lista
+    renderNotifList(todas);
+  });
+}
+
+function renderNotifList(lista){
+  const el = document.getElementById('notif-list');
+  if(!el) return;
+  if(lista.length===0){
+    el.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem notificações.</div>';
+    return;
+  }
+  el.innerHTML = lista.map(n=>{
+    const dt = n.ts ? new Date(n.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    return `<div onclick="marcarLida('${n.fbKey}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;background:${n.lida?'transparent':'rgba(192,57,43,0.06)'};" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${n.lida?'transparent':'rgba(192,57,43,0.06)'}'">
+      <div style="display:flex;align-items:flex-start;gap:8px;">
+        <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${n.lida?'🔔':'🔴'}</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;color:${n.lida?'var(--text-muted)':'var(--text-primary)'};line-height:1.4;font-weight:${n.lida?'400':'600'};">${n.msg||''}</div>
+          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;">${dt}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function marcarLida(fbKey){
+  if(!_notifRef||!fbKey) return;
+  _notifRef.child(fbKey).update({lida:true});
+}
+
+function marcarTodasLidas(){
+  if(!_notifRef) return;
+  _notifRef.once('value',snap=>{
+    const updates={};
+    Object.keys(snap.val()||{}).forEach(k=>{ updates[k+'/lida']=true; });
+    if(Object.keys(updates).length) _notifRef.update(updates);
+  });
+}
+
+function toggleNotifPanel(){
+  const panel = document.getElementById('notif-panel');
+  if(!panel) return;
+  const open = panel.style.display==='flex';
+  panel.style.display = open ? 'none' : 'flex';
+  panel.style.flexDirection = 'column';
+}
+
+// Fechar painel ao clicar fora
+document.addEventListener('click', e=>{
+  const panel = document.getElementById('notif-panel');
+  const btn   = document.getElementById('notif-btn');
+  if(panel && btn && !panel.contains(e.target) && !btn.contains(e.target)){
+    panel.style.display='none';
+  }
+});
 
 </script>
 </body>
