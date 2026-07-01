@@ -484,12 +484,6 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 <div id="splash">
   <div class="splash-logo">
     <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="width:68px;height:68px;flex-shrink:0;display:block;filter:drop-shadow(0 2px 12px rgba(232,50,42,0.7));">
-  <defs><linearGradient id="sbg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#e8322a"/><stop offset="100%" style="stop-color:#b71c1c"/></linearGradient></defs>
-  <rect width="100" height="100" rx="22" ry="22" fill="url(#sbg)"/>
-  <rect width="100" height="50" rx="22" ry="22" fill="rgba(255,255,255,0.07)"/>
-  <text x="50" y="71" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="62" fill="white" text-anchor="middle">S</text>
-</svg>
       <div class="brand">Suple<span class="brand-live">live.</span></div>
     </div>
     <div class="tagline">Processos</div>
@@ -513,12 +507,6 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
   <header style="justify-content:space-between;padding:0 20px;">
     <div style="width:40px;"></div>
     <div style="display:flex;align-items:center;gap:10px;">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="width:42px;height:42px;flex-shrink:0;display:block;filter:drop-shadow(0 2px 10px rgba(232,50,42,0.6));" class="logo-icon">
-  <defs><linearGradient id="sbg2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#e8322a"/><stop offset="100%" style="stop-color:#b71c1c"/></linearGradient></defs>
-  <rect width="100" height="100" rx="22" ry="22" fill="url(#sbg2)"/>
-  <rect width="100" height="50" rx="22" ry="22" fill="rgba(255,255,255,0.07)"/>
-  <text x="50" y="71" font-family="Arial Black,Arial,sans-serif" font-weight="900" font-size="62" fill="white" text-anchor="middle">S</text>
-</svg>
       <div style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;">
         <div class="header-brand">Suple<span class="brand-live">live.</span></div>
         <div style="font-size:11px;background:linear-gradient(90deg,rgba(148,163,184,0.3),rgba(148,163,184,0.8),rgba(148,163,184,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:6px;text-transform:uppercase;font-family:var(--font-mono);font-weight:400;">Processos</div>
@@ -1202,6 +1190,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           <div class="admin-title" style="margin-bottom:0;">⬡ Dashboard de Desempenho</div>
           <div style="display:flex;gap:8px;">
             <button class="btn btn-danger btn-sm" onclick="resetDayIfWeekEnd()">Resetar Dia</button>
+            <button class="btn btn-danger btn-sm" onclick="resetHistorico()">Resetar Histórico</button>
           </div>
         </div>
 
@@ -5978,6 +5967,16 @@ function resetDayIfWeekEnd(){
   saveState(appState);
   renderAll();
   showToast('✓ Dia arquivado e tarefas resetadas','success');
+}
+
+function resetHistorico(){
+  if(!currentUser||!currentUser.master){showToast('Apenas o master pode resetar o histórico','error');return;}
+  const ok=window.confirm('RESETAR HISTÓRICO\n\nIsso vai apagar TODO o histórico da semana (gráfico de desempenho).\n\nEsta ação não pode ser desfeita. Confirmar?');
+  if(!ok) return;
+  appState.weekHistory={};
+  saveState(appState);
+  renderAll();
+  showToast('✓ Histórico resetado','success');
 }
 
 function resetDay(){
