@@ -1680,7 +1680,8 @@ function loadLocal(){
     if(s.tasks&&s.tasks.envios&&Array.isArray(s.tasks.envios)){
       if(s.tasks.envios.some(i=>i.id==='env3'||i.id==='env4'||i.id==='env5'||!i.link)
         ||s.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Pedidos:'))
-        ||s.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Status:')))
+        ||s.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Status:'))
+        ||s.tasks.envios.some(i=>i.text.startsWith('BASE')))
         s.tasks.envios=initEnv();
     }
     // Migrate anuncios if old Conferir group still present
@@ -1688,7 +1689,7 @@ function loadLocal(){
       if(!s.tasks.anuncios.some(g=>g.id==='anu_geral')
          || s.tasks.anuncios.some(g=>g.id==='anu_conf')
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&!g.items?.some(i=>i.id==='anu_wc'))
-         || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.group!=='ANÚNCIOS MARKETPLACES')
+         || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.group!=='CONFERÊNCIA DE ENTRADAS')
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vl'&&!i.btns))
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vx'&&!i.btns))
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>
@@ -1881,14 +1882,15 @@ function applyRemoteState(data){
   if(data.tasks.envios&&Array.isArray(data.tasks.envios)){
     if(data.tasks.envios.some(i=>i.id==='env3'||i.id==='env4'||i.id==='env5'||!i.link)
       ||data.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Pedidos:'))
-      ||data.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Status:')))
+      ||data.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Status:'))
+      ||data.tasks.envios.some(i=>i.text.startsWith('BASE')))
       data.tasks.envios=initEnv();
   }
   if(data.tasks.anuncios&&Array.isArray(data.tasks.anuncios)){
     if(!data.tasks.anuncios.some(g=>g.id==='anu_geral')
        || data.tasks.anuncios.some(g=>g.id==='anu_conf')
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&!g.items?.some(i=>i.id==='anu_wc'))
-       || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.group!=='ANÚNCIOS MARKETPLACES')
+       || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.group!=='CONFERÊNCIA DE ENTRADAS')
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vl'&&!i.btns))
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vx'&&!i.btns))
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>
@@ -2299,14 +2301,14 @@ function initPlt(){return[
 ];}
 
 function initEnv(){return[
-  {id:'env1',text:'BASE — P. para Envio → Enviados',owner:'gustavo',sub:'Cadastrar rastreios',done:false,doneBy:null,doneAt:null,
+  {id:'env1',text:'P. para Envio → Enviados',owner:'gustavo',sub:'Cadastrar rastreios',done:false,doneBy:null,doneAt:null,
    link:'https://panel-u.baselinker.com/orders.php#status:228887',linkLabel:'Base'},
-  {id:'env2',text:'BASE — Enviados → Entregue',owner:'gustavo',sub:'Dar baixa nos entregues',done:false,doneBy:null,doneAt:null,
+  {id:'env2',text:'Enviados → Entregue',owner:'gustavo',sub:'Dar baixa nos entregues',done:false,doneBy:null,doneAt:null,
    link:'https://panel-u.baselinker.com/orders.php#status:228889',linkLabel:'Base'}
 ];}
 
 function initAnu(){return[
-  {id:'anu_geral',group:'ANÚNCIOS MARKETPLACES',icon:'🖼️',items:[
+  {id:'anu_geral',group:'CONFERÊNCIA DE ENTRADAS',icon:'🖼️',items:[
     Object.assign(t('anu_sn','SHOPEE — Suplenium','','https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2','Anúncios'),{owner:'cmandrade'}),
     Object.assign(t('anu_pv','SHOPEE — Primevitaminas','','https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2','Anúncios'),{owner:'cmandrade'}),
     Object.assign({id:'anu_vl',text:'MERC. LIVRE — Vitalife',sub:'',done:false,doneBy:null,doneAt:null,repeats:1,execs:[],owner:'cmandrade',
@@ -3418,7 +3420,7 @@ function renderEnv(){
   if(allDone){iconEl.style.background='var(--green-dim)';iconEl.textContent='✓';}else{iconEl.textContent='📦';}
   const titleSpan=document.createElement('span');titleSpan.className='task-group-title';
   if(allDone)titleSpan.style.color='var(--green)';
-  titleSpan.textContent='PEDIDOS';
+  titleSpan.textContent='PEDIDOS BASE';
   const countSpan=document.createElement('span');countSpan.className='task-group-count';countSpan.textContent=(doneC===tasks.length?'100':Math.round((doneC/tasks.length)*100))+'%';
   hdr.appendChild(iconEl);hdr.appendChild(titleSpan);hdr.appendChild(countSpan);
   card.appendChild(hdr);
@@ -6225,7 +6227,7 @@ function getAllAssignableItems(){
   (appState.tasks.envios||[]).forEach(i=>{
     items.push({
       tab:'envios', tabLabel:'Rastreios',
-      groupId:'envios', groupLabel:'Rastreios', groupIcon:'📦',
+      groupId:'envios', groupLabel:'PEDIDOS BASE', groupIcon:'📦',
       itemId:i.id, itemText:i.text, itemSub:i.sub||'',
       get owner(){ return i.owner||''; }, set owner(v){ i.owner=v; },
       get owners(){ return i.owners&&i.owners.length?i.owners:(i.owner?[i.owner]:[]); },
