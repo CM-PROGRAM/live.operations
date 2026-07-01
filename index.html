@@ -175,6 +175,7 @@
 *{margin:0;padding:0;box-sizing:border-box;}
 /* Sticky columns hover fix */
 #conf-tbody tr:hover td[style*="position:sticky"]{background:var(--bg-hover) !important;}
+#conf-thead th{color:var(--text-primary) !important;}
 body{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 body{background:var(--bg-base);color:var(--text-primary);font-family:var(--font-sans);min-height:100vh;background-image:radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.06) 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, rgba(139,92,246,0.06) 0%, transparent 50%);}
 html{overflow-x:hidden;}
@@ -226,6 +227,8 @@ html{overflow-x:hidden;}
 .input-group label{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;font-weight:500;}
 input[type="text"],input[type="password"],select,textarea{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);}
 input:focus,select:focus,textarea:focus{border-color:rgba(59,130,246,0.6);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 16px rgba(59,130,246,0.2);}
+select{color-scheme:dark;}
+select option,select optgroup{background:var(--bg-surface);color:var(--text-primary);}
 .btn{background:linear-gradient(135deg,rgba(192,57,43,0.8) 0%,rgba(192,57,43,0.6) 100%);border:1px solid rgba(192,57,43,0.7);border-radius:50px;color:#fff;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:600;padding:10px 18px;transition:all .2s;width:100%;letter-spacing:-0.01em;box-shadow:0 4px 20px rgba(192,57,43,0.3),inset 0 1px 0 rgba(255,255,255,0.15);position:relative;overflow:hidden;backdrop-filter:blur(8px);}
 .btn::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.12),transparent);border-radius:50px 50px 0 0;pointer-events:none;}
 .btn:hover{opacity:1;transform:translateY(-2px);box-shadow:0 6px 28px rgba(192,57,43,0.5),inset 0 1px 0 rgba(255,255,255,0.2);}
@@ -593,9 +596,9 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <div id="historico-wpp-body">
           <div style="padding:10px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
             <button onclick="filtroHistoricoWpp('semana-atual')" id="hist-f-semana-atual" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(139,92,246,0.5);background:rgba(139,92,246,0.2);color:#a78bfa;cursor:pointer;">Esta semana</button>
-            <button onclick="filtroHistoricoWpp('semana-passada')" id="hist-f-semana-passada" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid var(--glass-border);background:transparent;color:var(--text-muted);cursor:pointer;">Semana passada</button>
-            <button onclick="filtroHistoricoWpp('30dias')" id="hist-f-30dias" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid var(--glass-border);background:transparent;color:var(--text-muted);cursor:pointer;">Últimos 30 dias</button>
-            <button onclick="filtroHistoricoWpp('todos')" id="hist-f-todos" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid var(--glass-border);background:transparent;color:var(--text-muted);cursor:pointer;">60 dias</button>
+            <button onclick="filtroHistoricoWpp('semana-passada')" id="hist-f-semana-passada" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(139,92,246,0.5);background:rgba(139,92,246,0.2);color:#a78bfa;cursor:pointer;">Semana passada</button>
+            <button onclick="filtroHistoricoWpp('30dias')" id="hist-f-30dias" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(139,92,246,0.5);background:rgba(139,92,246,0.2);color:#a78bfa;cursor:pointer;">Últimos 30 dias</button>
+            <button onclick="filtroHistoricoWpp('todos')" id="hist-f-todos" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(139,92,246,0.5);background:rgba(139,92,246,0.2);color:#a78bfa;cursor:pointer;">60 dias</button>
           </div>
           <div id="historico-wpp-list" style="max-height:480px;overflow-y:auto;"></div>
           <div id="historico-wpp-empty" style="display:none;padding:24px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhuma venda encontrada neste período.</div>
@@ -855,7 +858,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:72px;background:var(--bg-surface);z-index:4;">SKU</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:162px;background:var(--bg-surface);z-index:4;">EAN</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);position:sticky;top:0;left:272px;background:var(--bg-surface);z-index:4;">PRODUTO</th>
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:492px;background:var(--bg-surface);z-index:4;border-right:2px solid var(--border-light);">MARCA</th>
+                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:492px;background:var(--bg-surface);z-index:4;border-right:2px solid var(--border-light);"><div style="display:grid;grid-template-columns:auto 1fr;align-items:center;">MARCA<button type="button" id="conf-marca-add-btn-th" onclick="addConfMarca()" title="Adicionar nova marca" style="display:none;justify-self:center;flex-shrink:0;width:16px;height:16px;line-height:14px;padding:0;background:linear-gradient(135deg,rgba(59,130,246,0.25),rgba(59,130,246,0.1));border:1px solid rgba(59,130,246,0.5);border-radius:4px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0;vertical-align:middle;">+</button></div></th>
                 <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;">IMAGENS</th>
                 <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;">ATACADO</th>
                 <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;">LOJA INT.</th>
@@ -894,7 +897,8 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
             
             <div class="input-group"><label>EAN</label><input type="text" id="conf-ean" placeholder="0737870152415" autocomplete="off"></div>
             <div class="input-group" style="grid-column:1/-1;"><label>Produto</label><input type="text" id="conf-produto" placeholder="Nome completo do produto" autocomplete="off"></div>
-            <div class="input-group" style="grid-column:1/3;"><label>Marca</label>
+            <div class="input-group" style="grid-column:1/3;">
+              <label>Marca</label>
               <select id="conf-marca">
                 <option value="">— Selecionar —</option>
               </select>
@@ -978,7 +982,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <div class="tab-panel" id="tab-tarefas">
       <div class="section-header">
         <span class="section-title">Tarefas Atribuídas</span>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <select id="atv-filter-colab" onchange="renderAtividades()" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
             <option value="">Todos os colaboradores</option>
           </select>
@@ -988,7 +992,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
             <option value="alta">🟡 Alta</option>
             <option value="normal">⚪ Normal</option>
           </select>
-          <button id="btn-nova-atv" class="btn btn-sm" onclick="openAtvModal(null)" style="display:none;white-space:nowrap;">+ Criar</button>
+          <button id="btn-nova-atv" class="btn btn-sm" onclick="openAtvModal(null)" style="display:none;white-space:nowrap;flex-shrink:0;width:auto;min-width:max-content;">+ Criar Tarefa</button>
         </div>
       </div>
 
@@ -1258,8 +1262,8 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       </div>
 
       <div class="admin-panel">
-        <div class="admin-title">👤 Tarefas Atribuídas</div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:14px;letter-spacing:0.5px;">Defina o responsável por cada grupo de tarefas. Usuários só veem as tarefas atribuídas a eles.</div>
+        <div class="admin-title">🔗 Links das Tarefas</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:14px;letter-spacing:0.5px;">A atribuição de responsáveis agora é feita direto no card de cada usuário acima. Aqui você só edita os links de cada tarefa.</div>
         <div id="task-assign-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
     </div>
@@ -1684,6 +1688,7 @@ function loadLocal(){
     if(s.tasks&&s.tasks.anuncios&&Array.isArray(s.tasks.anuncios)){
       if(!s.tasks.anuncios.some(g=>g.id==='anu_geral')
          || s.tasks.anuncios.some(g=>g.id==='anu_conf')
+         || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.group!=='ANÚNCIOS MARKETPLACES')
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vl'&&!i.btns))
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vx'&&!i.btns))
          || s.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>
@@ -1695,6 +1700,10 @@ function loadLocal(){
            || (i.id==='anu_vl'&&i.btns?.some(b=>b.label==='Mercado Turbo'))
            || (i.id==='anu_rd'&&i.btns?.some(b=>b.label==='Administrar Prod.'))
            || (i.linkLabel==='Produtos - Ativos'||i.linkLabel==='PRODUTOS - Ativos'||i.linkLabel==='PRODUTOS - Listar')
+           || (['anu_sn','anu_pv','anu_mg','anu_wc'].includes(i.id)&&i.linkLabel!=='Anúncios')
+           || (['anu_dp','anu_dsp'].includes(i.id)&&i.linkLabel!=='Anúncios')
+           || (i.id==='anu_rd'&&(!!i.btns||i.linkLabel!=='Anúncios'))
+           || (['anu_vl','anu_vx'].includes(i.id)&&!i.btns?.some(b=>b.label==='Anúncios'))
          )))
         s.tasks.anuncios=initAnu();
     }
@@ -1878,6 +1887,7 @@ function applyRemoteState(data){
   if(data.tasks.anuncios&&Array.isArray(data.tasks.anuncios)){
     if(!data.tasks.anuncios.some(g=>g.id==='anu_geral')
        || data.tasks.anuncios.some(g=>g.id==='anu_conf')
+       || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.group!=='ANÚNCIOS MARKETPLACES')
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vl'&&!i.btns))
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>i.id==='anu_vx'&&!i.btns))
        || data.tasks.anuncios.some(g=>g.id==='anu_geral'&&g.items?.some(i=>
@@ -1889,6 +1899,10 @@ function applyRemoteState(data){
          || (i.id==='anu_vl'&&i.btns?.some(b=>b.label==='Mercado Turbo'))
          || (i.id==='anu_rd'&&i.btns?.some(b=>b.label==='Administrar Prod.'))
          || (i.linkLabel==='Produtos - Ativos'||i.linkLabel==='PRODUTOS - Ativos'||i.linkLabel==='PRODUTOS - Listar')
+         || (['anu_sn','anu_pv','anu_mg','anu_wc'].includes(i.id)&&i.linkLabel!=='Anúncios')
+         || (['anu_dp','anu_dsp'].includes(i.id)&&i.linkLabel!=='Anúncios')
+         || (i.id==='anu_rd'&&(!!i.btns||i.linkLabel!=='Anúncios'))
+         || (['anu_vl','anu_vx'].includes(i.id)&&!i.btns?.some(b=>b.label==='Anúncios'))
        )))
       data.tasks.anuncios=initAnu();
   }
@@ -2290,31 +2304,24 @@ function initEnv(){return[
 ];}
 
 function initAnu(){return[
-  {id:'anu_geral',group:'ANUNCIOS GERAL',icon:'🖼️',items:[
-    Object.assign(t('anu_sn','SHOPEE — Suplenium','','https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2','Produtos'),{owner:'cmandrade'}),
-    Object.assign(t('anu_pv','SHOPEE — Primevitaminas','','https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2','Produtos'),{owner:'cmandrade'}),
+  {id:'anu_geral',group:'ANÚNCIOS MARKETPLACES',icon:'🖼️',items:[
+    Object.assign(t('anu_sn','SHOPEE — Suplenium','','https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2','Anúncios'),{owner:'cmandrade'}),
+    Object.assign(t('anu_pv','SHOPEE — Primevitaminas','','https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2','Anúncios'),{owner:'cmandrade'}),
     Object.assign({id:'anu_vl',text:'MERC. LIVRE — Vitalife',sub:'',done:false,doneBy:null,doneAt:null,repeats:1,execs:[],owner:'cmandrade',
       btns:[
-        {label:'M. Turbo',link:'https://app.mercadoturbo.com.br/login_operador'},
-        {label:'Anúncios',link:'https://www.mercadolivre.com.br/anuncios#label=active'}
+        {label:'Anúncios',link:'https://app.mercadoturbo.com.br/login_operador'}
       ]
     }),
     Object.assign({id:'anu_vx',text:'MERC. LIVRE — VXShop',sub:'',done:false,doneBy:null,doneAt:null,repeats:1,execs:[],owner:'cmandrade',
       btns:[
-        {label:'M. Turbo',link:'https://app.mercadoturbo.com.br/login_operador'},
-        {label:'Anúncios',link:'https://www.mercadolivre.com.br/anuncios#label=active'}
+        {label:'Anúncios',link:'https://app.mercadoturbo.com.br/login_operador'}
       ]
     }),
-    Object.assign(t('anu_mg','MAGALU — 4Vita','','https://seller.magalu.com/products#state=ed0dc32e-671a-463a-a0b1-2e260ab51dec&session_state=9193c397-ea30-4e6a-8d92-01ce848bfffb&code=53830a65-418d-4c03-a197-2b79a2ab4620.9193c397-ea30-4e6a-8d92-01ce848bfffb.5d8d5c88-99db-42d0-b9d1-7a3abdda31ac','Produtos'),{owner:'cmandrade'}),
-    Object.assign(t('anu_wc','WEB CONTINENTAL — 4Vita','','https://portal.webcontinental.com.br/#/listar/produtos','Produtos'),{owner:'cmandrade'}),
-    Object.assign({id:'anu_rd',text:'RD MARKETPLACE — Vix Sup.',sub:'',done:false,doneBy:null,doneAt:null,repeats:1,execs:[],owner:'cmandrade',
-      btns:[
-        {label:'Adm. Produtos',link:'https://portal.rdmarketplace.com.br/app/products'},
-        {label:'Adc. Produtos',link:'https://portal.rdmarketplace.com.br/app/products/create'}
-      ]
-    }),
-    Object.assign(t('anu_dp','DPSP — Drog. Pacheco','','https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar','Gestão de SKUs'),{owner:'cmandrade'}),
-    Object.assign(t('anu_dsp','DPSP — Drog. São Paulo','','https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar','Gestão de SKUs'),{owner:'cmandrade'})
+    Object.assign(t('anu_mg','MAGALU — 4Vita','','https://seller.magalu.com/products#state=ed0dc32e-671a-463a-a0b1-2e260ab51dec&session_state=9193c397-ea30-4e6a-8d92-01ce848bfffb&code=53830a65-418d-4c03-a197-2b79a2ab4620.9193c397-ea30-4e6a-8d92-01ce848bfffb.5d8d5c88-99db-42d0-b9d1-7a3abdda31ac','Anúncios'),{owner:'cmandrade'}),
+    Object.assign(t('anu_wc','WEB CONTINENTAL — 4Vita','','https://portal.webcontinental.com.br/#/listar/produtos','Anúncios'),{owner:'cmandrade'}),
+    Object.assign(t('anu_rd','RD MARKETPLACE — Vix Sup.','','https://portal.rdmarketplace.com.br/app/products','Anúncios'),{owner:'cmandrade'}),
+    Object.assign(t('anu_dp','DPSP — Drog. Pacheco','','https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar','Anúncios'),{owner:'cmandrade'}),
+    Object.assign(t('anu_dsp','DPSP — Drog. São Paulo','','https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar','Anúncios'),{owner:'cmandrade'})
   ]}
 ];}
 
@@ -2933,18 +2940,18 @@ function toggleHistoricoWpp(){
 
 function filtroHistoricoWpp(periodo){
   _historicoFiltro = periodo;
-  // Reset estilos
+  // Reset estilos — todos ficam no modelo roxo, o ativo com mais destaque
   ['semana-atual','semana-passada','30dias','todos'].forEach(id=>{
     const btn = document.getElementById('hist-f-'+id);
     if(!btn) return;
     if(id === periodo){
+      btn.style.background = 'rgba(139,92,246,0.35)';
+      btn.style.borderColor = 'rgba(139,92,246,0.8)';
+      btn.style.color = '#c4b5fd';
+    } else {
       btn.style.background = 'rgba(139,92,246,0.2)';
       btn.style.borderColor = 'rgba(139,92,246,0.5)';
       btn.style.color = '#a78bfa';
-    } else {
-      btn.style.background = 'transparent';
-      btn.style.borderColor = 'var(--glass-border)';
-      btn.style.color = 'var(--text-muted)';
     }
   });
   renderHistoricoWpp();
@@ -3518,15 +3525,16 @@ function toggleEnv(id){
 }
 
 /* ===== ANU ===== */
-let _anuCollapsed = {};
+let _anuCollapsed = {anu_geral:true};
 function renderAnu(){
   const container=document.getElementById('anu-tasks');
   const groups=appState.tasks.anuncios;
   container.innerHTML='';
   groups.forEach(g=>{
+    const isGeral=g.id==='anu_geral';
     const card=document.createElement('div');card.className='task-group';
     const doneG=g.items.filter(i=>i.done).length;
-    const allDoneG=doneG===g.items.length;
+    const allDoneG=!isGeral&&doneG===g.items.length;
     if(allDoneG){card.style.border='1px solid var(--green-dim)';card.style.boxShadow='0 0 0 2px var(--green-glow)';}
     const header=document.createElement('div');header.className='task-group-header';
     header.style.cursor='pointer';header.style.userSelect='none';
@@ -3548,17 +3556,19 @@ function renderAnu(){
       const a=document.createElement('a');a.href=g.link;a.target='_blank';a.className='btn-link';
       a.style.marginRight='8px';a.innerHTML='↗ '+(g.linkLabel||'Abrir');
       a.onclick=e=>e.stopPropagation();
-      header.appendChild(iconEl);header.appendChild(titleSpan);header.appendChild(a);header.appendChild(countSpan);
+      header.appendChild(iconEl);header.appendChild(titleSpan);header.appendChild(a);if(!isGeral)header.appendChild(countSpan);
     } else {
-      header.appendChild(iconEl);header.appendChild(titleSpan);header.appendChild(countSpan);
+      header.appendChild(iconEl);header.appendChild(titleSpan);if(!isGeral)header.appendChild(countSpan);
     }
     header.appendChild(chevron);
     card.appendChild(header);
-    const pb=document.createElement('div');pb.className='progress-bar';
-    const pf=document.createElement('div');pf.className='progress-fill';
-    if(allDoneG)pf.classList.add('green');
-    pf.style.width=Math.round((doneG/g.items.length)*100)+'%';
-    pb.appendChild(pf);card.appendChild(pb);
+    if(!isGeral){
+      const pb=document.createElement('div');pb.className='progress-bar';
+      const pf=document.createElement('div');pf.className='progress-fill';
+      if(allDoneG)pf.classList.add('green');
+      pf.style.width=Math.round((doneG/g.items.length)*100)+'%';
+      pb.appendChild(pf);card.appendChild(pb);
+    }
     // Body wrapper (collapsible)
     const body=document.createElement('div');
     body.style.display=collapsed?'none':'block';
@@ -3623,12 +3633,6 @@ function renderAnu(){
             a.style.cssText='display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(59,130,246,0.07));border:1px solid rgba(59,130,246,0.35);border-radius:50px;color:#93c5fd;font-size:11px;font-weight:600;padding:4px 12px;text-decoration:none;margin-bottom:10px;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
             a.innerHTML='↗ '+(tk.linkLabel||'Abrir');c.appendChild(a);
           }
-          // timer + concluir
-          const actRow=document.createElement('div');actRow.style.cssText='display:flex;gap:6px;margin-top:4px;';
-          const timerBtn=makeTimerBtn(tk);timerBtn.style.flex='1';actRow.appendChild(timerBtn);
-          const compBtn=makeCompleteBtn(tk,()=>markGroupDone('anuncios',g,tk.id),()=>unmarkGroupTask('anuncios',g,tk.id));
-          compBtn.style.flex='2';compBtn.style.borderRadius='50px';actRow.appendChild(compBtn);
-          c.appendChild(actRow);
           grid.appendChild(c);
         });
         body.appendChild(grid);
@@ -3730,6 +3734,84 @@ const CONF_MARCAS = [
   {nome:'Swanson',                   cor:'#166534'},
 ];
 
+// Marcas custom adicionadas pelo master, salvas no appState
+function getAllMarcas(){
+  const custom = (appState.customMarcas||[]);
+  return CONF_MARCAS.concat(custom);
+}
+
+// Paleta restrita a cores com contraste bom para texto branco
+const _MARCA_COR_PALETTE=[
+  {nome:'Azul',        cor:'#1e3a8a'},
+  {nome:'Roxo',        cor:'#4c1d95'},
+  {nome:'Violeta',     cor:'#6d28d9'},
+  {nome:'Laranja',     cor:'#c2410c'},
+  {nome:'Verde',       cor:'#166534'},
+  {nome:'Verde-azul',  cor:'#0f766e'},
+  {nome:'Azul céu',    cor:'#0369a1'},
+  {nome:'Rosa escuro', cor:'#9d174d'},
+  {nome:'Vermelho',    cor:'#b91c1c'},
+  {nome:'Índigo',      cor:'#3730a3'},
+  {nome:'Marrom',      cor:'#7c2d12'},
+  {nome:'Chumbo',      cor:'#374151'},
+];
+
+function addConfMarca(){
+  if(!currentUser||!currentUser.master){showToast('Apenas o master pode adicionar marcas','error');return;}
+  const nome=(prompt('Nome da nova marca:')||'').trim();
+  if(!nome) return;
+  const all=getAllMarcas();
+  if(all.some(m=>m.nome.toLowerCase()===nome.toLowerCase())){showToast('Essa marca já existe','warn');return;}
+  showMarcaColorPicker(nome);
+}
+
+function showMarcaColorPicker(nome){
+  const old=document.getElementById('marca-color-overlay');
+  if(old) old.remove();
+  const overlay=document.createElement('div');
+  overlay.id='marca-color-overlay';
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
+  const box=document.createElement('div');
+  box.style.cssText='background:var(--bg-surface);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
+  box.innerHTML=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Nova marca: ${nome}</div>
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">Escolha uma cor (texto branco fica legível em todas)</div>`;
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;';
+  _MARCA_COR_PALETTE.forEach(opt=>{
+    const sw=document.createElement('button');
+    sw.type='button';
+    sw.title=opt.nome;
+    sw.style.cssText=`background:${opt.cor};border:1px solid rgba(255,255,255,0.15);border-radius:8px;height:44px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:9px;font-weight:700;font-family:var(--font-sans);transition:transform .1s;`;
+    sw.textContent=opt.nome;
+    sw.onmouseover=()=>sw.style.transform='scale(1.06)';
+    sw.onmouseout=()=>sw.style.transform='';
+    sw.onclick=()=>{ overlay.remove(); saveNewMarca(nome, opt.cor); };
+    grid.appendChild(sw);
+  });
+  box.appendChild(grid);
+  const cancelBtn=document.createElement('button');
+  cancelBtn.type='button';cancelBtn.textContent='Cancelar';
+  cancelBtn.style.cssText='margin-top:14px;width:100%;background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--text-secondary);padding:8px;font-size:12px;cursor:pointer;';
+  cancelBtn.onclick=()=>overlay.remove();
+  box.appendChild(cancelBtn);
+  overlay.appendChild(box);
+  overlay.onclick=e=>{ if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+
+function saveNewMarca(nome,cor){
+  if(!appState.customMarcas) appState.customMarcas=[];
+  appState.customMarcas.push({nome,cor});
+  saveState(appState);
+  const marcaSel=document.getElementById('conf-marca');
+  if(marcaSel){
+    marcaSel.innerHTML='<option value="">— Selecionar —</option>'+
+      getAllMarcas().map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
+    marcaSel.value=nome;
+  }
+  showToast('✓ Marca "'+nome+'" adicionada','success');
+}
+
 function _confStatusBadge(val){
   if(!val) return '<span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">—</span>';
   const s = CONF_STATUS_STYLE[val]||{bg:'var(--bg-active)',border:'var(--border)',color:'var(--text-muted)'};
@@ -3748,6 +3830,32 @@ function _confStatusSelect(key, curVal, prodId){
     style="background:${bg};border:1px solid var(--border);border-radius:6px;color:${col};font-family:var(--font-sans);font-size:10px;font-weight:600;padding:3px 6px;outline:none;cursor:pointer;width:100%;">${opts}</select>`;
 }
 
+let _ultAtualTip=null;
+function getUltAtualTip(){
+  if(!_ultAtualTip){
+    _ultAtualTip=document.createElement('div');
+    _ultAtualTip.style.cssText='position:fixed;display:none;background:var(--bg-active);border:1px solid var(--border-light);border-radius:8px;padding:7px 12px;font-size:11px;font-family:var(--font-sans);white-space:nowrap;z-index:9999;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.5);text-align:center;';
+    document.body.appendChild(_ultAtualTip);
+  }
+  return _ultAtualTip;
+}
+function showUltAtualInfo(e,pid){
+  const prod=(appState.conferencia||[]).find(p=>p.id===pid);
+  const tip=getUltAtualTip();
+  if(!prod||!prod.ultAtualPor){
+    tip.innerHTML='<div style="color:var(--text-muted);font-family:var(--font-mono);">Sem alterações registradas</div>';
+  } else {
+    tip.innerHTML=`<div style="color:var(--text-primary);font-weight:700;">${prod.ultAtualPor}</div><div style="color:var(--text-muted);font-family:var(--font-mono);font-size:10px;margin-top:1px;">${prod.ultAtualHora||''}</div>`;
+  }
+  tip.style.display='block';tip.style.visibility='hidden';
+  const r=e.target.getBoundingClientRect();
+  const tw=tip.offsetWidth,th=tip.offsetHeight;
+  tip.style.left=Math.max(4,r.left+r.width/2-tw/2)+'px';
+  tip.style.top=(r.top-th-6)+'px';
+  tip.style.visibility='visible';
+}
+function hideUltAtualInfo(){ if(_ultAtualTip) _ultAtualTip.style.display='none'; }
+
 function confStatusChange(sel){
   const pid = sel.getAttribute('data-pid');
   const plt = sel.getAttribute('data-plt');
@@ -3757,6 +3865,8 @@ function confStatusChange(sel){
   if(!prod.status) prod.status = {};
   prod.status[plt] = val;
   prod.ultAtual = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  prod.ultAtualPor = currentUser ? currentUser.name : null;
+  prod.ultAtualHora = nowTimeStr();
   // Apply live color to the select itself
   const _isImg = plt === 'imagens';
   const _sm = _isImg ? CONF_IMG_STYLE : CONF_STATUS_STYLE;
@@ -3767,13 +3877,15 @@ function confStatusChange(sel){
 }
 
 function renderConferencia(){
-  const isMaster = currentUser && currentUser.master;
+  const isMaster = currentUser && (currentUser.master || (currentUser.perms||[]).includes('envios'));
   const tbody  = document.getElementById('conf-tbody');
   const empty  = document.getElementById('conf-empty');
   const badge  = document.getElementById('conf-count-badge');
   const btnNew = document.getElementById('btn-new-conf');
   if(!tbody) return;
   if(btnNew) btnNew.style.display = (isMaster || (currentUser && (currentUser.perms||[]).includes('envios'))) ? '' : 'none';
+  const marcaThBtn = document.getElementById('conf-marca-add-btn-th');
+  if(marcaThBtn) marcaThBtn.style.display = (currentUser && currentUser.master) ? 'inline-block' : 'none';
 
   const q = ((document.getElementById('conf-search')||{}).value||'').toLowerCase().trim();
   let rows = (appState.conferencia||[]);
@@ -3795,7 +3907,7 @@ function renderConferencia(){
 
   // MARCA badge color helper
   function marcaBadge(marca){
-    const found = CONF_MARCAS.find(m=>m.nome===marca);
+    const found = getAllMarcas().find(m=>m.nome===marca);
     const cor = found ? found.cor : '#555';
     // Text color: white for dark bg, dark for light bg
     const isLight = ['#e3e5e8','#4ade80','#38bdf8','#fbbf24'].includes(cor);
@@ -3805,16 +3917,16 @@ function renderConferencia(){
 
   tbody.innerHTML = rows.map(r=>{
     const st = r.status||{};
-    const actions = isMaster
+    const actions = currentUser
       ? `<div style="display:flex;gap:4px;justify-content:center;">
           <button onclick="openConfModal('${r.id}')" class="btn-link btn-sm" title="Editar">✏</button>
           <button onclick="deleteConf('${r.id}')" class="btn-link btn-sm btn-danger" title="Excluir">✕</button>
         </div>`
       : '';
     return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
-      <td style="padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap;position:sticky;left:0;background:var(--bg-card);z-index:2;">${r.ultAtual||'—'}</td>
+      <td onmouseenter="showUltAtualInfo(event,'${r.id}')" onmouseleave="hideUltAtualInfo()" style="padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:#a78bfa;font-weight:700;white-space:nowrap;position:sticky;left:0;background:var(--bg-card);z-index:2;cursor:help;">${r.ultAtual||'—'}</td>
       <td style="padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);white-space:nowrap;font-weight:600;position:sticky;left:72px;background:var(--bg-card);z-index:2;">${r.sku||'—'}</td>
-      <td style="padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap;position:sticky;left:162px;background:var(--bg-card);z-index:2;">${r.ean||'—'}</td>
+      <td style="padding:7px 10px;font-family:var(--font-mono);font-size:10px;color:var(--text-primary);white-space:nowrap;position:sticky;left:162px;background:var(--bg-card);z-index:2;">${r.ean||'—'}</td>
       <td style="padding:7px 10px;font-size:12px;color:var(--text-primary);position:sticky;left:272px;background:var(--bg-card);z-index:2;">${r.produto||'—'}</td>
       <td style="padding:7px 10px;white-space:nowrap;position:sticky;left:492px;background:var(--bg-card);z-index:2;border-right:2px solid var(--border-light);">${marcaBadge(r.marca)}</td>
       ${CONF_PLATS.map(p=>`<td style="padding:5px 8px;text-align:center;min-width:82px;">${_confStatusSelect(p.key, st[p.key]||'', r.id)}</td>`).join('')}
@@ -3828,7 +3940,7 @@ function openConfModal(id){
   const marcaSel = document.getElementById('conf-marca');
   if(marcaSel){
     marcaSel.innerHTML = '<option value="">— Selecionar —</option>' +
-      CONF_MARCAS.map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
+      getAllMarcas().map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
     marcaSel.value='';
   }
   // Populate imagens select
@@ -3887,14 +3999,16 @@ function saveConf(){
   });
 
   const hoje = new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+  const quem = currentUser ? currentUser.name : null;
+  const hora = nowTimeStr();
   if(!appState.conferencia) appState.conferencia=[];
 
   if(editId){
     const idx = appState.conferencia.findIndex(p=>p.id===editId);
-    if(idx>=0) appState.conferencia[idx] = {id:editId, sku, ean, produto, marca, status, ultAtual:hoje};
+    if(idx>=0) appState.conferencia[idx] = {id:editId, sku, ean, produto, marca, status, ultAtual:hoje, ultAtualPor:quem, ultAtualHora:hora};
     showToast('✓ Produto atualizado','success');
   } else {
-    appState.conferencia.push({id:'conf_'+Date.now(), sku, ean, produto, marca, status, ultAtual:hoje});
+    appState.conferencia.push({id:'conf_'+Date.now(), sku, ean, produto, marca, status, ultAtual:hoje, ultAtualPor:quem, ultAtualHora:hora});
     showToast('✓ Produto cadastrado','success');
   }
   saveState(appState);
@@ -3932,7 +4046,8 @@ function execTask(section,group,id){
 }
 
 function resetExecs(section,group,id){
-  if(!currentUser.master){showToast('Apenas o master pode resetar execuções','error');return;}
+  const permKey=section==='plataformas'?'plataformas':'anuncios';
+  if(!currentUser.master && !(currentUser.perms||[]).includes(permKey)){showToast('Apenas o master ou quem tem acesso a esta aba pode resetar execuções','error');return;}
   const tk=group.items.find(i=>i.id===id);if(!tk)return;
   tk.execs=[];tk.done=false;tk.doneBy=null;tk.doneAt=null;
   showToast('↩ Execuções resetadas','');
@@ -4510,8 +4625,8 @@ function buildDevCardFull(d, isConcluida){
     aEl.appendChild(eBtn);
   }
 
-  // Reabrir button — concluded cards, Master only
-  if(isConcluida && isMaster){
+  // Reabrir button — concluded cards, master or permitted users
+  if(isConcluida && canDev){
     const reBtn=document.createElement('button');reBtn.className='btn-link btn-sm';
     reBtn.style.cssText='border-color:var(--amber);color:var(--amber);';
     reBtn.textContent='↩ Reabrir';reBtn.title='Reabrir devolução';
@@ -4520,8 +4635,8 @@ function buildDevCardFull(d, isConcluida){
     aEl.appendChild(reBtn);
   }
 
-  // Delete — Master only, active or concluded
-  if(isMaster){
+  // Delete — master or permitted users, active or concluded
+  if(canDev){
     const dBtn=document.createElement('button');dBtn.className='btn-link btn-sm btn-danger';dBtn.textContent='✕';dBtn.title='Remover';
     dBtn.setAttribute('data-devid',d.id);
     dBtn.onclick=function(){ deleteDevById(this.getAttribute('data-devid')); };
@@ -5571,6 +5686,50 @@ function countTodayTasks(){
   return{total,done};
 }
 
+// Monta lista/sublista das tarefas existentes em cada aba, para exibir no painel Adm. Master
+function buildAbaTaskSummary(tabId){
+  const t = appState.tasks||{};
+  switch(tabId){
+    case 'whatsapp':
+    case 'plataformas':
+    case 'anuncios': {
+      const groups = t[tabId]||[];
+      return groups.map(g=>({
+        group: g.group||g.id,
+        groupId: tabId==='anuncios' ? g.group : g.id,
+        items: (g.items||[]).map(i=>({
+          itemId: i.id, itemText: i.text||i.title||'—',
+          owners: getTaskOwners(i)
+        }))
+      })).filter(g=>g.items.length);
+    }
+    case 'envios': {
+      const items = t.envios||[];
+      if(!items.length) return [];
+      return [{group:'Base', groupId:'envios', items: items.map(i=>({
+        itemId:i.id, itemText:i.text||'—', owners:getTaskOwners(i)
+      }))}];
+    }
+    case 'devolucoes': {
+      const items = t.devolucoes||[];
+      if(!items.length) return [];
+      return [{group:'Devoluções em aberto', items: items.slice(0,10).map(d=>(d.produto||d.sku||'Devolução')+' — '+(d.workflow||'aberta'))}];
+    }
+    case 'atendimentos': {
+      const items = t.atendimentos||[];
+      if(!items.length) return [];
+      return [{group:'Atendimentos em aberto', items: items.slice(0,10).map(a=>(a.assunto||a.produto||'Atendimento')+' — '+(a.workflow||'aberto'))}];
+    }
+    case 'tarefas': {
+      const items = appState.atividades||[];
+      if(!items.length) return [];
+      return [{group:'Tarefas atribuídas', items: items.slice(0,10).map(a=>(a.titulo||'Sem título')+' → '+(appState.users[a.responsavel]?.name||a.responsavel||'—'))}];
+    }
+    default:
+      return [];
+  }
+}
+
 function renderUsersGrid(){
   const grid=document.getElementById('users-grid');
   if(!grid) return;
@@ -5620,10 +5779,51 @@ function renderUsersGrid(){
       ${!user.master?`<button class="btn btn-danger btn-sm" style="margin-top:10px;width:100%" onclick="removeUser('${key}')">Remover usuário</button>`:''}
     `;
     const pl=card.querySelector(`#perms-${key}`);
+    const ASSIGNABLE_TABS=['whatsapp','plataformas','anuncios','envios'];
     tabDefs.forEach(tb=>{
       const has=user.perms.includes(tb.id);
-      const row=document.createElement('div');row.className='perm-row';
-      row.innerHTML=`<span>${tb.label}</span><label class="perm-toggle"><input type="checkbox" ${has?'checked':''} ${user.master?'disabled':''} onchange="togglePerm('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div></label>`;
+      const sub=buildAbaTaskSummary(tb.id);
+      const isAssignable=ASSIGNABLE_TABS.includes(tb.id);
+      const stateKey=key+'::'+tb.id;
+      const row=document.createElement('div');row.className='perm-row-wrap';
+      row.style.cssText='display:flex;flex-direction:column;';
+      const head=document.createElement('div');head.className='perm-row';
+      head.style.cursor=sub.length?'pointer':'default';
+      head.innerHTML=`<span style="display:flex;align-items:center;gap:5px;">${sub.length?`<span class="perm-chevron" style="font-size:9px;color:var(--text-muted);transition:transform .15s;display:inline-block;">▸</span>`:''}${tb.label}</span><label class="perm-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${has?'checked':''} ${user.master?'disabled':''} onchange="togglePerm('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div></label>`;
+      row.appendChild(head);
+      if(sub.length){
+        const wasOpen=_permOpenTabs.has(stateKey);
+        const subWrap=document.createElement('div');
+        subWrap.style.cssText='display:'+(wasOpen?'block':'none')+';margin:4px 0 6px 16px;padding-left:8px;border-left:1px solid var(--border);';
+        if(isAssignable){
+          subWrap.innerHTML=sub.map(g=>`
+            <div style="font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.5px;margin-top:6px;">${g.group}</div>
+            <div style="display:flex;flex-direction:column;gap:3px;margin:3px 0 0 2px;">
+              ${g.items.map(it=>{
+                const isOwner=(it.owners||[]).includes(key);
+                return `<button type="button" onclick="toggleItemOwnerForUser('${tb.id}','${(g.groupId||'').replace(/'/g,"\\'")}','${it.itemId}','${key}')" style="text-align:left;font-size:10px;font-family:var(--font-mono);padding:3px 8px;border-radius:5px;cursor:pointer;border:1px solid ${isOwner?'var(--accent)':'var(--border)'};background:${isOwner?'var(--accent-glow)':'transparent'};color:${isOwner?'var(--accent)':'var(--text-muted)'};">${isOwner?'✓ ':''}${it.itemText}</button>`;
+              }).join('')}
+            </div>`).join('');
+        } else {
+          subWrap.innerHTML=sub.map(g=>`
+            <div style="font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.5px;margin-top:6px;">${g.group}</div>
+            <ul style="margin:2px 0 0 14px;padding:0;list-style:disc;">
+              ${g.items.map(it=>`<li style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:2px;">${it}</li>`).join('')}
+            </ul>`).join('');
+        }
+        row.appendChild(subWrap);
+        if(wasOpen){
+          const chev=head.querySelector('.perm-chevron');
+          if(chev) chev.style.transform='rotate(90deg)';
+        }
+        head.onclick=()=>{
+          const open=subWrap.style.display==='block';
+          subWrap.style.display=open?'none':'block';
+          if(open) _permOpenTabs.delete(stateKey); else _permOpenTabs.add(stateKey);
+          const chev=head.querySelector('.perm-chevron');
+          if(chev) chev.style.transform=open?'':'rotate(90deg)';
+        };
+      }
       pl.appendChild(row);
     });
     grid.appendChild(card);
@@ -5634,6 +5834,25 @@ function togglePerm(k,perm,granted){
   const user=appState.users[k];if(!user||user.master)return;
   if(granted){if(!user.perms.includes(perm))user.perms.push(perm);}
   else user.perms=user.perms.filter(p=>p!==perm);
+
+  // Ao conceder/revogar a permissão de uma aba, atribui/remove o usuário como
+  // responsável de todas as tarefas dessa aba automaticamente
+  const ASSIGNABLE_TABS=['whatsapp','plataformas','anuncios','envios'];
+  if(ASSIGNABLE_TABS.includes(perm)){
+    const groups = perm==='envios' ? [{items:appState.tasks.envios||[]}] : (appState.tasks[perm]||[]);
+    groups.forEach(g=>{
+      (g.items||[]).forEach(it=>{
+        const owners=getTaskOwners(it);
+        const idx=owners.indexOf(k);
+        if(granted){ if(idx===-1) owners.push(k); }
+        else { if(idx>-1) owners.splice(idx,1); }
+        setTaskOwners(it, owners);
+      });
+    });
+    try{ renderWpp(); renderPlt(); renderEnv(); renderAnu(); renderTaskAssign(); }catch(e){}
+    try{ renderUsersGrid(); }catch(e){}
+  }
+
   saveState(appState);
   // Força o usuário afetado a relogar para que as novas permissões entrem em vigor
   // Se o usuário atual for o afetado, faz logout imediatamente
@@ -5987,8 +6206,9 @@ function renderTaskAssign(){
     tabHdr.innerHTML=`
       <span style="font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-primary);font-family:var(--font-mono);flex:1;">${tabLabel}</span>
       <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">${tabCount} tarefa${tabCount!==1?'s':''}</span>
-      <span class="tab-chevron" style="font-size:11px;color:var(--text-muted);transition:transform .2s;">▾</span>`;
+      <span class="tab-chevron" style="font-size:11px;color:var(--text-muted);transition:transform .2s;transform:rotate(-90deg);">▾</span>`;
     const tabBody=document.createElement('div');
+    tabBody.style.display='none';
     tabHdr.onclick=()=>{
       const open=tabBody.style.display!=='none';
       tabBody.style.display=open?'none':'block';
@@ -6007,73 +6227,23 @@ function renderTaskAssign(){
       tabBody.appendChild(grpHdr);
 
       groupData.items.forEach(it=>{
-        // Get current owners (multi-owner aware)
-        const ownerKeys = getTaskOwners(it);
-        const initialsStr = ownerKeys.length ? '(' + getOwnersInitials(ownerKeys) + ')' : '';
-
         const row=document.createElement('div');
         row.id=`assign-row-${it.itemId}`;
         row.style.cssText='display:flex;flex-direction:column;gap:8px;padding:10px 14px 10px 32px;border-bottom:1px solid var(--border);transition:background .12s;';
         row.onmouseover=()=>row.style.background='var(--bg-hover)';
         row.onmouseout=()=>row.style.background='';
 
-        // Task name row with initials
+        // Task name row
         const nameRow=document.createElement('div');
         nameRow.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
 
         const nameEl=document.createElement('div');
         nameEl.style.cssText='flex:1;min-width:130px;';
-        const initialsTag=initialsStr?`<span style="font-size:10px;font-weight:700;font-family:var(--font-mono);color:var(--accent);background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:4px;padding:1px 5px;margin-right:4px;">${initialsStr}</span>`:'';
-        nameEl.innerHTML=`<div style="font-size:12px;color:var(--text-primary);font-weight:500;">${initialsTag}${it.itemText}</div>${it.itemSub?`<div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${it.itemSub}</div>`:''}`;
+        nameEl.innerHTML=`<div style="font-size:12px;color:var(--text-primary);font-weight:500;">${it.itemText}</div>${it.itemSub?`<div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${it.itemSub}</div>`:''}`;
 
         nameRow.appendChild(nameEl);
 
-        // Multi-user checkbox section
-        const usersRow=document.createElement('div');
-        usersRow.style.cssText='display:flex;align-items:center;gap:6px;flex-wrap:wrap;';
-
-        const usersLabel=document.createElement('span');
-        usersLabel.style.cssText='font-size:10px;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap;';
-        usersLabel.textContent='Atribuir:';
-        usersRow.appendChild(usersLabel);
-
-        // Checkboxes for each user
-        const checkMap={};
-        userList.forEach(u=>{
-          const lbl=document.createElement('label');
-          lbl.style.cssText='display:flex;align-items:center;gap:4px;cursor:pointer;background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:3px 8px;transition:all .15s;';
-          const cb=document.createElement('input');
-          cb.type='checkbox';
-          cb.value=u.key;
-          cb.checked=ownerKeys.includes(u.key);
-          cb.style.cssText='accent-color:var(--accent);cursor:pointer;';
-          if(cb.checked){ lbl.style.borderColor=u.color;lbl.style.background=u.color+'22'; }
-          const nm=document.createElement('span');
-          nm.style.cssText=`font-size:11px;font-weight:600;color:${u.color};font-family:var(--font-mono);`;
-          nm.textContent=u.initials;
-          const fullnm=document.createElement('span');
-          fullnm.style.cssText='font-size:10px;color:var(--text-secondary);';
-          fullnm.textContent=u.name;
-          lbl.appendChild(cb); lbl.appendChild(nm); lbl.appendChild(fullnm);
-          cb.onchange=()=>{ if(cb.checked){lbl.style.borderColor=u.color;lbl.style.background=u.color+'22';}else{lbl.style.borderColor='var(--border)';lbl.style.background='var(--bg-active)';} };
-          checkMap[u.key]=cb;
-          usersRow.appendChild(lbl);
-        });
-
-        // Save button for user assignment
-        const saveAssignBtn=document.createElement('button');
-        saveAssignBtn.style.cssText='background:var(--accent-dim);border:1px solid var(--accent-dim);border-radius:6px;color:var(--accent);font-family:var(--font-sans);font-size:11px;font-weight:700;padding:4px 12px;cursor:pointer;white-space:nowrap;transition:all .15s;';
-        saveAssignBtn.textContent='Salvar';
-        saveAssignBtn.onmouseover=()=>{ saveAssignBtn.style.background='var(--accent)';saveAssignBtn.style.color='#fff'; };
-        saveAssignBtn.onmouseout=()=>{ saveAssignBtn.style.background='var(--accent-dim)';saveAssignBtn.style.color='var(--accent)'; };
-        saveAssignBtn.onclick=()=>{
-          const selectedKeys=Object.entries(checkMap).filter(([k,cb])=>cb.checked).map(([k])=>k);
-          assignTaskMulti(it.tab, it.groupId, it.itemId, selectedKeys, nameEl, row);
-        };
-        usersRow.appendChild(saveAssignBtn);
-
         row.appendChild(nameRow);
-        row.appendChild(usersRow);
 
         // ── Link editor — MASTER ONLY ──
         if(currentUser && currentUser.master){
@@ -6122,6 +6292,43 @@ function renderTaskAssign(){
 
     grid.appendChild(tabWrap);
   });
+}
+
+function findAssignableItemRef(tab, groupId, itemId){
+  if(tab==='whatsapp'){
+    const g=(appState.tasks.whatsapp||[]).find(g=>g.id===groupId);
+    return g ? g.items.find(i=>i.id===itemId) : null;
+  } else if(tab==='plataformas'){
+    const g=(appState.tasks.plataformas||[]).find(g=>g.id===groupId);
+    return g ? g.items.find(i=>i.id===itemId) : null;
+  } else if(tab==='envios'){
+    return (appState.tasks.envios||[]).find(i=>i.id===itemId) || null;
+  } else if(tab==='anuncios'){
+    const g=(appState.tasks.anuncios||[]).find(g=>g.group===groupId);
+    return g ? g.items.find(i=>i.id===itemId) : null;
+  }
+  return null;
+}
+
+// Alterna se `userKey` é responsável por esse item, direto no card de permissões
+let _permOpenTabs = new Set();
+function toggleItemOwnerForUser(tab, groupId, itemId, userKey){
+  const itemRef = findAssignableItemRef(tab, groupId, itemId);
+  if(!itemRef){ showToast('Tarefa não encontrada','error'); return; }
+  const owners = getTaskOwners(itemRef);
+  const idx = owners.indexOf(userKey);
+  if(idx>-1) owners.splice(idx,1); else owners.push(userKey);
+  setTaskOwners(itemRef, owners);
+  // Auto-concede a permissão da aba ao atribuir
+  if(idx===-1){
+    const u=appState.users[userKey];
+    if(u && !u.perms.includes(tab)) u.perms.push(tab);
+  }
+  saveState(appState);
+  renderWpp(); renderPlt(); renderEnv(); renderAnu();
+  try{ renderTaskAssign(); }catch(e){}
+  renderUsersGrid();
+  showToast(idx>-1?'Atribuição removida':'✓ Atribuído','success');
 }
 
 function assignTaskMulti(tab, groupId, itemId, ownerKeys, nameEl, row){
@@ -6418,6 +6625,10 @@ function saveEnvCount(){
 function getRastreios(){
   if(!appState.tasks) appState.tasks={};
   if(!Array.isArray(appState.tasks.rastreios)) appState.tasks.rastreios=[];
+  // Garante que todo item tenha um valor de ordenação manual (mais recente = maior)
+  appState.tasks.rastreios.forEach((r,idx)=>{
+    if(typeof r.ordemManual!=='number') r.ordemManual = idx;
+  });
   return appState.tasks.rastreios;
 }
 
@@ -6447,7 +6658,7 @@ function renderRastreios(){
   const fStat  = document.getElementById('rst-filter-status')?.value||'';
   const fPlt   = document.getElementById('rst-filter-plt')?.value||'';
 
-  const all    = getRastreios().slice().reverse(); // newest first
+  const all    = getRastreios().slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
   // Split: Entregues go to folder; rest stay in main grid
   let active   = all.filter(r=>r.status!=='Entregue');
 
@@ -6499,6 +6710,20 @@ function renderRastreios(){
   }
 }
 
+function reorderRastreioCards(draggedId, targetId){
+  const arr = getRastreios();
+  const sorted = arr.slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+  const fromIdx = sorted.findIndex(x=>x.id===draggedId);
+  const toIdx = sorted.findIndex(x=>x.id===targetId);
+  if(fromIdx===-1||toIdx===-1) return;
+  const [moved] = sorted.splice(fromIdx,1);
+  sorted.splice(toIdx,0,moved);
+  const base = Date.now();
+  sorted.forEach((item,i)=>{ item.ordemManual = base - i; });
+  saveState(appState);
+  renderRastreios();
+}
+
 function buildRstCard(r, isEntregue){
   const isMaster = currentUser && currentUser.master;
   const canRst = isMaster || (currentUser && (currentUser.perms||[]).includes('envios'));
@@ -6509,6 +6734,28 @@ function buildRstCard(r, isEntregue){
   card.onmouseover=()=>{if(!isEntregue){card.style.transform='translateY(-2px)';card.style.boxShadow='0 8px 32px rgba(0,0,0,0.5),0 0 24px rgba(59,130,246,0.1),inset 0 1px 0 rgba(255,255,255,0.1)';}};
   card.onmouseout=()=>{card.style.transform='';card.style.boxShadow=`0 4px 24px rgba(0,0,0,0.4)${isEntregue?',0 0 20px rgba(34,197,94,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.08)`;};
   const _rstshine=document.createElement('div');_rstshine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);pointer-events:none;';card.appendChild(_rstshine);
+
+  // ── Arrastar para reordenar (segurando e arrastando) ────────────────
+  if(isMaster && !isEntregue){
+    card.draggable=true;
+    card.dataset.rstId=r.id;
+    card.style.cursor='grab';
+    card.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('text/plain', r.id);
+      e.dataTransfer.effectAllowed='move';
+      card.style.opacity='0.4';
+    });
+    card.addEventListener('dragend',()=>{ card.style.opacity=''; });
+    card.addEventListener('dragover',e=>{ e.preventDefault(); card.style.boxShadow='0 0 0 2px var(--accent),0 4px 24px rgba(0,0,0,0.4)'; });
+    card.addEventListener('dragleave',()=>{ card.style.boxShadow=''; });
+    card.addEventListener('drop',e=>{
+      e.preventDefault();
+      card.style.boxShadow='';
+      const draggedId=e.dataTransfer.getData('text/plain');
+      if(!draggedId||draggedId===r.id) return;
+      reorderRastreioCards(draggedId, r.id);
+    });
+  }
 
   // ── Header: owner badge + plataforma + status badge + actions ──────
   const hdr=document.createElement('div');hdr.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
@@ -6769,12 +7016,12 @@ function saveRst(){
       const ex=arr[idx];
       arr[idx]={id:editId,data,nped,plataforma,marketplace,status,transp,cliente,codigo,link,obs,
         criadoPor:ex.criadoPor||'',criadoEm:ex.criadoEm||'',
-        atualizadoPor:currentUser.name,atualizadoEm:nowTimeStr()};
+        atualizadoPor:currentUser.name,atualizadoEm:nowTimeStr(),ordemManual:ex.ordemManual};
     }
     showToast('✓ Rastreio atualizado','success');
   } else {
     arr.push({id:'rst_'+Date.now(),data,nped,plataforma,marketplace,status,transp,cliente,codigo,link,obs,
-      criadoPor:currentUser.name,criadoEm:nowTimeStr()});
+      criadoPor:currentUser.name,criadoEm:nowTimeStr(),ordemManual:Date.now()});
     showToast(status==='Entregue' ? '✓ Rastreio cadastrado — veja na pasta Entregues' : '✓ Rastreio cadastrado','success');
   }
 
@@ -7527,11 +7774,47 @@ function atvDiasLabel(dias,status){
   return {text:`📅 ${dias} dias restantes`,color:'var(--text-muted)'};
 }
 
+function moveAtividade(draggedId, targetStatus, targetId){
+  const item = (appState.atividades||[]).find(a=>a.id===draggedId);
+  if(!item) return;
+  const statusMudou = item.status !== targetStatus;
+  if(statusMudou){
+    const oldStatus = item.status;
+    item.status = targetStatus;
+    if(targetStatus==='concluida' && oldStatus!=='concluida'){
+      item.concluidoEm=new Date().toLocaleDateString('pt-BR');
+      item.concluidoPor=currentUser.name;
+    }
+  }
+  if(targetId){
+    reorderAtividades(draggedId, targetId); // já salva e re-renderiza
+  } else {
+    saveState(appState);
+    renderAtividades();
+  }
+  if(statusMudou) showToast('Tarefa → '+{aberta:'A Fazer',andamento:'Em Andamento',concluida:'Concluída'}[targetStatus],'success');
+}
+
+function reorderAtividades(draggedId, targetId){
+  if(!appState.atividades) return;
+  const sorted = appState.atividades.slice().sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
+  const fromIdx = sorted.findIndex(x=>x.id===draggedId);
+  const toIdx = sorted.findIndex(x=>x.id===targetId);
+  if(fromIdx===-1||toIdx===-1) return;
+  const [moved] = sorted.splice(fromIdx,1);
+  sorted.splice(toIdx,0,moved);
+  sorted.forEach((item,i)=>{ item.ordemManual = i; });
+  saveState(appState);
+  renderAtividades();
+}
+
 function renderAtividades(){
   if(!appState.atividades) appState.atividades=[];
+  appState.atividades.forEach((a,idx)=>{ if(typeof a.ordemManual!=='number') a.ordemManual=idx; });
+  appState.atividades.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
 
   const btnNova=document.getElementById('btn-nova-atv');
-  if(btnNova) btnNova.style.display=currentUser&&currentUser.master?'inline-flex':'none';
+  if(btnNova) btnNova.style.display=currentUser?'inline-flex':'none';
 
   const fColab=document.getElementById('atv-filter-colab');
   const fPrior=document.getElementById('atv-filter-prior');
@@ -7547,6 +7830,16 @@ function renderAtividades(){
 
   ['aberta','andamento','concluida'].forEach(s=>{
     const col=document.getElementById('atv-col-'+s);if(col)col.innerHTML='';
+    if(col && currentUser && currentUser.master){
+      col.ondragover=e=>{ e.preventDefault(); };
+      col.ondrop=e=>{
+        e.preventDefault();
+        if(e.target!==col) return; // já tratado pelo drop do card
+        const draggedId=e.dataTransfer.getData('text/plain');
+        if(!draggedId) return;
+        moveAtividade(draggedId, s, null);
+      };
+    }
     const cnt=document.getElementById('atv-count-'+s);if(cnt)cnt.textContent='0';
   });
 
@@ -7598,6 +7891,27 @@ function renderAtividades(){
     card.style.cssText='background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .15s;';
     card.onmouseover=()=>card.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';
     card.onmouseout=()=>card.style.boxShadow='';
+    if(currentUser && currentUser.master){
+      card.draggable=true;
+      card.dataset.atvId=a.id;
+      card.style.cursor='grab';
+      card.addEventListener('dragstart',e=>{
+        e.dataTransfer.setData('text/plain', a.id);
+        e.dataTransfer.effectAllowed='move';
+        card.style.opacity='0.4';
+      });
+      card.addEventListener('dragend',()=>{ card.style.opacity=''; });
+      card.addEventListener('dragover',e=>{ e.preventDefault(); card.style.boxShadow='0 0 0 2px var(--accent),0 4px 16px rgba(0,0,0,.3)'; });
+      card.addEventListener('dragleave',()=>{ card.style.boxShadow=''; });
+      card.addEventListener('drop',e=>{
+        e.preventDefault();
+        e.stopPropagation();
+        card.style.boxShadow='';
+        const draggedId=e.dataTransfer.getData('text/plain');
+        if(!draggedId||draggedId===a.id) return;
+        moveAtividade(draggedId, a.status, a.id);
+      });
+    }
     card.innerHTML=`
       <div style="height:3px;background:${prior.color};"></div>
       <div style="padding:12px 14px;">
@@ -7629,10 +7943,12 @@ function renderAtividades(){
     // Botões de editar/excluir — criados via DOM para evitar conflito de aspas
     const actWrap = card.querySelector(`#atv-actions-${a.id}`);
     const isMine2 = a.responsavel === currentUser.key;
-    if(currentUser.master || isMine2){
+    const isCriador2 = a.criadoPorKey === currentUser.key;
+    const podeEditar2 = currentUser.master || isCriador2;
+    if(podeEditar2 || isMine2){
       const btnEdit = document.createElement('button');
-      btnEdit.title = currentUser.master ? 'Editar' : 'Comentar';
-      btnEdit.textContent = currentUser.master ? '✎' : '💬';
+      btnEdit.title = podeEditar2 ? 'Editar' : 'Comentar';
+      btnEdit.textContent = podeEditar2 ? '✎' : '💬';
       btnEdit.style.cssText='background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:color .15s;';
       btnEdit.onmouseover=()=>btnEdit.style.color='var(--accent)';
       btnEdit.onmouseout=()=>btnEdit.style.color='var(--text-muted)';
@@ -7702,12 +8018,15 @@ function deleteAtividade(id){
 
 function openAtvModal(id){
   const isMasterUser = currentUser && currentUser.master;
+  const isNovaTask = !id;
   const a = id ? (appState.atividades||[]).find(x=>x.id===id) : null;
   const isResponsavel = a && a.responsavel === currentUser.key;
+  const isCriador = a && a.criadoPorKey === currentUser.key;
+  const podeEditarTarefa = isMasterUser || isCriador;
 
-  // Responsável pode abrir apenas para comentar; master pode criar/editar tudo
-  if(!isMasterUser && !isResponsavel && id){showToast('Apenas o master ou o responsável podem interagir com esta tarefa','warn');return;}
-  if(!isMasterUser && !id){showToast('Apenas o master pode criar tarefas','warn');return;}
+  // Responsável pode abrir apenas para comentar; master ou criador pode editar tudo
+  if(!podeEditarTarefa && !isResponsavel && id){showToast('Apenas o master, o criador ou o responsável podem interagir com esta tarefa','warn');return;}
+  // Criação de novas tarefas é liberada para qualquer usuário logado
 
   const sel=document.getElementById('atv-responsavel');
   if(sel){
@@ -7723,13 +8042,14 @@ function openAtvModal(id){
   const comentCnt=document.getElementById('atv-comentario-count');
   const saveBtn=document.getElementById('atv-save-btn');
 
-  // Campos editáveis somente para master
+  // Campos editáveis: livres ao criar nova tarefa; master ou criador editam tarefa já existente
+  const podeEditarCampos = isNovaTask || podeEditarTarefa;
   ['atv-titulo','atv-descricao','atv-vencimento','atv-prioridade'].forEach(fid=>{
     const el=document.getElementById(fid);
-    if(el) el.disabled = !isMasterUser;
-    if(el) el.style.opacity = isMasterUser ? '' : '0.5';
+    if(el) el.disabled = !podeEditarCampos;
+    if(el) el.style.opacity = podeEditarCampos ? '' : '0.5';
   });
-  if(sel){ sel.disabled=!isMasterUser; sel.style.opacity=isMasterUser?'':'0.5'; }
+  if(sel){ sel.disabled=!podeEditarCampos; sel.style.opacity=podeEditarCampos?'':'0.5'; }
 
   if(id && a){
     document.getElementById('atv-titulo').value=a.titulo||'';
@@ -7738,12 +8058,12 @@ function openAtvModal(id){
     document.getElementById('atv-vencimento').value=a.vencimento||'';
     document.getElementById('atv-prioridade').value=a.prioridade||'normal';
     document.getElementById('atv-edit-id').value=id;
-    if(titleEl)titleEl.textContent=isMasterUser?'Editar Tarefa':'Comentar Tarefa';
+    if(titleEl)titleEl.textContent=podeEditarTarefa?'Editar Tarefa':'Comentar Tarefa';
     // Mostrar campo comentário
     if(comentWrap) comentWrap.style.display='block';
     if(comentEl){ comentEl.value=a.comentario||''; }
     if(comentCnt) comentCnt.textContent=(150-(a.comentario||'').length)+' restantes';
-    if(saveBtn) saveBtn.textContent=isMasterUser?'Salvar Tarefa':'Salvar Comentário';
+    if(saveBtn) saveBtn.textContent=podeEditarTarefa?'Salvar Tarefa':'Salvar Comentário';
   } else {
     document.getElementById('atv-titulo').value='';
     document.getElementById('atv-descricao').value='';
@@ -7787,9 +8107,10 @@ function saveAtividade(){
   if(editId){
     const idx=appState.atividades.findIndex(x=>x.id===editId);
     const anterior=appState.atividades[idx]||{};
+    const podeEditarTarefa = currentUser.master || anterior.criadoPorKey===currentUser.key;
     if(idx>-1){
-      if(currentUser.master){
-        // Master edita tudo + pode salvar comentário
+      if(podeEditarTarefa){
+        // Master ou criador edita tudo + pode salvar comentário
         appState.atividades[idx]={...anterior,titulo,descricao,responsavel,vencimento,prioridade,
           ...(comentario?{comentario,comentarioAutor,comentarioEm}:{})};
       } else {
@@ -7798,11 +8119,12 @@ function saveAtividade(){
           ...(comentario?{comentario,comentarioAutor,comentarioEm}:{comentario:'',comentarioAutor:'',comentarioEm:''})};
       }
     }
-    showToast(currentUser.master?'Tarefa atualizada':'Comentário salvo','success');
+    showToast(podeEditarTarefa?'Tarefa atualizada':'Comentário salvo','success');
   } else {
     appState.atividades.push({
       id:'atv_'+Date.now(),titulo,descricao,responsavel,vencimento,prioridade,
-      status:'aberta',criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name
+      status:'aberta',criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
+      ordemManual:Date.now()
     });
     showToast('Tarefa criada','success');
   }
