@@ -1759,12 +1759,33 @@ function loadLocal(){
   }catch(e){ return defaultState(); }
 }
 
+// Remove campos pesados (fotos em base64) antes de salvar no localStorage.
+// O localStorage tem limite de ~5-10MB por site — fotos em base64 estouram
+// essa cota rapidamente. Essas fotos já são persistidas no Firebase (fonte
+// de verdade), então não precisam ocupar espaço no cache local.
+function _stripHeavyForLocal(s){
+  try{
+    const copy = JSON.parse(JSON.stringify(s));
+    if(copy?.tasks?.devolucoes?.length){
+      copy.tasks.devolucoes.forEach(d=>{ if(d && d.fotos) d.fotos=[]; });
+    }
+    return copy;
+  }catch(e){
+    return s;
+  }
+}
+
 function saveLocal(s){
   try{
-    localStorage.setItem(SK, JSON.stringify(s));
+    localStorage.setItem(SK, JSON.stringify(_stripHeavyForLocal(s)));
   }catch(e){
-    console.error('[saveLocal] FALHA AO SALVAR:', e.message);
-    showToast('Erro ao salvar localmente: '+e.message,'error');
+    // Cota estourada (ou outro erro) — não é crítico: o Firebase já guarda
+    // os dados completos. Loga silenciosamente e tenta liberar espaço para
+    // a próxima gravação, sem incomodar o usuário com um toast.
+    console.warn('[saveLocal] Não foi possível salvar cache local:', e.message);
+    if(e && (e.name==='QuotaExceededError' || e.code===22 || e.code===1014)){
+      try{ localStorage.removeItem(SK); }catch(e2){}
+    }
   }
 }
 
@@ -4439,23 +4460,52 @@ function makeCompleteBtn(task, onMarkDone, onUnmark){
 const DEV_PLATAFORMAS=['Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Magalu VixSupps','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace'];
 const DEV_MOTIVOS=['Arrependimento','Diferente do anunciado','Danificado','Endereço errado','Comprador ausente','Atraso no envio'];
 
-function previewDevFotos(input){
+// Estado das fotos do modal de devolução (permite adicionar E remover
+// fotos individualmente antes de salvar, em vez de só substituir tudo).
+let _devModalFotos=[];
+
+function renderDevFotosPreview(){
   const prev=document.getElementById('dev-fotos-preview');
   if(!prev) return;
   prev.innerHTML='';
+  _devModalFotos.forEach((src,i)=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:relative;width:60px;height:60px;';
+    const img=document.createElement('img');
+    img.src=src;
+    img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
+    const rm=document.createElement('button');
+    rm.type='button';
+    rm.textContent='×';
+    rm.title='Remover foto';
+    rm.onclick=()=>removeDevFoto(i);
+    rm.style.cssText='position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:16px;border-radius:50%;background:var(--accent,#e8322a);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    wrap.appendChild(img);
+    wrap.appendChild(rm);
+    prev.appendChild(wrap);
+  });
+}
+
+function removeDevFoto(idx){
+  _devModalFotos.splice(idx,1);
+  renderDevFotosPreview();
+  showToast('Foto removida','success');
+}
+
+function previewDevFotos(input){
   const files=Array.from(input.files||[]);
   if(!files.length) return;
-  files.forEach(f=>{
+  const readers=files.map(f=>new Promise(res=>{
     const reader=new FileReader();
-    reader.onload=e=>{
-      const img=document.createElement('img');
-      img.src=e.target.result;
-      img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
-      prev.appendChild(img);
-    };
+    reader.onload=e=>res(e.target.result);
     reader.readAsDataURL(f);
+  }));
+  Promise.all(readers).then(results=>{
+    _devModalFotos.push(...results);
+    renderDevFotosPreview();
+    showToast(files.length+' imagem(ns) anexada(s)','success');
+    input.value=''; // permite re-selecionar o mesmo arquivo depois, se necessário
   });
-  showToast(files.length+' imagem(ns) anexada(s)','success');
 }
 
 function fmtCPF(el){
@@ -4489,14 +4539,15 @@ function openDevModal(id){
       document.getElementById('dev-link-base').value=d.linkBase||'';
       document.getElementById('dev-link-plat').value=d.linkPlat||'';
       document.getElementById('dev-link-bling').value=d.linkBling||'';
-      if(d.fotos&&d.fotos.length){
-        const prev=document.getElementById('dev-fotos-preview');
-        d.fotos.forEach(src=>{const img=document.createElement('img');img.src=src;img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';prev.appendChild(img);});
-      }
+      _devModalFotos = (d.fotos && d.fotos.length) ? [...d.fotos] : [];
+      renderDevFotosPreview();
+    } else {
+      _devModalFotos=[];
     }
   } else {
     ['dev-plataforma','dev-motivo','dev-status'].forEach(id=>document.getElementById(id).value='');
     ['dev-cliente','dev-nped','dev-data','dev-link-base','dev-link-plat','dev-link-bling'].forEach(id=>document.getElementById(id).value='');
+    _devModalFotos=[];
   }
 }
 function closeDevModal(){ document.getElementById('dev-modal-overlay').style.display='none'; }
@@ -4517,9 +4568,6 @@ function saveDev(){
   }
   if(!appState.tasks.devolucoes) appState.tasks.devolucoes=[];
   const editId=document.getElementById('dev-edit-id').value;
-  const fotosInput=document.getElementById('dev-fotos');
-  const files=Array.from(fotosInput.files||[]);
-  const existing=(appState.tasks.devolucoes||[]).find(x=>x.id===editId);
 
   function finish(fotos){
     // Quando há foto (nova ou já existente) o status avança automaticamente
@@ -4569,12 +4617,7 @@ function saveDev(){
     showToast('Devolução salva','success');
   }
 
-  if(files.length){
-    const readers=files.map(f=>new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(f);}));
-    Promise.all(readers).then(finish);
-  } else {
-    finish(existing?.fotos||[]);
-  }
+  finish([..._devModalFotos]);
 }
 
 function deleteDev(idx){
