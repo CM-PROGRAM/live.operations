@@ -732,42 +732,24 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="input-group"><label>Data do Pedido</label><input type="text" id="rst-data" placeholder="DD/MM/AA" maxlength="8" oninput="fmtRstData(this)" autocomplete="new-password" data-lpignore="true"></div>
             <div class="input-group"><label>Pedido Base</label><input type="text" id="rst-nped" placeholder="Ex: 35017581" autocomplete="new-password" data-lpignore="true"></div>
-            <div class="input-group"><label>Plataforma</label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma Etiqueta</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstPlt()" title="Adicionar nova plataforma etiqueta" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstPlt()" title="Excluir plataforma etiqueta selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
               <select id="rst-plt">
                 <option value="">— Selecionar —</option>
-                <option>Manda Bem</option>
-                <option>Melhor Envio</option>
               </select>
             </div>
-            <div class="input-group"><label>Marketplace</label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataformas MKTPs</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstMktp()" title="Adicionar nova plataforma mktp" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstMktp()" title="Excluir plataforma mktp selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
               <select id="rst-marketplace">
                 <option value="">— Selecionar —</option>
-                <option>SHOPEE - Suplenium</option>
-                <option>SHOPEE - Primevitaminas</option>
-                <option>MERC. LIVRE - Vitalife</option>
-                <option>MERC. LIVRE - VXShop</option>
-                <option>DROG. SÃO PAULO - ForVita</option>
-                <option>DROG. PACHECO - ForVita</option>
-                <option>MAGALU - 4Vita</option>
-                <option>WEB CONTINENTAL - 4Vita</option>
-                <option>RD MARKETPLACE - Vix Suplementos</option>
-                <option>ATACADO - Suplelive</option>
               </select>
             </div>
-            <div class="input-group"><label>Status</label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Status</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstStatus()" title="Adicionar novo status" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstStatus()" title="Excluir status selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
               <select id="rst-status">
                 <option value="">— Selecionar —</option>
-                <option>Enviado</option><option>Entregue</option><option>Extraviado</option><option>Endereço errado</option><option>Voltando</option>
               </select>
             </div>
-            <div class="input-group" style="grid-column:1/-1;"><label>Transportadora</label>
+            <div class="input-group" style="grid-column:1/-1;"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Transportadora</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstTransp()" title="Adicionar nova transportadora" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstTransp()" title="Excluir transportadora selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
               <select id="rst-transp">
                 <option value="">— Selecionar —</option>
-                <option>Loggi</option>
-                <option>J&amp;T</option>
-                <option>Jadlog</option>
-                <option>Correios PAC</option>
-                <option>Correios SEDEX</option>
               </select>
             </div>
             <div class="input-group" style="grid-column:1/-1;"><label>Cliente</label><input type="text" id="rst-cliente" placeholder="Nome completo do cliente" autocomplete="new-password" data-lpignore="true"></div>
@@ -1043,8 +1025,10 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
           <!-- Drogaria Pacheco -->
           <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
               <span style="background:#e00000;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--font-mono);">Drogaria Pacheco</span>
+              <a href="https://marketplace.drogariaspacheco.com.br/v3/pedidos" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Gerar Relatório</a>
+              <a href="https://marketplace.drogariaspacheco.com.br/v3/relatorios" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Baixas Relatório</a>
             </div>
             <div id="drop-pacheco" onclick="document.getElementById('file-pacheco').click()"
               style="border:2px dashed var(--border-light);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all .2s;"
@@ -1059,8 +1043,10 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           </div>
           <!-- Drogaria São Paulo -->
           <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
               <span style="background:#00aaff;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--font-mono);">Drogaria São Paulo</span>
+              <a href="https://marketplace.drogariasaopaulo.com.br/v3/pedidos" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Gerar Relatório</a>
+              <a href="https://marketplace.drogariasaopaulo.com.br/v3/relatorios" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Baixas Relatório</a>
             </div>
             <div id="drop-saopaulo" onclick="document.getElementById('file-saopaulo').click()"
               style="border:2px dashed var(--border-light);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:all .2s;"
@@ -1090,7 +1076,6 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
             </select>
           </div>
           <button class="btn btn-sm" onclick="gerarPlanilhaBaixas()" style="white-space:nowrap;background:var(--green);color:#fff;border-color:var(--green);">⬇ Gerar Planilha Baixas</button>
-          <a id="drog-onedrive-link" href="https://onedrive.live.com/personal/2f01cd22f588b701/_layouts/15/doc2.aspx?resid=582358ac-cc67-402e-ac8a-3f3a1ab9de7b&cid=2f01cd22f588b701" target="_blank" class="btn-link btn-sm">↗ Abrir OneDrive</a>
           <button class="btn btn-sm" onclick="resetDrogarias()" style="white-space:nowrap;background:var(--red);color:#fff;border-color:var(--red);">🗑 Resetar</button>
         </div>
       </div>
@@ -1389,41 +1374,22 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <div style="display:grid;gap:12px;">
       <div class="input-group"><label>Nome Cliente</label><input type="text" id="dev-cliente" placeholder="Nome do cliente"></div>
       <div class="input-group"><label>Pedido Base</label><input type="text" id="dev-nped" placeholder="Ex: 35017581"></div>
-      <div class="input-group"><label>Status</label>
+      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Status</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevStatus()" title="Adicionar novo status" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeDevStatus()" title="Excluir status selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
         <select id="dev-status">
           <option value="">— Selecionar —</option>
-          <option>Em devolução</option>
-          <option>Entregue</option>
-          <option>Estornar NF Saída</option>
         </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="input-group"><label>Data Devolução</label><input type="text" id="dev-data" placeholder="00/00/00" maxlength="8" oninput="fmtData(this)"></div>
-        <div class="input-group"><label>Motivo</label>
+        <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Motivo</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevMotivo()" title="Adicionar novo motivo" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeDevMotivo()" title="Excluir motivo selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
           <select id="dev-motivo">
             <option value="">— Selecionar —</option>
-            <option>Arrependimento</option>
-            <option>Diferente do anunciado</option>
-            <option>Danificado</option>
-            <option>Endereço errado</option>
-            <option>Comprador ausente</option>
-            <option>Atraso no envio</option>
           </select>
         </div>
       </div>
-      <div class="input-group"><label>Plataforma</label>
+      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevPlataforma()" title="Adicionar nova plataforma" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeDevPlataforma()" title="Excluir plataforma selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
         <select id="dev-plataforma">
           <option value="">— Selecionar —</option>
-          <option>Shopee Suplenium</option>
-          <option>Shopee Primevitaminas</option>
-          <option>Merc. Livre Vitalife</option>
-          <option>Merc. Livre VXShop</option>
-          <option>Magalu 4Vita</option>
-          <option>Magalu VixSupps</option>
-          <option>Drog. São Paulo</option>
-          <option>Drog. Pacheco</option>
-          <option>Web Continental</option>
-          <option>RD Marketplace</option>
         </select>
       </div>
       <div class="input-group"><label>Link Base</label><input type="text" id="dev-link-base" placeholder="https://..."></div>
@@ -1475,21 +1441,9 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <textarea id="ate-ultima-desc" rows="4" maxlength="150" placeholder="Descreva o que aconteceu nesta atualização..." oninput="document.getElementById('ate-ultima-desc-count').textContent=(150-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
         <div style="text-align:right;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;"><span id="ate-ultima-desc-count">150 restantes</span></div>
       </div>
-      <div class="input-group"><label>Plataforma</label>
+      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAtePlataforma()" title="Adicionar nova plataforma" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeAtePlataforma()" title="Excluir plataforma selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
         <select id="ate-plataforma" onchange="toggleAteRastreio()">
           <option value="">— Selecionar —</option>
-          <option>Melhor Envio</option>
-          <option>Manda Bem</option>
-          <option>Shopee Suplenium</option>
-          <option>Shopee Primevitaminas</option>
-          <option>Merc. Livre Vitalife</option>
-          <option>Merc. Livre VXShop</option>
-          <option>Magalu 4Vita</option>
-          <option>Drog. São Paulo</option>
-          <option>Drog. Pacheco</option>
-          <option>Web Continental</option>
-          <option>RD Marketplace</option>
-          <option>WhatsApp (ChatWoot)</option>
         </select>
       </div>
       <div id="ate-rastreio-fields" style="display:none;grid-template-columns:1fr 1fr;gap:12px;">
@@ -1811,7 +1765,11 @@ function loadLocal(){
         || s.tasks.plataformas.some(g=>g.id==='plt_magalu_4v'&&g.items?.some(i=>i.id==='plt_mg4'&&(i.repeats||1)<2))
         || s.tasks.plataformas.some(g=>g.id==='plt_magalu_4v'&&g.items?.some(i=>i.id==='plt_mg5'&&(i.repeats||1)<2))
         || s.tasks.plataformas.some(g=>g.id==='plt_ml_vl'&&g.items?.some(i=>i.id==='plt_vl7'))
-        || s.tasks.plataformas.some(g=>g.id==='plt_ml_vx'&&g.items?.some(i=>i.id==='plt_vx7'));
+        || s.tasks.plataformas.some(g=>g.id==='plt_ml_vx'&&g.items?.some(i=>i.id==='plt_vx7'))
+        || s.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp4'))
+        || s.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp4'))
+        || s.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp5'))
+        || s.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp5'));
       if(needsPltMigration) s.tasks.plataformas=initPlt();
     }
     patchTaskOwners(s);
@@ -2108,7 +2066,11 @@ function applyRemoteState(data){
       || data.tasks.plataformas.some(g=>g.id==='plt_ml_vx'&&g.items?.some(i=>i.id==='plt_vx5'&&(i.repeats||1)<3))
       || data.tasks.plataformas.some(g=>g.id==='plt_wc'&&g.items?.some(i=>i.id==='plt_wc4'&&(i.repeats||1)<4))
       || data.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp6'&&(i.repeats||1)<3))
-      || data.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp6'&&(i.repeats||1)<3));
+      || data.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp6'&&(i.repeats||1)<3))
+      || data.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp4'))
+      || data.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp4'))
+      || data.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp5'))
+      || data.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp5'));
     if(np) data.tasks.plataformas=initPlt();
   }
   patchTaskOwners(data);
@@ -2443,8 +2405,6 @@ function initPlt(){return[
     Object.assign(t('plt_dp1','PERFORMANCE — Sellers','','https://marketplace.drogariaspacheco.com.br/v3/sellers/nota/ROKQ86921088830001','Performance',1),{owner:'cmandrade'}),
     Object.assign(t('plt_dp2','VENDAS — Gestão de Vendas','','https://marketplace.drogariaspacheco.com.br/v3/pedidos','Vendas',1),{owner:'gustavo'}),
     Object.assign(t('plt_dp3','VENDAS — Devoluções','','https://marketplace.drogariaspacheco.com.br/v3/pedidos/devolucoes','Devoluções',1),{owner:'cmandrade'}),
-    Object.assign(t('plt_dp4','RELATÓRIOS','','https://marketplace.drogariaspacheco.com.br/v3/relatorios','Relatórios',1),{owner:'cmandrade'}),
-    Object.assign(t('plt_dp5','PLANILHA BAIXAS PEDIDOS','','https://onedrive.live.com/personal/2f01cd22f588b701/_layouts/15/doc.aspx?resid=582358ac-cc67-402e-ac8a-3f3a1ab9de7b&cid=2f01cd22f588b701','Planilha',1),{owner:'gustavo'}),
     Object.assign(t('plt_dp6','ATENDIMENTOS — Atendimentos','','https://marketplace.drogariaspacheco.com.br/v3/atendimento','Atendimentos',3),{owner:'gustavo'})
   ]},
 
@@ -2452,8 +2412,6 @@ function initPlt(){return[
     Object.assign(t('plt_dsp1','PERFORMANCE — Sellers','','https://marketplace.drogariasaopaulo.com.br/v3/sellers/nota/ACXP17921305839856','Performance',1),{owner:'cmandrade'}),
     Object.assign(t('plt_dsp2','VENDAS — Gestão de Vendas','','https://marketplace.drogariasaopaulo.com.br/v3/pedidos','Vendas',1),{owner:'gustavo'}),
     Object.assign(t('plt_dsp3','VENDAS — Devoluções','','https://marketplace.drogariasaopaulo.com.br/v3/pedidos/devolucoes','Devoluções',1),{owner:'cmandrade'}),
-    Object.assign(t('plt_dsp4','RELATÓRIO','','https://marketplace.drogariasaopaulo.com.br/v3/relatorios','Relatório',1),{owner:'cmandrade'}),
-    Object.assign(t('plt_dsp5','PLANILHA BAIXAS PEDIDOS','','https://onedrive.live.com/personal/2f01cd22f588b701/_layouts/15/doc.aspx?resid=582358ac-cc67-402e-ac8a-3f3a1ab9de7b&cid=2f01cd22f588b701','Planilha',1),{owner:'gustavo'}),
     Object.assign(t('plt_dsp6','ATENDIMENTOS — Atendimentos','','https://marketplace.drogariasaopaulo.com.br/v3/atendimento','Atendimentos',3),{owner:'gustavo'})
   ]}
 ];}
@@ -4797,15 +4755,18 @@ function openDevModal(id){
   overlay.style.display='block';
   document.getElementById('dev-edit-id').value=id||'';
   document.getElementById('dev-fotos-preview').innerHTML='';
+  renderDevStatusOptions('');
+  renderDevMotivoOptions('');
+  renderDevPlataformaOptions('');
   if(id){
     const d=(appState.tasks.devolucoes||[]).find(x=>x.id===id);
     if(d){
-      document.getElementById('dev-plataforma').value=d.plataforma||'';
+      renderDevPlataformaOptions(d.plataforma||'');
       document.getElementById('dev-cliente').value=d.cliente||'';
       document.getElementById('dev-nped').value=d.nped||'';
       document.getElementById('dev-data').value=d.data||'';
-      document.getElementById('dev-motivo').value=d.motivo||'';
-      document.getElementById('dev-status').value=d.status||'';
+      renderDevMotivoOptions(d.motivo||'');
+      renderDevStatusOptions(d.status||'');
       document.getElementById('dev-link-base').value=d.linkBase||'';
       document.getElementById('dev-link-plat').value=d.linkPlat||'';
       document.getElementById('dev-link-bling').value=d.linkBling||'';
@@ -7445,19 +7406,20 @@ function openRstModal(id){
     const el=document.getElementById(fid); if(el) el.value='';
   });
   const rstObsCnt=document.getElementById('rst-obs-count'); if(rstObsCnt) rstObsCnt.textContent='150 restantes';
-  ['rst-plt','rst-marketplace','rst-status','rst-transp'].forEach(fid=>{
-    const el=document.getElementById(fid); if(el) el.value='';
-  });
+  renderRstPltOptions('');
+  renderRstMktpOptions('');
+  renderRstStatusOptions('');
+  renderRstTranspOptions('');
 
   if(id){
     const r=getRastreios().find(x=>x.id===id);
     if(r){
       document.getElementById('rst-data').value   = r.data||'';
       document.getElementById('rst-nped').value   = r.nped||'';
-      document.getElementById('rst-plt').value    = r.plataforma||'';
-      document.getElementById('rst-marketplace').value = r.marketplace||'';
-      document.getElementById('rst-status').value = r.status||'';
-      document.getElementById('rst-transp').value = r.transp||'';
+      renderRstPltOptions(r.plataforma||'');
+      renderRstMktpOptions(r.marketplace||'');
+      renderRstStatusOptions(r.status||'');
+      renderRstTranspOptions(r.transp||'');
       document.getElementById('rst-cliente').value= r.cliente||'';
       document.getElementById('rst-codigo').value = r.codigo||'';
       document.getElementById('rst-link').value   = r.link||'';
@@ -7721,6 +7683,93 @@ function toggleAteRastreio(){
   }
 }
 
+/* ===== Sistema genérico de opções customizáveis (+ / −) ===== */
+function getAllCustomOpts(baseList, stateKey){
+  const custom=(appState[stateKey]||[]);
+  return baseList.concat(custom.filter(m=>!baseList.some(b=>b.toLowerCase()===m.toLowerCase())));
+}
+function renderCustomOpts(selectId, baseList, stateKey, selected){
+  const sel=document.getElementById(selectId);
+  if(!sel) return;
+  const val=selected!==undefined?selected:sel.value;
+  sel.innerHTML='<option value="">— Selecionar —</option>'+
+    getAllCustomOpts(baseList,stateKey).map(m=>`<option value="${m}">${m}</option>`).join('');
+  sel.value=val||'';
+}
+function addCustomOpt(selectId, baseList, stateKey, label, renderFn){
+  const nome=(prompt('Adicionar novo(a) '+label+':')||'').trim();
+  if(!nome) return;
+  const all=getAllCustomOpts(baseList,stateKey);
+  if(all.some(m=>m.toLowerCase()===nome.toLowerCase())){
+    showToast('Esse(a) '+label.toLowerCase()+' já existe','warn');
+    renderFn(nome);
+    return;
+  }
+  if(!appState[stateKey]) appState[stateKey]=[];
+  appState[stateKey].push(nome);
+  saveState(appState);
+  renderFn(nome);
+  showToast('✓ '+label+' "'+nome+'" adicionado(a)','success');
+}
+function removeCustomOpt(selectId, baseList, stateKey, label, renderFn){
+  const sel=document.getElementById(selectId);
+  const val=sel?sel.value:'';
+  if(!val){showToast('Selecione um(a) '+label.toLowerCase()+' para excluir','warn');return;}
+  if(baseList.some(b=>b.toLowerCase()===val.toLowerCase())){showToast(label+'s padrão não podem ser excluídos(as)','warn');return;}
+  const custom=(appState[stateKey]||[]);
+  const idx=custom.findIndex(m=>m.toLowerCase()===val.toLowerCase());
+  if(idx===-1){showToast(label+' não encontrado(a) na lista','warn');return;}
+  if(!confirm('Excluir '+label.toLowerCase()+' "'+val+'"?')) return;
+  custom.splice(idx,1);
+  appState[stateKey]=custom;
+  saveState(appState);
+  renderFn('');
+  showToast('✓ Excluído(a)','success');
+}
+
+/* --- Atendimentos: Plataforma --- */
+const ATE_PLT_BASE=['Melhor Envio','Manda Bem','Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace','WhatsApp (ChatWoot)'];
+function renderAtePlataformaOptions(sel){ renderCustomOpts('ate-plataforma',ATE_PLT_BASE,'customPlataformasAte',sel); }
+function addAtePlataforma(){ addCustomOpt('ate-plataforma',ATE_PLT_BASE,'customPlataformasAte','plataforma',renderAtePlataformaOptions); }
+function removeAtePlataforma(){ removeCustomOpt('ate-plataforma',ATE_PLT_BASE,'customPlataformasAte','plataforma',renderAtePlataformaOptions); }
+
+/* --- Devoluções: Status, Motivo, Plataforma --- */
+const DEV_STATUS_BASE=['Em devolução','Entregue','Estornar NF Saída'];
+function renderDevStatusOptions(sel){ renderCustomOpts('dev-status',DEV_STATUS_BASE,'customStatusDev',sel); }
+function addDevStatus(){ addCustomOpt('dev-status',DEV_STATUS_BASE,'customStatusDev','status',renderDevStatusOptions); }
+function removeDevStatus(){ removeCustomOpt('dev-status',DEV_STATUS_BASE,'customStatusDev','status',renderDevStatusOptions); }
+
+const DEV_MOTIVO_BASE=['Arrependimento','Diferente do anunciado','Danificado','Endereço errado','Comprador ausente','Atraso no envio'];
+function renderDevMotivoOptions(sel){ renderCustomOpts('dev-motivo',DEV_MOTIVO_BASE,'customMotivosDev',sel); }
+function addDevMotivo(){ addCustomOpt('dev-motivo',DEV_MOTIVO_BASE,'customMotivosDev','motivo',renderDevMotivoOptions); }
+function removeDevMotivo(){ removeCustomOpt('dev-motivo',DEV_MOTIVO_BASE,'customMotivosDev','motivo',renderDevMotivoOptions); }
+
+const DEV_PLT_BASE=['Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Magalu VixSupps','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace'];
+function renderDevPlataformaOptions(sel){ renderCustomOpts('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev',sel); }
+function addDevPlataforma(){ addCustomOpt('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev','plataforma',renderDevPlataformaOptions); }
+function removeDevPlataforma(){ removeCustomOpt('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev','plataforma',renderDevPlataformaOptions); }
+
+/* --- Rastreio: Plataforma Etiqueta, Plataformas MKTPs, Status, Transportadora --- */
+const RST_PLT_BASE=['Manda Bem','Melhor Envio'];
+function renderRstPltOptions(sel){ renderCustomOpts('rst-plt',RST_PLT_BASE,'customPltEtiquetaRst',sel); }
+function addRstPlt(){ addCustomOpt('rst-plt',RST_PLT_BASE,'customPltEtiquetaRst','plataforma etiqueta',renderRstPltOptions); }
+function removeRstPlt(){ removeCustomOpt('rst-plt',RST_PLT_BASE,'customPltEtiquetaRst','plataforma etiqueta',renderRstPltOptions); }
+
+const RST_MKTP_BASE=['SHOPEE - Suplenium','SHOPEE - Primevitaminas','MERC. LIVRE - Vitalife','MERC. LIVRE - VXShop','DROG. SÃO PAULO - ForVita','DROG. PACHECO - ForVita','MAGALU - 4Vita','WEB CONTINENTAL - 4Vita','RD MARKETPLACE - Vix Suplementos','ATACADO - Suplelive'];
+function renderRstMktpOptions(sel){ renderCustomOpts('rst-marketplace',RST_MKTP_BASE,'customMktpsRst',sel); }
+function addRstMktp(){ addCustomOpt('rst-marketplace',RST_MKTP_BASE,'customMktpsRst','plataforma mktp',renderRstMktpOptions); }
+function removeRstMktp(){ removeCustomOpt('rst-marketplace',RST_MKTP_BASE,'customMktpsRst','plataforma mktp',renderRstMktpOptions); }
+
+const RST_STATUS_BASE=['Enviado','Entregue','Extraviado','Endereço errado','Voltando'];
+function renderRstStatusOptions(sel){ renderCustomOpts('rst-status',RST_STATUS_BASE,'customStatusRst',sel); }
+function addRstStatus(){ addCustomOpt('rst-status',RST_STATUS_BASE,'customStatusRst','status',renderRstStatusOptions); }
+function removeRstStatus(){ removeCustomOpt('rst-status',RST_STATUS_BASE,'customStatusRst','status',renderRstStatusOptions); }
+
+const RST_TRANSP_BASE=['Loggi','J&T','Jadlog','Correios PAC','Correios SEDEX'];
+function renderRstTranspOptions(sel){ renderCustomOpts('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst',sel); }
+function addRstTransp(){ addCustomOpt('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst','transportadora',renderRstTranspOptions); }
+function removeRstTransp(){ removeCustomOpt('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst','transportadora',renderRstTranspOptions); }
+
 function getAllAteMotivos(){
   const base=['Pedido não entregue','Cancelamento','Extravio','Endereço errado'];
   const custom=(appState.customMotivosAte||[]);
@@ -7774,11 +7823,12 @@ function openAteModal(id){
   overlay.style.display='block';
   ateUpdateHora();
   renderAteMotivoOptions('');
+  renderAtePlataformaOptions('');
   document.getElementById('ate-edit-id').value=id||'';
   if(id){
     const d=(appState.tasks.atendimentos||[]).find(x=>x.id===id);
     if(d){
-      document.getElementById('ate-plataforma').value=d.plataforma||'';
+      renderAtePlataformaOptions(d.plataforma||'');
       document.getElementById('ate-cliente').value=d.cliente||'';
       document.getElementById('ate-nped').value=d.nped||'';
       document.getElementById('ate-natend').value=d.natend||'';
