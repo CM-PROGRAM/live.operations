@@ -224,24 +224,53 @@ html{overflow-x:hidden;}
 .login-box{background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:34px;width:380px;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 40px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1);backdrop-filter:blur(20px);}
 .login-box h2{font-size:11px;font-weight:500;color:var(--text-muted);text-align:center;letter-spacing:3px;text-transform:uppercase;font-family:var(--font-mono);}
 .input-group{display:flex;flex-direction:column;gap:5px;}
+.atv-prior-dot{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2c2f36,#0d0e11);box-shadow:0 0 0 1px rgba(255,255,255,.1),inset 0 1px 1px rgba(255,255,255,.15);position:relative;display:inline-block;flex-shrink:0;}
+.atv-prior-dot::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;top:4px;left:4px;background:var(--dc,#22c55e);box-shadow:0 0 6px var(--dc,#22c55e),0 0 12px var(--dc,#22c55e);}
+.atv-prior-dot.gray{--dc:#9ca3af;}
+.atv-prior-dot.yellow{--dc:#facc15;}
+.atv-prior-dot.red{--dc:#ef4444;}
+.atv-prior-select{position:relative;}
+.atv-prior-trigger{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;padding:9px 12px;outline:none;width:100%;cursor:pointer;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:9px;}
+.atv-prior-trigger .chev{margin-left:auto;font-size:10px;color:var(--text-muted);}
+.atv-prior-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#15171d;border:1px solid var(--glass-border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:50;overflow:hidden;}
+.atv-prior-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:14px;color:var(--text-primary);cursor:pointer;transition:background .15s;}
+.atv-prior-opt:hover{background:rgba(255,255,255,0.06);}
 .input-group label{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;font-weight:500;}
 input[type="text"],input[type="password"],select,textarea{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);}
+input[type="date"]{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:15px;font-weight:600;letter-spacing:.5px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);color-scheme:dark;}
+input[type="date"]:focus{border-color:rgba(59,130,246,0.5);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(59,130,246,0.15);}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.6);cursor:pointer;opacity:.85;transition:opacity .15s;}
+input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
 input:focus,select:focus,textarea:focus{border-color:rgba(59,130,246,0.6);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 16px rgba(59,130,246,0.2);}
 select{color-scheme:dark;}
 select option,select optgroup{background:var(--bg-surface);color:var(--text-primary);}
-.btn{background:linear-gradient(135deg,rgba(192,57,43,0.8) 0%,rgba(192,57,43,0.6) 100%);border:1px solid rgba(192,57,43,0.7);border-radius:50px;color:#fff;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:600;padding:10px 18px;transition:all .2s;width:100%;letter-spacing:-0.01em;box-shadow:0 4px 20px rgba(192,57,43,0.3),inset 0 1px 0 rgba(255,255,255,0.15);position:relative;overflow:hidden;backdrop-filter:blur(8px);}
+.btn{
+  --bc: 99,102,241; /* azul-índigo padrão */
+  background:linear-gradient(135deg, rgba(var(--bc),0.55) 0%, rgba(var(--bc),0.28) 100%);
+  border:1px solid rgba(var(--bc),0.55);
+  border-radius:50px;color:#fff;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:600;
+  padding:10px 18px;transition:all .2s;width:100%;letter-spacing:-0.01em;
+  box-shadow:0 4px 18px rgba(var(--bc),0.28), inset 0 1px 0 rgba(255,255,255,0.14);
+  position:relative;overflow:hidden;backdrop-filter:blur(8px);
+}
 .btn::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.12),transparent);border-radius:50px 50px 0 0;pointer-events:none;}
-.btn:hover{opacity:1;transform:translateY(-2px);box-shadow:0 6px 28px rgba(192,57,43,0.5),inset 0 1px 0 rgba(255,255,255,0.2);}
+.btn:hover{opacity:1;transform:translateY(-2px);box-shadow:0 6px 24px rgba(var(--bc),0.42), inset 0 1px 0 rgba(255,255,255,0.2);}
 .btn:active{transform:translateY(0);}
-.btn-ghost{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);color:var(--text-secondary);}
-.btn-ghost:hover{background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.04) 100%);border-color:rgba(255,255,255,0.2);color:var(--text-primary);opacity:1;}
+.btn-ghost{--bc: 148,163,184;background:linear-gradient(135deg, rgba(var(--bc),0.28) 0%, rgba(var(--bc),0.1) 100%);border:1px solid rgba(var(--bc),0.4);color:#e2e6f0;}
+.btn-ghost:hover{opacity:1;background:linear-gradient(135deg, rgba(var(--bc),0.4) 0%, rgba(var(--bc),0.16) 100%);border-color:rgba(var(--bc),0.6);color:#fff;}
 .btn-sm{font-size:11px;padding:5px 14px;width:auto;border-radius:50px;}
-.btn-danger{background:var(--red);color:#fff;border:1px solid var(--red);}
-.btn-danger:hover{background:#c53030;color:#fff;opacity:1;}
-.btn-success{background:var(--green-dim);color:var(--green);border:1px solid var(--green-dim);}
-.btn-success:hover{background:var(--green);color:#fff;opacity:1;}
-.btn-link{background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02));border:1px solid var(--glass-border);color:var(--text-secondary);font-family:var(--font-sans);font-size:11px;font-weight:600;letter-spacing:0.01em;padding:5px 12px;border-radius:50px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:all .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,0.07);}
-.btn-link:hover{border-color:rgba(59,130,246,0.5);color:#93c5fd;background:linear-gradient(135deg,rgba(59,130,246,0.15),rgba(59,130,246,0.05));}
+.btn-danger{--bc: 244,63,94;}
+.btn-success{--bc: 16,185,129;}
+.btn-link{
+  --bc: 148,163,184;
+  background:linear-gradient(135deg, rgba(var(--bc),0.22) 0%, rgba(var(--bc),0.08) 100%);
+  border:1px solid rgba(var(--bc),0.4);color:#dfe3ec;font-family:var(--font-sans);font-size:11px;font-weight:600;
+  letter-spacing:0.01em;padding:5px 12px;border-radius:50px;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;gap:4px;transition:all .15s;
+  box-shadow:0 2px 10px rgba(var(--bc),0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.btn-link:hover{border-color:rgba(var(--bc),0.65);color:#fff;background:linear-gradient(135deg, rgba(var(--bc),0.35) 0%, rgba(var(--bc),0.14) 100%);}
+.btn-link.btn-danger{--bc: 244,63,94;}
 .login-error{background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius);color:var(--red);font-size:12px;padding:7px 11px;text-align:center;display:none;}
 
 /* HEADER */
@@ -287,9 +316,9 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .sidebar::-webkit-scrollbar{width:4px;}
 .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 .sidebar-section-label{padding:20px 8px 10px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;}
-.tab-btn{background:none;border:1px solid transparent;width:calc(100% - 16px);margin:2px 8px;text-align:left;display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--text-muted);transition:all .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:42px;}
-.tab-btn:hover{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border-color:var(--glass-border);color:var(--text-primary);box-shadow:0 2px 12px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);}
-.tab-btn.active{background:linear-gradient(135deg,rgba(59,130,246,0.2) 0%,rgba(59,130,246,0.06) 100%);border-color:rgba(59,130,246,0.4);color:#fff;font-weight:600;box-shadow:0 4px 20px rgba(59,130,246,0.2),inset 0 1px 0 rgba(255,255,255,0.1);}
+.tab-btn{background:#0c0c0e;border:1px solid rgba(255,255,255,0.18);width:calc(100% - 16px);margin:4px 8px;text-align:left;display:flex;align-items:center;gap:11px;padding:10px 16px;border-radius:999px;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--text-muted);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:42px;box-shadow:0 8px 20px -6px rgba(255,255,255,0.12),0 0 10px rgba(255,255,255,0.08),inset 0 1px 0 rgba(255,255,255,0.08);}
+.tab-btn:hover{background:#0c0c0e;border-color:rgba(255,255,255,0.4);color:var(--text-primary);box-shadow:0 10px 26px -6px rgba(255,255,255,0.22),0 0 16px rgba(255,255,255,0.15),inset 0 1px 0 rgba(255,255,255,0.1);}
+.tab-btn.active{background:#0c0c0e;border-color:rgba(255,255,255,0.75);color:#fff;font-weight:600;box-shadow:0 0 3px #fff,0 12px 32px -6px rgba(255,255,255,0.3),0 0 22px rgba(255,255,255,0.2),inset 0 1px 0 rgba(255,255,255,0.15);}
 .tab-btn .tab-icon{display:none;}
 .tab-btn .tab-label{flex:1;overflow:hidden;text-overflow:ellipsis;}
 .sidebar-search{padding:7px 10px;margin:8px 8px 4px;display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:50px;transition:border-color .2s;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);}
@@ -312,9 +341,10 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .task-group{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(12px);}
 .task-group-header{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));border-bottom:1px solid rgba(255,255,255,0.06);padding:10px 14px;display:flex;align-items:center;gap:9px;}
 .task-group-icon{width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.task-group-icon.done-glow{width:28px;height:28px;background:radial-gradient(circle at 35% 30%,#6ee7a0,#0f9d4d);border-radius:50%;border:1px solid rgba(255,255,255,.4);box-shadow:0 0 12px rgba(34,197,94,.8),0 0 2px rgba(255,255,255,.6),inset 0 1px 2px rgba(255,255,255,.4);color:#ffffff;font-size:13px;font-weight:900;}
 .task-group-title{font-family:var(--font-sans);font-size:13px;font-weight:700;flex:1;letter-spacing:-0.02em;}
 .task-group-meta{font-size:11px;color:var(--text-muted);font-family:var(--font-sans);font-weight:400;}
-.task-group-count{font-size:12px;color:var(--green);font-family:var(--font-mono);margin-left:6px;font-weight:500;}
+.task-group-count{font-size:11px;font-family:var(--font-mono);margin-left:6px;font-weight:800;padding:2px 9px;border-radius:8px;}
 
 /* TASK ROW */
 .task-row{border-bottom:1px solid rgba(255,255,255,0.05);display:flex;align-items:center;gap:10px;padding:9px 14px;transition:background .13s;flex-wrap:wrap;}
@@ -363,17 +393,22 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
 .user-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;}
 .user-card-header{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
-.user-card-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);}
+.user-card-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);position:relative;text-shadow:0 1px 3px rgba(0,0,0,.6);}
 .user-card-name{font-size:14px;font-weight:600;color:var(--text-primary);letter-spacing:-0.02em;}
 .user-card-role{font-size:11px;color:var(--text-muted);font-family:var(--font-sans);}
 .permissions-list{display:flex;flex-direction:column;gap:5px;}
 .perm-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-secondary);}
-.perm-toggle{position:relative;width:30px;height:17px;flex-shrink:0;}
+.perm-toggle{position:relative;width:36px;height:19px;flex-shrink:0;}
 .perm-toggle input{display:none;}
-.perm-toggle-track{position:absolute;inset:0;background:var(--bg-active);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:all .2s;}
-.perm-toggle input:checked+.perm-toggle-track{background:var(--accent-dim);border-color:var(--accent);}
-.perm-toggle-thumb{position:absolute;top:2px;left:2px;width:11px;height:11px;background:var(--text-muted);border-radius:50%;transition:all .2s;pointer-events:none;}
-.perm-toggle input:checked+.perm-toggle-track+.perm-toggle-thumb{left:15px;background:var(--accent);}
+.perm-toggle-track{position:absolute;inset:0;background:linear-gradient(180deg,#3f3838,#26201f);border:1px solid rgba(0,0,0,.6);border-radius:10px;cursor:pointer;transition:all .25s;box-shadow:inset 0 2px 4px rgba(0,0,0,.6);overflow:hidden;}
+.perm-toggle input:checked+.perm-toggle-track{background:linear-gradient(180deg,#3f5c49,#2b4536);border-color:#5a8067;box-shadow:inset 0 2px 4px rgba(0,0,0,.35),0 0 6px rgba(74,157,105,.35);}
+.perm-toggle-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;background:radial-gradient(circle at 35% 30%,#a97e7e,#5f3838);border-radius:50%;transition:all .25s;pointer-events:none;box-shadow:0 2px 3px rgba(0,0,0,.7),inset 0 1px 1px rgba(255,255,255,.18);z-index:2;}
+.perm-toggle input:checked+.perm-toggle-track+.perm-toggle-thumb{left:21px;background:radial-gradient(circle at 35% 30%,#d6e8da,#8fae9a);}
+.perm-toggle-label{position:absolute;top:0;height:100%;display:flex;align-items:center;font-size:6.5px;font-weight:800;letter-spacing:.3px;pointer-events:none;transition:opacity .2s;font-family:var(--font-mono);z-index:1;}
+.perm-toggle-label.pt-on{left:5px;opacity:0;color:#fff;}
+.perm-toggle-label.pt-off{right:5px;opacity:1;color:rgba(255,255,255,.45);}
+.perm-toggle input:checked~.perm-toggle-label.pt-on{opacity:1;}
+.perm-toggle input:checked~.perm-toggle-label.pt-off{opacity:0;}
 .new-user-form{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:end;margin-top:14px;}
 
 /* DASHBOARD */
@@ -443,6 +478,69 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .act-meta{font-size:9px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
 .act-empty{padding:28px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);}
 @keyframes actPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.4);}50%{box-shadow:0 0 0 6px rgba(192,57,43,0);}}
+
+/* ===== BOTÕES ORB (círculo com glow) — padrão para botões de ícone ===== */
+.btn-orb{
+  --orb-c: 148,163,184; /* cor base RGB (cinza neutro) */
+  position:relative;
+  width:30px;height:30px;flex-shrink:0;
+  border:none;border-radius:50%;cursor:pointer;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 35% 30%, rgba(var(--orb-c),0.35), rgba(var(--orb-c),0.08) 70%);
+  box-shadow:0 0 0 1px rgba(var(--orb-c),0.18), 0 2px 10px rgba(var(--orb-c),0.15);
+  color:#f4f6fb;
+  font-size:13px;
+  line-height:1;
+  transition:transform .15s, box-shadow .15s, background .15s;
+}
+.btn-orb svg{width:14px;height:14px;stroke:#f4f6fb;stroke-width:2;fill:none;}
+.btn-orb:hover{
+  transform:translateY(-1px);
+  box-shadow:0 0 0 1px rgba(var(--orb-c),0.35), 0 4px 16px rgba(var(--orb-c),0.35);
+  background:radial-gradient(circle at 35% 30%, rgba(var(--orb-c),0.5), rgba(var(--orb-c),0.12) 70%);
+}
+.btn-orb:active{transform:translateY(0);}
+.btn-orb:disabled{opacity:.35;cursor:not-allowed;transform:none;}
+.btn-orb.sm{width:24px;height:24px;font-size:11px;}
+.btn-orb.sm svg{width:11px;height:11px;}
+.btn-orb.xs{width:18px;height:18px;font-size:9px;}
+.btn-orb.xs svg{width:9px;height:9px;}
+/* variantes de cor (seguem a referência: teal/verde=add, cinza=neutro/abrir, rosa=confirmar, vermelho=excluir, âmbar=alerta) */
+.btn-orb.v-add{--orb-c: 45,212,191;}
+.btn-orb.v-open{--orb-c: 148,163,184;}
+.btn-orb.v-ok{--orb-c: 232,121,163;}
+.btn-orb.v-danger{--orb-c: 248,113,113;}
+.btn-orb.v-warn{--orb-c: 245,158,11;}
+.btn-orb.v-edit{--orb-c: 129,140,248;}
+
+/* ===== BOTÕES PILL (com texto) — selo circular + texto, glow colorido ===== */
+.btn-pill{
+  --pc: 99,102,241;
+  display:inline-flex;align-items:center;gap:7px;
+  background:linear-gradient(135deg, rgba(var(--pc),0.22), rgba(var(--pc),0.06));
+  border:1px solid rgba(var(--pc),0.4);
+  border-radius:50px;
+  padding:4px 12px 4px 4px;
+  color:#eef0f6;
+  font-size:11px;font-weight:700;font-family:var(--font-sans);letter-spacing:.1px;
+  cursor:pointer;
+  box-shadow:0 2px 10px rgba(var(--pc),0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+  transition:all .15s;
+}
+.btn-pill:hover{border-color:rgba(var(--pc),0.65);transform:translateY(-1px);box-shadow:0 4px 16px rgba(var(--pc),0.32), inset 0 1px 0 rgba(255,255,255,0.12);}
+.btn-pill:active{transform:translateY(0);}
+.btn-pill-ic{
+  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  display:inline-flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 35% 30%, rgba(var(--pc),0.9), rgba(var(--pc),0.5) 75%);
+  box-shadow:0 0 8px rgba(var(--pc),0.5);
+}
+.btn-pill-ic svg{width:11px;height:11px;stroke:#fff;stroke-width:2.4;fill:none;}
+.btn-pill.v-indigo{--pc: 99,102,241;}
+.btn-pill.v-green{--pc: 16,185,129;}
+.btn-pill.v-amber{--pc: 245,158,11;}
+.btn-pill.v-rose{--pc: 244,63,94;}
+.btn-pill.v-gray{--pc: 148,163,184;}
 </style>
 
 <!-- Firebase SDK -->
@@ -535,7 +633,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       <div class="sidebar-search">
         <span style="font-size:12px;color:var(--text-muted);flex-shrink:0;">🔍</span>
         <input id="search-inline" type="text" placeholder="Buscar tarefas..." oninput="doSearch(this.value)">
-        <button id="search-clear" onclick="clearSearch()" title="Limpar" style="display:none;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;padding:0 2px;line-height:1;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-muted)'">×</button>
+        <button id="search-clear" onclick="clearSearch()" title="Limpar" class="btn-orb v-open sm" style="display:none;"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
       </div>
       <!-- tab buttons + footer rendered by buildTabs() -->
     </nav>
@@ -557,7 +655,6 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       <div style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);padding:12px 14px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06);">
         <div>
           <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Progresso do dia</div>
-          <div class="progress-bar" style="width:220px;border-radius:4px;border:1px solid var(--glass-border);height:5px;"><div class="progress-fill green" id="wpp-progress" style="width:0%"></div></div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-family:var(--font-mono);" id="wpp-progress-label">0 / 5</div>
         </div>
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
@@ -664,7 +761,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div style="width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:11px;">📦</div>
           <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">ACOMPANHAMENTO RASTREIOS</span>
-          <div id="rst-owner-badge" title="Responsável: Gustavo" style="width:22px;height:22px;border-radius:50%;background:#e8edf822;border:1px solid #e8edf8;color:#e8edf8;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;">G</div>
+          <div id="rst-owner-badge" title="Responsável: Gustavo" style="width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e8edf855,#e8edf815 60%,transparent 75%),radial-gradient(circle at center,#e8edf822,transparent 70%);border:1px solid #e8edf855;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px #e8edf866,inset 0 1px 2px rgba(255,255,255,.15);">GU</div>
           <span id="rst-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           <!-- Pasta Entregues chip -->
           <div id="rst-entregues-wrap" onclick="toggleEntregues()" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.3);border-radius:50px;padding:3px 12px 3px 9px;cursor:pointer;transition:background .15s;user-select:none;"
@@ -727,27 +824,27 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:520px;max-width:96vw;position:relative;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
             <div id="rst-modal-title" style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);">Novo Rastreio</div>
-            <button onclick="closeRstModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+            <button onclick="closeRstModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="input-group"><label>Data do Pedido</label><input type="text" id="rst-data" placeholder="DD/MM/AA" maxlength="8" oninput="fmtRstData(this)" autocomplete="new-password" data-lpignore="true"></div>
             <div class="input-group"><label>Pedido Base</label><input type="text" id="rst-nped" placeholder="Ex: 35017581" autocomplete="new-password" data-lpignore="true"></div>
-            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma Etiqueta</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstPlt()" title="Adicionar nova plataforma etiqueta" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstPlt()" title="Excluir plataforma etiqueta selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma Etiqueta</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstPlt()" title="Adicionar nova plataforma etiqueta" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeRstPlt()" title="Excluir plataforma etiqueta selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
               <select id="rst-plt">
                 <option value="">— Selecionar —</option>
               </select>
             </div>
-            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataformas MKTPs</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstMktp()" title="Adicionar nova plataforma mktp" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstMktp()" title="Excluir plataforma mktp selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataformas MKTPs</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstMktp()" title="Adicionar nova plataforma mktp" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeRstMktp()" title="Excluir plataforma mktp selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
               <select id="rst-marketplace">
                 <option value="">— Selecionar —</option>
               </select>
             </div>
-            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Status</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstStatus()" title="Adicionar novo status" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstStatus()" title="Excluir status selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Status</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstStatus()" title="Adicionar novo status" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeRstStatus()" title="Excluir status selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
               <select id="rst-status">
                 <option value="">— Selecionar —</option>
               </select>
             </div>
-            <div class="input-group" style="grid-column:1/-1;"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Transportadora</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstTransp()" title="Adicionar nova transportadora" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeRstTransp()" title="Excluir transportadora selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+            <div class="input-group" style="grid-column:1/-1;"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Transportadora</span><span style="display:flex;gap:4px;"><button type="button" onclick="addRstTransp()" title="Adicionar nova transportadora" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeRstTransp()" title="Excluir transportadora selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
               <select id="rst-transp">
                 <option value="">— Selecionar —</option>
               </select>
@@ -829,24 +926,24 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:72px;background:var(--bg-surface);z-index:4;">SKU</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:162px;background:var(--bg-surface);z-index:4;">EAN</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);position:sticky;top:0;left:272px;background:var(--bg-surface);z-index:4;">PRODUTO</th>
-                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:492px;background:var(--bg-surface);z-index:4;border-right:2px solid var(--border-light);"><div style="display:grid;grid-template-columns:auto 1fr;align-items:center;">MARCA<button type="button" id="conf-marca-add-btn-th" onclick="addConfMarca()" title="Adicionar nova marca" style="display:none;justify-self:center;flex-shrink:0;width:16px;height:16px;line-height:14px;padding:0;background:linear-gradient(135deg,rgba(59,130,246,0.25),rgba(59,130,246,0.1));border:1px solid rgba(59,130,246,0.5);border-radius:4px;color:#93c5fd;font-size:12px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0;vertical-align:middle;">+</button></div></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://www.canva.com/" target="_blank" rel="noopener" style="background:#6d28d9;color:#ffffff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">IMAGENS</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#000000;color:#ffffff;padding:1px 8px;border-radius:4px;display:inline-block;">ATACADO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.lojaintegrada.com.br/painel" target="_blank" rel="noopener" style="background:#4b5320;color:#ffffff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">LOJA INT.</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:#d4a000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">MERCADO LIVRE VITALIFE</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:#d4a000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">MERCADO LIVRE VITALIFE 2X</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:#d4a000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">MERCADO LIVRE VXSHOP</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:#d4a000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">MERCADO LIVRE VXSHOP 2X</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:#f97316;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">SHOPEE SUPLENIUM</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:#f97316;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-transform:none;text-decoration:none;cursor:pointer;">SHP Suple 2x</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:#f97316;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">SHOPEE PRIMEVITAMINAS</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:#f97316;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-transform:none;text-decoration:none;cursor:pointer;">SHP Prime 2X</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://portal.webcontinental.com.br/#/listar/produtos" target="_blank" rel="noopener" style="background:#ffffff;color:#0055a5;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">WEB CO</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://portal.rdmarketplace.com.br/app/products" target="_blank" rel="noopener" style="background:#2d7a3a;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">RD MARKETPLACE</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.magalu.com/products/" target="_blank" rel="noopener" style="background:#3b5bdb;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">MAGALU VIX</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.magalu.com/products/" target="_blank" rel="noopener" style="background:#3b5bdb;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">MAGALU 4VITA</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar" target="_blank" rel="noopener" style="background:#e00000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">D. Pacheco</a></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar" target="_blank" rel="noopener" style="background:#00aaff;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;text-decoration:none;cursor:pointer;">D. São Paulo</a></th>
+                <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:492px;background:var(--bg-surface);z-index:4;border-right:2px solid var(--border-light);"><div style="display:grid;grid-template-columns:auto 1fr;align-items:center;">MARCA<button type="button" id="conf-marca-add-btn-th" onclick="addConfMarca()" title="Adicionar nova marca" class="btn-orb v-add" style="display:none;justify-self:center;width:18px;height:18px;text-transform:none;letter-spacing:0;vertical-align:middle;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button></div></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://www.canva.com/" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#8d57e1,#5720ad);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #6d28d966,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">IMAGENS</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#383838,#000000);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #00000066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">ATACADO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.lojaintegrada.com.br/painel" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#727851,#3c4219);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #4b532066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">LOJA INT.</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#ddb438,#a98000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #d4a00066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">MERCADO LIVRE VITALIFE</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#ddb438,#a98000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #d4a00066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">MERCADO LIVRE VITALIFE 2X</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#ddb438,#a98000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #d4a00066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">MERCADO LIVRE VXSHOP</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#ddb438,#a98000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #d4a00066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">MERCADO LIVRE VXSHOP 2X</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#fa9149,#c75c11);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #f9731666,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">SHOPEE SUPLENIUM</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#fa9149,#c75c11);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #f9731666,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-transform:none;text-decoration:none;cursor:pointer;">SHP Suple 2x</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#fa9149,#c75c11);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #f9731666,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">SHOPEE PRIMEVITAMINAS</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#fa9149,#c75c11);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #f9731666,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-transform:none;text-decoration:none;cursor:pointer;">SHP Prime 2X</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://portal.webcontinental.com.br/#/listar/produtos" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#387ab8,#004484);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #0055a566,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">WEB CO</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://portal.rdmarketplace.com.br/app/products" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#5b9765,#24612e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #2d7a3a66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">RD MARKETPLACE</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.magalu.com/products/" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#667fe2,#2f48af);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #3b5bdb66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">MAGALU VIX</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://seller.magalu.com/products/" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#667fe2,#2f48af);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #3b5bdb66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">MAGALU 4VITA</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#e63838,#b30000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #e0000066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">D. Pacheco</a></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><a href="https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar" target="_blank" rel="noopener" style="background:linear-gradient(135deg,#38bcff,#0088cc);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #00aaff66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;text-decoration:none;cursor:pointer;">D. São Paulo</a></th>
                 <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;">AÇÕES</th>
               </tr>
             </thead>
@@ -861,7 +958,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;position:relative;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
             <div id="conf-modal-title" style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);">Novo Produto</div>
-            <button onclick="closeConfModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+            <button onclick="closeConfModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
           </div>
           <!-- Dados do produto -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px;">
@@ -954,7 +1051,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <!-- TAREFAS USUÁRIOS -->
     <div class="tab-panel" id="tab-tarefas">
       <div class="section-header">
-        <span class="section-title">Tarefas Atribuídas</span>
+        <span class="section-title">Central de Tarefas</span>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <select id="atv-filter-colab" onchange="renderAtividades()" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
             <option value="">Todos os colaboradores</option>
@@ -970,42 +1067,42 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       </div>
 
       <!-- Status filter tabs -->
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;" id="atv-status-tabs">
-        <button onclick="atvSetStatusFilter('all')" id="atv-stab-all" class="atv-stab active" style="background:linear-gradient(135deg,rgba(59,130,246,0.2),rgba(59,130,246,0.06));border:1px solid rgba(59,130,246,0.4);border-radius:50px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff;cursor:pointer;font-family:var(--font-sans);box-shadow:0 4px 16px rgba(59,130,246,0.2),inset 0 1px 0 rgba(255,255,255,0.1);transition:all .15s;">Todas</button>
-        <button onclick="atvSetStatusFilter('aberta')" id="atv-stab-aberta" class="atv-stab" style="background:linear-gradient(135deg,rgba(245,158,11,0.12),rgba(245,158,11,0.04));border:1px solid rgba(245,158,11,0.35);border-radius:50px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);cursor:pointer;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);transition:all .15s;">📋 A Fazer</button>
-        <button onclick="atvSetStatusFilter('andamento')" id="atv-stab-andamento" class="atv-stab" style="background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.04));border:1px solid rgba(59,130,246,0.35);border-radius:50px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);cursor:pointer;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);transition:all .15s;">⚡ Em Andamento</button>
-        <button onclick="atvSetStatusFilter('atrasada')" id="atv-stab-atrasada" class="atv-stab" style="background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(239,68,68,0.04));border:1px solid rgba(239,68,68,0.35);border-radius:50px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--red);cursor:pointer;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);transition:all .15s;">⚠ Atrasada</button>
-        <button onclick="atvSetStatusFilter('concluida')" id="atv-stab-concluida" class="atv-stab" style="background:linear-gradient(135deg,rgba(34,197,94,0.12),rgba(34,197,94,0.04));border:1px solid rgba(34,197,94,0.35);border-radius:50px;padding:6px 16px;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);cursor:pointer;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);transition:all .15s;">✅ Concluídas</button>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;" id="atv-status-tabs">
+        <button onclick="atvSetStatusFilter('all')" id="atv-stab-all" class="atv-stab active" style="background:linear-gradient(135deg,#8b8ff5,#4f52d6);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:6px 16px 6px 6px;font-size:11px;font-weight:700;letter-spacing:.3px;color:#fff;cursor:pointer;font-family:var(--font-sans);transition:all .15s;display:inline-flex;align-items:center;box-shadow:0 4px 14px rgba(99,102,241,.35),inset 0 1px 0 rgba(255,255,255,.15);"><span style="width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.22);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="9" height="9" viewBox="0 0 9 9" fill="#fff"><rect x="0" y="0" width="3.5" height="3.5" rx="1"/><rect x="5" y="0" width="3.5" height="3.5" rx="1"/><rect x="0" y="5" width="3.5" height="3.5" rx="1"/><rect x="5" y="5" width="3.5" height="3.5" rx="1"/></svg></span>Todas</button>
+        <button onclick="atvSetStatusFilter('aberta')" id="atv-stab-aberta" class="atv-stab" style="background:linear-gradient(135deg,#ffc670,#d97706);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 16px 6px 6px;font-size:11px;font-weight:600;letter-spacing:.3px;color:#fff;cursor:pointer;font-family:var(--font-sans);transition:all .15s;display:inline-flex;align-items:center;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="9" height="10" viewBox="0 0 9 10" fill="none" stroke="#fff" stroke-width="1.1"><rect x="1" y="1.5" width="7" height="7.5" rx="1"/><rect x="3" y="0.3" width="3" height="1.6" rx="0.5" fill="#fff" stroke="none"/></svg></span>A Fazer</button>
+        <button onclick="atvSetStatusFilter('andamento')" id="atv-stab-andamento" class="atv-stab" style="background:linear-gradient(135deg,#8b8ff5,#4f52d6);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 16px 6px 6px;font-size:11px;font-weight:600;letter-spacing:.3px;color:#fff;cursor:pointer;font-family:var(--font-sans);transition:all .15s;display:inline-flex;align-items:center;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="10" height="10" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#fff" stroke-width="1.1"/><path d="M5 1 A4 4 0 0 1 5 9 Z" fill="#fff"/></svg></span>Em Andamento</button>
+        <button onclick="atvSetStatusFilter('atrasada')" id="atv-stab-atrasada" class="atv-stab" style="background:linear-gradient(135deg,#fb7185,#be123c);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 16px 6px 6px;font-size:11px;font-weight:600;letter-spacing:.3px;color:#fff;cursor:pointer;font-family:var(--font-sans);transition:all .15s;display:inline-flex;align-items:center;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="9" height="9" viewBox="0 0 9 9"><path d="M4.5 0.5 L8.5 8 L0.5 8 Z" fill="none" stroke="#fff" stroke-width="1.1" stroke-linejoin="round"/><line x1="4.5" y1="3.2" x2="4.5" y2="5.6" stroke="#fff" stroke-width="1.1"/><circle cx="4.5" cy="6.8" r="0.6" fill="#fff"/></svg></span>Atrasada</button>
+        <button onclick="atvSetStatusFilter('concluida')" id="atv-stab-concluida" class="atv-stab" style="background:linear-gradient(135deg,#4ade80,#0d9488);border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 16px 6px 6px;font-size:11px;font-weight:600;letter-spacing:.3px;color:#fff;cursor:pointer;font-family:var(--font-sans);transition:all .15s;display:inline-flex;align-items:center;"><span style="width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.28);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="9" height="9" viewBox="0 0 9 9"><path d="M1 4.8 L3.4 7.2 L8 1.5" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Concluídas</button>
       </div>
 
       <!-- Kanban board -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;min-width:0;" id="atv-kanban">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;min-width:0;" id="atv-kanban">
 
         <!-- Coluna: A Fazer -->
         <div id="atv-col-wrap-aberta">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:linear-gradient(135deg,rgba(245,158,11,0.1),rgba(245,158,11,0.03));border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius);border-top:3px solid var(--amber);box-shadow:0 4px 16px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06);">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--amber);flex:1;">📋 A Fazer</span>
-            <span id="atv-count-aberta" style="background:rgba(245,158,11,.15);border:1px solid var(--amber);border-radius:10px;color:var(--amber);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;padding:7px 10px;background:#1c1f2e;border:1px solid rgba(245,158,11,0.22);border-left:3px solid #f59e0b;border-radius:8px;">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:.2px;color:#fbbf24;flex:1;font-family:var(--font-sans);display:flex;align-items:center;"><span style="width:16px;height:16px;border-radius:50%;background:#d97706;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="8" height="9" viewBox="0 0 9 10" fill="none" stroke="#fff" stroke-width="1.1"><rect x="1" y="1.5" width="7" height="7.5" rx="1"/><rect x="3" y="0.3" width="3" height="1.6" rx="0.5" fill="#fff" stroke="none"/></svg></span>A Fazer</span>
+            <span id="atv-count-aberta" style="background:rgba(245,158,11,.15);border-radius:9px;color:#fbbf24;font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           </div>
-          <div id="atv-col-aberta" style="display:flex;flex-direction:column;gap:10px;min-height:60px;"></div>
+          <div id="atv-col-aberta" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
         </div>
 
         <!-- Coluna: Em Andamento -->
         <div id="atv-col-wrap-andamento">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:linear-gradient(135deg,rgba(59,130,246,0.1),rgba(59,130,246,0.03));border:1px solid rgba(59,130,246,0.3);border-radius:var(--radius);border-top:3px solid var(--blue);box-shadow:0 4px 16px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06);">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);flex:1;">⚡ Em Andamento</span>
-            <span id="atv-count-andamento" style="background:rgba(59,130,246,.15);border:1px solid var(--blue);border-radius:10px;color:var(--blue);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;padding:7px 10px;background:#1c1f2e;border:1px solid rgba(99,102,241,0.25);border-left:3px solid #6366f1;border-radius:8px;">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:.2px;color:#a5b4fc;flex:1;font-family:var(--font-sans);display:flex;align-items:center;"><span style="width:16px;height:16px;border-radius:50%;background:#4f52d6;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="9" height="9" viewBox="0 0 10 10"><circle cx="5" cy="5" r="4" fill="none" stroke="#fff" stroke-width="1.1"/><path d="M5 1 A4 4 0 0 1 5 9 Z" fill="#fff"/></svg></span>Em Andamento</span>
+            <span id="atv-count-andamento" style="background:rgba(99,102,241,.18);border-radius:9px;color:#a5b4fc;font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           </div>
-          <div id="atv-col-andamento" style="display:flex;flex-direction:column;gap:10px;min-height:60px;"></div>
+          <div id="atv-col-andamento" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
         </div>
 
         <!-- Coluna: Concluída -->
         <div id="atv-col-wrap-concluida">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 12px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.3);border-radius:var(--radius);border-top:3px solid var(--green);box-shadow:0 4px 16px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06);">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--green);flex:1;">✅ Concluídas</span>
-            <span id="atv-count-concluida" style="background:rgba(34,197,94,.15);border:1px solid var(--green-dim);border-radius:10px;color:var(--green);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;padding:7px 10px;background:#1c1f2e;border:1px solid rgba(16,185,129,0.25);border-left:3px solid #10b981;border-radius:8px;">
+            <span style="font-size:11.5px;font-weight:700;letter-spacing:.2px;color:#6ee7b7;flex:1;font-family:var(--font-sans);display:flex;align-items:center;"><span style="width:16px;height:16px;border-radius:50%;background:#0d9488;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;margin-right:6px;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="8" height="8" viewBox="0 0 9 9"><path d="M1 4.8 L3.4 7.2 L8 1.5" fill="none" stroke="#fff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Concluídas</span>
+            <span id="atv-count-concluida" style="background:rgba(16,185,129,.18);border-radius:9px;color:#6ee7b7;font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           </div>
-          <div id="atv-col-concluida" style="display:flex;flex-direction:column;gap:10px;min-height:60px;"></div>
+          <div id="atv-col-concluida" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
         </div>
 
       </div>
@@ -1075,8 +1172,8 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
               <option value="Pago">Pago</option>
             </select>
           </div>
-          <button class="btn btn-sm" onclick="gerarPlanilhaBaixas()" style="white-space:nowrap;background:var(--green);color:#fff;border-color:var(--green);">⬇ Gerar Planilha Baixas</button>
-          <button class="btn btn-sm" onclick="resetDrogarias()" style="white-space:nowrap;background:var(--red);color:#fff;border-color:var(--red);">🗑 Resetar</button>
+          <button class="btn btn-sm btn-success" onclick="gerarPlanilhaBaixas()" style="white-space:nowrap;">⬇ Gerar Planilha Baixas</button>
+          <button class="btn btn-sm btn-danger" onclick="resetDrogarias()" style="white-space:nowrap;">🗑 Resetar</button>
         </div>
       </div>
 
@@ -1183,14 +1280,14 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:150px;background:var(--bg-surface);z-index:4;">CNPJ</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;">CONTA</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;border-right:2px solid var(--border-light);">LOCALIZAÇÃO</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#d4a000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">MERCADO LIVRE</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#f97316;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">SHOPEE</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#2d7a3a;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">RD MARKETPLACE</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#00aaff;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">D. SÃO PAULO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#e00000;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">D. PACHECO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#3b5bdb;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">MAGALU</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#ffffff;color:#0055a5;padding:1px 8px;border-radius:4px;display:inline-block;">WEBCO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:#4b5320;color:#fff;padding:1px 8px;border-radius:4px;display:inline-block;">LOJA INTEGRADA</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#ddb438,#a98000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #d4a00066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">MERCADO LIVRE</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#fa9149,#c75c11);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #f9731666,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">SHOPEE</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5b9765,#24612e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #2d7a3a66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">RD MARKETPLACE</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#38bcff,#0088cc);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #00aaff66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">D. SÃO PAULO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#e63838,#b30000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #e0000066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">D. PACHECO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#667fe2,#2f48af);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #3b5bdb66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">MAGALU</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#387ab8,#004484);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #0055a566,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">WEBCO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#727851,#3c4219);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #4b532066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">LOJA INTEGRADA</span></th>
               </tr>
             </thead>
             <tbody id="cnpj-tbody"></tbody>
@@ -1270,7 +1367,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
             <button class="btn btn-sm btn-ghost" onclick="initPushNotifications();showToast('Permissão de notificações solicitada','success');">🔔 Notificações Push</button>
             <span id="push-status" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);"></span>
-            <button class="btn btn-sm" style="background:var(--red);color:#fff;border:1px solid var(--red);" onclick="openZerarTemposModal()" title="Zerar tempo por atividade">🗑 Zerar Tempos</button>
+            <button class="btn btn-sm btn-danger" onclick="openZerarTemposModal()" title="Zerar tempo por atividade">🗑 Zerar Tempos</button>
           </div>
         </div>
         <!-- Filtro por colaborador -->
@@ -1320,7 +1417,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:520px;max-width:96vw;position:relative;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
       <div id="atv-modal-title" style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);">Nova Tarefa</div>
-      <button onclick="closeAtvModal()" style="background:none;border:none;color:var(--text-muted);font-size:22px;cursor:pointer;line-height:1;">×</button>
+      <button onclick="closeAtvModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group">
@@ -1342,11 +1439,19 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         </div>
         <div class="input-group">
           <label>Prioridade</label>
-          <select id="atv-prioridade" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;padding:11px 14px;outline:none;width:100%;cursor:pointer;">
-            <option value="normal">⚪ Normal</option>
-            <option value="alta">🟡 Alta</option>
-            <option value="urgente">🔴 Urgente</option>
-          </select>
+          <div class="atv-prior-select" id="atv-prioridade-wrap">
+            <button type="button" class="atv-prior-trigger" id="atv-prioridade-trigger" onclick="_atvToggleTriorMenu()">
+              <span class="atv-prior-dot gray" id="atv-prioridade-dot"></span>
+              <span id="atv-prioridade-label">Normal</span>
+              <span class="chev">▾</span>
+            </button>
+            <div class="atv-prior-menu" id="atv-prioridade-menu" style="display:none;">
+              <div class="atv-prior-opt" onclick="_atvSelectPrior('normal')"><span class="atv-prior-dot gray"></span>Normal</div>
+              <div class="atv-prior-opt" onclick="_atvSelectPrior('alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
+              <div class="atv-prior-opt" onclick="_atvSelectPrior('urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
+            </div>
+            <input type="hidden" id="atv-prioridade" value="normal">
+          </div>
         </div>
       </div>
       <input type="hidden" id="atv-edit-id">
@@ -1369,25 +1474,25 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
       <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">↩ Nova Devolução</div>
-      <button onclick="closeDevModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+      <button onclick="closeDevModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group"><label>Nome Cliente</label><input type="text" id="dev-cliente" placeholder="Nome do cliente"></div>
       <div class="input-group"><label>Pedido Base</label><input type="text" id="dev-nped" placeholder="Ex: 35017581"></div>
-      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Status</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevStatus()" title="Adicionar novo status" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeDevStatus()" title="Excluir status selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Status</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevStatus()" title="Adicionar novo status" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeDevStatus()" title="Excluir status selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
         <select id="dev-status">
           <option value="">— Selecionar —</option>
         </select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="input-group"><label>Data Devolução</label><input type="text" id="dev-data" placeholder="00/00/00" maxlength="8" oninput="fmtData(this)"></div>
-        <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Motivo</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevMotivo()" title="Adicionar novo motivo" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeDevMotivo()" title="Excluir motivo selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+        <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Motivo</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevMotivo()" title="Adicionar novo motivo" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeDevMotivo()" title="Excluir motivo selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
           <select id="dev-motivo">
             <option value="">— Selecionar —</option>
           </select>
         </div>
       </div>
-      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevPlataforma()" title="Adicionar nova plataforma" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeDevPlataforma()" title="Excluir plataforma selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addDevPlataforma()" title="Adicionar nova plataforma" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeDevPlataforma()" title="Excluir plataforma selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
         <select id="dev-plataforma">
           <option value="">— Selecionar —</option>
         </select>
@@ -1416,13 +1521,13 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
       <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">📞 Registro de Atendimento</div>
-      <button onclick="closeAteModal()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>
+      <button onclick="closeAteModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group"><label>Nome Cliente</label><input type="text" id="ate-cliente" placeholder="Nome do cliente"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="input-group"><label>Data Abertura</label><input type="text" id="ate-data" placeholder="00/00/00" maxlength="8" oninput="fmtData(this)"></div>
-        <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Motivo</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAteMotivo()" title="Adicionar novo motivo" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeAteMotivo()" title="Excluir motivo selecionado" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+        <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Motivo</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAteMotivo()" title="Adicionar novo motivo" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAteMotivo()" title="Excluir motivo selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
           <select id="ate-motivo">
             <option value="">— Selecionar —</option>
           </select>
@@ -1441,7 +1546,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
         <textarea id="ate-ultima-desc" rows="4" maxlength="150" placeholder="Descreva o que aconteceu nesta atualização..." oninput="document.getElementById('ate-ultima-desc-count').textContent=(150-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
         <div style="text-align:right;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;"><span id="ate-ultima-desc-count">150 restantes</span></div>
       </div>
-      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAtePlataforma()" title="Adicionar nova plataforma" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">+</button><button type="button" onclick="removeAtePlataforma()" title="Excluir plataforma selecionada" style="background:var(--bg-surface);border:1px solid var(--border-light);border-radius:5px;color:var(--text-secondary);width:18px;height:18px;line-height:1;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">−</button></span></label>
+      <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAtePlataforma()" title="Adicionar nova plataforma" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtePlataforma()" title="Excluir plataforma selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
         <select id="ate-plataforma" onchange="toggleAteRastreio()">
           <option value="">— Selecionar —</option>
         </select>
@@ -1468,7 +1573,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       <div style="width:5px;height:5px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;flex-shrink:0;"></div>
       ATIVIDADES
     </div>
-    <button onclick="toggleActivityPanel()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;line-height:1;padding:0 2px;">×</button>
+    <button onclick="toggleActivityPanel()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
   </div>
   <div class="act-list" id="act-list">
     <div class="act-empty">Nenhuma atividade ainda hoje</div>
@@ -2239,7 +2344,7 @@ function renderActPanel(entries){
     const c=e.color||'#888';
     const icon=e.action==='concluiu'?'<span style="color:var(--green)">✓</span>':e.action==='desmarcou'?'<span style="color:var(--amber)">↩</span>':'<span style="color:var(--text-muted)">▶</span>';
     return `<div class="act-entry ${isMine?'act-mine':'act-other'}">
-      <div class="act-avatar" style="background:${c}33;border:1px solid ${c};color:${c};">${e.initials||'?'}</div>
+      <div class="act-avatar" style="background:radial-gradient(circle at 35% 30%,${c}55,${c}15 60%,transparent 75%),radial-gradient(circle at center,${c}22,transparent 70%);border:1px solid ${c}55;color:#fff;box-shadow:0 0 8px ${c}66,inset 0 1px 2px rgba(255,255,255,.15);">${e.initials||'?'}</div>
       <div class="act-body">
         <div class="act-who">${e.user} ${icon} <span style="font-size:10px;color:var(--text-muted);font-weight:400;">${e.action}</span></div>
         <div class="act-what" title="${e.task}">${e.task}</div>
@@ -2543,7 +2648,7 @@ function onNotasInput(ta){
 
 function buildTabs(){
   const tabs=[
-    {id:'tarefas',    icon:'📌', label:'Tarefas Atribuídas',   perm:'tarefas'},
+    {id:'tarefas',    icon:'📌', label:'Central de Tarefas',   perm:'tarefas'},
     {id:'atendimentos',icon:'📞',label:'Atendimentos',          perm:'atendimentos'},
     {id:'whatsapp',   icon:'💬', label:'Vendas WhatsApp',      perm:'whatsapp'},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
@@ -2586,10 +2691,9 @@ function buildTabs(){
   });
   // footer: user + clock + logout
   const footer=document.createElement('div');footer.className='sidebar-footer';
-  const initials=currentUser.initials||(currentUser.name.split(' ').map(n=>n[0]).join('').substring(0,2)).toUpperCase();
   footer.innerHTML=`
     <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);">
-      <div id="header-avatar" style="width:36px;height:36px;border-radius:50%;background:${currentUser.color}33;border:2px solid ${currentUser.color};color:${currentUser.color};font-size:12px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 12px ${currentUser.color}44;">${initials}</div>
+      <div id="header-avatar">${userAvatarHTML(currentUser,36)}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.01em;" id="header-username">${currentUser.name}</div>
         <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--green);font-family:var(--font-mono);font-weight:600;margin-top:3px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite;"></div><span id="live-time">--:--:--</span></div>
@@ -2655,24 +2759,34 @@ function renderWpp(){
     // Group header
     const header=document.createElement('div');header.className='task-group-header';
     if(allDone){header.style.background='var(--green-glow)';}
+    const badge=document.createElement('div');
+    badge.style.cssText='display:inline-flex;align-items:center;gap:8px;padding:5px 16px 5px 5px;border-radius:999px;flex-shrink:0;'+
+      (allDone
+        ? 'background:linear-gradient(135deg,#4ade80,#16a34a);box-shadow:0 3px 10px rgba(34,197,94,.28),inset 0 1px 0 rgba(255,255,255,.2);'
+        : 'background:linear-gradient(135deg,#e2e8f0,#94a3b8);border:1px solid rgba(255,255,255,.4);box-shadow:0 3px 10px rgba(148,163,184,.25),inset 0 1px 0 rgba(255,255,255,.3);');
     const icon=document.createElement('div');icon.className='task-group-icon';
-    if(allDone){icon.style.background='var(--green-dim)';}
+    icon.style.cssText='width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;'+
+      (allDone?'background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 1px 2px rgba(255,255,255,.25);':'background:rgba(255,255,255,.55);color:#1e293b;box-shadow:inset 0 1px 2px rgba(255,255,255,.4);');
     icon.textContent=allDone?'✓':g.icon;
     const titleSpan=document.createElement('span');titleSpan.className='task-group-title';
-    titleSpan.style.flex='1';
-    if(allDone){titleSpan.style.color='var(--green)';}
+    titleSpan.style.cssText='font-weight:700;white-space:nowrap;color:'+(allDone?'#fff':'#1e293b')+';';
     titleSpan.textContent=g.group;
+    badge.appendChild(icon);badge.appendChild(titleSpan);
     const countSpan=document.createElement('span');countSpan.className='task-group-count';
     const _wdone=g.items.filter(i=>i.done).length;
-    countSpan.textContent=(_wdone===g.items.length?'100':Math.round((_wdone/g.items.length)*100))+'%';
+    const _wpct=g.items.length>0?Math.round((_wdone/g.items.length)*100):0;
+    countSpan.textContent=_wpct+'%';
+    countSpan.style.cssText+=pctBadgeCSS(_wpct);
+
+    const spacer=document.createElement('div');spacer.style.flex='1';
 
     // If group has a main link (SUBIR PEDIDO), add "Abrir" button in header
     if(g.link){
       const a=document.createElement('a');a.href=g.link;a.target='_blank';a.className='btn-link';
       a.style.marginRight='8px';a.innerHTML='↗ '+(g.linkLabel||'Abrir');
-      header.appendChild(icon);header.appendChild(titleSpan);header.appendChild(a);header.appendChild(countSpan);
+      header.appendChild(badge);header.appendChild(spacer);header.appendChild(a);header.appendChild(countSpan);
     } else {
-      header.appendChild(icon);header.appendChild(titleSpan);header.appendChild(countSpan);
+      header.appendChild(badge);header.appendChild(spacer);header.appendChild(countSpan);
     }
     card.appendChild(header);
 
@@ -2728,15 +2842,15 @@ function renderWpp(){
           const btnsWrap=document.createElement('div');btnsWrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;';
           tk.btns.forEach(b=>{
             const a=document.createElement('a');a.href=b.link;a.target='_blank';
-            a.style.cssText='display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(59,130,246,0.07));border:1px solid rgba(59,130,246,0.35);border-radius:50px;color:#93c5fd;font-size:11px;font-weight:600;padding:4px 12px;text-decoration:none;transition:all .15s;font-family:var(--font-sans);white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
-            a.onmouseover=()=>{a.style.background='linear-gradient(135deg,rgba(59,130,246,0.3),rgba(59,130,246,0.12))';a.style.borderColor='rgba(59,130,246,0.6)';a.style.transform='translateY(-1px)';};
-            a.onmouseout=()=>{a.style.background='linear-gradient(135deg,rgba(59,130,246,0.18),rgba(59,130,246,0.07))';a.style.borderColor='rgba(59,130,246,0.35)';a.style.transform='';};
+            a.style.cssText='display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07));border:1px solid rgba(34,197,94,0.35);border-radius:50px;color:#86efac;font-size:11px;font-weight:600;padding:4px 12px;text-decoration:none;transition:all .15s;font-family:var(--font-sans);white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
+            a.onmouseover=()=>{a.style.background='linear-gradient(135deg,rgba(34,197,94,0.3),rgba(34,197,94,0.12))';a.style.borderColor='rgba(34,197,94,0.6)';a.style.transform='translateY(-1px)';};
+            a.onmouseout=()=>{a.style.background='linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07))';a.style.borderColor='rgba(34,197,94,0.35)';a.style.transform='';};
             a.innerHTML='↗ '+b.label;btnsWrap.appendChild(a);
           });
           c.appendChild(btnsWrap);
         } else if(tk.link){
           const a=document.createElement('a');a.href=tk.link;a.target='_blank';
-          a.style.cssText='display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(59,130,246,0.07));border:1px solid rgba(59,130,246,0.35);border-radius:50px;color:#93c5fd;font-size:11px;font-weight:600;padding:4px 12px;text-decoration:none;margin-bottom:10px;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
+          a.style.cssText='display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07));border:1px solid rgba(34,197,94,0.35);border-radius:50px;color:#86efac;font-size:11px;font-weight:600;padding:4px 12px;text-decoration:none;margin-bottom:10px;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
           a.innerHTML='↗ '+(tk.linkLabel||'Abrir');c.appendChild(a);
         }
         // Concluir button
@@ -2751,7 +2865,6 @@ function renderWpp(){
     }catch(e){console.warn('renderWpp group error:',g.id,e);}
   });
 
-  document.getElementById('wpp-progress').style.width=(totalAll>0?Math.round((doneAll/totalAll)*100):0)+'%';
   document.getElementById('wpp-progress-label').textContent=doneAll+' / '+totalAll+' concluídas';
   const vcnt=document.getElementById('wpp-vendas-count');
   const today=todayStr();
@@ -3204,9 +3317,9 @@ function renderHistoricoWpp(){
       // Badge do usuário que registrou
       const userBadge = document.createElement('div');
       const _uEntry = Object.values(appState.users||{}).find(u=>u.name===p.registradoPor);
-      const initials = _uEntry ? (_uEntry.initials||'?') : (p.registradoPor||'?').substring(0,2).toUpperCase();
+      const initials = _uEntry ? getUserInitials(_uEntry) : (p.registradoPor||'?').substring(0,2).toUpperCase();
       const uColor = _uEntry ? (_uEntry.color||'#6d7580') : '#6d7580';
-      userBadge.style.cssText = `width:20px;height:20px;border-radius:50%;background:${uColor}22;border:1px solid ${uColor}88;color:${uColor};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;`;
+      userBadge.style.cssText = `width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${uColor}55,${uColor}15 60%,transparent 75%),radial-gradient(circle at center,${uColor}22,transparent 70%);border:1px solid ${uColor}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${uColor}66,inset 0 1px 2px rgba(255,255,255,.15);`;
       userBadge.textContent = initials;
       userBadge.title = p.registradoPor||'Desconhecido';
 
@@ -3283,49 +3396,92 @@ function getPltColor(groupName){
   return null;
 }
 
+function _hexRgb(h){h=h.replace('#','');if(h.length===3)h=h.split('').map(c=>c+c).join('');const n=parseInt(h,16);return[(n>>16)&255,(n>>8)&255,n&255];}
+function _rgbHex(r,g,b){const c=v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0');return '#'+c(r)+c(g)+c(b);}
+function _lighten(h,f){const[r,g,b]=_hexRgb(h);return _rgbHex(r+(255-r)*f,g+(255-g)*f,b+(255-b)*f);}
+function _darken(h,f){const[r,g,b]=_hexRgb(h);return _rgbHex(r*f,g*f,b*f);}
+function _mixHex(a,b,t){
+  const[ar,ag,ab]=_hexRgb(a),[br,bg,bb]=_hexRgb(b);
+  return _rgbHex(ar+(br-ar)*t, ag+(bg-ag)*t, ab+(bb-ab)*t);
+}
+function pctBadgeCSS(pct){
+  const t = Math.max(0,Math.min(100,pct))/100;
+  const top = _mixHex('#4a4d54','#8ce89a',t);
+  const bot = t<0.85 ? _mixHex('#33363c','#3f6b46',t/0.85) : _mixHex('#3f6b46','#5fae5a',(t-0.85)/0.15);
+  const txt = t<0.85 ? '#eef1f4' : _mixHex('#eef1f4','#123018',(t-0.85)/0.15);
+  return `background:linear-gradient(180deg,${top},${bot});color:${txt};box-shadow:0 1px 3px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.25);`;
+}
+function _applyPillStyle(el, col, whiteBg){
+  el.style.padding = '3px 12px';
+  el.style.borderRadius = '20px';
+  el.style.display = 'inline-block';
+  el.style.fontWeight = '700';
+  el.style.letterSpacing = '.3px';
+  const top=_lighten(col,0.22), bot=_darken(col,0.80);
+  el.style.background = `linear-gradient(135deg,${top},${bot})`;
+  el.style.color = '#ffffff';
+  el.style.boxShadow = `0 2px 8px ${col}66, inset 0 1px 0 rgba(255,255,255,.25)`;
+}
+
+function progressRingSVG(pct, color, size, stroke, fontSize){
+  size = size||64; stroke = stroke||7;
+  const r = (size-stroke)/2, cx = size/2, cy = size/2;
+  const c = 2*Math.PI*r;
+  const p = Math.max(0,Math.min(100,pct));
+  const offset = c * (1 - p/100);
+  const fs = fontSize || Math.round(size*0.24);
+  const dotR = r + stroke/2 + Math.max(3, size*0.09);
+  const nDots = Math.max(24, Math.round(size/2.2));
+  let dots='';
+  for(let i=0;i<nDots;i++){
+    const ang = (i/nDots)*2*Math.PI;
+    const dx = cx + dotR*Math.cos(ang), dy = cy + dotR*Math.sin(ang);
+    const dr = (i%3===0) ? Math.max(1,size*0.018) : Math.max(0.6,size*0.011);
+    dots += `<circle cx="${dx.toFixed(2)}" cy="${dy.toFixed(2)}" r="${dr.toFixed(2)}" fill="rgba(255,255,255,0.35)"/>`;
+  }
+  return `<div style="position:relative;width:${size*1.28}px;height:${size*1.28}px;flex-shrink:0;">
+    <svg width="100%" height="100%" viewBox="0 0 ${size} ${size}" style="overflow:visible;">
+      <g>${dots}</g>
+      <g style="transform:rotate(-90deg);transform-origin:${cx}px ${cy}px;">
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="${stroke}"/>
+        <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${stroke}" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${offset}" style="transition:stroke-dashoffset .6s ease;filter:drop-shadow(0 0 5px ${color});"/>
+      </g>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:${fs}px;font-weight:700;color:#fff;font-family:var(--font-mono);text-shadow:0 1px 4px rgba(0,0,0,.7);">${p}</div>
+  </div>`;
+}
+
 function applyPltBadgeEl(el, platformName){
   const col = getPltColor(platformName||'');
   if(!col){ el.style.color='var(--text-primary)'; return; }
-  const isLight = ['#0055a5','WEB CONTINENTAL','Web Continental'].some(k=>(platformName||'').startsWith(k.replace('#','').length>6?k:''));
   const wcOnly = (platformName||'').startsWith('WEB CONTINENTAL') || (platformName||'').startsWith('Web Continental');
-  el.style.color       = wcOnly ? col : '#ffffff';
-  el.style.background  = wcOnly ? '#ffffff' : col;
-  el.style.padding     = '1px 8px';
-  el.style.borderRadius= '4px';
-  el.style.display     = 'inline-block';
+  _applyPillStyle(el, col, wcOnly);
 }
 
 function applyPltBadge(el, platformName){
   const p = platformName||'';
   // Transportadoras — mesmo estilo dos rastreios
   if(p.includes('Melhor Envio')){
-    el.style.background='#ffffff'; el.style.color='#b8860b';
-    el.style.padding='1px 8px'; el.style.borderRadius='4px'; el.style.display='inline-block'; return;
+    _applyPillStyle(el, '#b8860b', true); return;
   }
   if(p.includes('Manda Bem')){
-    el.style.background='#8b1a1a'; el.style.color='#ffffff';
-    el.style.padding='1px 8px'; el.style.borderRadius='4px'; el.style.display='inline-block'; return;
+    _applyPillStyle(el, '#8b1a1a', false); return;
   }
   const col = getPltColor(p);
   if(!col){ el.style.color='var(--text-primary)'; return; }
   const wcOnly = p.startsWith('WEB CONTINENTAL') || p.startsWith('Web Continental');
-  el.style.color       = wcOnly ? col : '#ffffff';
-  el.style.background  = wcOnly ? '#ffffff' : col;
-  el.style.padding     = '1px 8px';
-  el.style.borderRadius= '4px';
-  el.style.display     = 'inline-block';
+  _applyPillStyle(el, col, wcOnly);
 }
 
 function colorPltTitle(titleSpan, groupName, allDone){
-  if(allDone){ titleSpan.style.color='var(--green)'; titleSpan.style.background=''; titleSpan.style.padding=''; titleSpan.style.borderRadius=''; return; }
+  if(allDone){ titleSpan.style.color='var(--green)'; titleSpan.style.background=''; titleSpan.style.padding=''; titleSpan.style.borderRadius=''; titleSpan.style.boxShadow=''; return; }
   const col = getPltColor(groupName);
   if(!col) return;
   const wcOnly = groupName.startsWith('WEB CONTINENTAL');
-  titleSpan.style.color = wcOnly ? col : '#ffffff';
-  titleSpan.style.background = wcOnly ? '#ffffff' : col;
-  titleSpan.style.padding = '1px 8px';
-  titleSpan.style.borderRadius = '4px';
+  _applyPillStyle(titleSpan, col, wcOnly);
 }
+
+
 
 function renderPlt(){
   const container=document.getElementById('plt-tasks');
@@ -3335,6 +3491,7 @@ function renderPlt(){
   groups.forEach(g=>{totalAll+=g.items.length;doneAll+=g.items.filter(i=>(i.repeats||1)>1?(i.execs||[]).length>=(i.repeats||1):i.done).length;});
 
   const sum=document.getElementById('plt-summary');
+  const _pltTaxa = totalAll>0?Math.round((doneAll/totalAll)*100):0;
   sum.innerHTML=`
     <div class="summary-stat"><div class="val" style="color:var(--text-primary)">${totalAll}</div><div class="lbl">Total</div></div>
     <div class="summary-divider"></div>
@@ -3342,7 +3499,7 @@ function renderPlt(){
     <div class="summary-divider"></div>
     <div class="summary-stat"><div class="val" style="color:var(--accent)">${totalAll-doneAll}</div><div class="lbl">Pendentes</div></div>
     <div class="summary-divider"></div>
-    <div class="summary-stat"><div class="val" style="color:var(--amber)">${totalAll>0?Math.round((doneAll/totalAll)*100):0}%</div><div class="lbl">Taxa</div></div>
+    <div class="summary-stat"><div class="val" style="display:inline-block;padding:2px 10px;border-radius:8px;${pctBadgeCSS(_pltTaxa)}">${_pltTaxa}%</div><div class="lbl">Taxa</div></div>
   `;
 
   // Grid com colunas fixas — todos os cards com tamanho uniforme
@@ -3377,8 +3534,14 @@ function renderPlt(){
     head.style.cssText='display:flex;align-items:center;gap:8px;padding:10px 12px 8px;';
 
     const iconEl=document.createElement('div');
-    iconEl.style.cssText='font-size:14px;flex-shrink:0;';
-    iconEl.textContent=allDoneG?'✅':(g.icon||'🛒');
+    if(allDoneG){
+      iconEl.className='task-group-icon done-glow';
+      iconEl.style.cssText+='width:18px;height:18px;font-size:10px;flex-shrink:0;';
+      iconEl.textContent='✓';
+    } else {
+      iconEl.style.cssText='font-size:14px;flex-shrink:0;';
+      iconEl.textContent=g.icon||'🛒';
+    }
     head.appendChild(iconEl);
 
     const titleWrap=document.createElement('div');titleWrap.style.cssText='flex:1;min-width:0;';
@@ -3396,7 +3559,7 @@ function renderPlt(){
     head.appendChild(titleWrap);
 
     const pctEl=document.createElement('span');
-    pctEl.style.cssText=`font-size:11px;font-weight:700;font-family:var(--font-mono);color:${allDoneG?'var(--green)':pct>=50?'var(--amber)':'var(--text-muted)'};flex-shrink:0;`;
+    pctEl.style.cssText=`font-size:10px;font-weight:800;font-family:var(--font-mono);flex-shrink:0;padding:2px 9px;border-radius:8px;${pctBadgeCSS(pct)}`;
     pctEl.textContent=pct+'%';
     head.appendChild(pctEl);
     card.appendChild(head);
@@ -3540,11 +3703,14 @@ function renderEnv(){
   const hdr=document.createElement('div');hdr.className='task-group-header';
   if(allDone)hdr.style.background='var(--green-glow)';
   const iconEl=document.createElement('div');iconEl.className='task-group-icon';
-  if(allDone){iconEl.style.background='var(--green-dim)';iconEl.textContent='✓';}else{iconEl.textContent='📦';}
+  if(allDone){iconEl.classList.add('done-glow');iconEl.textContent='✓';}else{iconEl.textContent='📦';}
   const titleSpan=document.createElement('span');titleSpan.className='task-group-title';
-  if(allDone)titleSpan.style.color='var(--green)';
+  if(allDone){titleSpan.style.color='var(--green)';titleSpan.style.textShadow='0 0 8px rgba(34,197,94,.5)';}
   titleSpan.textContent='PEDIDOS BASE';
-  const countSpan=document.createElement('span');countSpan.className='task-group-count';countSpan.textContent=(doneC===tasks.length?'100':Math.round((doneC/tasks.length)*100))+'%';
+  const countSpan=document.createElement('span');countSpan.className='task-group-count';
+  const _pbPct=tasks.length>0?Math.round((doneC/tasks.length)*100):0;
+  countSpan.textContent=_pbPct+'%';
+  countSpan.style.cssText+=pctBadgeCSS(_pbPct);
   hdr.appendChild(iconEl);hdr.appendChild(titleSpan);hdr.appendChild(countSpan);
   card.appendChild(hdr);
   const pb=document.createElement('div');pb.className='progress-bar';
@@ -3676,12 +3842,14 @@ function renderAnu(){
     header.style.cursor='pointer';header.style.userSelect='none';
     if(allDoneG)header.style.background='var(--green-glow)';
     const iconEl=document.createElement('div');iconEl.className='task-group-icon';
-    if(allDoneG){iconEl.style.background='var(--green-dim)';iconEl.textContent='✓';}else{iconEl.textContent=g.icon;}
+    if(allDoneG){iconEl.classList.add('done-glow');iconEl.textContent='✓';}else{iconEl.textContent=g.icon;}
     const titleSpan=document.createElement('span');titleSpan.className='task-group-title';
-    if(allDoneG){ titleSpan.style.color='var(--green)'; titleSpan.textContent=g.group; }
+    if(allDoneG){ titleSpan.style.color='var(--green)'; titleSpan.style.textShadow='0 0 8px rgba(34,197,94,.5)'; titleSpan.textContent=g.group; }
     else { const _aBadge=document.createElement('span'); _aBadge.textContent=g.group; applyPltBadge(_aBadge,g.group); titleSpan.appendChild(_aBadge); }
     const countSpan=document.createElement('span');countSpan.className='task-group-count';
-    countSpan.textContent=(doneG===g.items.length?'100':Math.round((doneG/g.items.length)*100))+'%';
+    const _grpPct=g.items.length>0?Math.round((doneG/g.items.length)*100):0;
+    countSpan.textContent=_grpPct+'%';
+    countSpan.style.cssText+=pctBadgeCSS(_grpPct);
     // Chevron toggle
     const chevron=document.createElement('span');
     chevron.style.cssText='font-size:14px;color:var(--text-muted);transition:transform .2s;margin-left:6px;line-height:1;flex-shrink:0;';
@@ -3799,7 +3967,7 @@ function renderAnu(){
       if(anuOwnerKeys.length===0){
         const ob=document.createElement('div');ob.style.cssText='width:20px;height:20px;border-radius:50%;background:#88888833;border:1px solid #888;color:#888;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;opacity:0.3;';ob.textContent='—';anuBadge.appendChild(ob);
       } else {
-        anuOwnerKeys.forEach(k=>{const u=appState.users[k];if(!u)return;const ob=document.createElement('div');ob.style.cssText=`width:20px;height:20px;border-radius:50%;background:${u.color||'#888'}33;border:1px solid ${u.color||'#888'};color:${u.color||'#888'};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:-0.5px;`;ob.textContent=u.initials||'?';ob.title='Responsável: '+u.name;anuBadge.appendChild(ob);});
+        anuOwnerKeys.forEach(k=>{const u=appState.users[k];if(!u)return;const ob=document.createElement('div');ob.style.cssText=`width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${u.color||'#888'}55,${u.color||'#888'}15 60%,transparent 75%),radial-gradient(circle at center,${u.color||'#888'}22,transparent 70%);border:1px solid ${u.color||'#888'}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:-0.5px;box-shadow:0 0 8px ${u.color||'#888'}66,inset 0 1px 2px rgba(255,255,255,.15);`;ob.textContent=getUserInitials(u);ob.title='Responsável: '+u.name;anuBadge.appendChild(ob);});
       }
       row.appendChild(anuBadge);
       row.appendChild(dot);row.appendChild(txtw);row.appendChild(actions);body.appendChild(row);
@@ -3950,14 +4118,17 @@ function saveNewMarca(nome,cor){
 // ===== CNPJs & CONTAS POR PLATAFORMA =====
 // Cor padrão de cada marketplace no sistema (mesma usada nos cabeçalhos/aba Produtos)
 const CNPJ_MKT_COLORS = {
-  ml:     '#eab308', // Mercado Livre
-  shopee: '#fb923c', // Shopee
-  rd:     '#4ade80', // RD Marketplace
-  dsp:    '#38bdf8', // Drogaria São Paulo
-  dp:     '#f87171', // Drogaria Pacheco
-  magalu: '#60a5fa', // Magalu
-  webco:  '#38bdf8', // Web Continental
-  li:     '#a3e635', // Loja Integrada
+  ml:     '#d4a000', // Mercado Livre
+  shopee: '#f97316', // Shopee
+  rd:     '#2d7a3a', // RD Marketplace
+  dsp:    '#00aaff', // Drogaria São Paulo
+  dp:     '#e00000', // Drogaria Pacheco
+  magalu: '#3b5bdb', // Magalu
+  webco:  '#0055a5', // Web Continental (fundo branco, texto nesta cor)
+  li:     '#4b5320', // Loja Integrada
+};
+const CNPJ_MKT_BG = {
+  webco: '#ffffff', // Web Continental usa fundo branco com texto azul
 };
 const CNPJ_MKT_KEYS = ['ml','shopee','rd','dsp','dp','magalu','webco','li'];
 
@@ -4009,10 +4180,10 @@ function _cnpjMarketCell(rowId, key){
       : `<span title="Sem classificação" style="width:7px;height:7px;border-radius:50%;background:var(--text-muted);flex-shrink:0;"></span>`;
     return `<div style="display:inline-flex;align-items:center;gap:5px;">
       <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${_cnpjHexA(color,0.16)};border:1px solid ${color};color:${color};white-space:nowrap;max-width:150px;">${dot}<span style="overflow:hidden;text-overflow:ellipsis;">${_cnpjEsc(val.nome)}</span></span>
-      <button type="button" onclick="cnpjRemoveStore('${rowId}','${key}')" title="Remover loja" style="width:17px;height:17px;line-height:15px;padding:0;background:rgba(239,68,68,0.15);border:1px solid var(--red-dim);border-radius:4px;color:var(--red);font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">−</button>
+      <button type="button" onclick="cnpjRemoveStore('${rowId}','${key}')" title="Remover loja" class="btn-orb v-danger xs"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
     </div>`;
   }
-  return `<button type="button" onclick="cnpjAddStore('${rowId}','${key}')" title="Adicionar loja" style="width:22px;height:22px;line-height:20px;padding:0;background:${_cnpjHexA(color,0.14)};border:1px solid ${color};border-radius:5px;color:${color};font-size:14px;font-weight:700;cursor:pointer;">+</button>`;
+  return `<button type="button" onclick="cnpjAddStore('${rowId}','${key}')" title="Adicionar loja" class="btn-orb v-add xs"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>`;
 }
 function _cnpjCanEdit(){
   return !!(currentUser && (currentUser.master || (currentUser.perms||[]).includes('cnpjs')));
@@ -4077,13 +4248,24 @@ function _cnpjStatusBtn(rowId,key,status,active){
   const color = active ? st.color : 'var(--text-muted)';
   return `<button type="button" onclick="cnpjSetStatus('${rowId}','${key}','${status}')" style="font-size:9px;font-weight:700;padding:3px 9px;border-radius:10px;background:${bg};border:1px solid ${border};color:${color};cursor:pointer;white-space:nowrap;">${active?'● ':''}${st.label}</button>`;
 }
+function _cnpjPillCss(mColor, isWhiteBg){
+  const top=_lighten(mColor,0.22), bot=_darken(mColor,0.80);
+  return `background:linear-gradient(135deg,${top},${bot});color:#ffffff;box-shadow:0 2px 8px ${mColor}66,inset 0 1px 0 rgba(255,255,255,.25);`;
+}
 function _cnpjFilterPill(key,label){
   const active = _cnpjStatusFilter===key;
-  const mColor = key==='all' ? null : CNPJ_MKT_COLORS[key];
-  const bg = active ? (mColor?_cnpjHexA(mColor,0.22):'var(--accent-glow)') : 'transparent';
-  const border = active ? (mColor||'var(--accent)') : 'var(--border)';
-  const color = active ? (mColor||'var(--accent)') : 'var(--text-muted)';
-  return `<button type="button" onclick="cnpjSetFilter('${key}')" style="font-size:10px;font-weight:700;padding:4px 11px;border-radius:10px;background:${bg};border:1px solid ${border};color:${color};cursor:pointer;white-space:nowrap;">${label}</button>`;
+  if(key==='all'){
+    const bg = active ? 'var(--accent-glow)' : 'transparent';
+    const border = active ? 'var(--accent)' : 'var(--border)';
+    const color = active ? 'var(--accent)' : 'var(--text-muted)';
+    return `<button type="button" onclick="cnpjSetFilter('all')" style="font-size:10px;font-weight:700;padding:4px 11px;border-radius:20px;background:${bg};border:1px solid ${border};color:${color};cursor:pointer;white-space:nowrap;">${label}</button>`;
+  }
+  const mColor = CNPJ_MKT_COLORS[key];
+  const isWhiteBg = !!CNPJ_MKT_BG[key];
+  const ring = active ? `,0 0 0 2px var(--bg-card),0 0 0 4px ${mColor}` : '';
+  let css = _cnpjPillCss(mColor, isWhiteBg);
+  if(ring) css = css.replace(/box-shadow:([^;]+);/, `box-shadow:$1${ring};`);
+  return `<button type="button" onclick="cnpjSetFilter('${key}')" style="font-size:11px;font-weight:700;letter-spacing:.3px;padding:3px 12px;border-radius:20px;border:none;cursor:pointer;white-space:nowrap;${css}">${label}</button>`;
 }
 function renderCnpjStatusFilters(){
   const box = document.getElementById('cnpj-status-filters');
@@ -4143,7 +4325,7 @@ function renderCnpjStatusPanel(){
       <div style="min-width:180px;flex:1;">
         <div style="font-size:12px;font-weight:600;color:var(--text-primary);">${_cnpjEsc(row.empresa)} <span style="color:var(--text-muted);font-weight:400;">· ${_cnpjEsc(row.conta)}</span></div>
         <div style="display:flex;align-items:center;gap:6px;margin-top:2px;flex-wrap:wrap;">
-          <span style="font-size:9px;font-weight:700;padding:1px 7px;border-radius:8px;background:${_cnpjHexA(mColor,0.16)};border:1px solid ${mColor};color:${mColor};">${CNPJ_MKT_LABELS[row.key]}</span>
+          <span style="font-size:10px;font-weight:700;letter-spacing:.3px;padding:2px 10px;border-radius:20px;${_cnpjPillCss(mColor, !!CNPJ_MKT_BG[row.key])}">${CNPJ_MKT_LABELS[row.key]}</span>
           ${nameBlock}
         </div>
       </div>
@@ -4225,7 +4407,7 @@ function renderConferencia(){
   if(!tbody) return;
   if(btnNew) btnNew.style.display = (isMaster || (currentUser && (currentUser.perms||[]).includes('envios'))) ? '' : 'none';
   const marcaThBtn = document.getElementById('conf-marca-add-btn-th');
-  if(marcaThBtn) marcaThBtn.style.display = (currentUser && currentUser.master) ? 'inline-block' : 'none';
+  if(marcaThBtn) marcaThBtn.style.display = (currentUser && currentUser.master) ? 'inline-flex' : 'none';
 
   const q = ((document.getElementById('conf-search')||{}).value||'').toLowerCase().trim();
   let rows = (appState.conferencia||[]);
@@ -4259,8 +4441,8 @@ function renderConferencia(){
     const st = r.status||{};
     const actions = currentUser
       ? `<div style="display:flex;gap:4px;justify-content:center;">
-          <button onclick="openConfModal('${r.id}')" class="btn-link btn-sm" title="Editar">✏</button>
-          <button onclick="deleteConf('${r.id}')" class="btn-link btn-sm btn-danger" title="Excluir">✕</button>
+          <button onclick="openConfModal('${r.id}')" class="btn-orb v-edit sm" title="Editar"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button>
+          <button onclick="deleteConf('${r.id}')" class="btn-orb v-danger sm" title="Excluir"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
         </div>`
       : '';
     return `<tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
@@ -4930,7 +5112,7 @@ function renderDev(){
     // Owner badge in section header
     const ownerUser = cfg.owner ? appState.users[cfg.owner] : null;
     const ownerBadgeHtml = ownerUser
-      ? `<div style="width:20px;height:20px;border-radius:50%;background:${ownerUser.color}33;border:1px solid ${ownerUser.color};color:${ownerUser.color};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;">${ownerUser.initials||'?'}</div>`
+      ? `<div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${ownerUser.color}55,${ownerUser.color}15 60%,transparent 75%),radial-gradient(circle at center,${ownerUser.color}22,transparent 70%);border:1px solid ${ownerUser.color}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px ${ownerUser.color}66,inset 0 1px 2px rgba(255,255,255,.15);">${getUserInitials(ownerUser)}</div>`
       : '';
     sec.innerHTML=`${ownerBadgeHtml}<span style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:${cfg.color};padding:3px 10px;background:${cfg.bg};border:1px solid ${cfg.border};border-radius:20px;">${cfg.label}</span><div style="flex:1;height:1px;background:${cfg.border};"></div><span style="font-size:11px;color:${cfg.color};font-family:var(--font-mono);">${group.length}</span>`;
     container.appendChild(sec);
@@ -5001,8 +5183,8 @@ function buildDevCardFull(d, isConcluida){
   if(ownerUser){
     const ob=document.createElement('div');
     ob.title='Responsável: '+ownerUser.name;
-    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:${ownerUser.color}33;border:1px solid ${ownerUser.color};color:${ownerUser.color};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;`;
-    ob.textContent=ownerUser.initials||'?';
+    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${ownerUser.color}55,${ownerUser.color}15 60%,transparent 75%),radial-gradient(circle at center,${ownerUser.color}22,transparent 70%);border:1px solid ${ownerUser.color}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px ${ownerUser.color}66,inset 0 1px 2px rgba(255,255,255,.15);`;
+    ob.textContent=getUserInitials(ownerUser);
     hdr.appendChild(ob);
   }
 
@@ -5539,7 +5721,7 @@ function openZerarTemposModal(){
 
   const hdr=document.createElement('div');
   hdr.style.cssText='display:flex;align-items:center;justify-content:space-between;';
-  hdr.innerHTML=`<div style="font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);font-family:var(--font-mono);">Zerar Tempo por Atividade</div><button onclick="document.getElementById('zerar-tempos-modal').remove()" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;line-height:1;">×</button>`;
+  hdr.innerHTML=`<div style="font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--red);font-family:var(--font-mono);">Zerar Tempo por Atividade</div><button onclick="document.getElementById('zerar-tempos-modal').remove()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>`;
   box.appendChild(hdr);
 
   const sub=document.createElement('div');
@@ -5687,7 +5869,7 @@ function renderTimeGoals(){
   sortedUsers.forEach(([userName,uData])=>{
     const u=appState.users[uData.key];
     const uColor=u?(u.color||'#888'):'#888';
-    const uInitials=u?(u.initials||(u.name.split(' ')[0]||'?').substring(0,2).toUpperCase()):'?';
+    const uInitials=u?getUserInitials(u):'?';
 
     // ── Cabeçalho do colaborador ──────────────────────────
     const userBlock=document.createElement('div');
@@ -5696,7 +5878,7 @@ function renderTimeGoals(){
     const uHdr=document.createElement('div');
     uHdr.style.cssText=`background:${uColor}11;border-bottom:1px solid ${uColor}44;padding:9px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;`;
     uHdr.innerHTML=`
-      <div style="width:28px;height:28px;border-radius:50%;background:${uColor}33;border:1px solid ${uColor};color:${uColor};font-size:10px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${uInitials}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${uColor}55,${uColor}15 60%,transparent 75%),radial-gradient(circle at center,${uColor}22,transparent 70%);border:1px solid ${uColor}55;color:#fff;font-size:10px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px ${uColor}66,inset 0 1px 2px rgba(255,255,255,.15);">${uInitials}</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;">${userName}</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:1px;">${uData.tasks.length} tarefa${uData.tasks.length!==1?'s':''} cronometrada${uData.tasks.length!==1?'s':''}</div>
@@ -5804,16 +5986,13 @@ function renderProgressoAbas(containerId){
     const col   = pct>=80?'var(--green)':pct>=50?'var(--amber)':'var(--accent)';
     const wrap  = document.createElement('div');
     const row   = document.createElement('div');
-    row.style.cssText='display:grid;grid-template-columns:160px 1fr 56px;align-items:center;gap:12px;';
+    row.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:12px;';
     row.innerHTML=`
       <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" title="Ver pendências">
         <span style="font-size:15px;">${a.icon}</span>
         <span class="progresso-aba-label" style="font-size:13px;color:var(--text-secondary);font-weight:600;display:flex;align-items:center;gap:4px;">${a.label}<span class="progresso-aba-chevron" style="font-size:9px;color:var(--text-muted);transition:transform .15s;display:inline-block;">▾</span></span>
       </div>
-      <div style="background:var(--bg-active);border-radius:6px;height:10px;overflow:hidden;position:relative;">
-        <div style="height:100%;width:${pct}%;background:${col};border-radius:6px;transition:width .6s ease;box-shadow:0 0 8px ${col}66;"></div>
-      </div>
-      <div style="font-size:14px;font-family:var(--font-mono);font-weight:700;color:${col};text-align:right;">${pct}%</div>`;
+      ${progressRingSVG(pct,col,28,3,8)}`;
     wrap.appendChild(row);
 
     const detailWrap=document.createElement('div');
@@ -6183,6 +6362,22 @@ function buildAbaTaskSummary(tabId){
   }
 }
 
+function getUserInitials(user){
+  if(!user) return '?';
+  if(user.initials) return user.initials;
+  const parts=(user.name||'').trim().split(/\s+/).filter(Boolean);
+  if(parts.length>=2) return (parts[0][0]+parts[1][0]).toUpperCase();
+  if(parts.length===1) return parts[0].substring(0,2).toUpperCase();
+  return '?';
+}
+function userAvatarHTML(user,size){
+  size=size||32;
+  const color=(user&&user.color)||'#888';
+  const initials=getUserInitials(user);
+  const fontSize=Math.max(8,Math.round(size*0.34));
+  const glow=Math.round(size/2);
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${color}55,${color}15 60%,transparent 75%),radial-gradient(circle at center,${color}22,transparent 70%);border:1px solid ${color}55;color:#fff;font-size:${fontSize}px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 ${glow}px ${color}66,inset 0 1px 2px rgba(255,255,255,.15);">${initials}</div>`;
+}
 function renderUsersGrid(){
   const grid=document.getElementById('users-grid');
   if(!grid) return;
@@ -6195,7 +6390,7 @@ function renderUsersGrid(){
     {id:'devolucoes',label:'↩ Devoluções'},
     {id:'atendimentos',label:'📞 Atendimentos'},
     {id:'anuncios',label:'🏷 Produtos'},
-    {id:'tarefas',label:'📌 Tarefas Atribuídas'},
+    {id:'tarefas',label:'📌 Central de Tarefas'},
     {id:'cnpjs',label:"🏢 CNPJs Plataformas MKTPs"},
     {id:'admin',label:'⚙ Adm. Master'}
   ];
@@ -6208,15 +6403,16 @@ function renderUsersGrid(){
 
   users.forEach(([key,user])=>{
     const card=document.createElement('div');card.className='user-card';
-    // Use stored initials if available, fallback to computed
-    const initials = user.initials || user.name.split(' ').map(n=>n[0]).join('').substring(0,2).toUpperCase();
+    const initials = getUserInitials(user);
     const color = user.color||'#888';
+    const roleLabel = user.master?'MASTER':'Colaborador';
+    const roleColor = user.master?'#22c55e':'var(--text-muted)';
     card.innerHTML=`
       <div class="user-card-header">
-        <div class="user-card-avatar" style="background:${color}33;border:1px solid ${color};color:${color};font-size:11px;font-weight:700;">${initials}</div>
+        ${userAvatarHTML(user,32)}
         <div>
           <div class="user-card-name">${user.name}</div>
-          <div class="user-card-role">${user.master?'MASTER':'Colaborador'} · @${key}</div>
+          <div class="user-card-role"><span style="color:${roleColor};font-weight:${user.master?700:400};">${roleLabel}</span> · @${key}</div>
         </div>
       </div>
       <div style="background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin:10px 0;display:flex;flex-direction:column;gap:5px;">
@@ -6243,7 +6439,7 @@ function renderUsersGrid(){
       row.style.cssText='display:flex;flex-direction:column;';
       const head=document.createElement('div');head.className='perm-row';
       head.style.cursor=sub.length?'pointer':'default';
-      head.innerHTML=`<span style="display:flex;align-items:center;gap:5px;">${sub.length?`<span class="perm-chevron" style="font-size:9px;color:var(--text-muted);transition:transform .15s;display:inline-block;">▸</span>`:''}${tb.label}</span><label class="perm-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${has?'checked':''} ${user.master?'disabled':''} onchange="togglePerm('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div></label>`;
+      head.innerHTML=`<span style="display:flex;align-items:center;gap:5px;">${sub.length?`<span class="perm-chevron" style="font-size:9px;color:var(--text-muted);transition:transform .15s;display:inline-block;">▸</span>`:''}${tb.label}</span><label class="perm-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${has?'checked':''} ${user.master?'disabled':''} onchange="togglePerm('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div><span class="perm-toggle-label pt-on">ON</span><span class="perm-toggle-label pt-off">OFF</span></label>`;
       row.appendChild(head);
       if(sub.length){
         const wasOpen=_permOpenTabs.has(stateKey);
@@ -6284,7 +6480,34 @@ function renderUsersGrid(){
   });
 }
 
+function _atvToggleTriorMenu(){
+  const menu=document.getElementById('atv-prioridade-menu');
+  const trigger=document.getElementById('atv-prioridade-trigger');
+  if(!menu||(trigger&&trigger.disabled)) return;
+  menu.style.display = menu.style.display==='none' ? 'block' : 'none';
+}
+function _atvSelectPrior(val){
+  const labels={normal:'Normal',alta:'Alta',urgente:'Urgente'};
+  const dots={normal:'gray',alta:'yellow',urgente:'red'};
+  const hidden=document.getElementById('atv-prioridade');
+  const label=document.getElementById('atv-prioridade-label');
+  const dot=document.getElementById('atv-prioridade-dot');
+  const menu=document.getElementById('atv-prioridade-menu');
+  if(hidden) hidden.value=val;
+  if(label) label.textContent=labels[val]||'Normal';
+  if(dot) dot.className='atv-prior-dot '+(dots[val]||'gray');
+  if(menu) menu.style.display='none';
+}
+document.addEventListener('click', function(e){
+  const wrap=document.getElementById('atv-prioridade-wrap');
+  const menu=document.getElementById('atv-prioridade-menu');
+  if(wrap && menu && menu.style.display==='block' && !wrap.contains(e.target)){
+    menu.style.display='none';
+  }
+});
+
 function togglePerm(k,perm,granted){
+
   const user=appState.users[k];if(!user||user.master)return;
   if(granted){if(!user.perms.includes(perm))user.perms.push(perm);}
   else user.perms=user.perms.filter(p=>p!==perm);
@@ -6484,7 +6707,7 @@ function doSearch(q){
   const dd  = document.getElementById('search-dropdown');
   const btn = document.getElementById('search-clear');
   if(!dd) return;
-  if(btn) btn.style.display = q ? 'block' : 'none';
+  if(btn) btn.style.display = q ? 'inline-flex' : 'none';
 
   if(!q || !q.trim()){ dd.innerHTML=''; dd.style.display='none'; return; }
   q = q.trim().toLowerCase();
@@ -6644,13 +6867,13 @@ function setTaskOwners(item, keys){
 function getOwnersInitials(keys){
   return keys.map(k=>{
     const u=appState.users[k];
-    return u ? (u.initials||(u.name.split(' ')[0]||'').substring(0,2).toUpperCase()) : '?';
+    return u ? getUserInitials(u) : '?';
   }).join(' ');
 }
 function getOwnersInitialsArray(keys){
   return keys.map(k=>{
     const u=appState.users[k];
-    return u ? (u.initials||(u.name.split(' ')[0]||'').substring(0,2).toUpperCase()) : '?';
+    return u ? getUserInitials(u) : '?';
   }).filter(Boolean);
 }
 function formatOwnersInitials(keys){
@@ -6663,7 +6886,7 @@ function renderTaskAssign(){
   if(!grid)return;
   grid.innerHTML='';
 
-  const userList=Object.entries(appState.users).map(([k,u])=>({key:k,name:u.name,color:u.color||'#888',initials:u.initials||(u.name.split(' ')[0]||'').substring(0,2).toUpperCase()}));
+  const userList=Object.entries(appState.users).map(([k,u])=>({key:k,name:u.name,color:u.color||'#888',initials:getUserInitials(u)}));
   const allItems=getAllAssignableItems();
 
   // ── Group by tab, then by group ──────────────────────────
@@ -6882,11 +7105,11 @@ function assignTask(tab, groupId, itemId, ownerKey, badgeEl){
 
   // Update badge in-place (no full re-render)
   if(badgeEl){
-    const userList=Object.entries(appState.users).map(([k,u])=>({key:k,name:u.name,color:u.color||'#888',initials:u.initials||(u.name.split(' ')[0]||'').substring(0,2).toUpperCase()}));
+    const userList=Object.entries(appState.users).map(([k,u])=>({key:k,name:u.name,color:u.color||'#888',initials:getUserInitials(u)}));
     const u=userList.find(u=>u.key===ownerKey);
     if(u){
       badgeEl.innerHTML=`
-        <div style="width:18px;height:18px;border-radius:50%;background:${u.color}33;border:1px solid ${u.color};color:${u.color};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${u.initials}</div>
+        <div style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${u.color}55,${u.color}15 60%,transparent 75%),radial-gradient(circle at center,${u.color}22,transparent 70%);border:1px solid ${u.color}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 9px ${u.color}66,inset 0 1px 2px rgba(255,255,255,.15);">${u.initials}</div>
         <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">${u.name}</span>`;
     } else {
       badgeEl.innerHTML=`<span style="font-size:11px;color:var(--text-muted);font-style:italic;">Não atribuído</span>`;
@@ -7243,8 +7466,8 @@ function buildRstCard(r, isEntregue){
   if(ownerUser){
     const ob=document.createElement('div');
     ob.title='Responsável: '+ownerUser.name;
-    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:${ownerUser.color||'#888'}33;border:1px solid ${ownerUser.color||'#888'};color:${ownerUser.color||'#888'};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;`;
-    ob.textContent=ownerUser.initials||'?';
+    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${ownerUser.color||'#888'}55,${ownerUser.color||'#888'}15 60%,transparent 75%),radial-gradient(circle at center,${ownerUser.color||'#888'}22,transparent 70%);border:1px solid ${ownerUser.color||'#888'}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px ${ownerUser.color||'#888'}66,inset 0 1px 2px rgba(255,255,255,.15);`;
+    ob.textContent=getUserInitials(ownerUser);
     hdr.appendChild(ob);
   }
 
@@ -7591,12 +7814,11 @@ function renderDevStats(){
     card.style.cssText='position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(10px);overflow:hidden;';
     card.innerHTML=`
       <div style="font-size:11px;font-weight:700;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="devstat-plt-${plt.replace(/\s/g,'_')}"></div>
-      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;">
-        <span style="font-size:20px;font-weight:700;color:${col};">${resolved.length}</span>
-        <span style="font-size:11px;color:var(--text-muted);">/ ${all.length} resolvidas</span>
-      </div>
-      <div style="background:rgba(255,255,255,0.08);border-radius:3px;height:4px;overflow:hidden;">
-        <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .4s;box-shadow:0 0 8px ${col};"></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div>
+          <div style="font-size:20px;font-weight:700;color:${col};line-height:1;">${resolved.length}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">/ ${all.length} resolvidas</div>
+        </div>
       </div>`;
     statsGrid.appendChild(card);
     const _dsp=card.querySelector('[id^="devstat-plt-"]');
@@ -8113,10 +8335,10 @@ function buildAteCard(d,isFinalizado){
     if(canAte){
     const btn=document.createElement('button');
     btn.setAttribute('data-ateid',d.id);
-    btn.style.cssText='background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(34,197,94,0.08));border:1px solid rgba(34,197,94,0.4);color:var(--green);border-radius:50px;padding:6px 18px;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;box-shadow:0 4px 12px rgba(34,197,94,0.15),inset 0 1px 0 rgba(255,255,255,0.1);';
-    btn.innerHTML='✅ Finalizar';
-    btn.onmouseover=()=>{btn.style.background='linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.15))';btn.style.transform='translateY(-1px)';};
-    btn.onmouseout=()=>{btn.style.background='linear-gradient(135deg,rgba(34,197,94,0.2),rgba(34,197,94,0.08))';btn.style.transform='';};
+    btn.style.cssText='background:linear-gradient(135deg,#4ade80,#16a34a);border:1px solid rgba(255,255,255,.15);color:#fff;border-radius:999px;padding:5px 16px 5px 5px;font-size:11px;font-weight:700;letter-spacing:.2px;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:7px;box-shadow:0 3px 10px rgba(34,197,94,.22),inset 0 1px 0 rgba(255,255,255,.2);';
+    btn.innerHTML='<span style="width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,.22);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);"><svg width="9" height="9" viewBox="0 0 9 9"><path d="M1 4.8 L3.4 7.2 L8 1.5" fill="none" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Finalizar';
+    btn.onmouseover=()=>{btn.style.boxShadow='0 4px 14px rgba(34,197,94,.35),inset 0 1px 0 rgba(255,255,255,.25)';btn.style.transform='translateY(-1px)';};
+    btn.onmouseout=()=>{btn.style.boxShadow='0 3px 10px rgba(34,197,94,.22),inset 0 1px 0 rgba(255,255,255,.2)';btn.style.transform='';};
     btn.onclick=function(){ateFinalizar(this.getAttribute('data-ateid'));};
     wf.appendChild(btn);
     }
@@ -8163,7 +8385,7 @@ function renderAteStats(){
     const col=pct>=80?'var(--green)':pct>=40?'var(--amber)':'var(--accent)';
     const card=document.createElement('div');
     card.style.cssText='position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(10px);overflow:hidden;';
-    card.innerHTML=`<div style="font-size:11px;font-weight:700;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="atestat-plt-${plt.replace(/\s/g,'_')}"></div><div style="display:flex;align-items:baseline;gap:6px;margin-bottom:4px;"><span style="font-size:20px;font-weight:700;color:${col};">${all.length}</span><span style="font-size:11px;color:var(--text-muted);">${resolved.length} finalizados</span></div><div style="background:rgba(255,255,255,0.08);border-radius:3px;height:4px;overflow:hidden;"><div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .4s;box-shadow:0 0 8px ${col};"></div></div>`;
+    card.innerHTML=`<div style="font-size:11px;font-weight:700;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="atestat-plt-${plt.replace(/\s/g,'_')}"></div><div><div style="font-size:20px;font-weight:700;color:${col};line-height:1;">${all.length}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${resolved.length} finalizados</div></div>`;
     const _asp=card.querySelector('[id^="atestat-plt-"]');
     if(_asp){_asp.textContent=plt;applyPltBadge(_asp,plt);}
     statsGrid.appendChild(card);
@@ -8191,22 +8413,19 @@ function renderTarefas(){
     const myDone=myTasks.filter(t=>t.done);
     const pct=myTasks.length>0?Math.round((myDone.length/myTasks.length)*100):0;
     const color=user.color||'#888';
-    const initials=user.initials||(user.name.split(' ')[0]||'').substring(0,2).toUpperCase();
+    const initials=getUserInitials(user);
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;';
     card.innerHTML=`
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:${color}22;border:1px solid ${color};color:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">${initials}</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${color}55,${color}15 60%,transparent 75%),radial-gradient(circle at center,${color}22,transparent 70%);border:1px solid ${color}55;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);flex-shrink:0;box-shadow:0 0 18px ${color}66,inset 0 1px 2px rgba(255,255,255,.15);">${initials}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;letter-spacing:-0.02em;">${user.name}</div>
           <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">${user.master?'MASTER':'Colaborador'} · ${myTasks.length} atribuídas</div>
         </div>
-        <div style="font-size:22px;font-weight:700;color:${color};letter-spacing:-0.04em;">${myDone.length}<span style="font-size:12px;color:var(--text-muted);">/${myTasks.length}</span></div>
+        <div style="font-size:16px;font-weight:700;color:${color};letter-spacing:-0.04em;">${myDone.length}<span style="font-size:11px;color:var(--text-muted);">/${myTasks.length}</span></div>
       </div>
-      <div style="background:var(--bg-surface);border-radius:4px;height:5px;overflow:hidden;margin-bottom:4px;">
-        <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width .4s;"></div>
-      </div>
-      <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">${pct}% concluídas</div>`;
+      <div style="display:flex;justify-content:center;">${progressRingSVG(pct,color,40,5,11)}</div>`;
     container.appendChild(card);
   });
 
@@ -8223,10 +8442,10 @@ function renderTarefas(){
       const ownerUser = ownerKeys.length ? appState.users[ownerKeys[0]] : null;
       const ownerPrefix = ownerKeys.length ? formatOwnersInitials(ownerKeys)+'\u00A0' : '';
       const col = ownerUser?ownerUser.color:'#888';
-      const ini = ownerUser?(ownerUser.initials||(ownerUser.name.split(' ')[0]||'').substring(0,2).toUpperCase()):'?';
+      const ini = ownerUser?getUserInitials(ownerUser):'?';
       const r=document.createElement('div');
       r.style.cssText='background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;';
-      r.innerHTML=`<div style="width:20px;height:20px;border-radius:50%;background:${col}33;border:1px solid ${col};color:${col};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div><div style="flex:1;"><div style="font-size:12px;color:var(--text-primary);">${ownerPrefix}${t.text}</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${t.grupo}</div></div>`;
+      r.innerHTML=`<div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${col}55,${col}15 60%,transparent 75%),radial-gradient(circle at center,${col}22,transparent 70%);border:1px solid ${col}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${col}66,inset 0 1px 2px rgba(255,255,255,.15);">${ini}</div><div style="flex:1;"><div style="font-size:12px;color:var(--text-primary);">${ownerPrefix}${t.text}</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${t.grupo}</div></div>`;
       abertas.appendChild(r);
     });
   }
@@ -8244,7 +8463,7 @@ function renderTarefas(){
       const doneByUser = t.doneBy ? Object.values(appState.users).find(u=>u.name===t.doneBy) : null;
       const avatarUser = doneByUser || ownerUser;
       const col = avatarUser?avatarUser.color:'#888';
-      const ini = avatarUser?(avatarUser.initials||(avatarUser.name.split(' ')[0]||'').substring(0,2).toUpperCase()):'?';
+      const ini = avatarUser?getUserInitials(avatarUser):'?';
       const dur = t.duration ? fmtDuration(t.duration) : null;
 
       // Build history entries
@@ -8269,7 +8488,7 @@ function renderTarefas(){
       mainRow.onmouseover=function(){mainRow.style.background='var(--bg-hover)';};
       mainRow.onmouseout=function(){mainRow.style.background='';};
       mainRow.innerHTML=`
-        <div style="width:20px;height:20px;border-radius:50%;background:${col}33;border:1px solid ${col};color:${col};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${ini}</div>
+        <div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${col}55,${col}15 60%,transparent 75%),radial-gradient(circle at center,${col}22,transparent 70%);border:1px solid ${col}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${col}66,inset 0 1px 2px rgba(255,255,255,.15);">${ini}</div>
         <div style="flex:1;">
           <div style="font-size:12px;text-decoration:line-through;color:var(--text-muted);word-break:break-word;">${ownerPrefix}${t.text}</div>
           <div style="font-size:10px;color:#22c55e;font-family:var(--font-mono);margin-top:2px;">✓ ${t.doneBy||'?'}${t.doneAt?' às '+t.doneAt:''}${dur?' · ⏱ '+dur:''}</div>
@@ -8364,9 +8583,9 @@ document.addEventListener('firebase-ready', function(){
 // ═══════════════════════════════════════════════════════
 
 const ATV_PRIOR = {
-  urgente: { label:'🔴 Urgente', color:'#ef4444', bg:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.35)' },
-  alta:    { label:'🟡 Alta',    color:'#f59e0b', bg:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.35)' },
-  normal:  { label:'⚪ Normal',  color:'#6d7580', bg:'rgba(109,117,128,.10)', border:'rgba(109,117,128,.25)' }
+  urgente: { label:'Urgente', color:'#ef4444', bg:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.35)', dot:'red' },
+  alta:    { label:'Alta',    color:'#f59e0b', bg:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.35)', dot:'yellow' },
+  normal:  { label:'Normal',  color:'#6d7580', bg:'rgba(109,117,128,.10)', border:'rgba(109,117,128,.25)', dot:'gray' }
 };
 
 function atvDiasRestantes(vencimento){
@@ -8386,33 +8605,24 @@ function atvSetStatusFilter(s) {
     if (!btn) return;
     const isActive = k === s;
     const styles = {
-      all: { bg:'rgba(59,130,246,0.2)', border:'rgba(59,130,246,0.4)', color:'#fff', shadow:'rgba(59,130,246,0.2)',
-             bgOff:'rgba(59,130,246,0.12)', borderOff:'rgba(59,130,246,0.35)', colorOff:'var(--blue)' },
-      aberta: { bg:'rgba(245,158,11,0.2)', border:'rgba(245,158,11,0.5)', color:'var(--amber)', shadow:'rgba(245,158,11,0.15)',
-             bgOff:'rgba(245,158,11,0.12)', borderOff:'rgba(245,158,11,0.35)', colorOff:'var(--amber)' },
-      andamento: { bg:'rgba(59,130,246,0.2)', border:'rgba(59,130,246,0.5)', color:'var(--blue)', shadow:'rgba(59,130,246,0.15)',
-             bgOff:'rgba(59,130,246,0.12)', borderOff:'rgba(59,130,246,0.35)', colorOff:'var(--blue)' },
-      atrasada: { bg:'rgba(239,68,68,0.2)', border:'rgba(239,68,68,0.5)', color:'var(--red)', shadow:'rgba(239,68,68,0.15)',
-             bgOff:'rgba(239,68,68,0.12)', borderOff:'rgba(239,68,68,0.35)', colorOff:'var(--red)' },
-      concluida: { bg:'rgba(34,197,94,0.2)', border:'rgba(34,197,94,0.5)', color:'var(--green)', shadow:'rgba(34,197,94,0.15)',
-             bgOff:'rgba(34,197,94,0.12)', borderOff:'rgba(34,197,94,0.35)', colorOff:'var(--green)' },
+      all:       { bgOn:'linear-gradient(135deg,#8b8ff5,#4f52d6)', glow:'rgba(99,102,241,.35)',
+                   bgOff:'linear-gradient(135deg,rgba(99,102,241,.18),rgba(79,82,214,.10))' },
+      aberta:    { bgOn:'linear-gradient(135deg,#ffc670,#d97706)', glow:'rgba(245,158,11,.35)',
+                   bgOff:'linear-gradient(135deg,rgba(255,198,112,.18),rgba(217,119,6,.10))' },
+      andamento: { bgOn:'linear-gradient(135deg,#8b8ff5,#4f52d6)', glow:'rgba(99,102,241,.35)',
+                   bgOff:'linear-gradient(135deg,rgba(139,143,245,.18),rgba(79,82,214,.10))' },
+      atrasada:  { bgOn:'linear-gradient(135deg,#fb7185,#be123c)', glow:'rgba(244,63,94,.35)',
+                   bgOff:'linear-gradient(135deg,rgba(251,113,133,.18),rgba(190,18,60,.10))' },
+      concluida: { bgOn:'linear-gradient(135deg,#4ade80,#0d9488)', glow:'rgba(16,185,129,.35)',
+                   bgOff:'linear-gradient(135deg,rgba(74,222,128,.18),rgba(13,148,136,.10))' },
     };
     const st = styles[k];
-    if (isActive) {
-      btn.style.background = `linear-gradient(135deg,${st.bg},${st.bg.replace('0.2','0.08')})`;
-      btn.style.borderColor = st.border;
-      btn.style.color = st.color;
-      btn.style.boxShadow = `0 4px 16px ${st.shadow},inset 0 1px 0 rgba(255,255,255,0.12)`;
-      btn.style.transform = 'translateY(-1px)';
-    } else {
-      // Restaura a cor translúcida original da aba (nunca limpar para
-      // string vazia — isso cai no branco padrão do navegador).
-      btn.style.background = `linear-gradient(135deg,${st.bgOff},${st.bgOff.replace('0.12','0.04')})`;
-      btn.style.borderColor = st.borderOff;
-      btn.style.color = st.colorOff;
-      btn.style.transform = '';
-      btn.style.boxShadow = 'inset 0 1px 0 rgba(255,255,255,0.06)';
-    }
+    btn.style.background = isActive ? st.bgOn : st.bgOff;
+    btn.style.borderColor = 'rgba(255,255,255,.2)';
+    btn.style.color = '#fff';
+    btn.style.boxShadow = isActive ? `0 4px 14px ${st.glow},inset 0 1px 0 rgba(255,255,255,.15)` : 'none';
+    btn.style.opacity = isActive ? '1' : '.72';
+    btn.style.transform = '';
   });
   // Show/hide kanban columns based on filter
   const colMap = { all:['aberta','andamento','concluida'], aberta:['aberta'], andamento:['andamento'], atrasada:['aberta'], concluida:['concluida'] };
@@ -8544,26 +8754,26 @@ function renderAtividades(){
     total++;
 
     const uColor=user?(user.color||'#888'):'#888';
-    const uInit=user?(user.initials||(user.name.split(' ')[0]||'').substring(0,2).toUpperCase()):'?';
+    const uInit=user?getUserInitials(user):'?';
     const uName=user?user.name:'Não atribuído';
     const vencFmt=a.vencimento?new Date(a.vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
     const prazoHtml=diasLabel?`<span style="font-size:10px;color:${diasLabel.color};font-family:var(--font-mono);">${diasLabel.text}</span>`:'';
 
     const statusBadge=a.status==='concluida'
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);background:rgba(34,197,94,.12);border:1px solid var(--green-dim);border-radius:4px;padding:2px 7px;">Concluída</span>`
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#6ee7b7;background:rgba(16,185,129,.14);border-radius:4px;padding:2px 7px;">Concluída</span>`
       :a.status==='andamento'
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);background:rgba(59,130,246,.12);border:1px solid var(--blue);border-radius:4px;padding:2px 7px;">Em Andamento</span>`
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(99,102,241,.16);border-radius:4px;padding:2px 7px;">Em Andamento</span>`
       :dias!==null&&dias<0
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--red);background:rgba(239,68,68,.12);border:1px solid var(--red);border-radius:4px;padding:2px 7px;">Atrasada</span>`
-      :`<span style="font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid var(--amber);border-radius:4px;padding:2px 7px;">A Fazer</span>`;
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fb7185;background:rgba(244,63,94,.14);border-radius:4px;padding:2px 7px;">Atrasada</span>`
+      :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fbbf24;background:rgba(245,158,11,.14);border-radius:4px;padding:2px 7px;">A Fazer</span>`;
 
     const isMine=a.responsavel===currentUser.key;
     const canAct=currentUser.master||isMine;
 
     const card=document.createElement('div');
-    card.style.cssText='background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:box-shadow .15s;';
-    card.onmouseover=()=>card.style.boxShadow='0 4px 16px rgba(0,0,0,.3)';
-    card.onmouseout=()=>card.style.boxShadow='';
+    card.style.cssText='background:#1a1d2b;border:1px solid rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;transition:border-color .15s,transform .15s;';
+    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';card.style.transform='translateY(-1px)';};
+    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';card.style.transform='';};
     if(currentUser && currentUser.master){
       card.draggable=true;
       card.dataset.atvId=a.id;
@@ -8587,26 +8797,26 @@ function renderAtividades(){
     }
     card.innerHTML=`
       <div style="height:3px;background:${prior.color};"></div>
-      <div style="padding:12px 14px;">
-        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;">
+      <div style="padding:10px 12px;">
+        <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:7px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;line-height:1.3;margin-bottom:5px;">${a.titulo||'Sem título'}</div>
+            <div style="font-size:12.5px;font-weight:700;color:#f1f3f9;letter-spacing:-.01em;line-height:1.3;margin-bottom:4px;">${a.titulo||'Sem título'}</div>
             ${statusBadge}
           </div>
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
-        ${a.descricao?`<div style="font-size:12px;color:var(--text-muted);line-height:1.45;margin-bottom:10px;padding:8px 10px;background:var(--bg-surface);border-radius:6px;border-left:2px solid var(--border);">${a.descricao}</div>`:''}
-        ${a.comentario?`<div style="font-size:11px;line-height:1.45;margin-bottom:10px;padding:8px 10px;background:rgba(139,92,246,0.07);border-radius:6px;border-left:2px solid rgba(139,92,246,0.5);"><span style="font-size:9px;color:#a78bfa;font-weight:700;text-transform:uppercase;letter-spacing:1px;font-family:var(--font-mono);display:block;margin-bottom:3px;">💬 ${a.comentarioAutor||''}${a.comentarioEm?' · '+a.comentarioEm:''}</span><span style="color:var(--text-secondary);">${a.comentario}</span></div>`:''}
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-          <span style="display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;font-family:var(--font-mono);background:${prior.bg};border:1px solid ${prior.border};color:${prior.color};">${prior.label}</span>
+        ${a.descricao?`<div style="font-size:11.5px;color:#a3a9b8;line-height:1.4;margin-bottom:8px;padding:6px 9px;background:rgba(255,255,255,0.03);border-radius:6px;">${a.descricao}</div>`:''}
+        ${a.comentario?`<div style="font-size:11px;line-height:1.4;margin-bottom:8px;padding:6px 9px;background:rgba(139,92,246,0.08);border-radius:6px;border-left:2px solid #8b5cf6;"><span style="font-size:9px;color:#c4b5fd;font-weight:700;letter-spacing:.3px;display:block;margin-bottom:2px;">💬 ${a.comentarioAutor||''}${a.comentarioEm?' · '+a.comentarioEm:''}</span><span style="color:#c7cbd6;">${a.comentario}</span></div>`:''}
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px;flex-wrap:wrap;">
+          <span style="display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:700;color:#e5e7eb;"><span class="atv-prior-dot ${prior.dot}" style="width:14px;height:14px;"></span>${prior.label}</span>
           ${prazoHtml}
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border);flex-wrap:wrap;gap:6px;">
-          <div style="display:flex;align-items:center;gap:7px;">
-            <div style="width:22px;height:22px;border-radius:50%;background:${uColor}22;border:1px solid ${uColor};color:${uColor};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;">${uInit}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid rgba(255,255,255,0.06);flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${uColor}55,${uColor}15 60%,transparent 75%),radial-gradient(circle at center,${uColor}22,transparent 70%);border:1px solid ${uColor}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${uColor}66,inset 0 1px 2px rgba(255,255,255,.15);">${uInit}</div>
             <div>
-              <div style="font-size:11px;font-weight:600;color:var(--text-primary);">${uName}</div>
-              <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">Vence: ${vencFmt}</div>
+              <div style="font-size:10.5px;font-weight:600;color:#dfe2ea;">${uName}</div>
+              <div style="font-size:9.5px;color:#7d8494;">Vence: ${vencFmt}</div>
             </div>
           </div>
           <div style="display:flex;gap:6px;align-items:center;" id="atv-acoes-${a.id}"></div>
@@ -8621,20 +8831,18 @@ function renderAtividades(){
     if(podeEditar2 || isMine2){
       const btnEdit = document.createElement('button');
       btnEdit.title = podeEditar2 ? 'Editar' : 'Comentar';
-      btnEdit.textContent = podeEditar2 ? '✎' : '💬';
-      btnEdit.style.cssText='background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:color .15s;';
-      btnEdit.onmouseover=()=>btnEdit.style.color='var(--accent)';
-      btnEdit.onmouseout=()=>btnEdit.style.color='var(--text-muted)';
+      btnEdit.className = 'btn-orb v-edit sm';
+      btnEdit.innerHTML = podeEditar2
+        ? '<svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-4.5A8.38 8.38 0 0 1 3.5 12 8.38 8.38 0 0 1 12 3.5a8.38 8.38 0 0 1 9 8Z"/></svg>';
       btnEdit.onclick=()=>openAtvModal(a.id);
       actWrap.appendChild(btnEdit);
     }
     if(currentUser.master){
       const btnDel = document.createElement('button');
       btnDel.title='Excluir';
-      btnDel.textContent='🗑';
-      btnDel.style.cssText='background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;padding:2px 6px;border-radius:4px;transition:color .15s;';
-      btnDel.onmouseover=()=>btnDel.style.color='var(--red)';
-      btnDel.onmouseout=()=>btnDel.style.color='var(--text-muted)';
+      btnDel.className = 'btn-orb v-danger sm';
+      btnDel.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
       btnDel.onclick=()=>deleteAtividade(a.id);
       actWrap.appendChild(btnDel);
     }
@@ -8645,18 +8853,18 @@ function renderAtividades(){
       let btnAcao=null;
       if(a.status==='aberta'){
         btnAcao=document.createElement('button');
-        btnAcao.textContent='▶ Iniciar';
-        btnAcao.style.cssText='background:rgba(59,130,246,.15);border:1px solid var(--blue);border-radius:5px;color:var(--blue);font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:var(--font-sans);';
+        btnAcao.className='btn-pill v-indigo';
+        btnAcao.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>Iniciar';
         btnAcao.onclick=()=>atvMoveStatus(a.id,'andamento');
       } else if(a.status==='andamento'){
         btnAcao=document.createElement('button');
-        btnAcao.textContent='✓ Concluir';
-        btnAcao.style.cssText='background:rgba(34,197,94,.15);border:1px solid var(--green-dim);border-radius:5px;color:var(--green);font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:var(--font-sans);';
+        btnAcao.className='btn-pill v-green';
+        btnAcao.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
         btnAcao.onclick=()=>atvMoveStatus(a.id,'concluida');
       } else if(a.status==='concluida'&&currentUser.master){
         btnAcao=document.createElement('button');
-        btnAcao.textContent='↩ Reabrir';
-        btnAcao.style.cssText='background:rgba(245,158,11,.12);border:1px solid var(--amber);border-radius:5px;color:var(--amber);font-size:10px;font-weight:700;padding:4px 10px;cursor:pointer;font-family:var(--font-sans);';
+        btnAcao.className='btn-pill v-amber';
+        btnAcao.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
         btnAcao.onclick=()=>atvMoveStatus(a.id,'aberta');
       }
       if(btnAcao) acoesWrap.appendChild(btnAcao);
@@ -8722,6 +8930,8 @@ function openAtvModal(id){
     if(el) el.disabled = !podeEditarCampos;
     if(el) el.style.opacity = podeEditarCampos ? '' : '0.5';
   });
+  const priorTrigger=document.getElementById('atv-prioridade-trigger');
+  if(priorTrigger){ priorTrigger.disabled=!podeEditarCampos; priorTrigger.style.opacity=podeEditarCampos?'':'0.5'; priorTrigger.style.cursor=podeEditarCampos?'pointer':'not-allowed'; }
   if(sel){ sel.disabled=!podeEditarCampos; sel.style.opacity=podeEditarCampos?'':'0.5'; }
 
   if(id && a){
@@ -8729,7 +8939,7 @@ function openAtvModal(id){
     document.getElementById('atv-descricao').value=a.descricao||'';
     if(sel)sel.value=a.responsavel||'';
     document.getElementById('atv-vencimento').value=a.vencimento||'';
-    document.getElementById('atv-prioridade').value=a.prioridade||'normal';
+    _atvSelectPrior(a.prioridade||'normal');
     document.getElementById('atv-edit-id').value=id;
     if(titleEl)titleEl.textContent=podeEditarTarefa?'Editar Tarefa':'Comentar Tarefa';
     // Mostrar campo comentário
@@ -8742,7 +8952,7 @@ function openAtvModal(id){
     document.getElementById('atv-descricao').value='';
     if(sel)sel.value='';
     document.getElementById('atv-vencimento').value='';
-    document.getElementById('atv-prioridade').value='normal';
+    _atvSelectPrior('normal');
     document.getElementById('atv-edit-id').value='';
     if(titleEl)titleEl.textContent='Nova Tarefa';
     if(comentWrap) comentWrap.style.display='none';
