@@ -2875,10 +2875,11 @@ function renderWpp(){
   if(excluirBtn) excluirBtn.style.display=(currentUser&&currentUser.master&&vendasHoje>0)?'inline-block':'none';
   const cbtn=document.getElementById('wpp-conclude-day');
   if(cbtn) cbtn.style.display='none';
-  // Abrir modal automaticamente quando todas as tarefas estiverem concluídas
-  if(totalAll>0 && doneAll===totalAll){
-    setTimeout(()=>abrirModalVenda(),300);
-  }
+  // OBS: o modal de registro de venda NÃO é disparado aqui, pois renderWpp()
+  // roda em TODOS os clientes conectados (via sync do Firebase). Disparar aqui
+  // faria o modal abrir para todos os usuários, não só quem concluiu a tarefa.
+  // O disparo correto acontece em markWppDone(), que só executa no cliente
+  // do usuário que de fato concluiu a última tarefa.
   // Render lista de pedidos
   renderHistoricoWpp();
 }
@@ -3142,8 +3143,15 @@ function markWppDone(groupId,itemId){
   const tk=g.items.find(i=>i.id===itemId);if(!tk)return;
   tk.done=true;tk.doneBy=currentUser.name;tk.doneAt=nowTimeStr();
   showToast('✓ Concluído','success');logActivity('concluiu',tk.text,'WhatsApp');
+  // Verifica LOCALMENTE (antes de salvar/sincronizar) se esta foi a última
+  // tarefa a ser concluída. Assim o modal só abre para o usuário que de fato
+  // concluiu a tarefa, e não para os demais usuários quando o estado
+  // sincronizar via Firebase (que dispara renderWpp() em todos os clientes).
+  let _totalAll=0,_doneAll=0;
+  appState.tasks.whatsapp.forEach(gr=>gr.items.forEach(it=>{_totalAll++;if(it.done)_doneAll++;}));
+  const _allDone=_totalAll>0 && _doneAll===_totalAll;
   saveState(appState);renderWpp();
-  // O modal é disparado automaticamente pelo renderWpp quando totalAll===doneAll
+  if(_allDone) setTimeout(()=>abrirModalVenda(),300);
 }
 function unmarkWppItem(groupId,itemId){
   if(!currentUser.master && !currentUser.perms.includes('whatsapp')){showToast('Acesso restrito','error');return;}
