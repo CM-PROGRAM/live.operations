@@ -1791,6 +1791,18 @@ function loadLocal(){
           else if(!i.btns) i.btns=[];
         });
       });
+      // Patch pontual: garante o botão "Precificação Pix" e remove o antigo link direto, mesmo em estados antigos já salvos
+      s.tasks.whatsapp.forEach(g=>{
+        if(g.id==='wpp_atend'){
+          const orc=g.items?.find(i=>i.id==='wpp_a2');
+          if(orc && Array.isArray(orc.btns)){
+            orc.btns=orc.btns.filter(b=>b.label!=='Precificação');
+            if(!orc.btns.some(b=>b.action==='precificacaoPix')){
+              orc.btns.push({label:'Precificação Pix',action:'precificacaoPix'});
+            }
+          }
+        }
+      });
     }
     // Migrate whatsapp if structure is outdated
     if(s.tasks&&s.tasks.whatsapp&&Array.isArray(s.tasks.whatsapp)){
@@ -2096,6 +2108,18 @@ function applyRemoteState(data){
           if(i.btns && !Array.isArray(i.btns)) i.btns=Object.values(i.btns);
           else if(!i.btns) i.btns=[];
         });
+      });
+      // Patch pontual: garante o botão "Precificação Pix" e remove o antigo link direto, mesmo em estados antigos já salvos
+      data.tasks.whatsapp.forEach(g=>{
+        if(g.id==='wpp_atend'){
+          const orc=g.items?.find(i=>i.id==='wpp_a2');
+          if(orc && Array.isArray(orc.btns)){
+            orc.btns=orc.btns.filter(b=>b.label!=='Precificação');
+            if(!orc.btns.some(b=>b.action==='precificacaoPix')){
+              orc.btns.push({label:'Precificação Pix',action:'precificacaoPix'});
+            }
+          }
+        }
       });
     }
     const nm=!data.tasks.whatsapp[0]?.items
@@ -2422,7 +2446,7 @@ function initWpp(){return[
       {id:'wpp_a2',text:'Orçamentos',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
           {label:'Site',link:'https://www.suplelive.com.br/'},
-          {label:'Precificação',link:'https://docs.google.com/spreadsheets/d/1_yhDgmbuQ5OGH9Ng3siYrSY4d6-u3Q6rdY4vT4sHfUs/edit?gid=1537031995#gid=1537031995'}
+          {label:'Precificação Pix',action:'precificacaoPix'}
         ]
       },
       {id:'wpp_a34',text:'Cotação Frete',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
@@ -2757,6 +2781,16 @@ function renderWpp(){
       if(i.btns && !Array.isArray(i.btns)) i.btns=Object.values(i.btns);
       else if(!i.btns) i.btns=[];
     });
+    // Patch pontual: garante o botão "Precificação Pix" e remove o antigo link direto, mesmo em estados antigos já salvos
+    if(g.id==='wpp_atend'){
+      const orc=g.items.find(i=>i.id==='wpp_a2');
+      if(orc && Array.isArray(orc.btns)){
+        orc.btns=orc.btns.filter(b=>b.label!=='Precificação');
+        if(!orc.btns.some(b=>b.action==='precificacaoPix')){
+          orc.btns.push({label:'Precificação Pix',action:'precificacaoPix'});
+        }
+      }
+    }
   });
 
   let totalAll=0,doneAll=0;
@@ -2855,11 +2889,13 @@ function renderWpp(){
         if(tk.btns&&tk.btns.length){
           const btnsWrap=document.createElement('div');btnsWrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;';
           tk.btns.forEach(b=>{
-            const a=document.createElement('a');a.href=b.link;a.target='_blank';
+            const a=document.createElement('a');
+            if(b.action){ a.href='javascript:void(0)'; a.onclick=(ev)=>{ev.preventDefault();executarAcaoBotao(b.action);}; }
+            else { a.href=b.link; a.target='_blank'; }
             a.style.cssText='display:inline-flex;align-items:center;gap:4px;background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07));border:1px solid rgba(34,197,94,0.35);border-radius:50px;color:#86efac;font-size:11px;font-weight:600;padding:4px 12px;text-decoration:none;transition:all .15s;font-family:var(--font-sans);white-space:nowrap;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
             a.onmouseover=()=>{a.style.background='linear-gradient(135deg,rgba(34,197,94,0.3),rgba(34,197,94,0.12))';a.style.borderColor='rgba(34,197,94,0.6)';a.style.transform='translateY(-1px)';};
             a.onmouseout=()=>{a.style.background='linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07))';a.style.borderColor='rgba(34,197,94,0.35)';a.style.transform='';};
-            a.innerHTML='↗ '+b.label;btnsWrap.appendChild(a);
+            a.innerHTML=(b.action?'🧮 ':'↗ ')+b.label;btnsWrap.appendChild(a);
           });
           c.appendChild(btnsWrap);
         } else if(tk.link){
@@ -3663,11 +3699,13 @@ function renderPlt(){
       }
       if(tk.btns&&tk.btns.length){
         tk.btns.forEach(b=>{
-          const a=document.createElement('a');a.href=b.link;a.target='_blank';
+          const a=document.createElement('a');
+          if(b.action){ a.href='javascript:void(0)'; a.onclick=(ev)=>{ev.preventDefault();executarAcaoBotao(b.action);}; }
+          else { a.href=b.link; a.target='_blank'; }
           a.style.cssText='font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(59,130,246,0.18),rgba(59,130,246,0.07));border:1px solid rgba(59,130,246,0.35);color:#93c5fd;text-decoration:none;white-space:nowrap;transition:all .12s;';
           a.onmouseover=()=>{a.style.background='linear-gradient(135deg,rgba(59,130,246,0.3),rgba(59,130,246,0.12))';};
           a.onmouseout=()=>{a.style.background='linear-gradient(135deg,rgba(59,130,246,0.18),rgba(59,130,246,0.07))';};
-          a.innerHTML='↗ '+b.label;acts.appendChild(a);
+          a.innerHTML=(b.action?'🧮 ':'↗ ')+b.label;acts.appendChild(a);
         });
       }
 
@@ -9554,6 +9592,108 @@ function salvarEdicaoVenda(){
   renderHistoricoWpp();
   enviarVendaPlanilha(appState.pedidosWpp[idx], 'editar');
   showToast('✓ Venda #'+num+' atualizada!','success');
+}
+
+/* ===== Dispatcher genérico para botões de "ação" (não-link) nos cards de tarefas ===== */
+function executarAcaoBotao(action){
+  if(action==='precificacaoPix') abrirModalPrecificacaoPix();
+}
+</script>
+
+<div id="modal-precificacao-pix-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.98),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:400px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(24px);position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(34,197,94,0.3),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.4);display:flex;align-items:center;justify-content:center;font-size:18px;">🧮</div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Precificação Pix</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Gerar texto de desconto p/ WhatsApp</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--glass-border);margin:16px 0;"></div>
+
+    <div id="precpix-form">
+      <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Valor bruto do produto no site (R$) *</label>
+      <input type="text" id="precpix-valor-base" placeholder="Ex: 259,99" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this)" onkeydown="if(event.key==='Enter')gerarPrecificacaoPix()">
+      <div id="precpix-error" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fca5a5;font-family:var(--font-mono);margin-top:12px;"></div>
+      <button onclick="gerarPrecificacaoPix()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(34,197,94,0.8),rgba(34,197,94,0.6));border:1px solid rgba(34,197,94,0.6);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.25),inset 0 1px 0 rgba(255,255,255,0.15);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">🧮 Gerar Texto</button>
+    </div>
+
+    <div id="precpix-resultado" style="display:none;">
+      <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Texto gerado (pronto pra copiar)</label>
+      <textarea id="precpix-texto" readonly style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;line-height:1.6;padding:12px 13px;outline:none;width:100%;box-sizing:border-box;height:190px;resize:none;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button onclick="voltarPrecificacaoPix()" style="flex:1;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);font-family:var(--font-sans);font-size:13px;font-weight:600;padding:11px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.25)';this.style.color='var(--text-primary)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text-muted)'">← Editar valor</button>
+        <button onclick="copiarPrecificacaoPix()" style="flex:2;background:linear-gradient(135deg,rgba(34,197,94,0.8),rgba(34,197,94,0.6));border:1px solid rgba(34,197,94,0.6);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.25),inset 0 1px 0 rgba(255,255,255,0.15);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar</button>
+      </div>
+    </div>
+
+    <button onclick="fecharModalPrecificacaoPix()" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-sans);font-size:12px;padding:6px;cursor:pointer;">Fechar</button>
+  </div>
+</div>
+<script>
+function abrirModalPrecificacaoPix(){
+  const overlay=document.getElementById('modal-precificacao-pix-overlay');
+  if(!overlay) return;
+  document.getElementById('precpix-valor-base').value='';
+  document.getElementById('precpix-error').style.display='none';
+  document.getElementById('precpix-form').style.display='block';
+  document.getElementById('precpix-resultado').style.display='none';
+  overlay.style.display='flex';
+  setTimeout(()=>{ document.getElementById('precpix-valor-base').focus(); },100);
+}
+function fecharModalPrecificacaoPix(){
+  const overlay=document.getElementById('modal-precificacao-pix-overlay');
+  if(overlay) overlay.style.display='none';
+}
+function voltarPrecificacaoPix(){
+  document.getElementById('precpix-form').style.display='block';
+  document.getElementById('precpix-resultado').style.display='none';
+  setTimeout(()=>{ document.getElementById('precpix-valor-base').focus(); document.getElementById('precpix-valor-base').select(); },50);
+}
+function gerarPrecificacaoPix(){
+  const inputEl=document.getElementById('precpix-valor-base');
+  const errEl=document.getElementById('precpix-error');
+  const raw=(inputEl.value||'').trim();
+  const base=parseFloat(raw.replace(/\./g,'').replace(',','.'))||0;
+  if(!raw || base<=0){
+    errEl.textContent='⚠ Informe um valor válido.';
+    errEl.style.display='block';
+    inputEl.focus();
+    return;
+  }
+  errEl.style.display='none';
+
+  const fmt=(n)=>n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const preco1 = base*0.90; // 10% OFF
+  const preco2 = base*0.85; // 15% OFF (cada)
+  const preco3 = base*0.80; // 20% OFF (cada)
+
+  const texto =
+`Comprando pelo WhatsApp temos desconto:
+
+Sem desconto: R$ ${fmt(base)} (preço direto em nosso site)
+
+1 unidade: R$ ${fmt(preco1)} — 10% OFF
+2 unidades: R$ ${fmt(preco2)} cada — 15% OFF
+3 unidades: R$ ${fmt(preco3)} cada — 20% OFF
+
+*valores no pix, cartão consulte condições`;
+
+  document.getElementById('precpix-texto').value=texto;
+  document.getElementById('precpix-form').style.display='none';
+  document.getElementById('precpix-resultado').style.display='block';
+}
+function copiarPrecificacaoPix(){
+  const textarea=document.getElementById('precpix-texto');
+  textarea.select();
+  textarea.setSelectionRange(0,999999);
+  navigator.clipboard.writeText(textarea.value).then(()=>{
+    showToast('📋 Texto copiado!','success');
+  }).catch(()=>{
+    try{ document.execCommand('copy'); showToast('📋 Texto copiado!','success'); }
+    catch(e){ showToast('⚠ Não foi possível copiar automaticamente. Selecione e copie manualmente.','warn'); }
+  });
 }
 </script>
 </body>
