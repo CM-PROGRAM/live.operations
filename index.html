@@ -714,13 +714,16 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
             <input type="text" id="modal-ped-valor" placeholder="0,00" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(59,130,246,0.6)';this.style.boxShadow='0 0 16px rgba(59,130,246,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this)" onkeydown="if(event.key==='Enter')document.getElementById('modal-ped-pag').focus()">
           </div>
           <div>
-            <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Pagamento *</label>
+            <label style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">
+              <span>Pagamento *</span>
+              <span style="display:flex;gap:4px;">
+                <button type="button" onclick="addPagOpt('modal-ped-pag')" title="Adicionar nova forma de pagamento" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button type="button" onclick="renamePagOpt('modal-ped-pag')" title="Editar nome da forma de pagamento selecionada" class="btn-orb" style="width:20px;height:20px;">✎</button>
+                <button type="button" onclick="removePagOpt('modal-ped-pag')" title="Excluir forma de pagamento selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+              </span>
+            </label>
             <select id="modal-ped-pag" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;cursor:pointer;">
-              <option value="Pix Manoel">Pix Manoel</option>
-              <option value="Pix Vix Comercio">Pix Vix Comercio</option>
-              <option value="Pix 4Vita">Pix 4Vita</option>
-              <option value="C. de Crédito Infinity Pay">C. de Crédito Infinity Pay</option>
-              <option value="C. de Crédito Merc. Pago">C. de Crédito Merc. Pago</option>
+              <option value="">— Selecionar —</option>
             </select>
           </div>
         </div>
@@ -1421,12 +1424,23 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group">
-        <label>Título</label>
-        <input type="text" id="atv-titulo" placeholder="Ex: Atualizar planilha de preços" autocomplete="off">
+        <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="defAtvPrazo()" title="Definir prazo (dias) para este título" class="btn-orb v-open" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></button></span></label>
+        <select id="atv-titulo" onchange="atvTituloChanged()"></select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="input-group">
+          <label>SKU</label>
+          <input type="text" id="atv-sku" placeholder="Ex: 12345" autocomplete="off">
+        </div>
+        <div class="input-group">
+          <label>Nome do produto</label>
+          <input type="text" id="atv-nome-produto" placeholder="Ex: Whey Protein 900g" autocomplete="off">
+        </div>
       </div>
       <div class="input-group">
-        <label>Descrição</label>
-        <textarea id="atv-descricao" rows="3" placeholder="Descreva o que precisa ser feito..." style="resize:vertical;"></textarea>
+        <label>Marketplace</label>
+        <div id="atv-marketplace-grid" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        <input type="hidden" id="atv-marketplace">
       </div>
       <div class="input-group">
         <label>Colaborador responsável</label>
@@ -2875,11 +2889,10 @@ function renderWpp(){
   if(excluirBtn) excluirBtn.style.display=(currentUser&&currentUser.master&&vendasHoje>0)?'inline-block':'none';
   const cbtn=document.getElementById('wpp-conclude-day');
   if(cbtn) cbtn.style.display='none';
-  // OBS: o modal de registro de venda NÃO é disparado aqui, pois renderWpp()
-  // roda em TODOS os clientes conectados (via sync do Firebase). Disparar aqui
-  // faria o modal abrir para todos os usuários, não só quem concluiu a tarefa.
-  // O disparo correto acontece em markWppDone(), que só executa no cliente
-  // do usuário que de fato concluiu a última tarefa.
+  // Abrir modal automaticamente quando todas as tarefas estiverem concluídas
+  if(totalAll>0 && doneAll===totalAll){
+    setTimeout(()=>abrirModalVenda(),300);
+  }
   // Render lista de pedidos
   renderHistoricoWpp();
 }
@@ -2891,11 +2904,10 @@ function abrirModalVenda(){
   // Limpar campos
   const num=document.getElementById('modal-ped-num');
   const val=document.getElementById('modal-ped-valor');
-  const pag=document.getElementById('modal-ped-pag');
   const err=document.getElementById('modal-venda-error');
   if(num) num.value='';
   if(val) val.value='';
-  if(pag) pag.value='Pix Manoel';
+  renderPagOptions('modal-ped-pag','Pix Manoel');
   if(err) err.style.display='none';
   overlay.style.display='flex';
   setTimeout(()=>{ if(num) num.focus(); },100);
@@ -3143,15 +3155,8 @@ function markWppDone(groupId,itemId){
   const tk=g.items.find(i=>i.id===itemId);if(!tk)return;
   tk.done=true;tk.doneBy=currentUser.name;tk.doneAt=nowTimeStr();
   showToast('✓ Concluído','success');logActivity('concluiu',tk.text,'WhatsApp');
-  // Verifica LOCALMENTE (antes de salvar/sincronizar) se esta foi a última
-  // tarefa a ser concluída. Assim o modal só abre para o usuário que de fato
-  // concluiu a tarefa, e não para os demais usuários quando o estado
-  // sincronizar via Firebase (que dispara renderWpp() em todos os clientes).
-  let _totalAll=0,_doneAll=0;
-  appState.tasks.whatsapp.forEach(gr=>gr.items.forEach(it=>{_totalAll++;if(it.done)_doneAll++;}));
-  const _allDone=_totalAll>0 && _doneAll===_totalAll;
   saveState(appState);renderWpp();
-  if(_allDone) setTimeout(()=>abrirModalVenda(),300);
+  // O modal é disparado automaticamente pelo renderWpp quando totalAll===doneAll
 }
 function unmarkWppItem(groupId,itemId){
   if(!currentUser.master && !currentUser.perms.includes('whatsapp')){showToast('Acesso restrito','error');return;}
@@ -4938,6 +4943,46 @@ function fmtData(el){
   if(v.length>4)v=v.replace(/(\d{2})(\d{2})(\d{1,2})/,'$1/$2/$3');
   else if(v.length>2)v=v.replace(/(\d{2})(\d{1,2})/,'$1/$2');
   el.value=v;
+}
+
+// Calcula quantos dias um atendimento está aberto, a partir do campo "Data Abertura" (DD/MM/AA)
+function ateDiasAbertos(dataStr){
+  if(!dataStr) return null;
+  const m=dataStr.match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  if(!m) return null;
+  const dia=parseInt(m[1],10), mes=parseInt(m[2],10), ano=2000+parseInt(m[3],10);
+  const abertura=new Date(ano,mes-1,dia);
+  if(isNaN(abertura.getTime())) return null;
+  const hoje=new Date(); hoje.setHours(0,0,0,0); abertura.setHours(0,0,0,0);
+  return Math.floor((hoje-abertura)/86400000);
+}
+
+// Interpola cor de amarelo (alerta) até vermelho (vencido) conforme os dias em aberto avançam
+function ateCorPrazo(diasAbertos, alertaDias, prazoDias){
+  if(diasAbertos===null || diasAbertos<alertaDias) return null;
+  const t=Math.max(0,Math.min(1,(diasAbertos-alertaDias)/Math.max(1,(prazoDias-alertaDias))));
+  const c1=[245,158,11], c2=[239,68,68]; // amber -> red
+  const r=Math.round(c1[0]+(c2[0]-c1[0])*t);
+  const g=Math.round(c1[1]+(c2[1]-c1[1])*t);
+  const b=Math.round(c1[2]+(c2[2]-c1[2])*t);
+  return {r,g,b,t};
+}
+
+// Notifica o criador do atendimento uma única vez, quando o card começa a "amarelar"
+function ateVerificarAlertaPrazo(d, diasAbertos, alertaDias){
+  if(!d || d.alertaPrazoEnviado) return;
+  if(diasAbertos===null || diasAbertos<alertaDias) return;
+  d.alertaPrazoEnviado=true;
+  saveState(appState);
+  if(db && fbConnected && d.criadoPorKey){
+    const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
+    notifRef.push({
+      msg:`⚠️ Atendimento de "${d.cliente||d.nped||'cliente'}" está há ${diasAbertos} dias em aberto sem finalização.`,
+      ts:Date.now(),
+      lida:false,
+      tipo:'atendimento'
+    });
+  }
 }
 
 function openDevModal(id){
@@ -7957,6 +8002,131 @@ function removeCustomOpt(selectId, baseList, stateKey, label, renderFn){
   showToast('✓ Excluído(a)','success');
 }
 
+/* --- Central de Tarefas: Marketplace (mesmos nomes/links/cores das colunas da aba Produtos) --- */
+const ATV_MARKETPLACE_LINKS={
+  'IMAGENS':'https://www.canva.com/',
+  'ATACADO':'',
+  'LOJA INT.':'https://app.lojaintegrada.com.br/painel',
+  'MERCADO LIVRE VITALIFE':'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',
+  'MERCADO LIVRE VITALIFE 2X':'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',
+  'MERCADO LIVRE VXSHOP':'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',
+  'MERCADO LIVRE VXSHOP 2X':'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',
+  'SHOPEE SUPLENIUM':'https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2',
+  'SHP Suple 2x':'https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2',
+  'SHOPEE PRIMEVITAMINAS':'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2',
+  'SHP Prime 2X':'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2',
+  'WEB CO':'https://portal.webcontinental.com.br/#/listar/produtos',
+  'RD MARKETPLACE':'https://portal.rdmarketplace.com.br/app/products',
+  'MAGALU VIX':'https://seller.magalu.com/products/',
+  'MAGALU 4VITA':'https://seller.magalu.com/products/',
+  'D. Pacheco':'https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar',
+  'D. São Paulo':'https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar'
+};
+const ATV_MARKETPLACE_CORES={
+  'IMAGENS':'linear-gradient(135deg,#8d57e1,#5720ad)',
+  'ATACADO':'linear-gradient(135deg,#383838,#000000)',
+  'LOJA INT.':'linear-gradient(135deg,#727851,#3c4219)',
+  'MERCADO LIVRE VITALIFE':'linear-gradient(135deg,#ddb438,#a98000)',
+  'MERCADO LIVRE VITALIFE 2X':'linear-gradient(135deg,#ddb438,#a98000)',
+  'MERCADO LIVRE VXSHOP':'linear-gradient(135deg,#ddb438,#a98000)',
+  'MERCADO LIVRE VXSHOP 2X':'linear-gradient(135deg,#ddb438,#a98000)',
+  'SHOPEE SUPLENIUM':'linear-gradient(135deg,#fa9149,#c75c11)',
+  'SHP Suple 2x':'linear-gradient(135deg,#fa9149,#c75c11)',
+  'SHOPEE PRIMEVITAMINAS':'linear-gradient(135deg,#fa9149,#c75c11)',
+  'SHP Prime 2X':'linear-gradient(135deg,#fa9149,#c75c11)',
+  'WEB CO':'linear-gradient(135deg,#387ab8,#004484)',
+  'RD MARKETPLACE':'linear-gradient(135deg,#5b9765,#24612e)',
+  'MAGALU VIX':'linear-gradient(135deg,#667fe2,#2f48af)',
+  'MAGALU 4VITA':'linear-gradient(135deg,#667fe2,#2f48af)',
+  'D. Pacheco':'linear-gradient(135deg,#e63838,#b30000)',
+  'D. São Paulo':'linear-gradient(135deg,#38bcff,#0088cc)'
+};
+let _atvMktpConcluidos={};
+function renderAtvMarketplaceOptions(sel){
+  const grid=document.getElementById('atv-marketplace-grid');
+  const hidden=document.getElementById('atv-marketplace');
+  if(!grid||!hidden) return;
+  const val=sel!==undefined?sel:hidden.value;
+  hidden.value=val||'';
+  grid.innerHTML=Object.keys(ATV_MARKETPLACE_LINKS).map(m=>{
+    const ativo=val===m;
+    const feito=!!_atvMktpConcluidos[m];
+    const idSafe=m.replace(/'/g,"\\'");
+    return `<span style="display:inline-flex;align-items:center;background:${ATV_MARKETPLACE_CORES[m]};border-radius:20px;padding:2px;border:2px solid ${ativo?'#fff':'transparent'};box-shadow:0 2px 8px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.25)${ativo?',0 0 0 2px rgba(255,255,255,.15)':''};opacity:${feito?'.55':(ativo?'1':'.85')};">
+      <button type="button" onclick="_atvSelectMarketplace('${idSafe}')" style="background:transparent;border:none;color:#fff;padding:4px 8px 4px 10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;text-decoration:${feito?'line-through':'none'};">${m}</button>
+      <button type="button" onclick="event.stopPropagation();_atvToggleMktpConcluido('${idSafe}')" title="${feito?'Marcar como pendente':'Marcar como concluído'}" style="background:${feito?'#22c55e':'rgba(0,0,0,.28)'};border:1.5px solid rgba(255,255,255,.65);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;">${feito?'✓':''}</button>
+    </span>`;
+  }).join('');
+}
+function _atvToggleMktpConcluido(nome){
+  const hidden=document.getElementById('atv-marketplace');
+  if(hidden && hidden.disabled) return;
+  _atvMktpConcluidos[nome]=!_atvMktpConcluidos[nome];
+  renderAtvMarketplaceOptions();
+}
+function _atvSelectMarketplace(nome){
+  const hidden=document.getElementById('atv-marketplace');
+  if(hidden.disabled) return;
+  const jaSelecionado = hidden.value===nome;
+  hidden.value = jaSelecionado ? '' : nome;
+  renderAtvMarketplaceOptions(hidden.value);
+  if(!jaSelecionado){
+    const url=ATV_MARKETPLACE_LINKS[nome];
+    if(url) window.open(url,'_blank','noopener');
+    else showToast('Este marketplace não possui link cadastrado','warn');
+  }
+}
+
+/* --- Central de Tarefas: Título --- */
+const ATV_TITULO_BASE=['Entrada Produto'];
+const ATV_PRAZOS_BASE={'Entrada Produto':2}; // dias padrão por título
+function renderAtvTituloOptions(sel){ renderCustomOpts('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv',sel); }
+function addAtvTitulo(){ addCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
+function removeAtvTitulo(){ removeCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
+
+// Retorna o prazo (em dias) configurado para um título, se houver
+function getAtvPrazo(titulo){
+  const custom=appState.atvPrazos||{};
+  if(Object.prototype.hasOwnProperty.call(custom,titulo)) return custom[titulo];
+  if(Object.prototype.hasOwnProperty.call(ATV_PRAZOS_BASE,titulo)) return ATV_PRAZOS_BASE[titulo];
+  return null;
+}
+
+// Botão de relógio: define/edita o prazo (em dias) do título selecionado
+function defAtvPrazo(){
+  const sel=document.getElementById('atv-titulo');
+  const titulo=sel?sel.value:'';
+  if(!titulo){showToast('Selecione um título para definir o prazo','warn');return;}
+  const atual=getAtvPrazo(titulo);
+  const resp=prompt('Prazo em dias para "'+titulo+'" (a partir da criação da tarefa):', atual!==null?atual:'');
+  if(resp===null) return;
+  const dias=parseInt(resp,10);
+  if(isNaN(dias)||dias<0){showToast('Informe um número de dias válido','warn');return;}
+  if(!appState.atvPrazos) appState.atvPrazos={};
+  appState.atvPrazos[titulo]=dias;
+  saveState(appState);
+  showToast('✓ Prazo de "'+titulo+'" definido para '+dias+' dia(s)','success');
+  atvTituloChanged();
+}
+
+// Regra: título com prazo configurado tem vencimento automático de N dias a partir da criação
+function atvTituloChanged(){
+  const titulo=document.getElementById('atv-titulo').value;
+  const vencEl=document.getElementById('atv-vencimento');
+  if(!vencEl) return;
+  const prazo=getAtvPrazo(titulo);
+  if(prazo!==null){
+    const d=new Date(); d.setDate(d.getDate()+prazo);
+    const iso=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    vencEl.value=iso;
+    vencEl.disabled=true;
+    vencEl.style.opacity='0.6';
+  } else {
+    vencEl.disabled=false;
+    vencEl.style.opacity='';
+  }
+}
+
 /* --- Atendimentos: Plataforma --- */
 const ATE_PLT_BASE=['Melhor Envio','Manda Bem','Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace','WhatsApp (ChatWoot)'];
 function renderAtePlataformaOptions(sel){ renderCustomOpts('ate-plataforma',ATE_PLT_BASE,'customPlataformasAte',sel); }
@@ -7999,6 +8169,60 @@ const RST_TRANSP_BASE=['Loggi','J&T','Jadlog','Correios PAC','Correios SEDEX'];
 function renderRstTranspOptions(sel){ renderCustomOpts('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst',sel); }
 function addRstTransp(){ addCustomOpt('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst','transportadora',renderRstTranspOptions); }
 function removeRstTransp(){ removeCustomOpt('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst','transportadora',renderRstTranspOptions); }
+
+/* --- Forma de Pagamento (compartilhado entre Venda WhatsApp: Nova Venda, Confirmar Venda e Editar Venda) --- */
+const PAG_BASE=['Pix Manoel','Pix Vix Comercio','Pix 4Vita','C. de Crédito Infinity Pay','C. de Crédito Merc. Pago'];
+const PAG_STATE_KEY='customFormasPag';
+// selectIds de todos os selects de forma de pagamento que devem ficar sincronizados
+const PAG_SELECT_IDS=['modal-ped-pag','edit-ped-pag'];
+function renderPagOptionsAll(selected){
+  PAG_SELECT_IDS.forEach(id=>{
+    if(document.getElementById(id)) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY,selected!==undefined?selected:undefined);
+  });
+}
+function renderPagOptions(selectId, sel){ renderCustomOpts(selectId,PAG_BASE,PAG_STATE_KEY,sel); }
+function addPagOpt(selectId){
+  addCustomOpt(selectId,PAG_BASE,PAG_STATE_KEY,'forma de pagamento',(novoSel)=>{
+    // sincroniza todos os selects e mantém a seleção só no select de origem
+    PAG_SELECT_IDS.forEach(id=>{
+      if(!document.getElementById(id)) return;
+      if(id===selectId) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY,novoSel);
+      else renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY);
+    });
+  });
+}
+function removePagOpt(selectId){
+  removeCustomOpt(selectId,PAG_BASE,PAG_STATE_KEY,'forma de pagamento',()=>{
+    PAG_SELECT_IDS.forEach(id=>{ if(document.getElementById(id)) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY); });
+  });
+}
+function renamePagOpt(selectId){
+  const sel=document.getElementById(selectId);
+  const val=sel?sel.value:'';
+  if(!val){showToast('Selecione uma forma de pagamento para editar','warn');return;}
+  const novo=(prompt('Novo nome para "'+val+'":', val)||'').trim();
+  if(!novo || novo===val) return;
+  const all=getAllCustomOpts(PAG_BASE,PAG_STATE_KEY);
+  if(all.some(m=>m.toLowerCase()===novo.toLowerCase())){showToast('Já existe uma forma de pagamento com esse nome','warn');return;}
+  if(PAG_BASE.some(b=>b.toLowerCase()===val.toLowerCase())){
+    // é padrão: não pode renomear o item base, mas pode criar um novo nome customizado equivalente
+    if(!appState[PAG_STATE_KEY]) appState[PAG_STATE_KEY]=[];
+    appState[PAG_STATE_KEY].push(novo);
+    showToast('Formas de pagamento padrão não podem ser renomeadas — "'+novo+'" foi adicionada como nova opção','warn');
+  } else {
+    const custom=appState[PAG_STATE_KEY]||[];
+    const idx=custom.findIndex(m=>m.toLowerCase()===val.toLowerCase());
+    if(idx>-1) custom[idx]=novo;
+    appState[PAG_STATE_KEY]=custom;
+    showToast('✓ Renomeado(a) para "'+novo+'"','success');
+  }
+  saveState(appState);
+  PAG_SELECT_IDS.forEach(id=>{
+    if(!document.getElementById(id)) return;
+    if(id===selectId) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY,novo);
+    else renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY);
+  });
+}
 
 function getAllAteMotivos(){
   const base=['Pedido não entregue','Cancelamento','Extravio','Endereço errado'];
@@ -8108,6 +8332,7 @@ function saveAte(){
     workflow:'aberto',
     criadoEm:editId?undefined:nowTimeStr(),
     criadoPor:editId?undefined:currentUser.name,
+    criadoPorKey:editId?undefined:currentUser.key,
     ordemManual:editId?undefined:Date.now()
   };
   if(editId){
@@ -8115,8 +8340,10 @@ function saveAte(){
     if(idx>=0){
       rec.criadoEm=appState.tasks.atendimentos[idx].criadoEm;
       rec.criadoPor=appState.tasks.atendimentos[idx].criadoPor;
+      rec.criadoPorKey=appState.tasks.atendimentos[idx].criadoPorKey;
       rec.workflow=appState.tasks.atendimentos[idx].workflow;
       rec.ordemManual=appState.tasks.atendimentos[idx].ordemManual;
+      rec.alertaPrazoEnviado=appState.tasks.atendimentos[idx].alertaPrazoEnviado;
       rec.atualizadoPor=currentUser.name;
       rec.atualizadoEm=nowTimeStr();
       appState.tasks.atendimentos[idx]=rec;
@@ -8152,6 +8379,7 @@ function ateReabrir(id){
   appState.tasks.atendimentos[idx].workflow='aberto';
   delete appState.tasks.atendimentos[idx].finalizadoPor;
   delete appState.tasks.atendimentos[idx].finalizadoEm;
+  delete appState.tasks.atendimentos[idx].alertaPrazoEnviado;
   saveState(appState);renderAte();
   showToast('↩ Atendimento reaberto','success');
 }
@@ -8218,8 +8446,16 @@ function buildAteCard(d,isFinalizado){
   const canAte=isMaster||(currentUser&&(currentUser.perms||[]).includes('atendimentos'));
   const cfg=isFinalizado?ATE_STATUS_CONFIG.finalizado:ATE_STATUS_CONFIG.aberto;
 
+  const diasAbertos=ateDiasAbertos(d.data);
+  const ALERTA_DIAS=4;   // a partir daqui o card começa a "amarelar" e o criador é notificado
+  const PRAZO_DIAS=7;    // a partir daqui o card fica totalmente vermelho (vencido)
+  const corPrazo=!isFinalizado ? ateCorPrazo(diasAbertos,ALERTA_DIAS,PRAZO_DIAS) : null;
+  const vencido=!isFinalizado && diasAbertos!==null && diasAbertos>=PRAZO_DIAS;
+  if(!isFinalizado) ateVerificarAlertaPrazo(d, diasAbertos, ALERTA_DIAS);
+
   const card=document.createElement('div');
-  card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,${isFinalizado?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid ${isFinalizado?'rgba(34,197,94,0.3)':'rgba(255,255,255,0.1)'};border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,0.4)${isFinalizado?',0 0 20px rgba(34,197,94,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s;${isFinalizado?'opacity:0.75;':''}`;
+  const noPrazo=!isFinalizado && !corPrazo && diasAbertos!==null;
+  card.style.cssText=`position:relative;background:${corPrazo?`linear-gradient(135deg,rgba(${corPrazo.r},${corPrazo.g},${corPrazo.b},${(0.08+0.10*corPrazo.t).toFixed(2)}) 0%,rgba(${corPrazo.r},${corPrazo.g},${corPrazo.b},0.03) 100%)`:(noPrazo?'linear-gradient(135deg,rgba(34,197,94,0.07) 0%,rgba(34,197,94,0.02) 100%)':`linear-gradient(135deg,rgba(255,255,255,${isFinalizado?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%)`)};border:1px solid ${corPrazo?`rgba(${corPrazo.r},${corPrazo.g},${corPrazo.b},${(0.3+0.25*corPrazo.t).toFixed(2)})`:(noPrazo?'rgba(34,197,94,0.22)':(isFinalizado?'rgba(34,197,94,0.3)':'rgba(255,255,255,0.1)'))};border-radius:var(--radius-lg);padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 4px 24px rgba(0,0,0,0.4)${isFinalizado?',0 0 20px rgba(34,197,94,0.08)':(corPrazo?`,0 0 20px rgba(${corPrazo.r},${corPrazo.g},${corPrazo.b},${(0.08+0.1*corPrazo.t).toFixed(2)})`:'')},inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,background .3s,border-color .3s;${isFinalizado?'opacity:0.75;':''}`;
   card.onmouseover=()=>{if(!isFinalizado){card.style.transform='translateY(-2px)';card.style.boxShadow='0 8px 32px rgba(0,0,0,0.5),0 0 24px rgba(59,130,246,0.1),inset 0 1px 0 rgba(255,255,255,0.1)';}};
   card.onmouseout=()=>{card.style.transform='';card.style.boxShadow=`0 4px 24px rgba(0,0,0,0.4)${isFinalizado?',0 0 20px rgba(34,197,94,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.08)`;};
   // Shine
@@ -8258,6 +8494,19 @@ function buildAteCard(d,isFinalizado){
   badge.style.cssText=`font-size:9px;font-weight:700;letter-spacing:1px;color:${cfg.color};background:${cfg.bg};border:1px solid ${cfg.border};border-radius:10px;padding:2px 8px;white-space:nowrap;`;
   badge.textContent=isFinalizado?'✅ FINALIZADO':cfg.label;
   hdr.appendChild(badge);
+
+  if(!isFinalizado && diasAbertos!==null){
+    const prazoBadge=document.createElement('span');
+    if(corPrazo){
+      const rgb=`rgb(${corPrazo.r},${corPrazo.g},${corPrazo.b})`;
+      prazoBadge.style.cssText=`font-size:9px;font-weight:700;letter-spacing:0.5px;color:${rgb};background:rgba(${corPrazo.r},${corPrazo.g},${corPrazo.b},0.14);border:1px solid rgba(${corPrazo.r},${corPrazo.g},${corPrazo.b},0.4);border-radius:10px;padding:2px 8px;white-space:nowrap;`;
+      prazoBadge.textContent=vencido?`⏱ ${diasAbertos}d em aberto — vencido`:`⏱ ${diasAbertos}d em aberto — atenção`;
+    } else {
+      prazoBadge.style.cssText='font-size:9px;font-weight:700;letter-spacing:0.5px;color:#4ade80;background:rgba(34,197,94,0.10);border:1px solid rgba(34,197,94,0.25);border-radius:10px;padding:2px 8px;white-space:nowrap;';
+      prazoBadge.textContent=`⏱ ${diasAbertos}d em aberto (prazo ${PRAZO_DIAS}d)`;
+    }
+    hdr.appendChild(prazoBadge);
+  }
 
   const aEl=document.createElement('div');aEl.style.cssText='display:flex;gap:5px;';
   if(!isFinalizado&&canAte){
@@ -8933,18 +9182,26 @@ function openAtvModal(id){
 
   // Campos editáveis: livres ao criar nova tarefa; master ou criador editam tarefa já existente
   const podeEditarCampos = isNovaTask || podeEditarTarefa;
-  ['atv-titulo','atv-descricao','atv-vencimento','atv-prioridade'].forEach(fid=>{
+  ['atv-titulo','atv-sku','atv-nome-produto','atv-vencimento','atv-prioridade'].forEach(fid=>{
     const el=document.getElementById(fid);
     if(el) el.disabled = !podeEditarCampos;
     if(el) el.style.opacity = podeEditarCampos ? '' : '0.5';
   });
+  const mktpHidden=document.getElementById('atv-marketplace');
+  const mktpGrid=document.getElementById('atv-marketplace-grid');
+  if(mktpHidden) mktpHidden.disabled=!podeEditarCampos;
+  if(mktpGrid) mktpGrid.style.opacity=podeEditarCampos?'':'0.5';
+  if(mktpGrid) mktpGrid.style.pointerEvents=podeEditarCampos?'':'none';
   const priorTrigger=document.getElementById('atv-prioridade-trigger');
   if(priorTrigger){ priorTrigger.disabled=!podeEditarCampos; priorTrigger.style.opacity=podeEditarCampos?'':'0.5'; priorTrigger.style.cursor=podeEditarCampos?'pointer':'not-allowed'; }
   if(sel){ sel.disabled=!podeEditarCampos; sel.style.opacity=podeEditarCampos?'':'0.5'; }
 
   if(id && a){
-    document.getElementById('atv-titulo').value=a.titulo||'';
-    document.getElementById('atv-descricao').value=a.descricao||'';
+    renderAtvTituloOptions(a.titulo||'Entrada Produto');
+    document.getElementById('atv-sku').value=a.sku||'';
+    document.getElementById('atv-nome-produto').value=a.nomeProduto||'';
+    _atvMktpConcluidos={...(a.marketplacesConcluidos||{})};
+    renderAtvMarketplaceOptions(a.marketplace||'');
     if(sel)sel.value=a.responsavel||'';
     document.getElementById('atv-vencimento').value=a.vencimento||'';
     _atvSelectPrior(a.prioridade||'normal');
@@ -8955,9 +9212,15 @@ function openAtvModal(id){
     if(comentEl){ comentEl.value=a.comentario||''; }
     if(comentCnt) comentCnt.textContent=(150-(a.comentario||'').length)+' restantes';
     if(saveBtn) saveBtn.textContent=podeEditarTarefa?'Salvar Tarefa':'Salvar Comentário';
+    // Trava o vencimento se a regra automática se aplicar
+    atvTituloChanged();
+    if(a.vencimento) document.getElementById('atv-vencimento').value=a.vencimento;
   } else {
-    document.getElementById('atv-titulo').value='';
-    document.getElementById('atv-descricao').value='';
+    renderAtvTituloOptions('Entrada Produto');
+    document.getElementById('atv-sku').value='';
+    document.getElementById('atv-nome-produto').value='';
+    _atvMktpConcluidos={};
+    renderAtvMarketplaceOptions('');
     if(sel)sel.value='';
     document.getElementById('atv-vencimento').value='';
     _atvSelectPrior('normal');
@@ -8967,6 +9230,8 @@ function openAtvModal(id){
     if(comentEl) comentEl.value='';
     if(comentCnt) comentCnt.textContent='150 restantes';
     if(saveBtn) saveBtn.textContent='Salvar Tarefa';
+    // Já inicia com "Entrada Produto" selecionado e vencimento automático (+2 dias)
+    atvTituloChanged();
   }
   overlay.style.display='flex';
 }
@@ -8977,13 +9242,25 @@ function closeAtvModal(){
 
 function saveAtividade(){
   const titulo=document.getElementById('atv-titulo').value.trim();
-  const descricao=document.getElementById('atv-descricao').value.trim();
+  const sku=document.getElementById('atv-sku').value.trim();
+  const nomeProduto=document.getElementById('atv-nome-produto').value.trim();
+  const marketplace=document.getElementById('atv-marketplace').value;
+  const marketplacesConcluidos={..._atvMktpConcluidos};
+  const descricao=[sku?('SKU: '+sku):'',nomeProduto?('Produto: '+nomeProduto):'',marketplace?('Marketplace: '+marketplace):''].filter(Boolean).join(' · ');
   const responsavel=document.getElementById('atv-responsavel').value;
-  const vencimento=document.getElementById('atv-vencimento').value;
+  let vencimento=document.getElementById('atv-vencimento').value;
   const prioridade=document.getElementById('atv-prioridade').value;
   const editId=document.getElementById('atv-edit-id').value;
   if(!titulo){showToast('Informe o título da tarefa','warn');return;}
   if(!responsavel){showToast('Selecione o colaborador responsável','warn');return;}
+
+  // Regra: título com prazo configurado tem vencimento automático de N dias a partir da criação.
+  // Só recalcula ao criar a tarefa; em edições o valor já vem travado no campo (definido na abertura do modal).
+  const prazoTitulo=getAtvPrazo(titulo);
+  if(prazoTitulo!==null && !editId){
+    const d=new Date(); d.setDate(d.getDate()+prazoTitulo);
+    vencimento=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
   if(!vencimento){showToast('Informe a data de vencimento','warn');return;}
   if(!Array.isArray(appState.atividades))appState.atividades=[];
 
@@ -9002,7 +9279,7 @@ function saveAtividade(){
     if(idx>-1){
       if(podeEditarTarefa){
         // Master ou criador edita tudo + pode salvar comentário
-        appState.atividades[idx]={...anterior,titulo,descricao,responsavel,vencimento,prioridade,
+        appState.atividades[idx]={...anterior,titulo,descricao,sku,nomeProduto,marketplace,marketplacesConcluidos,responsavel,vencimento,prioridade,
           ...(comentario?{comentario,comentarioAutor,comentarioEm}:{})};
       } else {
         // Responsável só salva comentário
@@ -9013,7 +9290,7 @@ function saveAtividade(){
     showToast(podeEditarTarefa?'Tarefa atualizada':'Comentário salvo','success');
   } else {
     appState.atividades.push({
-      id:'atv_'+Date.now(),titulo,descricao,responsavel,vencimento,prioridade,
+      id:'atv_'+Date.now(),titulo,descricao,sku,nomeProduto,marketplace,marketplacesConcluidos,responsavel,vencimento,prioridade,
       status:'aberta',criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
       ordemManual:Date.now()
     });
@@ -9150,17 +9427,24 @@ document.addEventListener('click', e=>{
             <input type="text" id="edit-ped-num" placeholder="Ex: 35017581" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(59,130,246,0.6)';this.style.boxShadow='0 0 16px rgba(59,130,246,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
           </div>
           <div>
+            <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Data da Venda *</label>
+            <input type="date" id="edit-ped-data" style="font-size:13px;padding:9px 12px;">
+          </div>
+          <div>
             <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Valor (R$) *</label>
             <input type="text" id="edit-ped-valor" placeholder="0,00" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(59,130,246,0.6)';this.style.boxShadow='0 0 16px rgba(59,130,246,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this)">
           </div>
           <div>
-            <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Forma de Pagamento *</label>
+            <label style="display:flex;align-items:center;justify-content:space-between;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">
+              <span>Forma de Pagamento *</span>
+              <span style="display:flex;gap:4px;">
+                <button type="button" onclick="addPagOpt('edit-ped-pag')" title="Adicionar nova forma de pagamento" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button type="button" onclick="renamePagOpt('edit-ped-pag')" title="Editar nome da forma de pagamento selecionada" class="btn-orb" style="width:20px;height:20px;">✎</button>
+                <button type="button" onclick="removePagOpt('edit-ped-pag')" title="Excluir forma de pagamento selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+              </span>
+            </label>
             <select id="edit-ped-pag" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;cursor:pointer;">
-              <option value="Pix Manoel">Pix Manoel</option>
-              <option value="Pix Vix Comercio">Pix Vix Comercio</option>
-              <option value="Pix 4Vita">Pix 4Vita</option>
-              <option value="C. de Crédito Infinity Pay">C. de Crédito Infinity Pay</option>
-              <option value="C. de Crédito Merc. Pago">C. de Crédito Merc. Pago</option>
+              <option value="">— Selecionar —</option>
             </select>
           </div>
         </div>
@@ -9177,6 +9461,7 @@ function abrirModalEditarVenda(p){
   const subtitle = document.getElementById('edit-venda-subtitle');
   const idEl = document.getElementById('edit-venda-id');
   const numEl = document.getElementById('edit-ped-num');
+  const dataEl = document.getElementById('edit-ped-data');
   const valEl = document.getElementById('edit-ped-valor');
   const pagEl = document.getElementById('edit-ped-pag');
   const errEl = document.getElementById('edit-venda-error');
@@ -9185,11 +9470,12 @@ function abrirModalEditarVenda(p){
   // Preencher campos
   idEl.value = p.id;
   numEl.value = p.num;
+  dataEl.value = p.data || todayStr();
   // Formatar valor
   const cents = Math.round((p.valor||0) * 100);
   const formatted = (cents/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   valEl.value = formatted;
-  pagEl.value = p.pag;
+  renderPagOptions('edit-ped-pag', p.pag);
   if(subtitle) subtitle.textContent = 'Pedido #'+p.num+' — '+p.hora;
   if(errEl) errEl.style.display = 'none';
 
@@ -9205,18 +9491,21 @@ function fecharModalEditarVenda(){
 function salvarEdicaoVenda(){
   const idEl  = document.getElementById('edit-venda-id');
   const numEl = document.getElementById('edit-ped-num');
+  const dataEl = document.getElementById('edit-ped-data');
   const valEl = document.getElementById('edit-ped-valor');
   const pagEl = document.getElementById('edit-ped-pag');
   const errEl = document.getElementById('edit-venda-error');
 
   const id = idEl.value;
   const num = (numEl.value||'').trim();
+  const dataVenda = dataEl.value;
   const valorStr = (valEl.value||'').trim();
   const pag = pagEl.value;
 
   function showErr(msg){ errEl.textContent=msg; errEl.style.display='block'; }
 
   if(!num){ showErr('⚠ Informe o Nº do Pedido.'); numEl.focus(); return; }
+  if(!dataVenda){ showErr('⚠ Informe a Data da Venda.'); dataEl.focus(); return; }
   if(!valorStr){ showErr('⚠ Informe o Valor.'); valEl.focus(); return; }
   const valor = parseFloat(valorStr.replace(/\./g,'').replace(',','.'))||0;
   if(valor <= 0){ showErr('⚠ Valor inválido.'); valEl.focus(); return; }
@@ -9225,6 +9514,7 @@ function salvarEdicaoVenda(){
   if(idx === -1){ showErr('⚠ Venda não encontrada.'); return; }
 
   appState.pedidosWpp[idx].num   = num;
+  appState.pedidosWpp[idx].data  = dataVenda;
   appState.pedidosWpp[idx].valor = valor;
   appState.pedidosWpp[idx].pag   = pag;
 
