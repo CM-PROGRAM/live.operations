@@ -2897,6 +2897,33 @@ function renderWpp(){
   renderHistoricoWpp();
 }
 
+/* ===== Integração Google Sheets (Apps Script) → Planilha "Registro de Vendas WhatsApp" =====
+   Cole aqui a URL do App da Web gerada pelo Google Apps Script (Extensões > Apps Script > Implantar).
+   Deixe como '' para desativar o envio (nenhuma chamada é feita se estiver vazio). */
+const PLANILHA_VENDAS_URL = 'https://script.google.com/a/macros/suplelive.com.br/s/AKfycbyQtQweSNt8XMx55ViOmo7tTSJ1ZEPQQATzLy6j1zrKgbk5uPDV8jAxj940hqetit2x/exec';
+
+function enviarVendaPlanilha(pedido, acao){
+  if(!PLANILHA_VENDAS_URL) return; // integração não configurada ainda
+  const payload = {
+    acao, // 'criar' | 'editar' | 'excluir'
+    id: pedido.id,
+    numPedido: pedido.num,
+    valor: pedido.valor,
+    formaPagamento: pedido.pag,
+    data: pedido.data,
+    hora: pedido.hora,
+    registradoPor: pedido.registradoPor || (currentUser && currentUser.name) || ''
+  };
+  fetch(PLANILHA_VENDAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).catch(err=>{
+    console.error('Falha ao enviar venda para a planilha (Google Sheets):', err);
+    showToast('⚠ Venda salva, mas falhou o envio para a planilha','warn');
+  });
+}
+
 function abrirModalVenda(){
   // Não abrir se já estiver aberto
   const overlay=document.getElementById('modal-venda-overlay');
@@ -2970,6 +2997,7 @@ function confirmarModalVenda(){
   saveState(appState);
   cancelarModalVenda();
   renderWpp();
+  enviarVendaPlanilha(pedido, 'criar');
   showToast('🎉 Venda #'+cnt+' — Pedido #'+num+' (R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+') registrada!','success');
 }
 
@@ -3050,9 +3078,11 @@ function deletePedidoWpp(id){
   if(!_canWpp2){showToast('Acesso restrito','error');return;}
   const ok=window.confirm('Excluir este pedido? Esta ação não pode ser desfeita.');
   if(!ok) return;
+  const pedidoExcluido=(appState.pedidosWpp||[]).find(p=>p.id===id);
   appState.pedidosWpp=(appState.pedidosWpp||[]).filter(p=>p.id!==id);
   saveState(appState);
   renderHistoricoWpp();
+  if(pedidoExcluido) enviarVendaPlanilha(pedidoExcluido, 'excluir');
   showToast('🗑 Pedido excluído','warn');
 }
 
@@ -9521,6 +9551,7 @@ function salvarEdicaoVenda(){
   saveState(appState);
   fecharModalEditarVenda();
   renderHistoricoWpp();
+  enviarVendaPlanilha(appState.pedidosWpp[idx], 'editar');
   showToast('✓ Venda #'+num+' atualizada!','success');
 }
 </script>
