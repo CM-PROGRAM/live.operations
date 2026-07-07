@@ -1822,6 +1822,18 @@ function loadLocal(){
             frete.btns.push({label:'Cotação Frete',action:'cotacaoFrete'});
           }
         }
+        if(g.id==='wpp_pedido'){
+          const cad=g.items?.find(i=>i.id==='wpp_p1');
+          if(cad){
+            if(!Array.isArray(cad.btns)) cad.btns=[];
+            if(cad.link && !cad.btns.some(b=>b.link===cad.link)){
+              cad.btns.unshift({label:cad.linkLabel||'Cadastrar',link:cad.link});
+            }
+            if(!cad.btns.some(b=>b.action==='dadosCliente')){
+              cad.btns.push({label:'Dados Cliente',action:'dadosCliente'});
+            }
+          }
+        }
       });
     }
     // Migrate whatsapp if structure is outdated
@@ -2152,6 +2164,18 @@ function applyRemoteState(data){
           const frete=g.items?.find(i=>i.id==='wpp_a34');
           if(frete && Array.isArray(frete.btns) && !frete.btns.some(b=>b.action==='cotacaoFrete')){
             frete.btns.push({label:'Cotação Frete',action:'cotacaoFrete'});
+          }
+        }
+        if(g.id==='wpp_pedido'){
+          const cad=g.items?.find(i=>i.id==='wpp_p1');
+          if(cad){
+            if(!Array.isArray(cad.btns)) cad.btns=[];
+            if(cad.link && !cad.btns.some(b=>b.link===cad.link)){
+              cad.btns.unshift({label:cad.linkLabel||'Cadastrar',link:cad.link});
+            }
+            if(!cad.btns.some(b=>b.action==='dadosCliente')){
+              cad.btns.push({label:'Dados Cliente',action:'dadosCliente'});
+            }
           }
         }
       });
@@ -2498,7 +2522,12 @@ function initWpp(){return[
     link:'',
     linkLabel:'',
     items:[
-      {id:'wpp_p1',text:'Cadastro',sub:'',link:'https://panel-u.baselinker.com/orders.php#status:all',linkLabel:'Cadastrar',done:false,doneBy:null,doneAt:null,owner:'cmandrade'},
+      {id:'wpp_p1',text:'Cadastro',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+        btns:[
+          {label:'Cadastrar',link:'https://panel-u.baselinker.com/orders.php#status:all'},
+          {label:'Dados Cliente',action:'dadosCliente'}
+        ]
+      },
       {id:'wpp_p2',text:'Gerar Etiqueta',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
           {label:'M. Bem',link:'https://mandabem.com.br/gerar'},
@@ -2838,6 +2867,19 @@ function renderWpp(){
       const frete=g.items.find(i=>i.id==='wpp_a34');
       if(frete && Array.isArray(frete.btns) && !frete.btns.some(b=>b.action==='cotacaoFrete')){
         frete.btns.push({label:'Cotação Frete',action:'cotacaoFrete'});
+      }
+    }
+    // Patch pontual: garante o botão "Dados Cliente" no item Cadastro, preservando o link antigo como botão
+    if(g.id==='wpp_pedido'){
+      const cad=g.items.find(i=>i.id==='wpp_p1');
+      if(cad){
+        if(!Array.isArray(cad.btns)) cad.btns=[];
+        if(cad.link && !cad.btns.some(b=>b.link===cad.link)){
+          cad.btns.unshift({label:cad.linkLabel||'Cadastrar',link:cad.link});
+        }
+        if(!cad.btns.some(b=>b.action==='dadosCliente')){
+          cad.btns.push({label:'Dados Cliente',action:'dadosCliente'});
+        }
       }
     }
     // Patch pontual: força o ícone do logo do WhatsApp nos 3 grupos, mesmo
@@ -9732,6 +9774,7 @@ function executarAcaoBotao(action){
   if(action==='precificacaoPix') abrirModalPrecificacaoPix();
   if(action==='valoresCredito') abrirModalValoresCredito();
   if(action==='cotacaoFrete') abrirModalCotacaoFrete();
+  if(action==='dadosCliente') abrirModalDadosCliente();
 }
 </script>
 
@@ -10226,7 +10269,7 @@ const MARGEM_FRETE = 5;
 function arredondarValorFrete(valor){
   const inteiro = Math.floor(valor);
   const centavos = valor - inteiro;
-  return centavos > 0.5 ? inteiro + 1 : valor;
+  return centavos > 0.5 ? inteiro + 1 : inteiro;
 }
 
 function renderCotfreteForm(){
@@ -10295,6 +10338,64 @@ Qual dessas opções de frete você prefere para o seu pedido?`;
 
 function copiarCotacaoFrete(){
   const textarea=document.getElementById('cotfrete-texto');
+  textarea.select();
+  textarea.setSelectionRange(0,999999);
+  navigator.clipboard.writeText(textarea.value).then(()=>{
+    showToast('📋 Texto copiado!','success');
+  }).catch(()=>{
+    try{ document.execCommand('copy'); showToast('📋 Texto copiado!','success'); }
+    catch(e){ showToast('⚠ Não foi possível copiar automaticamente. Selecione e copie manualmente.','warn'); }
+  });
+}
+</script>
+
+<div id="modal-dados-cliente-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.98),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:400px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(24px);position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
+
+    <button id="dadoscli-copy-corner" onclick="copiarDadosCliente()" title="Copiar texto" style="position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(139,143,245,0.22),rgba(139,143,245,0.08));border:1px solid rgba(139,143,245,0.4);color:#c7cafa;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(139,143,245,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(139,143,245,0.22),rgba(139,143,245,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(139,143,245,0.25),rgba(139,143,245,0.1));border:1px solid rgba(139,143,245,0.35);display:flex;align-items:center;justify-content:center;"></div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Dados Cliente</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Texto p/ solicitar dados de cadastro</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--glass-border);margin:16px 0;"></div>
+
+    <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Texto (pronto pra copiar)</label>
+    <textarea id="dadoscli-texto" readonly style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;line-height:1.6;padding:12px 13px;outline:none;width:100%;box-sizing:border-box;height:230px;resize:none;"></textarea>
+
+    <button onclick="copiarDadosCliente()" style="width:100%;margin-top:14px;background:linear-gradient(135deg,rgba(139,143,245,0.35),rgba(139,143,245,0.22));border:1px solid rgba(139,143,245,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(139,143,245,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar texto</button>
+    <button onclick="fecharModalDadosCliente()" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-sans);font-size:12px;padding:6px;cursor:pointer;">Fechar</button>
+  </div>
+</div>
+<script>
+const DADOS_CLIENTE_TEXTO =
+`Assim que realizar o pagamento, por gentileza, envie os dados abaixo. Com eles, faremos o seu cadastro para dar andamento ao seu pedido:
+
+* Nome:
+* E-mail:
+* CPF:
+* Rua/Av:
+* Complemento:
+* Bairro:
+* Cidade:
+* Estado:`;
+
+function abrirModalDadosCliente(){
+  const overlay=document.getElementById('modal-dados-cliente-overlay');
+  if(!overlay) return;
+  document.getElementById('dadoscli-texto').value=DADOS_CLIENTE_TEXTO;
+  overlay.style.display='flex';
+}
+function fecharModalDadosCliente(){
+  const overlay=document.getElementById('modal-dados-cliente-overlay');
+  if(overlay) overlay.style.display='none';
+}
+function copiarDadosCliente(){
+  const textarea=document.getElementById('dadoscli-texto');
   textarea.select();
   textarea.setSelectionRange(0,999999);
   navigator.clipboard.writeText(textarea.value).then(()=>{
