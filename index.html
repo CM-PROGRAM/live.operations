@@ -658,22 +658,6 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 
       <div class="date-header" id="wpp-date"></div>
       <div id="wpp-tasks"></div>
-      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);padding:12px 14px;margin-top:8px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06);">
-        <div>
-          <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Progresso do dia</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;font-family:var(--font-mono);" id="wpp-progress-label">0 / 5</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <div style="background:linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);padding:5px 12px;text-align:center;box-shadow:0 2px 12px rgba(0,0,0,0.25),inset 0 1px 0 rgba(255,255,255,0.06);">
-            <div id="wpp-vendas-count" style="font-size:20px;font-weight:700;font-family:var(--font-sans);letter-spacing:-0.04em;color:var(--green);line-height:1.1;">0</div>
-            <div style="font-size:8px;color:var(--text-muted);letter-spacing:1.2px;text-transform:uppercase;font-weight:600;margin-top:1px;">Vendas hoje</div>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:6px;">
-            <button class="btn btn-sm" id="wpp-conclude-day" onclick="concludeDay()" style="display:none">✓ Concluir Dia</button>
-            <button id="wpp-excluir-btn" onclick="excluirUltimaVendaWpp()" style="display:none;background:linear-gradient(135deg,rgba(239,68,68,0.7),rgba(239,68,68,0.5));border:1px solid rgba(239,68,68,0.6);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 14px;cursor:pointer;transition:all .15s;white-space:nowrap;box-shadow:0 4px 12px rgba(239,68,68,0.2);" onmouseover="this.style.opacity='0.85';" onmouseout="this.style.opacity='1';">✕ Excluir</button>
-          </div>
-        </div>
-      </div>
 
       <!-- HISTÓRICO DE VENDAS -->
       <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-top:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06);">
@@ -681,7 +665,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           <div style="width:26px;height:26px;border-radius:6px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;">📅</div>
           <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">HISTÓRICO DE VENDAS</span>
           <span id="historico-wpp-total" style="font-size:12px;font-weight:700;color:#8b5cf6;font-family:var(--font-mono);">R$ 0,00</span>
-          <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">60 dias</span>
+          <span id="historico-wpp-periodo-label" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">60 dias</span>
           <span id="historico-wpp-chevron" style="color:var(--text-muted);font-size:14px;transition:transform .2s;margin-left:4px;">▾</span>
         </div>
         <div id="historico-wpp-body">
@@ -1833,6 +1817,10 @@ function loadLocal(){
               cad.btns.push({label:'Dados Cliente',action:'dadosCliente'});
             }
           }
+          const etiq=g.items?.find(i=>i.id==='wpp_p2');
+          if(etiq && Array.isArray(etiq.btns) && !etiq.btns.some(b=>b.action==='envioRastreio')){
+            etiq.btns.push({label:'Envio Rastreio',action:'envioRastreio'});
+          }
         }
       });
     }
@@ -2176,6 +2164,10 @@ function applyRemoteState(data){
             if(!cad.btns.some(b=>b.action==='dadosCliente')){
               cad.btns.push({label:'Dados Cliente',action:'dadosCliente'});
             }
+          }
+          const etiq=g.items?.find(i=>i.id==='wpp_p2');
+          if(etiq && Array.isArray(etiq.btns) && !etiq.btns.some(b=>b.action==='envioRastreio')){
+            etiq.btns.push({label:'Envio Rastreio',action:'envioRastreio'});
           }
         }
       });
@@ -2531,7 +2523,8 @@ function initWpp(){return[
       {id:'wpp_p2',text:'Gerar Etiqueta',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
           {label:'M. Bem',link:'https://mandabem.com.br/gerar'},
-          {label:'M. Envio',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'}
+          {label:'M. Envio',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'},
+          {label:'Envio Rastreio',action:'envioRastreio'}
         ]
       }
     ]
@@ -2541,8 +2534,8 @@ function initWpp(){return[
     link:'',
     linkLabel:'',
     items:[
-      {id:'wpp_c4',text:'Anexar',sub:'',link:'https://chat.suplelive.com.br/app/accounts/1/label/matheus-empresa/conversations/3300',linkLabel:'Print',done:false,doneBy:null,doneAt:null,owner:'cmandrade'},
-      {id:'wpp_c2',text:'Registro Venda',sub:'',link:'https://onedrive.live.com/personal/2f01cd22f588b701/_layouts/15/Doc.aspx?sourcedoc=%7B654B8777-4EDA-4A43-8C69-B15E24A7DD76%7D&file=REGISTRO%20DE%20VENDAS%20CHATWOOT%20(WHATSAPP).xlsx&action=default&mobileredirect=true',linkLabel:'Registro',done:false,doneBy:null,doneAt:null,owner:'cmandrade'}
+      {id:'wpp_c4',text:'Anexar',sub:'',link:'https://chat.suplelive.com.br/app/accounts/1/label/matheus-empresa/conversations/3300',linkLabel:'Pasta',done:false,doneBy:null,doneAt:null,owner:'cmandrade'},
+      {id:'wpp_c2',text:'Registro Venda',sub:'',link:'https://onedrive.live.com/personal/2f01cd22f588b701/_layouts/15/Doc.aspx?sourcedoc=%7B654B8777-4EDA-4A43-8C69-B15E24A7DD76%7D&file=REGISTRO%20DE%20VENDAS%20CHATWOOT%20(WHATSAPP).xlsx&action=default&mobileredirect=true',linkLabel:'Planilha Vendas',done:false,doneBy:null,doneAt:null,owner:'cmandrade'}
     ]
   }
 ];}
@@ -2881,11 +2874,24 @@ function renderWpp(){
           cad.btns.push({label:'Dados Cliente',action:'dadosCliente'});
         }
       }
+      // Patch pontual: garante o botão "Envio Rastreio" no item Gerar Etiqueta
+      const etiq=g.items.find(i=>i.id==='wpp_p2');
+      if(etiq && Array.isArray(etiq.btns) && !etiq.btns.some(b=>b.action==='envioRastreio')){
+        etiq.btns.push({label:'Envio Rastreio',action:'envioRastreio'});
+      }
     }
     // Patch pontual: força o ícone do logo do WhatsApp nos 3 grupos, mesmo
     // em estados antigos já salvos no Firebase/localStorage com emoji antigo (💬/📦/🧾)
     if(g.id==='wpp_atend'||g.id==='wpp_pedido'||g.id==='wpp_comp'){
       g.icon='wpp-logo';
+    }
+    // Patch pontual: renomeia os rótulos dos links "Anexar" e "Registro Venda",
+    // mesmo em estados antigos já salvos no Firebase/localStorage
+    if(g.id==='wpp_comp'){
+      const anexar=g.items.find(i=>i.id==='wpp_c4');
+      if(anexar) anexar.linkLabel='Pasta';
+      const registro=g.items.find(i=>i.id==='wpp_c2');
+      if(registro) registro.linkLabel='Planilha Vendas';
     }
   });
 
@@ -3012,7 +3018,8 @@ function renderWpp(){
     }catch(e){console.warn('renderWpp group error:',g.id,e);}
   });
 
-  document.getElementById('wpp-progress-label').textContent=doneAll+' / '+totalAll+' concluídas';
+  const progLabel=document.getElementById('wpp-progress-label');
+  if(progLabel) progLabel.textContent=doneAll+' / '+totalAll+' concluídas';
   const vcnt=document.getElementById('wpp-vendas-count');
   const today=todayStr();
   const vendasHoje=(appState.vendasWpp&&appState.vendasWpp[today])||0;
@@ -3394,10 +3401,6 @@ function renderHistoricoWpp(){
 
   const peds = appState.pedidosWpp || [];
 
-  // Calcular total geral 60 dias para o header
-  const total60 = peds.reduce((a,p) => a + (p.valor||0), 0);
-  if(totalEl) totalEl.textContent = 'R$ ' + total60.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-
   // Filtrar por período
   let filtrados = [];
   const hoje = todayStr();
@@ -3413,6 +3416,15 @@ function renderHistoricoWpp(){
     filtrados = peds.filter(p => p.data >= cutStr);
   } else {
     filtrados = [...peds];
+  }
+
+  // Total e rótulo do período refletem o filtro selecionado
+  const totalFiltrado = filtrados.reduce((a,p) => a + (p.valor||0), 0);
+  if(totalEl) totalEl.textContent = 'R$ ' + totalFiltrado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const periodoLabelEl = document.getElementById('historico-wpp-periodo-label');
+  if(periodoLabelEl){
+    const labels = {'semana-atual':'esta semana','semana-passada':'semana passada','30dias':'30 dias','todos':'60 dias'};
+    periodoLabelEl.textContent = labels[_historicoFiltro] || '60 dias';
   }
 
   filtrados.sort((a,b) => b.data.localeCompare(a.data) || (b.hora||'').localeCompare(a.hora||''));
@@ -3533,7 +3545,6 @@ function renderHistoricoWpp(){
 
   // Totalizador no rodapé
   const footer = document.createElement('div');
-  const totalFiltrado = filtrados.reduce((a,p)=>a+(p.valor||0),0);
   footer.style.cssText = 'padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--glass-border);background:rgba(255,255,255,0.02);';
   footer.innerHTML = `
     <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;">${filtrados.length} venda${filtrados.length!==1?'s':''} no período</span>
@@ -9775,6 +9786,7 @@ function executarAcaoBotao(action){
   if(action==='valoresCredito') abrirModalValoresCredito();
   if(action==='cotacaoFrete') abrirModalCotacaoFrete();
   if(action==='dadosCliente') abrirModalDadosCliente();
+  if(action==='envioRastreio') abrirModalEnvioRastreio();
 }
 </script>
 
@@ -10399,6 +10411,108 @@ function fecharModalDadosCliente(){
 }
 function copiarDadosCliente(){
   const textarea=document.getElementById('dadoscli-texto');
+  textarea.select();
+  textarea.setSelectionRange(0,999999);
+  navigator.clipboard.writeText(textarea.value).then(()=>{
+    showToast('📋 Texto copiado!','success');
+  }).catch(()=>{
+    try{ document.execCommand('copy'); showToast('📋 Texto copiado!','success'); }
+    catch(e){ showToast('⚠ Não foi possível copiar automaticamente. Selecione e copie manualmente.','warn'); }
+  });
+}
+</script>
+
+<div id="modal-envio-rastreio-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.98),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:420px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(24px);position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
+
+    <button id="rastreio-copy-corner" onclick="copiarEnvioRastreio()" title="Copiar texto" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(34,197,94,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(34,197,94,0.25),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.35);display:flex;align-items:center;justify-content:center;"></div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Envio Rastreio</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Gerar mensagem de rastreio p/ WhatsApp</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--glass-border);margin:16px 0;"></div>
+
+    <div id="rastreio-form">
+      <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Código de Rastreio</label>
+      <input type="text" id="rastreio-codigo" placeholder="Ex: BR123456789BR" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;margin-bottom:14px;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
+
+      <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Link do Rastreio</label>
+      <input type="text" id="rastreio-link" placeholder="Ex: https://rastreamento.correios.com.br/..." style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
+
+      <div id="rastreio-error" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fca5a5;font-family:var(--font-mono);margin-top:12px;"></div>
+      <button onclick="gerarEnvioRastreio()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Mensagem</button>
+    </div>
+
+    <div id="rastreio-resultado" style="display:none;">
+      <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px;">Texto gerado (confira antes de enviar)</label>
+
+      <textarea id="rastreio-texto" readonly style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;line-height:1.6;padding:12px 13px;outline:none;width:100%;box-sizing:border-box;height:170px;resize:none;white-space:pre;"></textarea>
+      <button onclick="copiarEnvioRastreio()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar texto</button>
+
+      <div style="margin-top:14px;">
+        <button onclick="voltarEnvioRastreio()" style="width:100%;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-sans);font-size:12px;padding:8px;cursor:pointer;transition:color .15s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">← Editar dados</button>
+      </div>
+    </div>
+
+    <button onclick="fecharModalEnvioRastreio()" style="width:100%;margin-top:10px;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-sans);font-size:12px;padding:6px;cursor:pointer;">Fechar</button>
+  </div>
+</div>
+<script>
+// ── ENVIO RASTREIO ────────────────────────────────────────────────────────
+function abrirModalEnvioRastreio(){
+  const overlay=document.getElementById('modal-envio-rastreio-overlay');
+  if(!overlay) return;
+  document.getElementById('rastreio-codigo').value='';
+  document.getElementById('rastreio-link').value='';
+  document.getElementById('rastreio-error').style.display='none';
+  document.getElementById('rastreio-form').style.display='block';
+  document.getElementById('rastreio-resultado').style.display='none';
+  document.getElementById('rastreio-copy-corner').style.display='none';
+  overlay.style.display='flex';
+}
+
+function fecharModalEnvioRastreio(){
+  const overlay=document.getElementById('modal-envio-rastreio-overlay');
+  if(overlay) overlay.style.display='none';
+}
+
+function voltarEnvioRastreio(){
+  document.getElementById('rastreio-form').style.display='block';
+  document.getElementById('rastreio-resultado').style.display='none';
+  document.getElementById('rastreio-copy-corner').style.display='none';
+}
+
+function gerarEnvioRastreio(){
+  const errEl=document.getElementById('rastreio-error');
+  const codigo=(document.getElementById('rastreio-codigo').value||'').trim();
+  const link=(document.getElementById('rastreio-link').value||'').trim();
+
+  if(!codigo || !link){
+    errEl.textContent='⚠ Preencha o código e o link do rastreio.';
+    errEl.style.display='block';
+    return;
+  }
+  errEl.style.display='none';
+
+  const texto =
+`Abaixo segue seus dados do rastreio. Ele será atualizado no sistema assim que a postagem for realizada.
+
+* CÓDIGO DE RASTREIO: ${codigo}
+* LINK DO RASTREIO: ${link}`;
+
+  document.getElementById('rastreio-texto').value=texto;
+  document.getElementById('rastreio-form').style.display='none';
+  document.getElementById('rastreio-resultado').style.display='block';
+  document.getElementById('rastreio-copy-corner').style.display='flex';
+}
+
+function copiarEnvioRastreio(){
+  const textarea=document.getElementById('rastreio-texto');
   textarea.select();
   textarea.setSelectionRange(0,999999);
   navigator.clipboard.writeText(textarea.value).then(()=>{
