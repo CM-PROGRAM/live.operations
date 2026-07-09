@@ -1159,7 +1159,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           <!-- Drogaria Pacheco -->
           <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-              <span style="background:#e00000;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--font-mono);">Drogaria Pacheco</span>
+              <span style="background:rgba(244,122,122,.10);border:1.5px solid rgba(244,122,122,.4);color:#f47a7a;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 11px;border-radius:20px;font-family:var(--font-sans);text-transform:uppercase;display:inline-block;">Drog. Pacheco</span>
               <a href="https://marketplace.drogariaspacheco.com.br/v3/pedidos" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Gerar Relatório</a>
               <a href="https://marketplace.drogariaspacheco.com.br/v3/relatorios" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Baixas Relatório</a>
             </div>
@@ -1177,7 +1177,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
           <!-- Drogaria São Paulo -->
           <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-              <span style="background:#00aaff;color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:var(--font-mono);">Drogaria São Paulo</span>
+              <span style="background:rgba(111,208,245,.10);border:1.5px solid rgba(111,208,245,.4);color:#6fd0f5;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 11px;border-radius:20px;font-family:var(--font-sans);text-transform:uppercase;display:inline-block;">Drog. S. Paulo</span>
               <a href="https://marketplace.drogariasaopaulo.com.br/v3/pedidos" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Gerar Relatório</a>
               <a href="https://marketplace.drogariasaopaulo.com.br/v3/relatorios" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Baixas Relatório</a>
             </div>
@@ -1208,8 +1208,8 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
               <option value="Pago">Pago</option>
             </select>
           </div>
-          <button class="btn btn-sm btn-success" onclick="gerarPlanilhaBaixas()" style="white-space:nowrap;">⬇ Gerar Planilha Baixas</button>
-          <button class="btn btn-sm btn-danger" onclick="resetDrogarias()" style="white-space:nowrap;">🗑 Resetar</button>
+          <button class="btn btn-sm" onclick="gerarPlanilhaBaixas()" style="--bc:34,197,94;white-space:nowrap;">Gerar Relatório Formatado</button>
+          <button class="btn btn-sm" onclick="resetDrogarias()" style="--bc:255,90,60;white-space:nowrap;">Resetar</button>
         </div>
       </div>
 
@@ -1519,11 +1519,31 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
   </div>
 </div>
 
+<div id="cpf-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;overflow-y:auto;padding:20px;">
+  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid rgba(139,92,246,0.35);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),0 0 40px rgba(139,92,246,0.15),inset 0 1px 0 rgba(255,255,255,0.07);max-width:480px;margin:0 auto;position:relative;overflow:hidden;">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#38bdf8,#8b5cf6,#ec4899);"></div>
+    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:18px;position:relative;">
+      <div style="font-family:var(--font-brand);font-size:26px;font-weight:800;letter-spacing:-0.05em;background:linear-gradient(135deg,#38bdf8 0%,#8b5cf6 50%,#ec4899 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 14px rgba(139,92,246,0.4));text-align:center;">Consulta CPF</div>
+      <button onclick="closeCpfModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;right:0;top:50%;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+    </div>
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <div class="input-group" style="flex:1;margin:0;"><label>CPF do Cliente</label><input type="text" id="cpf-consulta-input" placeholder="Somente números" maxlength="14" inputmode="numeric" onkeydown="if(event.key==='Enter')consultarCpf()" onfocus="this.style.borderColor='#8b5cf6'" onblur="this.style.borderColor=''"></div>
+      <button onclick="consultarCpf()" id="cpf-consulta-btn" style="background:linear-gradient(135deg,#38bdf8,#8b5cf6 55%,#ec4899);border:none;border-radius:50px;color:#fff;cursor:pointer;font-family:var(--font-sans);font-size:11px;font-weight:700;padding:9px 18px;white-space:nowrap;box-shadow:0 4px 18px rgba(139,92,246,0.45),inset 0 1px 0 rgba(255,255,255,0.2);transition:transform .15s,box-shadow .2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(139,92,246,0.6),inset 0 1px 0 rgba(255,255,255,0.25)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(139,92,246,0.45),inset 0 1px 0 rgba(255,255,255,0.2)'">Consultar</button>
+    </div>
+    <div id="cpf-consulta-status" style="margin-top:12px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-align:center;"></div>
+    <div id="cpf-consulta-result" style="margin-top:12px;display:none;">
+      <div id="cpf-consulta-nome" style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:10px;"></div>
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;">📞 Telefones encontrados</div>
+      <div id="cpf-consulta-fones" style="display:flex;flex-direction:column;gap:6px;"></div>
+    </div>
+  </div>
+</div>
+
 <div id="dev-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;overflow-y:auto;padding:20px;">
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-      <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">↩ Nova Devolução</div>
-      <button onclick="closeDevModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+    <div style="display:flex;align-items:center;justify-content:center;margin-bottom:18px;position:relative;">
+      <div style="font-family:var(--font-brand);font-size:26px;font-weight:800;letter-spacing:-0.05em;background:linear-gradient(135deg,#ffffff 0%,#e2e8f0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(255,255,255,0.25));text-align:center;">Devolução</div>
+      <button onclick="closeDevModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;right:0;top:50%;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group"><label>Nome Cliente</label><input type="text" id="dev-cliente" placeholder="Nome do cliente"></div>
@@ -1548,10 +1568,9 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       </div>
       <div class="input-group"><label>Link Base</label><input type="text" id="dev-link-base" placeholder="https://..."></div>
       <div class="input-group"><label>Link Plataforma</label><input type="text" id="dev-link-plat" placeholder="https://..."></div>
-      <div class="input-group"><label>Link NF Saída Bling</label><input type="text" id="dev-link-bling" placeholder="https://app.bling.com.br/..."></div>
       <div class="input-group"><label>Fotos do Produto</label>
         <input type="file" id="dev-fotos" multiple accept="image/*" style="display:none;" onchange="previewDevFotos(this)">
-        <button type="button" onclick="document.getElementById('dev-fotos').click()" style="display:flex;align-items:center;gap:8px;background:var(--bg-surface);border:1px dashed var(--border-light);border-radius:var(--radius);color:var(--text-secondary);font-size:13px;padding:10px 14px;cursor:pointer;width:100%;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-secondary)';">
+        <button type="button" onclick="window.open('https://drive.google.com/drive/u/0/folders/1zXrzMkdB_CMek4fq5E1PZRhBn5q7MQt1','_blank')" style="display:flex;align-items:center;gap:8px;background:var(--bg-surface);border:1px dashed var(--border-light);border-radius:var(--radius);color:var(--text-secondary);font-size:13px;padding:10px 14px;cursor:pointer;width:100%;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-secondary)';">
           📎 Anexar Imagem
         </button>
         <div id="dev-fotos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
@@ -2851,8 +2870,27 @@ function buildTabs(){
       nav.appendChild(btn);
     }
   });
+  // Botão Consulta CPF — ícone estilo "detetive", centralizado acima do rodapé
+  let _temBotaoCpf=false;
+  if(currentUser.master || (currentUser.perms||[]).includes('devolucoes')){
+    _temBotaoCpf=true;
+    const cpfWrap=document.createElement('div');
+    cpfWrap.style.cssText='margin-top:auto;margin-bottom:auto;display:flex;align-items:center;justify-content:center;padding:14px 10px;';
+    const cpfBtn=document.createElement('button');
+    cpfBtn.id='btn-consulta-cpf';
+    cpfBtn.title='Consulta CPF';
+    cpfBtn.onclick=()=>openCpfModal();
+    cpfBtn.style.cssText='width:62px;height:62px;border-radius:18px;background:none;border:none;padding:0;cursor:pointer;overflow:hidden;display:block;flex-shrink:0;box-shadow:0 6px 20px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.06);transition:transform .15s,box-shadow .2s;';
+    cpfBtn.onmouseover=()=>{cpfBtn.style.transform='translateY(-2px) scale(1.04)';cpfBtn.style.boxShadow='0 10px 28px rgba(0,0,0,0.6),0 0 22px rgba(139,92,246,0.35),inset 0 1px 0 rgba(255,255,255,0.1)';};
+    cpfBtn.onmouseout=()=>{cpfBtn.style.transform='';cpfBtn.style.boxShadow='0 6px 20px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.06)';};
+    cpfBtn.innerHTML=`<img src="data:image/webp;base64,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" alt="Consulta CPF" style="width:100%;height:100%;border-radius:18px;display:block;object-fit:cover;">`;
+    cpfWrap.appendChild(cpfBtn);
+    nav.appendChild(cpfWrap);
+  }
+
   // footer: user + clock + logout
   const footer=document.createElement('div');footer.className='sidebar-footer';
+  if(_temBotaoCpf) footer.style.marginTop='0';
   footer.innerHTML=`
     <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);">
       <div id="header-avatar">${userAvatarHTML(currentUser,36)}</div>
@@ -3744,6 +3782,42 @@ function colorPltTitle(titleSpan, groupName, allDone){
   _applyPillStyle(titleSpan, col, wcOnly);
 }
 
+/* Estilo outline (padrão da aba Marketplaces) — fundo translúcido, borda e texto na cor da plataforma */
+function _applyPillOutline(el, col){
+  const [r,g,b]=_hexRgb(col);
+  el.style.padding='3px 12px';
+  el.style.borderRadius='20px';
+  el.style.display='inline-block';
+  el.style.fontWeight='700';
+  el.style.letterSpacing='.3px';
+  el.style.textTransform='uppercase';
+  el.style.background=`rgba(${r},${g},${b},.10)`;
+  el.style.border=`1.5px solid rgba(${r},${g},${b},.4)`;
+  el.style.color=col;
+  el.style.boxShadow='';
+}
+function applyPltBadgeOutline(el, platformName){
+  const p=platformName||'';
+  const col=(typeof ATV_MARKETPLACE_CORES!=='undefined'&&ATV_MARKETPLACE_CORES[p])||getPltColor(p);
+  if(!col){ el.style.color='var(--text-primary)'; return; }
+  _applyPillOutline(el, col);
+}
+
+/* Devoluções: migração dos nomes antigos para o padrão da aba Marketplaces (registros já salvos) */
+const DEV_PLT_MIGRACAO={
+  'Shopee Suplenium':'SHP SUPLENIUM',
+  'Shopee Primevitaminas':'SHP PRIMEVITAMINAS',
+  'Merc. Livre Vitalife':'M.L VITALIFE',
+  'Merc. Livre VXShop':'M.L VXSHOP',
+  'Magalu 4Vita':'MAGALU 4VITA',
+  'Magalu VixSupps':'MAGALU VIXSUPPS',
+  'Drog. São Paulo':'DROG. S. PAULO',
+  'Drog. Pacheco':'DROG. PACHECO',
+  'Web Continental':'WEB CONTINENTAL',
+  'RD Marketplace':'RD MARKETPLACE'
+};
+function devPltStd(p){ return DEV_PLT_MIGRACAO[p]||p||''; }
+
 
 
 const PLT_GROUP_TO_STD={
@@ -3813,7 +3887,7 @@ function renderPlt(){
       iconEl.style.cssText+='width:18px;height:18px;font-size:10px;flex-shrink:0;';
       iconEl.textContent='✓';
     } else {
-      iconEl.style.cssText='font-size:14px;flex-shrink:0;';
+      iconEl.style.cssText='font-size:16px;flex-shrink:0;';
       iconEl.textContent=g.icon||'🛒';
     }
     head.appendChild(iconEl);
@@ -3823,7 +3897,7 @@ function renderPlt(){
     const stdName=PLT_GROUP_TO_STD[g.group]||g.group;
     const pltCorHex=ATV_MARKETPLACE_CORES[stdName]||getPltColor(g.group)||'#9ca3af';
     const [_ptr,_ptg,_ptb]=_hexToRgb(pltCorHex.length===7?pltCorHex:'#9ca3af');
-    titleEl.style.cssText=`font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;padding:3px 10px;border-radius:20px;box-sizing:border-box;`;
+    titleEl.style.cssText=`font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;padding:4px 11px;border-radius:20px;box-sizing:border-box;`;
     if(allDoneG){
       titleEl.style.background='rgba(34,197,94,.10)';titleEl.style.border='1.5px solid rgba(34,197,94,.4)';titleEl.style.color='var(--green)';
     } else {
@@ -3863,7 +3937,7 @@ function renderPlt(){
       const isDone=repeats>1?execCount>=repeats:tk.done;
 
       const row=document.createElement('div');
-      row.style.cssText=`display:flex;align-items:flex-start;gap:7px;padding:4px 6px;border-radius:8px;transition:background .12s;min-width:0;`;
+      row.style.cssText=`display:flex;align-items:flex-start;gap:7px;padding:6px 6px;border-radius:8px;transition:background .12s;min-width:0;`;
       row.onmouseover=()=>row.style.background='rgba(255,255,255,0.05)';
       row.onmouseout=()=>row.style.background='';
 
@@ -3874,7 +3948,7 @@ function renderPlt(){
 
       // Nome do item
       const name=document.createElement('div');
-      name.style.cssText=`font-size:11px;flex:1;min-width:0;white-space:normal;word-break:break-word;line-height:1.3;color:${isDone?'var(--text-muted)':'var(--text-secondary)'};${isDone?'text-decoration:line-through;':''}`;
+      name.style.cssText=`font-size:13px;font-weight:500;flex:1;min-width:0;white-space:normal;word-break:break-word;line-height:1.5;color:${isDone?'var(--text-muted)':'rgba(226,232,240,0.92)'};${isDone?'text-decoration:line-through;':''}`;
       // Texto completo — sem remover prefixos
       let label=tk.text;
       name.textContent=label;
@@ -5228,7 +5302,7 @@ function makeCompleteBtn(task, onMarkDone, onUnmark){
 }
 
 /* ===== DEVOLUÇÕES ===== */
-const DEV_PLATAFORMAS=['Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Magalu VixSupps','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace'];
+const DEV_PLATAFORMAS=['SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','MAGALU VIXSUPPS','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE'];
 const DEV_MOTIVOS=['Arrependimento','Diferente do anunciado','Danificado','Endereço errado','Comprador ausente','Atraso no envio'];
 
 // Estado das fotos do modal de devolução (permite adicionar E remover
@@ -5376,7 +5450,7 @@ function openDevModal(id){
   if(id){
     const d=(appState.tasks.devolucoes||[]).find(x=>x.id===id);
     if(d){
-      renderDevPlataformaOptions(d.plataforma||'');
+      renderDevPlataformaOptions(devPltStd(d.plataforma||''));
       document.getElementById('dev-cliente').value=d.cliente||'';
       document.getElementById('dev-nped').value=d.nped||'';
       document.getElementById('dev-data').value=d.data||'';
@@ -5384,7 +5458,6 @@ function openDevModal(id){
       renderDevStatusOptions(d.status||'');
       document.getElementById('dev-link-base').value=d.linkBase||'';
       document.getElementById('dev-link-plat').value=d.linkPlat||'';
-      document.getElementById('dev-link-bling').value=d.linkBling||'';
       _devModalFotos = (d.fotos && d.fotos.length) ? [...d.fotos] : [];
       renderDevFotosPreview();
     } else {
@@ -5392,7 +5465,7 @@ function openDevModal(id){
     }
   } else {
     ['dev-plataforma','dev-motivo','dev-status'].forEach(id=>document.getElementById(id).value='');
-    ['dev-cliente','dev-nped','dev-data','dev-link-base','dev-link-plat','dev-link-bling'].forEach(id=>document.getElementById(id).value='');
+    ['dev-cliente','dev-nped','dev-data','dev-link-base','dev-link-plat'].forEach(id=>document.getElementById(id).value='');
     _devModalFotos=[];
   }
 }
@@ -5407,7 +5480,6 @@ function saveDev(){
   let status=document.getElementById('dev-status').value;
   const linkBase=document.getElementById('dev-link-base').value.trim();
   const linkPlat=document.getElementById('dev-link-plat').value.trim();
-  const linkBling=document.getElementById('dev-link-bling').value.trim();
 
   if(!plt||!cliente||!nped||!data||!motivo||!status||!linkBase||!linkPlat){
     showToast('Todos os campos são obrigatórios (exceto fotos)','error');return;
@@ -5431,7 +5503,6 @@ function saveDev(){
       status,
       linkBase,
       linkPlat,
-      linkBling,
       fotos,
       criadoEm:editId?undefined:nowTimeStr(),
       criadoPor:editId?undefined:currentUser.name,
@@ -5503,7 +5574,8 @@ function renderDev(){
   const all = appState.tasks.devolucoes||[];
   all.forEach((d,idx)=>{ if(typeof d.ordemManual!=='number') d.ordemManual=idx; });
   all.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
-  const active = all.filter(d=>d.workflow!=='concluida'&&d.workflow!=='finalizada');
+  const active = all.filter(d=>d.workflow!=='concluida'&&d.workflow!=='finalizada')
+    .filter(d=>!devFiltroPlataforma||devPltStd(d.plataforma)===devFiltroPlataforma);
   const concluidas = all.filter(d=>d.workflow==='concluida'||d.workflow==='finalizada');
 
   const btnNew=document.getElementById('btn-new-dev');
@@ -5584,27 +5656,10 @@ function buildDevCardFull(d, isConcluida){
   card.onmouseout=()=>{card.style.transform='';card.style.boxShadow=`0 4px 24px rgba(0,0,0,0.4)${isConcluida?',0 0 20px rgba(34,197,94,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.08)`;};
   const _devshine=document.createElement('div');_devshine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);pointer-events:none;';card.appendChild(_devshine);
 
-  // ── Arrastar para reordenar (só master) ─────────────────────────────
-  if(isMaster && !isConcluida){
-    card.draggable=true;
-    card.dataset.devId=d.id;
-    card.style.cursor='grab';
-    card.addEventListener('dragstart',e=>{
-      e.dataTransfer.setData('text/plain', d.id);
-      e.dataTransfer.effectAllowed='move';
-      card.style.opacity='0.4';
-    });
-    card.addEventListener('dragend',()=>{ card.style.opacity=''; });
-    card.addEventListener('dragover',e=>{ e.preventDefault(); card.style.boxShadow='0 0 0 2px var(--accent),0 4px 24px rgba(0,0,0,0.4)'; });
-    card.addEventListener('dragleave',()=>{ card.style.boxShadow=''; });
-    card.addEventListener('drop',e=>{
-      e.preventDefault();
-      e.stopPropagation();
-      card.style.boxShadow='';
-      const draggedId=e.dataTransfer.getData('text/plain');
-      if(!draggedId||draggedId===d.id) return;
-      reorderDevolucoes(draggedId, d.id);
-    });
+  // ── Card inteiro abre o registro para edição (clique) ──────────────
+  if(canDev && !isConcluida){
+    card.style.cursor='pointer';
+    card.onclick=()=>{ openDevModal(d.id); };
   }
 
   // ── Card header ────────────────────────────────────────────────────
@@ -5623,27 +5678,30 @@ function buildDevCardFull(d, isConcluida){
 
   const devOwnerKeys = d.owners && d.owners.length ? d.owners : (d.responsavel ? [d.responsavel] : []);
   const devOwnerPrefix = devOwnerKeys.length ? formatOwnersInitials(devOwnerKeys)+' ' : '';
-  const plt=document.createElement('div');plt.style.cssText='font-size:14px;font-weight:700;letter-spacing:0.5px;flex:1;';
-  plt.textContent=devOwnerPrefix+(d.plataforma||'—');
-  applyPltBadge(plt, d.plataforma||'');
-  hdr.appendChild(plt);
-
-  // Status badge
-  const badge=document.createElement('span');
-  badge.style.cssText=`font-size:9px;font-weight:700;letter-spacing:1px;color:${cfg.color};background:${cfg.bg};border:1px solid ${cfg.border};border-radius:10px;padding:2px 8px;white-space:nowrap;`;
-  badge.textContent=isConcluida?'✅ CONCLUÍDA':cfg.label;
-  hdr.appendChild(badge);
-
-  // Actions — only Master (CM Andrade) can delete; also edit on active cards
-  const aEl=document.createElement('div');aEl.style.cssText='display:flex;gap:5px;';
-
-  // Edit button — active cards only, canDev users
-  if(!isConcluida && canDev){
-    const eBtn=document.createElement('button');eBtn.className='btn-link btn-sm';eBtn.textContent='✏';eBtn.title='Editar';
-    eBtn.setAttribute('data-devid',d.id);
-    eBtn.onclick=function(){ openDevModal(this.getAttribute('data-devid')); };
-    aEl.appendChild(eBtn);
+  const _pltStd=devPltStd(d.plataforma||'');
+  const _devCorHex=ateGetPltColorHex(_pltStd);
+  const [_dpr,_dpg,_dpb]=_hexToRgb(_devCorHex);
+  const pltWrapOuter=document.createElement('div');pltWrapOuter.style.cssText='flex:1;min-width:0;';
+  const pillWrap=document.createElement('span');
+  pillWrap.style.cssText=`display:inline-flex;align-items:center;background:rgba(${_dpr},${_dpg},${_dpb},.10);border-radius:20px;padding:2px;border:1.5px solid rgba(${_dpr},${_dpg},${_dpb},.4);max-width:100%;box-sizing:border-box;`;
+  const pltName=document.createElement('span');
+  pltName.style.cssText=`padding:4px 8px 4px 10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:${_devCorHex};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+  pltName.textContent=_pltStd||'—';
+  pillWrap.appendChild(pltName);
+  if(canDev){
+    const checkBtn=document.createElement('button');
+    checkBtn.type='button';
+    checkBtn.title=isConcluida?'Reabrir devolução':'Concluir devolução';
+    checkBtn.style.cssText=`background:${isConcluida?'linear-gradient(135deg,#4ade80,#16a34a)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+    checkBtn.textContent=isConcluida?'✓':'';
+    checkBtn.onclick=(e)=>{e.stopPropagation(); if(isConcluida) devReabrir(d.id); else devEstornado(d.id);};
+    pillWrap.appendChild(checkBtn);
   }
+  pltWrapOuter.appendChild(pillWrap);
+  hdr.appendChild(pltWrapOuter);
+
+  // Actions — only Master (CM Andrade) can delete
+  const aEl=document.createElement('div');aEl.style.cssText='display:flex;gap:5px;';
 
   // Reabrir button — concluded cards, master or permitted users
   if(isConcluida && canDev){
@@ -5651,43 +5709,39 @@ function buildDevCardFull(d, isConcluida){
     reBtn.style.cssText='border-color:var(--amber);color:var(--amber);';
     reBtn.textContent='↩ Reabrir';reBtn.title='Reabrir devolução';
     reBtn.setAttribute('data-devid',d.id);
-    reBtn.onclick=function(){ devReabrir(this.getAttribute('data-devid')); };
+    reBtn.onclick=function(e){ e.stopPropagation(); devReabrir(this.getAttribute('data-devid')); };
     aEl.appendChild(reBtn);
   }
 
   // Delete — master or permitted users, active or concluded
   if(canDev){
-    const dBtn=document.createElement('button');dBtn.className='btn-link btn-sm btn-danger';dBtn.textContent='✕';dBtn.title='Remover';
+    const dBtn=document.createElement('button');dBtn.className='btn-orb v-danger sm';dBtn.title='Remover';
+    dBtn.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
     dBtn.setAttribute('data-devid',d.id);
-    dBtn.onclick=function(){ deleteDevById(this.getAttribute('data-devid')); };
+    dBtn.onclick=function(e){ e.stopPropagation(); deleteDevById(this.getAttribute('data-devid')); };
     aEl.appendChild(dBtn);
   }
 
   if(aEl.children.length>0) hdr.appendChild(aEl);
   card.appendChild(hdr);
 
-  // ── Info rows ──────────────────────────────────────────────────────
+  // ── Capa — apenas campos essenciais (detalhes completos ficam no modal) ──
   function infoRow(label,val){
     if(!val) return;
     const r=document.createElement('div');r.style.cssText='display:flex;gap:8px;align-items:baseline;';
-    const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:90px;';l.textContent=label;
+    const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:110px;';l.textContent=label;
     const v=document.createElement('span');v.style.cssText='font-size:15px;color:var(--text-primary);';v.textContent=val;
     r.appendChild(l);r.appendChild(v);card.appendChild(r);
   }
-  function linkRow(label,href){
-    if(!href) return;
-    const r=document.createElement('div');r.style.cssText='display:flex;gap:8px;align-items:center;';
-    const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:90px;';l.textContent=label;
-    const a=document.createElement('a');a.href=href;a.target='_blank';a.className='btn-link btn-sm';a.innerHTML='↗ Abrir';
-    r.appendChild(l);r.appendChild(a);card.appendChild(r);
-  }
-  infoRow('Nome Cliente',d.cliente);infoRow('Pedido Base',d.nped);infoRow('Data Devolução',d.data);infoRow('Motivo',d.motivo);
-  linkRow('Link Base',d.linkBase);linkRow('Link Plataforma',d.linkPlat);linkRow('Link NF Saída Bling',d.linkBling);
-
-  if(d.fotos&&d.fotos.length){
-    const fr=document.createElement('div');fr.style.cssText='display:flex;gap:6px;flex-wrap:wrap;';
-    d.fotos.forEach(src=>{const img=document.createElement('img');img.src=src;img.style.cssText='width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;';img.onclick=()=>window.open(src,'_blank');fr.appendChild(img);});
-    card.appendChild(fr);
+  infoRow('Data Devolução',d.data);
+  infoRow('Motivo',d.motivo);
+  // Status — apenas texto colorido, sem fundo
+  {
+    const r=document.createElement('div');r.style.cssText='display:flex;gap:8px;align-items:baseline;';
+    const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:110px;';l.textContent='Status';
+    const v=document.createElement('span');v.style.cssText=`font-size:15px;font-weight:700;letter-spacing:.5px;color:${isConcluida?'var(--green)':cfg.color};`;
+    v.textContent=isConcluida?'CONCLUÍDA':cfg.label;
+    r.appendChild(l);r.appendChild(v);card.appendChild(r);
   }
 
   // ── Workflow buttons ───────────────────────────────────────────────
@@ -5703,7 +5757,7 @@ function buildDevCardFull(d, isConcluida){
       btn.innerHTML='📋 Pronto para Estorno';
       btn.onmouseover=()=>btn.style.background='rgba(59,130,246,.28)';
       btn.onmouseout=()=>btn.style.background='rgba(59,130,246,.15)';
-      btn.onclick=function(){ devProntoEstorno(this.getAttribute('data-devid')); };
+      btn.onclick=function(e){ e.stopPropagation(); devProntoEstorno(this.getAttribute('data-devid')); };
       wf.appendChild(btn);
       const info=document.createElement('span');info.style.cssText='font-size:10px;color:var(--text-muted);font-family:var(--font-mono);';
       info.textContent='→ Enviará para Carlos Red';
@@ -5718,7 +5772,7 @@ function buildDevCardFull(d, isConcluida){
       btn.innerHTML='✅ Estornado';
       btn.onmouseover=()=>btn.style.background='rgba(34,197,94,.28)';
       btn.onmouseout=()=>btn.style.background='rgba(34,197,94,.15)';
-      btn.onclick=function(){ devEstornado(this.getAttribute('data-devid')); };
+      btn.onclick=function(e){ e.stopPropagation(); devEstornado(this.getAttribute('data-devid')); };
       wf.appendChild(btn);
       const info=document.createElement('span');info.style.cssText='font-size:10px;color:var(--blue);font-family:var(--font-mono);';
       info.textContent='Responsável: Carlos Red · '+d.prontoEm;
@@ -5748,6 +5802,113 @@ function buildDevCardFull(d, isConcluida){
   }
 
   return card;
+}
+
+/* ===== CONSULTA CPF — extrai telefones da GhostAPIs ===== */
+/* O token fica guardado no Apps Script (proxy), não aqui.
+   A GhostAPIs bloqueia chamadas diretas do navegador (CORS). */
+const CPF_PROXY_URL='https://script.google.com/macros/s/AKfycbwVAjVS4aLxyxDNOjmUPDxp1SIcIuvkoSiuAXv7dybGtPsJduFxZVVTD4m9sBDjSOWR/exec';
+function openCpfModal(){
+  const ov=document.getElementById('cpf-modal-overlay');
+  if(!ov) return;
+  ov.style.display='block';
+  const inp=document.getElementById('cpf-consulta-input');
+  if(inp){ inp.value=''; setTimeout(()=>inp.focus(),50); }
+  document.getElementById('cpf-consulta-status').textContent='';
+  document.getElementById('cpf-consulta-result').style.display='none';
+  document.getElementById('cpf-consulta-fones').innerHTML='';
+  document.getElementById('cpf-consulta-nome').textContent='';
+}
+function closeCpfModal(){
+  const ov=document.getElementById('cpf-modal-overlay');
+  if(ov) ov.style.display='none';
+}
+function _fmtFone(ddd,fone){
+  const d=(ddd||'').toString().replace(/\D/g,'');
+  const n=(fone||'').toString().replace(/\D/g,'');
+  if(!n) return '';
+  const num=d+n;
+  const vis='+55'+num;
+  return JSON.stringify({num,vis});
+}
+async function consultarCpf(){
+  const inp=document.getElementById('cpf-consulta-input');
+  const statusEl=document.getElementById('cpf-consulta-status');
+  const resEl=document.getElementById('cpf-consulta-result');
+  const fonesEl=document.getElementById('cpf-consulta-fones');
+  const nomeEl=document.getElementById('cpf-consulta-nome');
+  const btn=document.getElementById('cpf-consulta-btn');
+  const cpf=(inp.value||'').replace(/\D/g,'');
+  if(cpf.length!==11){ statusEl.style.color='var(--accent)'; statusEl.textContent='❌ Digite um CPF válido (11 dígitos)'; return; }
+  statusEl.style.color='var(--amber)'; statusEl.textContent='⏳ Consultando...';
+  resEl.style.display='none'; fonesEl.innerHTML=''; nomeEl.textContent='';
+  if(btn) btn.disabled=true;
+  if(!CPF_PROXY_URL){
+    statusEl.style.color='var(--accent)';
+    statusEl.innerHTML='❌ Proxy não configurado.<br><span style="color:var(--text-muted);">Publique o Apps Script e cole a URL em <b>CPF_PROXY_URL</b> no index.html</span>';
+    if(btn) btn.disabled=false;
+    return;
+  }
+  try{
+    const url=CPF_PROXY_URL+(CPF_PROXY_URL.includes('?')?'&':'?')+'cpf='+cpf;
+    const r=await fetch(url);
+    const j=await r.json();
+    if(j && j.erro){ statusEl.style.color='var(--accent)'; statusEl.textContent='❌ '+j.erro; return; }
+    if(!j || j.status!==true || !j.response){ statusEl.style.color='var(--accent)'; statusEl.textContent='❌ Sem retorno para este CPF'; return; }
+    const resp=j.response;
+    const dados=resp.DADOS||{};
+    nomeEl.textContent=(dados.NOME||'—')+(dados.CPF?'  ·  CPF '+dados.CPF:'');
+
+    // Coleta telefones de todas as fontes possíveis
+    const encontrados=new Map(); // num -> {vis,tipo}
+    function addFone(ddd,fone,tipo){
+      const raw=_fmtFone(ddd,fone);
+      if(!raw) return;
+      const o=JSON.parse(raw);
+      if(o.num.length<10) return;
+      if(!encontrados.has(o.num)) encontrados.set(o.num,{vis:o.vis,tipo:tipo||''});
+    }
+    // Varredura recursiva — pega DDD/TELEFONE em qualquer nível do JSON
+    function varrer(obj){
+      if(!obj||typeof obj!=='object') return;
+      if(Array.isArray(obj)){ obj.forEach(varrer); return; }
+      const fone=obj.TELEFONE||obj.FONE||obj.NUMERO_TELEFONE;
+      if(fone) addFone(obj.DDD, fone, obj.TIPO_TELEFONE||obj.TIPO||'');
+      Object.values(obj).forEach(varrer);
+    }
+    varrer(resp);
+
+    if(encontrados.size===0){
+      statusEl.style.color='var(--accent)'; statusEl.textContent='⚠ Nenhum telefone encontrado para este CPF';
+      resEl.style.display='block';
+      return;
+    }
+    statusEl.style.color='var(--green)'; statusEl.textContent='✅ '+encontrados.size+' telefone(s) encontrado(s)';
+    resEl.style.display='block';
+    encontrados.forEach((v,num)=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;';
+      const foneTxt=document.createElement('span');
+      foneTxt.style.cssText='font-size:14px;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);flex:1;';
+      foneTxt.textContent=v.vis;
+      row.appendChild(foneTxt);
+      // Botão copiar
+      const cp=document.createElement('button');cp.className='btn-link btn-sm';cp.textContent='Copiar';cp.title='Copiar número';
+      cp.onclick=()=>{ navigator.clipboard.writeText(v.vis).then(()=>{cp.textContent='✓ Copiado';setTimeout(()=>cp.textContent='Copiar',1200);}); };
+      row.appendChild(cp);
+      // Botão WhatsApp
+      const wa=document.createElement('a');wa.className='btn-link btn-sm';wa.textContent='WhatsApp';wa.title='Abrir conversa no WhatsApp';
+      wa.href='https://wa.me/55'+num;wa.target='_blank';
+      wa.style.cssText+=';border-color:rgba(34,197,94,.5);color:var(--green);';
+      row.appendChild(wa);
+      fonesEl.appendChild(row);
+    });
+  }catch(err){
+    statusEl.style.color='var(--accent)'; statusEl.textContent='❌ Erro na consulta: '+err.message;
+    console.error(err);
+  }finally{
+    if(btn) btn.disabled=false;
+  }
 }
 
 function devReabrir(id){
@@ -5993,7 +6154,7 @@ function renderDrogTable(){
   tbody.innerHTML = rows.map((r,i)=>`
     <tr id="drow-${r._idx}" style="border-bottom:1px solid var(--border);${r.consultado?'background:rgba(34,197,94,0.06)':''}" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${r.consultado?'rgba(34,197,94,0.06)':'transparent'}'">
       <td style="padding:9px 14px;white-space:nowrap;">
-        <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:4px;${r.plataforma.includes('Pacheco')?'background:#e00000;color:#fff':'background:#00aaff;color:#fff'}">${r.plataforma.includes('Pacheco')?'Pacheco':'São Paulo'}</span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 11px;border-radius:20px;text-transform:uppercase;${r.plataforma.includes('Pacheco')?'background:rgba(244,122,122,.10);border:1.5px solid rgba(244,122,122,.4);color:#f47a7a;':'background:rgba(111,208,245,.10);border:1.5px solid rgba(111,208,245,.4);color:#6fd0f5;'}">${r.plataforma.includes('Pacheco')?'Drog. Pacheco':'Drog. S. Paulo'}</span>
       </td>
       <td style="padding:9px 14px;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);white-space:nowrap;">${r.id||'—'}</td>
       <td style="padding:9px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap;">${r.data||'—'}</td>
@@ -7145,7 +7306,7 @@ function buildIndex(){
   (appState.tasks.anuncios||[]).forEach(g=>g.items.forEach(i=>addAnu(g,i)));
   (appState.tasks.devolucoes||[]).forEach(d=>{
     if(isMaster || myPerms.includes('devolucoes'))
-      index.push({text:d.cliente||'',sub:d.plataforma||'',link:d.linkBase||'',aba:'Devoluções',grupo:d.plataforma||'',done:false,extra:d.motivo});
+      index.push({text:d.cliente||'',sub:devPltStd(d.plataforma)||'',link:d.linkBase||'',aba:'Devoluções',grupo:devPltStd(d.plataforma)||'',done:false,extra:d.motivo});
   });
   return index;
 }
@@ -8221,6 +8382,15 @@ function toggleDevEstornadas(){
   chev.style.transform=open?'rotate(0deg)':'rotate(90deg)';
 }
 
+let devFiltroPlataforma='';
+function devFiltrarPorPlataforma(plt){
+  devFiltroPlataforma = (devFiltroPlataforma===plt) ? '' : plt;
+  try{renderDev();}catch(e){}
+  try{renderDevStats();}catch(e){}
+  const cardsEl=document.getElementById('dev-cards');
+  if(devFiltroPlataforma && cardsEl) cardsEl.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
 function renderDevStats(){
   const statsGrid=document.getElementById('dev-stats-grid');
   const monthSel=document.getElementById('dev-stats-month');
@@ -8249,27 +8419,32 @@ function renderDevStats(){
   const sel=monthSel.value||allMonths[0]||'';
 
   // Count by plataforma
-  const PLT_LIST=['Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Magalu VixSupps','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace'];
+  const PLT_LIST=['SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','MAGALU VIXSUPPS','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE'];
   statsGrid.innerHTML='';
   PLT_LIST.forEach(plt=>{
-    const all=devs.filter(d=>d.plataforma===plt);
+    const all=devs.filter(d=>devPltStd(d.plataforma)===plt);
     const resolved=all.filter(d=>d.status==='Entregue'||d.workflow==='concluida');
     if(all.length===0) return;
-    const pct=all.length>0?Math.round((resolved.length/all.length)*100):0;
-    const col=pct>=80?'var(--green)':pct>=40?'var(--amber)':'var(--accent)';
+    const abertas=all.length-resolved.length;
+    const col=abertas===0?'var(--green)':'var(--accent)';
+    const ativo=devFiltroPlataforma===plt;
     const card=document.createElement('div');
-    card.style.cssText='position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(10px);overflow:hidden;';
+    card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07),rgba(255,255,255,0.02));border:1px solid ${ativo?'var(--accent)':'var(--glass-border)'};border-radius:var(--radius);padding:10px 12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07)${ativo?',0 0 0 2px rgba(59,130,246,0.25)':''};backdrop-filter:blur(10px);overflow:hidden;transition:border-color .15s,box-shadow .15s;`;
     card.innerHTML=`
-      <div style="font-size:11px;font-weight:700;margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" id="devstat-plt-${plt.replace(/\s/g,'_')}"></div>
-      <div style="display:flex;align-items:center;gap:10px;">
-        <div>
-          <div style="font-size:20px;font-weight:700;color:${col};line-height:1;">${resolved.length}</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">/ ${all.length} resolvidas</div>
-        </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;" id="devstat-plt-${plt.replace(/\s/g,'_')}" title="Clique para filtrar devoluções em aberto desta plataforma"></div>
+        <div style="font-size:18px;font-weight:700;color:${col};line-height:1;">${abertas}</div>
       </div>`;
     statsGrid.appendChild(card);
     const _dsp=card.querySelector('[id^="devstat-plt-"]');
-    if(_dsp){_dsp.textContent=plt;applyPltBadge(_dsp,plt);}
+    if(_dsp){
+      const corHex=ateGetPltColorHex(plt);
+      const [pr,pg,pb]=_hexToRgb(corHex);
+      _dsp.style.cssText='display:inline-block;background:rgba('+pr+','+pg+','+pb+',.10);border:1.5px solid rgba('+pr+','+pg+','+pb+',.4);border-radius:20px;padding:4px 12px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:'+corHex+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;cursor:pointer;';
+      _dsp.textContent=plt;
+      _dsp.title='Clique para filtrar devoluções em aberto desta plataforma';
+      _dsp.onclick=()=>devFiltrarPorPlataforma(plt);
+    }
   });
 }
 
@@ -8587,7 +8762,7 @@ function renderDevMotivoOptions(sel){ renderCustomOpts('dev-motivo',DEV_MOTIVO_B
 function addDevMotivo(){ addCustomOpt('dev-motivo',DEV_MOTIVO_BASE,'customMotivosDev','motivo',renderDevMotivoOptions); }
 function removeDevMotivo(){ removeCustomOpt('dev-motivo',DEV_MOTIVO_BASE,'customMotivosDev','motivo',renderDevMotivoOptions); }
 
-const DEV_PLT_BASE=['Shopee Suplenium','Shopee Primevitaminas','Merc. Livre Vitalife','Merc. Livre VXShop','Magalu 4Vita','Magalu VixSupps','Drog. São Paulo','Drog. Pacheco','Web Continental','RD Marketplace'];
+const DEV_PLT_BASE=['SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','MAGALU VIXSUPPS','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE'];
 function renderDevPlataformaOptions(sel){ renderCustomOpts('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev',sel); }
 function addDevPlataforma(){ addCustomOpt('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev','plataforma',renderDevPlataformaOptions); }
 function removeDevPlataforma(){ removeCustomOpt('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev','plataforma',renderDevPlataformaOptions); }
