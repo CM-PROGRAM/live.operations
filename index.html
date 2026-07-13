@@ -2300,6 +2300,43 @@ function importExternalTask(key, item){
 
 let appState = loadLocal();
 
+// Preserva a configuração persistente das tarefas (links e responsáveis) ao
+// virar o dia. O reset diário deve zerar apenas as marcações (done/execs),
+// mas os links e os responsáveis definidos no painel Adm. Master precisam
+// permanecer. Casa por id de grupo + id de item (e por rótulo, nos botões).
+function carryOverTaskConfig(oldTasks, newTasks){
+  if(!oldTasks || !newTasks) return;
+  ['whatsapp','plataformas','anuncios'].forEach(tab=>{
+    const oldGroups = Array.isArray(oldTasks[tab]) ? oldTasks[tab] : [];
+    const newGroups = Array.isArray(newTasks[tab]) ? newTasks[tab] : [];
+    const idx = {};
+    oldGroups.forEach(g=>{
+      const gk = g.id || g.group;
+      (g.items||[]).forEach(i=>{ if(i && i.id) idx[gk+'::'+i.id] = i; });
+    });
+    newGroups.forEach(g=>{
+      const gk = g.id || g.group;
+      (g.items||[]).forEach(i=>{
+        if(!i || !i.id) return;
+        const old = idx[gk+'::'+i.id];
+        if(!old) return;
+        // Link único (campo "Salvar Link")
+        if(typeof old.link === 'string') i.link = old.link;
+        // Responsáveis atribuídos pelo master
+        if(old.owner !== undefined) i.owner = old.owner;
+        if(Array.isArray(old.owners)) i.owners = old.owners.slice();
+        // Links dos botões — casam pelo rótulo; ações sem link são preservadas
+        if(Array.isArray(i.btns) && Array.isArray(old.btns)){
+          i.btns.forEach(nb=>{
+            const ob = old.btns.find(b=>b && b.label===nb.label);
+            if(ob && typeof ob.link === 'string') nb.link = ob.link;
+          });
+        }
+      });
+    });
+  });
+}
+
 // ── FIREBASE LISTENER (tempo real) ───────────────────────────
 function applyRemoteState(data){
   if(!data) return;
@@ -2309,10 +2346,13 @@ function applyRemoteState(data){
     const savedRastreios = Array.isArray(data.tasks && data.tasks.rastreios) ? data.tasks.rastreios : [];
     const savedDevolucoes = Array.isArray(data.tasks && data.tasks.devolucoes) ? data.tasks.devolucoes : [];
     const savedAtendimentos = Array.isArray(data.tasks && data.tasks.atendimentos) ? data.tasks.atendimentos : [];
+    const _oldTasks = data.tasks;
     data.tasks = defaultState().tasks;
     data.tasks.rastreios = savedRastreios;
     data.tasks.devolucoes = savedDevolucoes;
     data.tasks.atendimentos = savedAtendimentos;
+    // Mantém os links e responsáveis configurados no painel Adm. Master
+    carryOverTaskConfig(_oldTasks, data.tasks);
     data.lastReset = todayStr();
   }
   patchUsers(data);
@@ -7775,10 +7815,13 @@ function resetDayIfWeekEnd(){
   const _devolucoes=appState.tasks.devolucoes;
   const _atendimentos=appState.tasks.atendimentos;
   const _rastreios=appState.tasks.rastreios;
+  const _oldTasks=appState.tasks;
   appState.tasks=defaultState().tasks;
   appState.tasks.devolucoes=_devolucoes;
   appState.tasks.atendimentos=_atendimentos;
   appState.tasks.rastreios=_rastreios;
+  // Mantém os links e responsáveis configurados no painel Adm. Master
+  carryOverTaskConfig(_oldTasks, appState.tasks);
   appState.lastReset=todayStr();
   saveState(appState);
   renderAll();
@@ -7803,10 +7846,13 @@ function resetDay(){
   const _devolucoes=appState.tasks.devolucoes;
   const _atendimentos=appState.tasks.atendimentos;
   const _rastreios=appState.tasks.rastreios;
+  const _oldTasks=appState.tasks;
   appState.tasks=defaultState().tasks;
   appState.tasks.devolucoes=_devolucoes;
   appState.tasks.atendimentos=_atendimentos;
   appState.tasks.rastreios=_rastreios;
+  // Mantém os links e responsáveis configurados no painel Adm. Master
+  carryOverTaskConfig(_oldTasks, appState.tasks);
   appState.lastReset=todayStr();
   saveState(appState);renderAll();showToast('Tarefas resetadas para o novo dia','success');
 }
@@ -8110,7 +8156,13 @@ function renderTaskAssign(){
     Object.entries(tabData.groups).forEach(([groupLabel,groupData])=>{
       const grpHdr=document.createElement('div');
       grpHdr.style.cssText='padding:7px 14px 7px 20px;background:var(--bg-card);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px;';
-      const _grpIcon=document.createElement('span');_grpIcon.style.fontSize='13px';_grpIcon.textContent=groupData.icon;
+      const _grpIcon=document.createElement('span');_grpIcon.style.fontSize='13px';
+      if(groupData.icon==='wpp-logo'){
+        _grpIcon.style.display='inline-flex';
+        _grpIcon.innerHTML='<svg width="13" height="13" viewBox="0 0 24 24" fill="#25D366"><path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/></svg>';
+      } else {
+        _grpIcon.textContent=groupData.icon;
+      }
       const _grpLbl=document.createElement('span');
       const _gc=_admTileColor(groupLabel);
       _grpLbl.style.cssText=`display:inline-block;background:linear-gradient(135deg,${_hexA(_gc,0.12)},${_hexA(_gc,0.02)});border:1.5px solid ${_hexA(_gc,0.5)};border-radius:8px;padding:2px 10px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${_gc};white-space:nowrap;`;
