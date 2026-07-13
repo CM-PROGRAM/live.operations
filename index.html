@@ -996,6 +996,15 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 
       </div><!-- /tab-anuncios -->
 
+    <!-- CONFERÊNCIAS REALIZADAS -->
+    <div class="tab-panel" id="tab-conferencias">
+      <div class="section-header">
+        <span class="section-title">Conferências Realizadas</span>
+      </div>
+      <div id="conferencias-content"></div>
+      <div id="conferencias-empty" style="color:var(--text-muted);font-size:13px;text-align:center;padding:48px;font-family:var(--font-mono);">Nenhuma conferência registrada ainda.</div>
+    </div>
+
     <!-- DEVOLUÇÕES -->
     <div class="tab-panel" id="tab-devolucoes">
       <div class="section-header">
@@ -3089,6 +3098,7 @@ function buildTabs(){
       {id:'imagens',    label:'Imagens'}
     ]},
     {id:'anuncios',   icon:'🏷', label:'Tarefas Resolvidas',    perm:'anuncios'},
+    {id:'conferencias',icon:'✅', label:'Conferências Realizadas', perm:'conferencias'},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {id:'devolucoes', icon:'↩',  label:'Devoluções',            perm:'devolucoes'},
     {id:'cnpjs',      icon:'🏢', label:'CNPJs Suplelive', perm:'cnpjs'},
@@ -3117,6 +3127,7 @@ function buildTabs(){
     if(id==='progresso'){ try{renderProgressoAbas('dash-tabs-progress-user');}catch(e){console.warn('renderProgressoAbas:',e);} }
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
+    if(id==='conferencias'){ try{renderConferenciasRealizadas();}catch(e){console.warn('renderConferenciasRealizadas:',e);} }
     if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); }catch(e){ console.warn('admin render:',e); } }
   }
 
@@ -5202,6 +5213,14 @@ function _buildConfHead(){
   colg.innerHTML=cols;
   thead.innerHTML=`<tr style="background:var(--bg-surface);">${ths}</tr>`;
   table.style.minWidth=total+'px';
+}
+
+// Aba "Conferências Realizadas" — estrutura pronta; conteúdo a definir
+function renderConferenciasRealizadas(){
+  const content=document.getElementById('conferencias-content');
+  const empty=document.getElementById('conferencias-empty');
+  if(content) content.innerHTML='';
+  if(empty) empty.style.display='block';
 }
 
 function renderConferencia(){
@@ -7682,6 +7701,7 @@ function renderUsersGrid(){
     {id:'atendimentos',label:'📞 Atendimentos'},
     {id:'consultacpf',label:'🔎 Consulta CPF'},
     {id:'anuncios',label:'🏷 Tarefas Resolvidas'},
+    {id:'conferencias',label:'✅ Conferências Realizadas'},
     {id:'tarefas',label:'📌 Central de Tarefas'},
     {id:'financeiro',label:'💰 Financeiro'},
     {id:'base',label:'🗄 Base'},
