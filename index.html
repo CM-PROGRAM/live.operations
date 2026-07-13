@@ -932,7 +932,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <!-- ANUNCIOS -->
     <div class="tab-panel" id="tab-anuncios">
       <div class="section-header">
-        <span class="section-title">Produtos</span>
+        <span class="section-title">Tarefas Resolvidas</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
       <div class="date-header" id="anu-date" style="display:none;"></div>
@@ -3088,7 +3088,7 @@ function buildTabs(){
       {id:'integracao', label:'Integração'},
       {id:'imagens',    label:'Imagens'}
     ]},
-    {id:'anuncios',   icon:'🏷', label:'Produtos',              perm:'anuncios'},
+    {id:'anuncios',   icon:'🏷', label:'Tarefas Resolvidas',    perm:'anuncios'},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {id:'devolucoes', icon:'↩',  label:'Devoluções',            perm:'devolucoes'},
     {id:'cnpjs',      icon:'🏢', label:'CNPJs Suplelive', perm:'cnpjs'},
@@ -5429,7 +5429,7 @@ function execTask(section,group,id){
   const repeats=tk.repeats||1;
   if(tk.execs.length>=repeats){showToast('Já atingiu o limite de execuções','error');return;}
   tk.execs.push({by:currentUser.name,at:nowTimeStr()});
-  const sl2=section==='plataformas'?"Marketplaces":'Produtos';
+  const sl2=section==='plataformas'?"Marketplaces":'Tarefas Resolvidas';
   if(tk.execs.length>=repeats){
     tk.done=true;tk.doneBy=currentUser.name;tk.doneAt=nowTimeStr();
     pushNotify('Tarefa concluída! ✓',`"${tk.text}" atingiu ${repeats}/${repeats} execuções.`);
@@ -5457,7 +5457,7 @@ function resetExecs(section,group,id){
 
 function markGroupDone(section,group,id){
   const tk=group.items.find(i=>i.id===id);if(!tk)return;
-  const sl=section==='plataformas'?"Marketplaces":'Produtos';
+  const sl=section==='plataformas'?"Marketplaces":'Tarefas Resolvidas';
   const permKey=section==='plataformas'?'plataformas':'anuncios';
   if(!currentUser.master && !(currentUser.perms||[]).includes(permKey)){showToast('Acesso restrito: sem permissão para '+sl,'error');return;}
   tk.done=true;tk.doneBy=currentUser.name;tk.doneAt=nowTimeStr();
@@ -5467,7 +5467,7 @@ function markGroupDone(section,group,id){
 }
 function unmarkGroupTask(section,group,id){
   const tk=group.items.find(i=>i.id===id);if(!tk)return;
-  const sl=section==='plataformas'?"Marketplaces":'Produtos';
+  const sl=section==='plataformas'?"Marketplaces":'Tarefas Resolvidas';
   const permKey=section==='plataformas'?'plataformas':'anuncios';
   if(!currentUser.master && !(currentUser.perms||[]).includes(permKey)){showToast('Acesso restrito','error');return;}
   const owners=getTaskOwners(tk);
@@ -7012,7 +7012,7 @@ function renderTimeGoals(){
     doneBy:i.doneBy||'', owner:i.owner||''
   }));
   (appState.tasks.anuncios||[]).forEach(g=>g.items.forEach(i=>allTasks.push({
-    id:i.id, label:i.text, group:'Produtos', subgroup:g.group, icon:g.icon||'🖼️',
+    id:i.id, label:i.text, group:'Tarefas Resolvidas', subgroup:g.group, icon:g.icon||'🖼️',
     duration:i.duration||0, timerStart:i.timerStart||'', timerEnd:i.timerEnd||'',
     doneBy:i.doneBy||'', owner:i.owner||''
   })));
@@ -7681,7 +7681,7 @@ function renderUsersGrid(){
     {id:'devolucoes',label:'↩ Devoluções'},
     {id:'atendimentos',label:'📞 Atendimentos'},
     {id:'consultacpf',label:'🔎 Consulta CPF'},
-    {id:'anuncios',label:'🏷 Produtos'},
+    {id:'anuncios',label:'🏷 Tarefas Resolvidas'},
     {id:'tarefas',label:'📌 Central de Tarefas'},
     {id:'financeiro',label:'💰 Financeiro'},
     {id:'base',label:'🗄 Base'},
@@ -7990,7 +7990,7 @@ function buildIndex(){
   }
   function addAnu(g, i){
     if(isMaster || myPerms.includes('anuncios'))
-      index.push({text:i.text,sub:i.sub||'',link:i.link||'',aba:'Produtos',grupo:g.group,done:i.done});
+      index.push({text:i.text,sub:i.sub||'',link:i.link||'',aba:'Tarefas Resolvidas',grupo:g.group,done:i.done});
   }
 
   (appState.tasks.whatsapp||[]).forEach(g=>g.items.forEach(i=>addWpp(g,i)));
@@ -8126,7 +8126,7 @@ function getAllAssignableItems(){
   (appState.tasks.anuncios||[]).forEach(g=>{
     g.items.forEach(i=>{
       items.push({
-        tab:'anuncios', tabLabel:'Produtos',
+        tab:'anuncios', tabLabel:'Tarefas Resolvidas',
         groupId:g.group, groupLabel:g.group, groupIcon:g.icon||'🖼️',
         itemId:i.id, itemText:i.text, itemSub:i.sub||'',
         get owner(){ return i.owner||''; }, set owner(v){ i.owner=v; },
@@ -9936,7 +9936,7 @@ function renderTarefas(){
   const allTasks=[];
   (appState.tasks.plataformas||[]).forEach(g=>g.items.forEach(i=>allTasks.push({...i,grupo:"Marketplaces — "+g.group,aba:'plataformas'})));
   (appState.tasks.envios||[]).forEach(i=>allTasks.push({...i,grupo:'Rastreios',aba:'envios'}));
-  (appState.tasks.anuncios||[]).forEach(g=>g.items.forEach(i=>allTasks.push({...i,grupo:'Produtos — '+g.group,aba:'anuncios'})));
+  (appState.tasks.anuncios||[]).forEach(g=>g.items.forEach(i=>allTasks.push({...i,grupo:'Tarefas Resolvidas — '+g.group,aba:'anuncios'})));
 
   const users=Object.entries(appState.users);
 
