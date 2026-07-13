@@ -1556,7 +1556,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group">
-        <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="defAtvPrazo()" title="Definir prazo (dias) para este título" class="btn-orb v-open" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></button></span></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span id="atv-titulo-admin-btns" style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="defAtvPrazo()" title="Definir prazo (dias) para este título" class="btn-orb v-open" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></button></span></label>
         <select id="atv-titulo" onchange="atvTituloChanged()"></select>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -9187,8 +9187,8 @@ function _atvSelectMarketplace(nome){
 const ATV_TITULO_BASE=['Entrada Produto','Integração','Imagem','Atendimentos','Devoluções','Contabilidade'];
 const ATV_PRAZOS_BASE={'Entrada Produto':2}; // dias padrão por título
 function renderAtvTituloOptions(sel){ renderCustomOpts('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv',sel); }
-function addAtvTitulo(){ addCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
-function removeAtvTitulo(){ removeCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
+function addAtvTitulo(){ if(!currentUser||!currentUser.master){showToast('Apenas o master pode gerenciar os títulos','warn');return;} addCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
+function removeAtvTitulo(){ if(!currentUser||!currentUser.master){showToast('Apenas o master pode gerenciar os títulos','warn');return;} removeCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
 
 // Retorna o prazo (em dias) configurado para um título, se houver
 function getAtvPrazo(titulo){
@@ -9200,6 +9200,7 @@ function getAtvPrazo(titulo){
 
 // Botão de relógio: define/edita o prazo (em dias) do título selecionado
 function defAtvPrazo(){
+  if(!currentUser||!currentUser.master){showToast('Apenas o master pode definir o prazo','warn');return;}
   const sel=document.getElementById('atv-titulo');
   const titulo=sel?sel.value:'';
   if(!titulo){showToast('Selecione um título para definir o prazo','warn');return;}
@@ -10062,7 +10063,7 @@ function renderAtividades(){
   appState.atividades.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
 
   const btnNova=document.getElementById('btn-nova-atv');
-  if(btnNova) btnNova.style.display=currentUser?'inline-flex':'none';
+  if(btnNova) btnNova.style.display=(currentUser&&currentUser.master)?'inline-flex':'none';
 
   const fColab=document.getElementById('atv-filter-colab');
   const fPrior=document.getElementById('atv-filter-prior');
@@ -10072,6 +10073,8 @@ function renderAtividades(){
       const o=document.createElement('option');o.value=k;o.textContent=u.name;fColab.appendChild(o);
     });
   }
+  // Colaborador só vê as próprias tarefas — o filtro por colaborador só serve ao master
+  if(fColab) fColab.style.display=(currentUser&&currentUser.master)?'':'none';
 
   const filterColab=fColab?fColab.value:'';
   const filterPrior=fPrior?fPrior.value:'';
@@ -10086,6 +10089,8 @@ function renderAtividades(){
   let total=0;
 
   appState.atividades.forEach(a=>{
+    // Colaboradores veem apenas as tarefas atribuídas a eles; o master vê todas
+    if(!currentUser.master && !getAtvResponsaveis(a).includes(currentUser.key)) return;
     if(filterColab && !getAtvResponsaveis(a).includes(filterColab)) return;
     if(filterPrior && a.prioridade!==filterPrior) return;
 
@@ -10126,7 +10131,7 @@ function renderAtividades(){
       :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fbbf24;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
 
     const isMine=getAtvResponsaveis(a).includes(currentUser.key);
-    const canAct=currentUser.master||isMine;
+    const canAct=currentUser.master; // colaboradores têm acesso somente leitura (não alteram status)
 
     const glow=ATV_GLOW[a.prioridade]||ATV_GLOW.normal;
     const avColor=uColor||'#888';
@@ -10259,6 +10264,7 @@ function notifyCriadorConcluida(item,tipoLabel,tipo){
 }
 
 function atvMoveStatus(id,novoStatus){
+  if(!currentUser||!currentUser.master){showToast('Apenas o master pode alterar o status da tarefa','warn');return;}
   if(!appState.atividades) return;
   const a=appState.atividades.find(x=>x.id===id);if(!a)return;
   const eraConcluida = a.status==='concluida';
@@ -10969,11 +10975,13 @@ function openAtvModal(id){
   const a = id ? (appState.atividades||[]).find(x=>x.id===id) : null;
   const isResponsavel = a && getAtvResponsaveis(a).includes(currentUser.key);
   const isCriador = a && a.criadoPorKey === currentUser.key;
-  const podeEditarTarefa = isMasterUser || isCriador;
+  // Somente o master cria e edita tarefas; colaboradores têm acesso somente leitura
+  const podeEditarTarefa = isMasterUser;
 
-  // Responsável pode abrir apenas para comentar; master ou criador pode editar tudo
-  if(!podeEditarTarefa && !isResponsavel && id){showToast('Apenas o master, o criador ou o responsável podem interagir com esta tarefa','warn');return;}
-  // Criação de novas tarefas é liberada para qualquer usuário logado
+  // Colaborador (responsável ou criador) pode abrir a tarefa apenas para visualizar
+  if(!isMasterUser && !isResponsavel && !isCriador && id){showToast('Apenas o master, o criador ou o responsável podem visualizar esta tarefa','warn');return;}
+  // Criação de novas tarefas é exclusiva do master
+  if(isNovaTask && !isMasterUser){showToast('Apenas o master pode criar tarefas','warn');return;}
 
   const sel=document.getElementById('atv-responsavel');
   const respGrid=document.getElementById('atv-responsavel-grid');
@@ -11006,8 +11014,8 @@ function openAtvModal(id){
   const comentCnt=document.getElementById('atv-comentario-count');
   const saveBtn=document.getElementById('atv-save-btn');
 
-  // Campos editáveis: livres ao criar nova tarefa; master ou criador editam tarefa já existente
-  const podeEditarCampos = isNovaTask || podeEditarTarefa;
+  // Campos editáveis: exclusivo do master (colaboradores só visualizam)
+  const podeEditarCampos = isMasterUser;
   ['atv-titulo','atv-sku','atv-nome-produto','atv-vencimento','atv-prioridade'].forEach(fid=>{
     const el=document.getElementById(fid);
     if(el) el.disabled = !podeEditarCampos;
@@ -11020,6 +11028,9 @@ function openAtvModal(id){
   if(mktpGrid) mktpGrid.style.pointerEvents=podeEditarCampos?'':'none';
   const priorTrigger=document.getElementById('atv-prioridade-trigger');
   if(priorTrigger){ priorTrigger.disabled=!podeEditarCampos; priorTrigger.style.opacity=podeEditarCampos?'':'0.5'; priorTrigger.style.cursor=podeEditarCampos?'pointer':'not-allowed'; }
+  // Botões de gerenciar títulos/prazo (add/remover/definir prazo) — apenas o master pode ver e usar
+  const tituloAdminBtns=document.getElementById('atv-titulo-admin-btns');
+  if(tituloAdminBtns) tituloAdminBtns.style.display=isMasterUser?'flex':'none';
   if(sel){ sel.disabled=!podeEditarCampos; }
   if(respGrid){ respGrid.style.opacity=podeEditarCampos?'':'0.5'; respGrid.style.pointerEvents=podeEditarCampos?'':'none'; }
 
@@ -11033,12 +11044,12 @@ function openAtvModal(id){
     document.getElementById('atv-vencimento').value=a.vencimento||'';
     _atvSelectPrior(a.prioridade||'normal');
     document.getElementById('atv-edit-id').value=id;
-    if(titleEl)titleEl.textContent=podeEditarTarefa?'Tarefa':'Comentar Tarefa';
+    if(titleEl)titleEl.textContent=isMasterUser?'Tarefa':'Visualizar Tarefa';
     // Mostrar campo comentário
     if(comentWrap) comentWrap.style.display='block';
     if(comentEl){ comentEl.value=a.comentario||''; }
     if(comentCnt) comentCnt.textContent=(150-(a.comentario||'').length)+' restantes';
-    if(saveBtn) saveBtn.textContent=podeEditarTarefa?'Salvar Tarefa':'Salvar Comentário';
+    if(saveBtn) saveBtn.textContent='Salvar Tarefa';
     // Trava o vencimento se a regra automática se aplicar
     atvTituloChanged();
     if(a.vencimento) document.getElementById('atv-vencimento').value=a.vencimento;
@@ -11060,6 +11071,9 @@ function openAtvModal(id){
     // Já inicia com "Entrada Produto" selecionado e vencimento automático (+2 dias)
     atvTituloChanged();
   }
+  // Colaborador: modal somente leitura — sem botão salvar e sem editar comentário
+  if(saveBtn) saveBtn.style.display=isMasterUser?'':'none';
+  if(comentEl) comentEl.disabled=!isMasterUser;
   overlay.style.display='flex';
 }
 
@@ -11068,6 +11082,7 @@ function closeAtvModal(){
 }
 
 function saveAtividade(){
+  if(!currentUser||!currentUser.master){showToast('Apenas o master pode criar ou editar tarefas','warn');return;}
   const titulo=document.getElementById('atv-titulo').value.trim();
   const sku=document.getElementById('atv-sku').value.trim();
   const nomeProduto=document.getElementById('atv-nome-produto').value.trim();
