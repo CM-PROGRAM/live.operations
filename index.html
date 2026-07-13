@@ -1960,6 +1960,21 @@ function patchTaskOwners(s){
   }
 }
 
+// Garante que as tarefas "Baixas D.P" / "Baixas D.SP" existam nos grupos DPSP
+// de estados já salvos (migração não-destrutiva — não recria o restante).
+function patchDpspBaixas(s){
+  if(!s.tasks || !Array.isArray(s.tasks.plataformas)) return;
+  const inject=(groupId,store)=>{
+    const g=s.tasks.plataformas.find(g=>g.id===groupId);
+    if(!g) return;
+    if(!Array.isArray(g.items)) g.items=[];
+    const item=makeBaixasItem(store);
+    if(!g.items.some(i=>i&&i.id===item.id)) g.items.push(item);
+  };
+  inject('plt_dp','pacheco');
+  inject('plt_dsp','saopaulo');
+}
+
 function loadLocal(){
   try{
     const raw=localStorage.getItem(SK);
@@ -2146,6 +2161,7 @@ function loadLocal(){
       if(needsPltMigration) s.tasks.plataformas=initPlt();
     }
     patchTaskOwners(s);
+    patchDpspBaixas(s);
     return s;
   }catch(e){ return defaultState(); }
 }
@@ -2539,6 +2555,7 @@ function applyRemoteState(data){
     if(np) data.tasks.plataformas=initPlt();
   }
   patchTaskOwners(data);
+  patchDpspBaixas(data);
   return data;
 }
 
@@ -2759,6 +2776,19 @@ function t(id,text,sub,link,linkLabel,repeats){
   return{id,text,sub:sub||'',link:link||'',linkLabel:linkLabel||'Abrir',done:repeats===1?false:false,doneBy:null,doneAt:null,repeats,execs:[]};
 }
 
+// Item de tarefa "Baixas" das drogarias DPSP. Abre a tela interna de Baixas
+// (não é uma URL). Usado tanto no initPlt quanto no patch de estados salvos.
+function makeBaixasItem(store){
+  const isP = store==='pacheco';
+  return {
+    id: isP ? 'plt_dp_baixas' : 'plt_dsp_baixas',
+    text: isP ? 'BAIXAS — Baixas D.P' : 'BAIXAS — Baixas D.SP',
+    sub:'', link:'', linkLabel:'', done:false, doneBy:null, doneAt:null,
+    repeats:1, execs:[], owner:'',
+    btns:[{label:'Abrir', action: isP ? 'baixasPacheco' : 'baixasSaoPaulo'}]
+  };
+}
+
 function initWpp(){return[
   {
     id:'wpp_atend', group:'ATENDIMENTO', icon:'wpp-logo',
@@ -2877,14 +2907,16 @@ function initPlt(){return[
     Object.assign(t('plt_dp1','PERFORMANCE — Sellers','','https://marketplace.drogariaspacheco.com.br/v3/sellers/nota/ROKQ86921088830001','Performance',1),{owner:'cmandrade'}),
     Object.assign(t('plt_dp2','VENDAS — Gestão de Vendas','','https://marketplace.drogariaspacheco.com.br/v3/pedidos','Vendas',1),{owner:'gustavo'}),
     Object.assign(t('plt_dp3','VENDAS — Devoluções','','https://marketplace.drogariaspacheco.com.br/v3/pedidos/devolucoes','Devoluções',1),{owner:'cmandrade'}),
-    Object.assign(t('plt_dp6','ATENDIMENTOS — Atendimentos','','https://marketplace.drogariaspacheco.com.br/v3/atendimento','Atendimentos',3),{owner:'gustavo'})
+    Object.assign(t('plt_dp6','ATENDIMENTOS — Atendimentos','','https://marketplace.drogariaspacheco.com.br/v3/atendimento','Atendimentos',3),{owner:'gustavo'}),
+    makeBaixasItem('pacheco')
   ]},
 
   {id:'plt_dsp',group:'DPSP — Drogaria São Paulo',sub:'',icon:'🛒',items:[
     Object.assign(t('plt_dsp1','PERFORMANCE — Sellers','','https://marketplace.drogariasaopaulo.com.br/v3/sellers/nota/ACXP17921305839856','Performance',1),{owner:'cmandrade'}),
     Object.assign(t('plt_dsp2','VENDAS — Gestão de Vendas','','https://marketplace.drogariasaopaulo.com.br/v3/pedidos','Vendas',1),{owner:'gustavo'}),
     Object.assign(t('plt_dsp3','VENDAS — Devoluções','','https://marketplace.drogariasaopaulo.com.br/v3/pedidos/devolucoes','Devoluções',1),{owner:'cmandrade'}),
-    Object.assign(t('plt_dsp6','ATENDIMENTOS — Atendimentos','','https://marketplace.drogariasaopaulo.com.br/v3/atendimento','Atendimentos',3),{owner:'gustavo'})
+    Object.assign(t('plt_dsp6','ATENDIMENTOS — Atendimentos','','https://marketplace.drogariasaopaulo.com.br/v3/atendimento','Atendimentos',3),{owner:'gustavo'}),
+    makeBaixasItem('saopaulo')
   ]}
 ];}
 
@@ -3085,7 +3117,7 @@ function buildTabs(){
   tabs.forEach(tb=>{
     if(tb.type==='cpf'){
       // Consulta CPF como item de Atividades (abre o mesmo modal) — neon roxo, mesmo tamanho dos demais
-      if(!(currentUser.master || (currentUser.perms||[]).includes('devolucoes'))) return;
+      if(!(currentUser.master || (currentUser.perms||[]).includes('consultacpf'))) return;
       const btn=document.createElement('button');
       btn.className='tab-btn';
       btn.id='btn-consulta-cpf';
@@ -6326,6 +6358,10 @@ function buildDevCardFull(d, isConcluida){
    A GhostAPIs bloqueia chamadas diretas do navegador (CORS). */
 const CPF_PROXY_URL='https://script.google.com/macros/s/AKfycbwVAjVS4aLxyxDNOjmUPDxp1SIcIuvkoSiuAXv7dybGtPsJduFxZVVTD4m9sBDjSOWR/exec';
 function openCpfModal(){
+  if(!currentUser || !(currentUser.master || (currentUser.perms||[]).includes('consultacpf'))){
+    showToast('Acesso restrito — peça ao master para liberar a Consulta CPF','error');
+    return;
+  }
   const ov=document.getElementById('cpf-modal-overlay');
   if(!ov) return;
   ov.style.display='block';
@@ -6503,11 +6539,19 @@ function _saveDrogData(){
 // Abre a tela de Baixas DPSP mostrando apenas uma drogaria (chamado a partir
 // dos botões "Baixas D.P" / "Baixas D.SP" na aba Marketplaces).
 function openDrogariaScoped(scope){
-  // Master sempre pode; colaborador precisa da permissão da respectiva drogaria
-  const permKey = scope==='pacheco' ? 'baixas_dp' : scope==='saopaulo' ? 'baixas_dsp' : null;
-  const permitido = currentUser && (currentUser.master || (permKey && (currentUser.perms||[]).includes(permKey)));
+  // Master sempre pode; colaborador precisa estar atribuído à tarefa de Baixas
+  // da respectiva drogaria (atribuição feita no card Usuários & Permissões)
+  let permitido = currentUser && currentUser.master;
+  if(!permitido && currentUser){
+    const groupId = scope==='pacheco' ? 'plt_dp' : scope==='saopaulo' ? 'plt_dsp' : null;
+    const itemId  = scope==='pacheco' ? 'plt_dp_baixas' : scope==='saopaulo' ? 'plt_dsp_baixas' : null;
+    if(groupId && itemId){
+      const ref=findAssignableItemRef('plataformas', groupId, itemId);
+      if(ref && getTaskOwners(ref).includes(currentUser.key)) permitido=true;
+    }
+  }
   if(!permitido){
-    showToast('Acesso restrito — peça ao master para liberar as Baixas desta drogaria','error');
+    showToast('Acesso restrito — peça ao master para atribuir a tarefa de Baixas a você','error');
     return;
   }
   _drogScope = scope;
@@ -7627,11 +7671,10 @@ function renderUsersGrid(){
   const tabDefs=[
     {id:'whatsapp',label:'💬 Vendas WhatsApp'},
     {id:'plataformas',label:"🛒 Marketplaces"},
-    {id:'baixas_dp',label:'🧾 Baixas D.P — Drog. Pacheco'},
-    {id:'baixas_dsp',label:'🧾 Baixas D.SP — Drog. São Paulo'},
     {id:'envios',label:'📦 Rastreios'},
     {id:'devolucoes',label:'↩ Devoluções'},
     {id:'atendimentos',label:'📞 Atendimentos'},
+    {id:'consultacpf',label:'🔎 Consulta CPF'},
     {id:'anuncios',label:'🏷 Produtos'},
     {id:'tarefas',label:'📌 Central de Tarefas'},
     {id:'financeiro',label:'💰 Financeiro'},
@@ -11433,6 +11476,8 @@ function executarAcaoBotao(action){
   if(action==='cotacaoFrete') abrirModalCotacaoFrete();
   if(action==='dadosCliente') abrirModalDadosCliente();
   if(action==='envioRastreio') abrirModalEnvioRastreio();
+  if(action==='baixasPacheco') openDrogariaScoped('pacheco');
+  if(action==='baixasSaoPaulo') openDrogariaScoped('saopaulo');
 }
 </script>
 
