@@ -9680,8 +9680,9 @@ function renderAte(){
   all.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
   const _ateQ=(document.getElementById('ate-search')?.value||'').trim().toLowerCase();
   const _ateMatch=d=>!_ateQ || [d.cliente,d.nped,d.natend].some(v=>(v||'').toString().toLowerCase().includes(_ateQ));
-  const active=all.filter(d=>d.workflow!=='finalizado'&&(!ateFiltroPlataforma||d.plataforma===ateFiltroPlataforma)).filter(_ateMatch);
-  const finalizados=all.filter(d=>d.workflow==='finalizado').filter(_ateMatch);
+  const _atePltOk=d=>!ateFiltroPlataforma||atePltEq(d.plataforma,ateFiltroPlataforma);
+  const active=all.filter(d=>d.workflow!=='finalizado'&&_atePltOk(d)).filter(_ateMatch);
+  const finalizados=all.filter(d=>d.workflow==='finalizado'&&_atePltOk(d)).filter(_ateMatch);
 
   const canAte = isMaster || (currentUser && (currentUser.perms||[]).includes('atendimentos'));
   const btnNew=document.getElementById('btn-new-ate');
@@ -9726,8 +9727,8 @@ function renderAte(){
   if(finCards){
     finCards.innerHTML='';
     finalizados.forEach(d=>{const c=buildAteCard(d,true);if(c)finCards.appendChild(c);});
-    // Ao buscar, abre a pasta de finalizados para não esconder resultados
-    if(_ateQ && finalizados.length>0){
+    // Ao buscar ou filtrar por plataforma, abre a pasta de finalizados para não esconder resultados
+    if((_ateQ || ateFiltroPlataforma) && finalizados.length>0){
       finCards.style.display='grid';
       const _chev=document.getElementById('ate-fin-chevron'); if(_chev) _chev.style.transform='rotate(90deg)';
       const _sep=document.getElementById('ate-fin-separator'); if(_sep) _sep.style.display='block';
@@ -9738,7 +9739,9 @@ function renderAte(){
     empty.style.display='block';
     empty.textContent = _ateQ
       ? (finalizados.length>0 ? 'Nenhum atendimento em aberto para esta busca (veja em Finalizados).' : 'Nenhum atendimento encontrado para esta busca.')
-      : (ateFiltroPlataforma?`Nenhum atendimento em aberto para "${ateFiltroPlataforma}".`:'Nenhum atendimento registrado.');
+      : (ateFiltroPlataforma
+          ? (finalizados.length>0 ? `Nenhum atendimento em aberto para "${ateFiltroPlataforma}" (veja em Finalizados).` : `Nenhum atendimento em aberto para "${ateFiltroPlataforma}".`)
+          : 'Nenhum atendimento registrado.');
     return;
   }
   empty.style.display='none';
@@ -9874,6 +9877,14 @@ const ATE_STAT_TILE_COLORS={
 // Ordem de exibição no painel (mesma sequência do grid de Integração)
 const ATE_STAT_ORDER=['LOJA INTEGRADA','RD MARKETPLACE','WEB CONTINENTAL','MAGALU 4VITA','DROG. PACHECO','DROG. S. PAULO','SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VXSHOP','M.L VITALIFE','Melhor Envio','Manda Bem','Base'];
 
+// Compara nomes de plataforma de forma tolerante (ignora maiúsculas, acentos e
+// espaços extras) — garante que o filtro/contagem case mesmo com variações no
+// valor salvo do atendimento.
+function atePltNorm(s){
+  return (s||'').toString().normalize('NFD').replace(/[^A-Za-z0-9 ]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+}
+function atePltEq(a,b){ return atePltNorm(a)===atePltNorm(b); }
+
 function renderAteStats(){
   const statsGrid=document.getElementById('ate-stats-grid');
   const monthSel=document.getElementById('ate-stats-month');
@@ -9890,7 +9901,7 @@ function renderAteStats(){
   statsGrid.style.gap='10px';
   const ordered=[...ATE_STAT_ORDER.filter(p=>ATE_PLATAFORMAS.includes(p)),...ATE_PLATAFORMAS.filter(p=>!ATE_STAT_ORDER.includes(p))];
   ordered.forEach(plt=>{
-    const all=ates.filter(d=>d.plataforma===plt);
+    const all=ates.filter(d=>atePltEq(d.plataforma,plt));
     const resolved=all.filter(d=>d.workflow==='finalizado');
     const active=all.length-resolved.length;
     const ativo=ateFiltroPlataforma===plt;
