@@ -6503,8 +6503,11 @@ function _saveDrogData(){
 // Abre a tela de Baixas DPSP mostrando apenas uma drogaria (chamado a partir
 // dos botões "Baixas D.P" / "Baixas D.SP" na aba Marketplaces).
 function openDrogariaScoped(scope){
-  if(!currentUser || !currentUser.master){
-    showToast('Acesso restrito ao MASTER','error');
+  // Master sempre pode; colaborador precisa da permissão da respectiva drogaria
+  const permKey = scope==='pacheco' ? 'baixas_dp' : scope==='saopaulo' ? 'baixas_dsp' : null;
+  const permitido = currentUser && (currentUser.master || (permKey && (currentUser.perms||[]).includes(permKey)));
+  if(!permitido){
+    showToast('Acesso restrito — peça ao master para liberar as Baixas desta drogaria','error');
     return;
   }
   _drogScope = scope;
@@ -7624,6 +7627,8 @@ function renderUsersGrid(){
   const tabDefs=[
     {id:'whatsapp',label:'💬 Vendas WhatsApp'},
     {id:'plataformas',label:"🛒 Marketplaces"},
+    {id:'baixas_dp',label:'🧾 Baixas D.P — Drog. Pacheco'},
+    {id:'baixas_dsp',label:'🧾 Baixas D.SP — Drog. São Paulo'},
     {id:'envios',label:'📦 Rastreios'},
     {id:'devolucoes',label:'↩ Devoluções'},
     {id:'atendimentos',label:'📞 Atendimentos'},
