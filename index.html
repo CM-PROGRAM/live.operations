@@ -9272,13 +9272,49 @@ function _hexToRgb(hex){
   return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)];
 }
 let _atvMktpConcluidos={};
+// Restringe o grid de Marketplace da tarefa a um subconjunto de chaves. Usado
+// quando a tarefa vem de uma solicitação de Integração/Imagens: mostra só a
+// plataforma escolhida pelo solicitante. null = mostra todas.
+let _atvMktpRestrict=null;
+// Mapeia o marketplace/variação da solicitação (Integração/Imagens) para a
+// chave correspondente do grid de Marketplace da tarefa.
+const INTEG_TO_ATV_MKT={
+  'Loja Integrada':'LOJA INTEGRADA',
+  'RD Marketplaces':'RD MARKETPLACE',
+  'Web Continental':'WEB CONTINENTAL',
+  'Magalu 4Vita':'MAGALU 4VITA',
+  'Drogaria Pacheco':'DROG. PACHECO',
+  'Drogaria São Paulo':'DROG. S. PAULO',
+  'Shopee Suplenium':'SHP SUPLENIUM',
+  'Shopee Suplenium 2x':'SHP SUPLENIUM 2X',
+  'Shopee Primevitaminas':'SHP PRIMEVITAMINAS',
+  'Shopee Primevitaminas 2x':'SHP PRIMEVITAMINAS 2X',
+  'Mercado Livre VXShop':'M.L VXSHOP',
+  'Mercado Livre VXShop 2x':'M.L VXSHOP 2X',
+  'Mercado Livre VXShop Clássico':'M.L VXSHOP CLASSICO',
+  'Mercado Livre VXShop Clássico 2x':'M.L VXSHOP 2X CLASSICO',
+  'Mercado Livre VXShop Premium':'M.L VXSHOP PREMIUM',
+  'Mercado Livre VXShop Premium 2x':'M.L VXSHOP 2X PREMIUM',
+  'Mercado Livre Vitalife':'M.L VITALIFE',
+  'Mercado Livre Vitalife 2x':'M.L VITALIFE 2X',
+  'Mercado Livre Vitalife Clássico':'M.L VITALIFE CLASSICO',
+  'Mercado Livre Vitalife Clássico 2x':'M.L VITALIFE 2X CLASSICO',
+  'Mercado Livre Vitalife Premium':'M.L VITALIFE PREMIUM',
+  'Mercado Livre Vitalife Premium 2x':'M.L VITALIFE 2X PREMIUM'
+};
+function integToAtvMkt(it){
+  if(!it) return '';
+  return INTEG_TO_ATV_MKT[it.variacao] || INTEG_TO_ATV_MKT[it.marketplace] || '';
+}
 function renderAtvMarketplaceOptions(sel){
   const grid=document.getElementById('atv-marketplace-grid');
   const hidden=document.getElementById('atv-marketplace');
   if(!grid||!hidden) return;
   const val=sel!==undefined?sel:hidden.value;
   hidden.value=val||'';
-  grid.innerHTML=Object.keys(ATV_MARKETPLACE_LINKS).map(m=>{
+  let _mkeys=Object.keys(ATV_MARKETPLACE_LINKS);
+  if(_atvMktpRestrict&&_atvMktpRestrict.length) _mkeys=_mkeys.filter(k=>_atvMktpRestrict.includes(k));
+  grid.innerHTML=_mkeys.map(m=>{
     const ativo=val===m;
     const feito=!!_atvMktpConcluidos[m];
     const idSafe=m.replace(/'/g,"\\'");
@@ -11208,7 +11244,17 @@ function openAtvModal(id){
     document.getElementById('atv-sku').value=a.sku||'';
     document.getElementById('atv-nome-produto').value=a.nomeProduto||'';
     _atvMktpConcluidos={...(a.marketplacesConcluidos||{})};
-    renderAtvMarketplaceOptions(a.marketplace||'');
+    // Tarefa vinda de uma solicitação (Integração/Imagens): mostra só a
+    // plataforma que o solicitante escolheu
+    _atvMktpRestrict=null;
+    let _atvMktSel=a.marketplace||'';
+    if(a.origemIntegId||a.origemImgId){
+      const _srcList=a.origemIntegId?(appState.integracoes||[]):(appState.imagensReq||[]);
+      const _src=_srcList.find(x=>x.id===(a.origemIntegId||a.origemImgId));
+      const _k=integToAtvMkt(_src);
+      if(_k){ _atvMktpRestrict=[_k]; if(!_atvMktSel) _atvMktSel=_k; }
+    }
+    renderAtvMarketplaceOptions(_atvMktSel);
     if(sel)sel.value=a.responsavel||'';
     document.getElementById('atv-vencimento').value=a.vencimento||'';
     _atvSelectPrior(a.prioridade||'normal');
@@ -11227,6 +11273,7 @@ function openAtvModal(id){
     document.getElementById('atv-sku').value='';
     document.getElementById('atv-nome-produto').value='';
     _atvMktpConcluidos={};
+    _atvMktpRestrict=null;
     renderAtvMarketplaceOptions('');
     if(sel)sel.value='';
     document.getElementById('atv-vencimento').value='';
