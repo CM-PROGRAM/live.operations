@@ -1243,6 +1243,32 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       </div>
     </div>
 
+    <!-- INTEGRAÇÕES FEITAS -->
+    <div class="tab-panel" id="tab-integracoesfeitas">
+      <div class="section-header">
+        <span class="section-title">Integrações Feitas</span>
+      </div>
+      <div style="margin:6px 0 14px;">
+        <input id="intf-search" type="text" placeholder="🔎 Buscar (SKU, ID Anúncio, produto, marca, plataforma)..." oninput="renderIntegracoesFeitas()"
+          style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+      </div>
+      <div id="intf-wrap" style="overflow-x:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);"></div>
+      <div id="intf-empty" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">Nenhuma integração registrada ainda.</div>
+    </div>
+
+    <!-- IMAGENS FEITAS -->
+    <div class="tab-panel" id="tab-imagensfeitas">
+      <div class="section-header">
+        <span class="section-title">Imagens Feitas</span>
+      </div>
+      <div style="margin:6px 0 14px;">
+        <input id="imgf-search" type="text" placeholder="🔎 Buscar (SKU, produto, marca, plataforma)..." oninput="renderImagensFeitas()"
+          style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+      </div>
+      <div id="imgf-wrap" style="overflow-x:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);"></div>
+      <div id="imgf-empty" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">Nenhuma imagem registrada ainda.</div>
+    </div>
+
     <!-- BAIXAS DROGARIAS -->
     <div class="tab-panel" id="tab-drogarias">
       <div class="section-header">
@@ -3147,9 +3173,10 @@ function buildTabs(){
     ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Integrações & Imagens', perm:'integracoes', children:[
       {id:'integracao', label:'Integração'},
-      {id:'imagens',    label:'Imagens'}
+      {id:'integracoesfeitas', label:'Integrações Feitas'},
+      {id:'imagens',    label:'Imagens'},
+      {id:'imagensfeitas', label:'Imagens Feitas'}
     ]},
-    {id:'anuncios',   icon:'🏷', label:'Tarefas Resolvidas',    perm:'anuncios'},
     {id:'conferencias',icon:'✅', label:'Conferências Realizadas', perm:'conferencias'},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {id:'devolucoes', icon:'↩',  label:'Devoluções',            perm:'devolucoes'},
@@ -3175,7 +3202,9 @@ function buildTabs(){
     if(id==='projetos'){ try{renderProjetos();}catch(e){console.warn('renderProjetos:',e);} }
     if(id==='plataformas'){ try{renderMktLinks();}catch(e){console.warn('renderMktLinks:',e);} }
     if(id==='integracao'){ try{renderIntegracoes();}catch(e){console.warn('renderIntegracoes:',e);} }
+    if(id==='integracoesfeitas'){ try{renderIntegracoesFeitas();}catch(e){console.warn('renderIntegracoesFeitas:',e);} }
     if(id==='imagens'){ try{renderImagens();}catch(e){console.warn('renderImagens:',e);} }
+    if(id==='imagensfeitas'){ try{renderImagensFeitas();}catch(e){console.warn('renderImagensFeitas:',e);} }
     if(id==='progresso'){ try{renderProgressoAbas('dash-tabs-progress-user');}catch(e){console.warn('renderProgressoAbas:',e);} }
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
@@ -7752,7 +7781,6 @@ function renderUsersGrid(){
     {id:'devolucoes',label:'↩ Devoluções'},
     {id:'atendimentos',label:'📞 Atendimentos'},
     {id:'consultacpf',label:'🔎 Consulta CPF'},
-    {id:'anuncios',label:'🏷 Tarefas Resolvidas'},
     {id:'conferencias',label:'✅ Conferências Realizadas'},
     {id:'tarefas',label:'📌 Central de Tarefas'},
     {id:'financeiro',label:'💰 Financeiro'},
@@ -11327,6 +11355,92 @@ function toggleSolicPanel(prefix){
   const open=body.style.display!=='none';
   body.style.display=open?'none':'block';
   if(chev) chev.style.transform=open?'rotate(-90deg)':'rotate(0deg)';
+}
+
+// ── Integrações Feitas / Imagens Feitas ───────────────────────
+function _feitasIsML(it){
+  if(it && it.tipo==='ml') return true;
+  return /^Mercado Livre/i.test((it&&(it.variacao||it.marketplace))||'');
+}
+// Casa com a linha da Conferência (por SKU ou MLB) para herdar Produto/Marca já cadastrados
+function _feitasConfMatch(sku, mlb){
+  const s=(sku||'').trim().toLowerCase(), m=(mlb||'').trim().toLowerCase();
+  const arr=appState.conferencia||[];
+  let r=null;
+  if(s) r=arr.find(x=>(x.sku||'').trim().toLowerCase()===s);
+  if(!r&&m) r=arr.find(x=>((x.mlb||'').trim().toLowerCase())===m);
+  return r||null;
+}
+// Pill da plataforma no padrão/layout do sistema
+function _feitasPlatPill(it){
+  const nome=(it.variacao||it.marketplace||'—');
+  const std=INTEG_TO_ATV_MKT[nome]||nome;
+  const cor=(ATV_MARKETPLACE_CORES[std])||'#a78bfa';
+  const [r,g,b]=_hexToRgb(cor.length===7?cor:'#a78bfa');
+  return `<span style="display:inline-block;background:rgba(${r},${g},${b},.10);border:1.5px solid rgba(${r},${g},${b},.5);color:${cor};padding:3px 12px;border-radius:10px;font-weight:700;font-size:10px;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;">${std}</span>`;
+}
+function _esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+
+function renderFeitas(tipo){
+  const isImg = tipo==='imagem';
+  const prefix = isImg?'imgf':'intf';
+  const wrap=document.getElementById(prefix+'-wrap');
+  const empty=document.getElementById(prefix+'-empty');
+  if(!wrap) return;
+  const canEdit = currentUser && (currentUser.master || (currentUser.perms||[]).includes('integracoes'));
+  const source = isImg ? (appState.imagensReq||[]) : (appState.integracoes||[]);
+  const q=((document.getElementById(prefix+'-search')||{}).value||'').toLowerCase().trim();
+  const marcas=getAllMarcas();
+  const items = source.slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0)).filter(it=>{
+    if(!q) return true;
+    const conf=_feitasConfMatch(it.sku,it.mlb);
+    const hay=[it.sku,it.mlb,(it.produto!==undefined?it.produto:(conf&&conf.produto)),(it.marca!==undefined?it.marca:(conf&&conf.marca)),it.variacao,it.marketplace,it.criadoPor].map(x=>(x||'').toString().toLowerCase()).join(' ');
+    return hay.includes(q);
+  });
+  if(items.length===0){ wrap.innerHTML=''; if(empty) empty.style.display='block'; return; }
+  if(empty) empty.style.display='none';
+  const thBase='padding:8px 10px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;text-align:left;position:sticky;top:0;background:var(--bg-surface);';
+  const inpStyle='width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:5px 8px;outline:none;';
+  let rows='';
+  items.forEach(it=>{
+    const conf=_feitasConfMatch(it.sku,it.mlb);
+    const ml=_feitasIsML(it);
+    const skuCell = ml ? '—' : (it.sku||'—');
+    const idCell  = ml ? (it.mlb||'—') : '—';
+    const produto = (it.produto!==undefined?it.produto:(conf?conf.produto:''))||'';
+    const marca   = (it.marca!==undefined?it.marca:(conf?conf.marca:''))||'';
+    const feito = it.status==='concluida';
+    const statusBadge = feito
+      ? `<span style="background:rgba(34,197,94,.14);border:1px solid var(--green-dim);color:var(--green);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;">Feito</span>`
+      : `<span style="background:rgba(217,119,6,.12);border:1px solid var(--amber-dim);color:var(--amber);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;">A Fazer</span>`;
+    const dis = canEdit ? '' : 'disabled';
+    const marcaOpts = ['<option value="">—</option>'].concat(marcas.map(m=>`<option value="${_esc(m.nome)}" ${m.nome===marca?'selected':''}>${_esc(m.nome)}</option>`)).join('');
+    rows+=`<tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap;">${it.criadoEm||'—'}</td>
+      <td style="padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);white-space:nowrap;">${_esc(skuCell)}</td>
+      <td style="padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);white-space:nowrap;">${_esc(idCell)}</td>
+      <td style="padding:5px 8px;min-width:190px;"><input type="text" ${dis} value="${_esc(produto)}" placeholder="—" onchange="feitasSetCampo('${tipo}','${it.id}','produto',this)" style="${inpStyle}"></td>
+      <td style="padding:5px 8px;min-width:150px;"><select ${dis} onchange="feitasSetCampo('${tipo}','${it.id}','marca',this)" style="${inpStyle}cursor:pointer;">${marcaOpts}</select></td>
+      <td style="padding:7px 10px;">${_feitasPlatPill(it)}</td>
+      <td style="padding:7px 10px;text-align:center;">${statusBadge}</td>
+    </tr>`;
+  });
+  wrap.innerHTML=`<table style="width:100%;border-collapse:collapse;font-size:12px;min-width:920px;">
+    <thead><tr>
+      <th style="${thBase}">Dia</th><th style="${thBase}">SKU</th><th style="${thBase}">ID Anúncio</th>
+      <th style="${thBase}">Produto</th><th style="${thBase}">Marca</th><th style="${thBase}">Plataforma</th>
+      <th style="${thBase}text-align:center;">Status Tarefa</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+}
+function renderIntegracoesFeitas(){ renderFeitas('integracao'); }
+function renderImagensFeitas(){ renderFeitas('imagem'); }
+function feitasSetCampo(tipo,id,campo,el){
+  if(!(currentUser&&(currentUser.master||(currentUser.perms||[]).includes('integracoes')))){ showToast('Sem permissão para editar','error'); return; }
+  const arr = tipo==='imagem' ? (appState.imagensReq||[]) : (appState.integracoes||[]);
+  const it=arr.find(x=>x.id===id);
+  if(!it) return;
+  it[campo]=el.value;
+  saveState(appState);
 }
 
 function openAtvModal(id){
