@@ -1176,11 +1176,34 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       </div>
       <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Selecione o marketplace para solicitar a integração/importação do anúncio.</div>
       <div id="integ-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;"></div>
-      <div class="section-header" style="margin-top:8px;">
+      <div class="section-header" style="margin-top:8px;cursor:pointer;user-select:none;" onclick="toggleSolicPanel('integ')">
         <span class="section-title" style="font-size:14px;">Solicitações</span>
+        <span id="integ-solic-chevron" style="margin-left:8px;font-size:12px;color:var(--text-muted);transition:transform .15s;transform:rotate(0deg);display:inline-block;">▾</span>
       </div>
-      <div id="integ-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <div id="integ-empty" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">Nenhuma solicitação ainda.</div>
+      <div id="integ-solic-body">
+        <div style="margin:6px 0 14px;">
+          <input id="integ-search" type="text" placeholder="🔎 Buscar solicitação (plataforma, SKU, MLB, produto, solicitante)..." oninput="renderIntegracoes()"
+            style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+              <span id="integ-count-afazer" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="integ-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="integ-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+              <span id="integ-count-conc" style="background:rgba(13,148,136,.12);border:1px solid rgba(13,148,136,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="integ-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="integ-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- IMAGENS -->
@@ -1190,11 +1213,34 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
       </div>
       <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Selecione o marketplace para solicitar imagens/artes.</div>
       <div id="img-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;"></div>
-      <div class="section-header" style="margin-top:8px;">
+      <div class="section-header" style="margin-top:8px;cursor:pointer;user-select:none;" onclick="toggleSolicPanel('img')">
         <span class="section-title" style="font-size:14px;">Solicitações</span>
+        <span id="img-solic-chevron" style="margin-left:8px;font-size:12px;color:var(--text-muted);transition:transform .15s;transform:rotate(0deg);display:inline-block;">▾</span>
       </div>
-      <div id="img-list" style="display:flex;flex-direction:column;gap:8px;"></div>
-      <div id="img-empty" style="display:none;padding:32px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">Nenhuma solicitação ainda.</div>
+      <div id="img-solic-body">
+        <div style="margin:6px 0 14px;">
+          <input id="img-search" type="text" placeholder="🔎 Buscar solicitação (plataforma, SKU, produto, solicitante)..." oninput="renderImagens()"
+            style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+              <span id="img-count-afazer" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="img-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="img-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+              <span id="img-count-conc" style="background:rgba(13,148,136,.12);border:1px solid rgba(13,148,136,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="img-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="img-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- BAIXAS DROGARIAS -->
@@ -11129,11 +11175,18 @@ function _statusBadgeHtml(status){
 function renderIntegracoes(){
   _renderMktGrid('integ-grid', m=>openIntegModal(m,null));
   if(!Array.isArray(appState.integracoes)) appState.integracoes=[];
-  const list=document.getElementById('integ-list');
-  if(!list) return;
-  list.innerHTML='';
+  const listA=document.getElementById('integ-list-afazer');
+  const listC=document.getElementById('integ-list-conc');
+  if(!listA||!listC) return;
+  listA.innerHTML=''; listC.innerHTML='';
+  const q=((document.getElementById('integ-search')||{}).value||'').toLowerCase().trim();
   const items=appState.integracoes.slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+  let nA=0,nC=0;
   items.forEach(it=>{
+    if(q){
+      const hay=[it.variacao,it.marketplace,it.sku,it.mlb,it.criadoPor].map(x=>(x||'').toString().toLowerCase()).join(' ');
+      if(!hay.includes(q)) return;
+    }
     const atribuidoNome = appState.users[it.atribuir] ? appState.users[it.atribuir].name : 'Não atribuído';
     const card=document.createElement('div');
     card.style.cssText='background:#1a1d2b;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
@@ -11148,10 +11201,12 @@ function renderIntegracoes(){
       </div>
       <div style="font-size:11px;color:#9aa1b0;">${detalhe} · Atribuído: ${atribuidoNome}</div>
       <div style="font-size:9.5px;color:#7d8494;margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
-    list.appendChild(card);
+    if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
   });
-  const empty=document.getElementById('integ-empty');
-  if(empty) empty.style.display = items.length===0 ? 'block' : 'none';
+  const cntA=document.getElementById('integ-count-afazer'); if(cntA) cntA.textContent=nA;
+  const cntC=document.getElementById('integ-count-conc'); if(cntC) cntC.textContent=nC;
+  const emA=document.getElementById('integ-empty-afazer'); if(emA) emA.style.display=nA===0?'block':'none';
+  const emC=document.getElementById('integ-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
 }
 
 // ── Imagens ───────────────────────────────────────────────
@@ -11231,11 +11286,18 @@ function deleteImagemReq(id){
 function renderImagens(){
   _renderMktGrid('img-grid', m=>openImgModal(m,null), true);
   if(!Array.isArray(appState.imagensReq)) appState.imagensReq=[];
-  const list=document.getElementById('img-list');
-  if(!list) return;
-  list.innerHTML='';
+  const listA=document.getElementById('img-list-afazer');
+  const listC=document.getElementById('img-list-conc');
+  if(!listA||!listC) return;
+  listA.innerHTML=''; listC.innerHTML='';
+  const q=((document.getElementById('img-search')||{}).value||'').toLowerCase().trim();
   const items=appState.imagensReq.slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+  let nA=0,nC=0;
   items.forEach(it=>{
+    if(q){
+      const hay=[it.variacao,it.marketplace,it.sku,it.criadoPor,it.consideracoes].map(x=>(x||'').toString().toLowerCase()).join(' ');
+      if(!hay.includes(q)) return;
+    }
     const atribuidoNome = appState.users[it.atribuir] ? appState.users[it.atribuir].name : 'Não atribuído';
     const card=document.createElement('div');
     card.style.cssText='background:#1a1d2b;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
@@ -11249,10 +11311,22 @@ function renderImagens(){
       </div>
       <div style="font-size:11px;color:#9aa1b0;">SKU: ${it.sku||'—'} · Atribuído: ${atribuidoNome}${it.consideracoes?' · '+it.consideracoes:''}</div>
       <div style="font-size:9.5px;color:#7d8494;margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
-    list.appendChild(card);
+    if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
   });
-  const empty=document.getElementById('img-empty');
-  if(empty) empty.style.display = items.length===0 ? 'block' : 'none';
+  const cntA=document.getElementById('img-count-afazer'); if(cntA) cntA.textContent=nA;
+  const cntC=document.getElementById('img-count-conc'); if(cntC) cntC.textContent=nC;
+  const emA=document.getElementById('img-empty-afazer'); if(emA) emA.style.display=nA===0?'block':'none';
+  const emC=document.getElementById('img-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
+}
+
+// Recolhe/expande o painel de Solicitações (Integração/Imagens)
+function toggleSolicPanel(prefix){
+  const body=document.getElementById(prefix+'-solic-body');
+  const chev=document.getElementById(prefix+'-solic-chevron');
+  if(!body) return;
+  const open=body.style.display!=='none';
+  body.style.display=open?'none':'block';
+  if(chev) chev.style.transform=open?'rotate(-90deg)':'rotate(0deg)';
 }
 
 function openAtvModal(id){
