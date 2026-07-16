@@ -13,7 +13,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suplelive — Processos</title>
+<title>Suplelive — LiveOps</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
 :root {
@@ -638,7 +638,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;">
       <div class="brand">Suple<span class="brand-live">live.</span></div>
     </div>
-    <div class="tagline">Processos</div>
+    <div class="tagline"><span style="color:#ef4444;-webkit-text-fill-color:#ef4444;">Live</span><span style="color:#ffffff;-webkit-text-fill-color:#ffffff;">Ops</span></div>
   </div>
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Acesso ao Sistema</h2>
@@ -661,7 +661,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;">
         <div class="header-brand">Suple<span class="brand-live">live.</span></div>
-        <div style="font-size:11px;background:linear-gradient(90deg,rgba(148,163,184,0.3),rgba(148,163,184,0.8),rgba(148,163,184,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:6px;text-transform:uppercase;font-family:var(--font-mono);font-weight:400;">Processos</div>
+        <div style="font-size:11px;letter-spacing:6px;text-transform:uppercase;font-family:var(--font-mono);font-weight:700;"><span style="color:#ef4444;">Live</span><span style="color:#ffffff;">Ops</span></div>
       </div>
     </div>
     <!-- Sino de notificações -->
@@ -1467,8 +1467,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
               <span style="font-size:10px;color:var(--accent);font-family:var(--font-mono);display:flex;align-items:center;gap:5px;"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--accent);"></span>Pendentes</span>
             </div>
           </div>
-          <canvas id="bar3d-chart" height="200" style="width:100%;display:block;border-radius:8px;"></canvas>
-          <div id="bar3d-axis" style="display:flex;justify-content:space-around;margin-top:6px;padding:0 8px;"></div>
+          <div id="dash-week-chart" style="display:flex;align-items:flex-end;gap:6px;height:200px;padding:14px 4px 0;"></div>
           <div id="bar3d-dia-detalhe" style="display:none;margin-top:14px;padding:12px 14px;background:var(--bg-active);border:1px solid var(--border);border-radius:10px;"></div>
         </div>
 
@@ -1642,7 +1641,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     </div>
     <div style="display:grid;gap:12px;">
       <div class="input-group">
-        <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span id="atv-titulo-admin-btns" style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="defAtvPrazo()" title="Definir prazo (dias) para este título" class="btn-orb v-open" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg></button></span></label>
+        <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span id="atv-titulo-admin-btns" style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
         <select id="atv-titulo" onchange="atvTituloChanged()"></select>
       </div>
       <div class="input-group">
@@ -3153,8 +3152,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
 function buildTabs(){
   const tabs=[
     {type:'group', id:'grp-tarefas', icon:'📌', label:'Central de Tarefas', perm:'tarefas', children:[
-      {id:'tarefas',   label:'Tarefas Diárias'},
-      {id:'projetos',  label:'Projetos', masterOnly:true}
+      {id:'tarefas',   label:'Tarefas Diárias'}
     ]},
     {id:'atendimentos',icon:'📞',label:'Atendimentos',          perm:'atendimentos'},
     {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', permAny:['whatsapp','envios'], children:[
@@ -3181,7 +3179,6 @@ function buildTabs(){
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {id:'devolucoes', icon:'↩',  label:'Devoluções',            perm:'devolucoes'},
     {id:'cnpjs',      icon:'🏢', label:'CNPJs Suplelive', perm:'cnpjs'},
-    {id:'progresso',  icon:'⚡', label:'Progresso Hoje',        perm:null, hideFromMaster:true},
     {id:'admin',      icon:'⚙', label:'Adm. Master',           perm:'admin'}
   ];
   const nav=document.getElementById('tabs-nav');
@@ -7497,7 +7494,47 @@ function renderDash(){
       </div>`).join('');
   }
 
-  // ── 3D Bar Chart ─────────────────────────────────────────
+  // ── Gráfico de barras (layout igual ao de "Registro de Vendas") ──
+  const weekChart = document.getElementById('dash-week-chart');
+  if(weekChart){
+    weekChart.innerHTML='';
+    const maxV = Math.max(...days.map(d=>hist[d].total||0), 1);
+    days.forEach(d=>{
+      const h=hist[d]||{}; const tot=h.total||0; const done=h.done||0; const pend=tot-done;
+      const taxa = tot>0 ? Math.round(done/tot*100) : 0;
+      const mainC = taxa>=80 ? '#22c55e' : taxa>=50 ? '#f59e0b' : '#c0392b';
+      const dObj = new Date(d+'T12:00:00');
+      const lblCurta = dObj.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+' '+String(dObj.getDate()).padStart(2,'0');
+      const col=document.createElement('div');
+      col.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;cursor:pointer;';
+      col.title=dObj.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})+' — '+done+'/'+tot+' concluídas';
+      col.onclick=()=>{ try{ showPendentesDia(d, hist[d]); }catch(e){} };
+      const val=document.createElement('div');
+      val.style.cssText=`font-size:10px;font-family:var(--font-mono);font-weight:700;color:${mainC};white-space:nowrap;`;
+      val.textContent = tot>0 ? taxa+'%' : '';
+      col.appendChild(val);
+      const barWrap=document.createElement('div');
+      const totH = tot>0 ? Math.max(6, Math.round(tot/maxV*100)) : 2;
+      barWrap.style.cssText=`width:46%;max-width:46px;height:${totH}%;display:flex;flex-direction:column;justify-content:flex-end;border-radius:6px 6px 2px 2px;overflow:hidden;border:1px solid ${_hexA(mainC,0.6)};box-shadow:0 0 10px ${_hexA(mainC,0.3)};${tot===0?'opacity:.25;':''}`;
+      const pendPct = tot>0 ? Math.round(pend/tot*100) : 0;
+      if(pend>0){
+        const p=document.createElement('div');
+        p.style.cssText=`height:${pendPct}%;background:linear-gradient(180deg,#f87171,${_hexA('#c0392b',0.6)});`;
+        barWrap.appendChild(p);
+      }
+      const dn=document.createElement('div');
+      dn.style.cssText=`height:${tot>0?(100-pendPct):100}%;background:linear-gradient(180deg,${mainC},${_hexA(mainC,0.35)});`;
+      barWrap.appendChild(dn);
+      col.appendChild(barWrap);
+      const lbl=document.createElement('div');
+      lbl.style.cssText='font-size:9px;color:var(--text-muted);font-family:var(--font-mono);text-transform:capitalize;white-space:nowrap;';
+      lbl.textContent=lblCurta;
+      col.appendChild(lbl);
+      weekChart.appendChild(col);
+    });
+  }
+
+  // ── (legado) 3D Bar Chart — inerte: elemento canvas removido ──
   const canvas = document.getElementById('bar3d-chart');
   const axisEl = document.getElementById('bar3d-axis');
   if(canvas){
