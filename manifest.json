@@ -1,7 +1,7 @@
 {
-  "name": "Suplelive.processos",
-  "short_name": "Suplelive",
-  "description": "processos",
+  "name": "LiveOps — Live Operations",
+  "short_name": "LiveOps",
+  "description": "Live Operations",
   "start_url": "/suplive.processos/",
   "scope": "/suplive.processos/",
   "display": "standalone",

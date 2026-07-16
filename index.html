@@ -13,7 +13,7 @@
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Suplelive — LiveOps</title>
+<title>LiveOps — Live Operations</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
 :root {
@@ -636,9 +636,9 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 <div id="splash">
   <div class="splash-logo">
     <div style="display:flex;flex-direction:row;align-items:center;justify-content:center;gap:12px;">
-      <div class="brand">Suple<span class="brand-live">live.</span></div>
+      <div class="brand"><span class="brand-live">Live</span><span class="brand-on">Ops</span></div>
     </div>
-    <div class="tagline"><span style="color:#ef4444;-webkit-text-fill-color:#ef4444;">Live</span><span style="color:#ffffff;-webkit-text-fill-color:#ffffff;">Ops</span></div>
+    <div class="tagline">Live Operations</div>
   </div>
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Acesso ao Sistema</h2>
@@ -660,8 +660,8 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
     <div style="width:40px;"></div>
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;">
-        <div class="header-brand">Suple<span class="brand-live">live.</span></div>
-        <div style="font-size:11px;letter-spacing:6px;text-transform:uppercase;font-family:var(--font-mono);font-weight:700;"><span style="color:#ef4444;">Live</span><span style="color:#ffffff;">Ops</span></div>
+        <div class="header-brand"><span class="brand-live">Live</span><span class="brand-on">Ops</span></div>
+        <div style="font-size:11px;background:linear-gradient(90deg,rgba(148,163,184,0.3),rgba(148,163,184,0.8),rgba(148,163,184,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:6px;text-transform:uppercase;font-family:var(--font-mono);font-weight:400;">Live Operations</div>
       </div>
     </div>
     <!-- Sino de notificações -->
@@ -5595,7 +5595,7 @@ function initPushNotifications(){
 function pushNotify(title,body,icon='⚡'){
   if(!pushGranted) return;
   try{
-    new Notification('Suplelive — '+title,{body,icon:'/favicon.ico',badge:'/favicon.ico',tag:title});
+    new Notification('LiveOps — '+title,{body,icon:'/favicon.ico',badge:'/favicon.ico',tag:title});
   }catch(e){}
 }
 
