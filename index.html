@@ -12973,6 +12973,16 @@ function _valDescontoParaQtd(qtd,faixas){
 function _valParseMoeda(id){
   return parseFloat((document.getElementById(id)?.value||'').replace(/\./g,'').replace(',','.'))||0;
 }
+// Regra do frete: centavos até 0,50 arredondam p/ BAIXO (inteiro menor); de 0,51 em
+// diante arredondam p/ CIMA (próximo inteiro). Ex.: 15,49→15 | 15,50→15 | 15,51→16.
+// Só afeta o frete; produto e cartão seguem exatamente intactos.
+function _valArredondaFrete(frete){
+  if(!frete||frete<=0) return 0;
+  const cent=Math.round(frete*100);
+  const reais=Math.floor(cent/100);
+  const resto=cent-reais*100;
+  return resto<=50 ? reais : reais+1;
+}
 function _valFaixasLive(){
   const rd=getRegraDescontoPix();
   const inputs=[...document.querySelectorAll('.val-desc-pct-input')];
@@ -13025,15 +13035,17 @@ function atualizarPreviewValores(){
   const preco=_valParseMoeda('val-preco-site');
   const frete=_valParseMoeda('val-frete');
   const qtd=parseInt((document.getElementById('val-qtd')?.value||'').replace(/\D/g,''),10)||0;
-  let out='PIX = Preço Site × (1 − desc%) × Qtd + Frete\nCartão = Total PIX × (1 + acréscimo%)\n';
+  let out='PIX = Preço Site × (1 − desc%) × Qtd + Frete*\nCartão = Total PIX × (1 + acréscimo%)\n*Frete: centavos até 0,50 ↓ / 0,51+ ↑ (só o frete)\n';
   if(preco>0&&qtd>0){
     const faixas=_valFaixasLive();
     const parcelas=_valParcelasLive();
     const desc=_valDescontoParaQtd(qtd,faixas);
     const unit=preco*(1-desc/100);
-    const pixTotal=unit*qtd+frete;
+    const freteArred=_valArredondaFrete(frete);
+    const pixTotal=unit*qtd+freteArred;
     out+=`\nQtd ${qtd} → desconto ${desc}%\n`;
-    out+=`PIX: ${fmt(preco)} × (1−${desc}/100) × ${qtd}${frete>0?' + '+fmt(frete):''} = R$ ${fmt(pixTotal)}\n`;
+    if(frete>0) out+=`Frete ${fmt(frete)} → arredondado R$ ${fmt(freteArred)}\n`;
+    out+=`PIX: ${fmt(preco)} × (1−${desc}/100) × ${qtd}${freteArred>0?' + '+fmt(freteArred):''} = R$ ${fmt(pixTotal)}\n`;
     parcelas.slice().sort((a,b)=>a.n-b.n).forEach(f=>{
       const total=pixTotal*(1+f.pct/100);
       out+=`${f.n===1?'à vista':f.n+'x'} (+${f.pct}%): R$ ${fmt(total)}  (${f.n}× R$ ${fmt(total/f.n)})\n`;
@@ -13105,10 +13117,11 @@ function gerarValores(){
 
   const desc=_valDescontoParaQtd(qtd,faixas);
   const precoUnitPix=preco*(1-desc/100);
-  const pixTotal=precoUnitPix*qtd+frete;
+  const freteArred=_valArredondaFrete(frete);
+  const pixTotal=precoUnitPix*qtd+freteArred;
   const maxParc=parcelas.length?Math.max(...parcelas.map(f=>f.n)):3;
 
-  const linhasDesc=faixas.map(f=>`* ${f.qtd} und.   ${f.pct}% OFF`).join('\n');
+  const linhasDesc=faixas.map(f=>`* ${f.qtd} und. ${f.pct}% OFF`).join('\n');
 
   // Tabela dentro de bloco ``` (monoespaçado nativo do WhatsApp p/ alinhar colunas)
   const padEnd=(s,len)=>s.length>=len?s:s+' '.repeat(len-s.length);
@@ -13119,19 +13132,19 @@ function gerarValores(){
     const label=f.n===1?'Crédito à vista':`Crédito ${f.n}x`;
     linhasDados.push([label,'R$ '+fmt(total),'R$ '+fmt(parcela)]);
   });
-  const todas=[['','Total','Parcelas de'],...linhasDados];
+  const todas=[['','Total','Parcelas de:'],...linhasDados];
   const c0=Math.max(...todas.map(r=>r[0].length))+2;
   const c1=Math.max(...todas.map(r=>r[1].length))+2;
   const linhasTexto=todas.map(r=>padEnd(r[0],c0)+padEnd(r[1],c1)+r[2]);
 
   const texto=
-`Segue abaixo os valores
+`Segue abaixo a nossa tabela de descontos:
 
 ${linhasDesc}
 
-A sua compra está sendo de ${qtd} und., sendo considerado o desconto de ${desc}%.
 
-Segue abaixo os valores no PIX e no Cartão de Crédito em até ${maxParc}x:
+Como o seu pedido é de ${qtd} und., aplicamos o desconto de ${desc}%.
+Confira os valores finais no PIX e Cartão de Crédito em até ${maxParc}x:
 
 \`\`\`
 ${linhasTexto.join('\n')}
