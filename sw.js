@@ -1,4 +1,4 @@
-const CACHE = 'suplelive-v2';
+const CACHE = 'suplelive-v3';
 const ASSETS = ['/suplive.processos/', '/suplive.processos/index.html'];
 
 self.addEventListener('install', e => {
