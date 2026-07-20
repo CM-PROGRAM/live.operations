@@ -13013,7 +13013,7 @@ function renderValMasterPanel(){
     </div>`).join('');
   document.getElementById('val-cred-editor').innerHTML=rc.parcelas.map((f,i)=>`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <div style="width:56px;font-size:12px;color:var(--text-primary);font-family:var(--font-mono);">${f.n===1?'à vista':f.n+'x'}</div>
+      <div style="width:56px;font-size:12px;color:var(--text-primary);font-family:var(--font-mono);">${f.n}x</div>
       <input type="number" min="0" max="100" step="0.01" value="${f.pct}" data-idx="${i}" class="val-cred-pct-input" oninput="atualizarPreviewValores()" style="${inpStyle}">
       <div style="font-size:12px;color:var(--text-muted);">% acrésc.</div>
     </div>`).join('');
@@ -13048,7 +13048,7 @@ function atualizarPreviewValores(){
     out+=`PIX: ${fmt(preco)} × (1−${desc}/100) × ${qtd}${freteArred>0?' + '+fmt(freteArred):''} = R$ ${fmt(pixTotal)}\n`;
     parcelas.slice().sort((a,b)=>a.n-b.n).forEach(f=>{
       const total=pixTotal*(1+f.pct/100);
-      out+=`${f.n===1?'à vista':f.n+'x'} (+${f.pct}%): R$ ${fmt(total)}  (${f.n}× R$ ${fmt(total/f.n)})\n`;
+      out+=`${f.n}x (+${f.pct}%): R$ ${fmt(total)}  (${f.n}× R$ ${fmt(total/f.n)})\n`;
     });
   } else {
     out+='\n(preencha Preço Site e Quantidade p/ ver o cálculo)';
@@ -13129,7 +13129,7 @@ function gerarValores(){
   parcelas.forEach(f=>{
     const total=pixTotal*(1+f.pct/100);
     const parcela=total/f.n;
-    const label=f.n===1?'Crédito à vista':`Crédito ${f.n}x`;
+    const label=`Crédito ${f.n}x`;
     linhasDados.push([label,'R$ '+fmt(total),'R$ '+fmt(parcela)]);
   });
   const todas=[['','Total','Parcelas de:'],...linhasDados];
