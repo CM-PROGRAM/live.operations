@@ -1128,7 +1128,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="display:flex;gap:8px;flex-wrap:wrap;" id="atv-status-tabs">
           <button onclick="atvSetStatusFilter('all')" id="atv-stab-all" class="atv-stab2 active" data-c="todas"><span class="ic"><svg viewBox="0 0 9 9" fill="currentColor"><rect x="0" y="0" width="3.8" height="3.8" rx="1"/><rect x="5.2" y="0" width="3.8" height="3.8" rx="1"/><rect x="0" y="5.2" width="3.8" height="3.8" rx="1"/><rect x="5.2" y="5.2" width="3.8" height="3.8" rx="1"/></svg></span>Todas</button>
           <button onclick="atvSetStatusFilter('aberta')" id="atv-stab-aberta" class="atv-stab2" data-c="afazer">A Fazer</button>
-          <button onclick="atvSetStatusFilter('andamento')" id="atv-stab-andamento" class="atv-stab2" data-c="andamento">Em Andamento</button>
+          <button onclick="atvSetStatusFilter('andamento')" id="atv-stab-andamento" class="atv-stab2" data-c="andamento">Com Pendência</button>
           <button onclick="atvSetStatusFilter('atrasada')" id="atv-stab-atrasada" class="atv-stab2" data-c="atrasada">Atrasada</button>
           <button onclick="atvSetStatusFilter('concluida')" id="atv-stab-concluida" class="atv-stab2" data-c="concluida">Concluídas</button>
         </div>
@@ -1163,7 +1163,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <!-- Coluna: Em Andamento -->
         <div id="atv-col-wrap-andamento">
           <div class="atv-colhead" data-c="andamento">
-            <span class="lbl">Em Andamento</span>
+            <span class="lbl">Com Pendência</span>
             <span id="atv-count-andamento" class="cnt">0</span>
           </div>
           <div id="atv-col-andamento" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
@@ -10797,13 +10797,13 @@ function renderAtividades(){
     const statusBadge=a.status==='concluida'
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#6ee7b7;background:rgba(13,148,136,.10);border:1px solid rgba(13,148,136,.4);border-radius:999px;padding:2px 9px;">Concluída</span>`
       :a.status==='andamento'
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(79,82,214,.10);border:1px solid rgba(79,82,214,.4);border-radius:999px;padding:2px 9px;">Em Andamento</span>`
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(79,82,214,.10);border:1px solid rgba(79,82,214,.4);border-radius:999px;padding:2px 9px;">Com Pendência</span>`
       :dias!==null&&dias<0
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fb7185;background:rgba(190,18,60,.10);border:1px solid rgba(190,18,60,.4);border-radius:999px;padding:2px 9px;">Atrasada</span>`
       :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fbbf24;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
 
     const isMine=getAtvResponsaveis(a).includes(currentUser.key);
-    const canAct=currentUser.master; // colaboradores têm acesso somente leitura (não alteram status)
+    const canAct=currentUser.master || isMine; // master ou o colaborador responsável podem concluir/marcar pendência
 
     const glow=ATV_GLOW[a.prioridade]||ATV_GLOW.normal;
     const avColor=uColor||'#888';
@@ -10813,23 +10813,20 @@ function renderAtividades(){
     card.onmouseover=()=>{card.style.transform='translateY(-3px)';card.style.borderColor=glow+'cc';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 20px ${glow}80,0 0 54px ${glow}55,0 0 96px ${glow}30,inset 0 1px 0 rgba(255,255,255,0.1)`;};
     card.onmouseout=()=>{card.style.transform='';card.style.borderColor=glow+'80';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 16px ${glow}66,0 0 42px ${glow}40,0 0 78px ${glow}22,inset 0 1px 0 rgba(255,255,255,0.08)`;};
     const ateOrigemBtnId = a.origemAteId ? `atv-ate-origem-${a.id}` : '';
-    let origemDescricao='';
+    // Info de frente do card: código (MLB/SKU/ID Anúncio) + quem solicitou
+    let codigoLabel='', solicitadoPor='';
     if(a.origemIntegId){
       const it=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId);
-      if(it){
-        const det = it.tipo==='ml' ? ('MLB: '+(it.mlb||'—')) : ('SKU: '+(it.sku||'—'));
-        origemDescricao = `${it.variacao||it.marketplace} · ${det}${it.consideracoes?' · '+it.consideracoes:''} · Solicitado por ${it.criadoPor||'—'}`;
-      }
+      if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
     } else if(a.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId);
-      if(it){
-        origemDescricao = `${it.variacao||it.marketplace} · SKU: ${it.sku||'—'}${it.consideracoes?' · '+it.consideracoes:''} · Solicitado por ${it.criadoPor||'—'}`;
-      }
+      if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
     } else if(a.origemAteId){
       const it=(appState.tasks && appState.tasks.atendimentos ? appState.tasks.atendimentos : []).find(x=>x.id===a.origemAteId);
-      if(it){
-        origemDescricao = `${it.plataforma||'—'} · ${it.cliente||it.nped||'—'} · Prazo: ${it.prazo||'—'} · Solicitado por ${it.criadoPor||'—'}`;
-      }
+      if(it){ codigoLabel=(it.plataforma||it.cliente||it.nped||''); solicitadoPor=it.criadoPor||'—'; }
+    } else {
+      codigoLabel = a.sku ? ((a.skuTipo||'SKU')+': '+a.sku) : '';
+      solicitadoPor = a.criadoPor||'—';
     }
     card.innerHTML=`
       <div style="position:relative;border-radius:20px;overflow:hidden;">
@@ -10839,16 +10836,14 @@ function renderAtividades(){
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
         ${ateOrigemBtnId?`<button type="button" id="${ateOrigemBtnId}" style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:3px 10px;margin-bottom:8px;cursor:pointer;">↗ Atendimento</button>`:''}
-        <div style="font-size:16px;font-weight:800;color:#f5f6fa;letter-spacing:-.01em;line-height:1.3;margin-bottom:6px;">${a.titulo||'Sem título'}</div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
-          ${statusBadge}
-          <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:#c3c8d4;"><span class="atv-prior-dot ${prior.dot}" style="width:12px;height:12px;"></span>${prior.label}</span>
-        </div>
-        <div style="font-size:12px;color:#9aa1b0;line-height:1.5;margin-bottom:12px;">${origemDescricao?(origemDescricao.length>140?origemDescricao.slice(0,140)+'…':origemDescricao):(a.descricao?(a.descricao.length>110?a.descricao.slice(0,110)+'…':a.descricao):('Atribuído a '+respLine+'.'))}</div>
+        <div style="font-size:16px;font-weight:800;color:#f5f6fa;letter-spacing:-.01em;line-height:1.3;margin-bottom:8px;">${a.titulo||'Sem título'}</div>
+        ${codigoLabel?`<div style="font-size:12.5px;color:#c3c8d4;font-family:var(--font-mono);font-weight:600;margin-bottom:4px;">${codigoLabel}</div>`:''}
+        <div style="font-size:11px;color:#9aa1b0;margin-bottom:${(a.status==='andamento'&&a.pendencia)?'8':'12'}px;">Solicitado por: <span style="color:#c3c8d4;font-weight:600;">${solicitadoPor||'—'}</span></div>
+        ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:11px;color:#fca5a5;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:6px 9px;margin-bottom:12px;line-height:1.4;">⚠ Pendência: ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:11px;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;gap:6px;">
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            <span style="font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${uColor};">${respLine}</span>
-            <span style="font-size:9.5px;color:#7d8494;">Vence: ${vencFmt}${prazoHtml?' · ':''}${prazoHtml}</span>
+          <div style="display:flex;flex-direction:column;gap:3px;">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:11px;height:11px;"></span>${prior.label}</span>
+            <span style="font-size:9.5px;color:#7d8494;">${isAtrasada?`<span style="color:#fb7185;font-weight:700;">Atrasada ${Math.abs(dias)}d</span> · `:''}Vence: ${vencFmt}</span>
           </div>
           <div style="display:flex;gap:6px;align-items:center;" id="atv-acoes-${a.id}"></div>
         </div>
@@ -10878,27 +10873,29 @@ function renderAtividades(){
       actWrap.appendChild(btnDel);
     }
 
-    // Botões de ação (Iniciar/Concluir/Reabrir) — também via DOM
+    // Botões de ação (Concluir / Pendente / Reabrir) — via DOM
     const acoesWrap = card.querySelector(`#atv-acoes-${a.id}`);
     if(canAct && acoesWrap){
-      let btnAcao=null;
-      if(a.status==='aberta'){
-        btnAcao=document.createElement('button');
-        btnAcao.className='btn-pill v-indigo';
-        btnAcao.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polygon points="6 3 20 12 6 21 6 3"/></svg></span>Iniciar';
-        btnAcao.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'andamento');};
-      } else if(a.status==='andamento'){
-        btnAcao=document.createElement('button');
-        btnAcao.className='btn-pill v-green';
-        btnAcao.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
-        btnAcao.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'concluida');};
-      } else if(a.status==='concluida'&&currentUser.master){
-        btnAcao=document.createElement('button');
-        btnAcao.className='btn-pill v-amber';
-        btnAcao.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
-        btnAcao.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'aberta');};
+      if(a.status==='concluida'){
+        if(currentUser.master){
+          const btnReabrir=document.createElement('button');
+          btnReabrir.className='btn-pill v-amber';
+          btnReabrir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
+          btnReabrir.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'aberta');};
+          acoesWrap.appendChild(btnReabrir);
+        }
+      } else {
+        const btnConcluir=document.createElement('button');
+        btnConcluir.className='btn-pill v-green';
+        btnConcluir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
+        btnConcluir.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'concluida');};
+        acoesWrap.appendChild(btnConcluir);
+        const btnPend=document.createElement('button');
+        btnPend.className='btn-pill v-amber';
+        btnPend.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Pendente';
+        btnPend.onclick=(e)=>{e.stopPropagation();atvSetPendente(a.id);};
+        acoesWrap.appendChild(btnPend);
       }
-      if(btnAcao) acoesWrap.appendChild(btnAcao);
     }
     // Clique em qualquer parte do card (fora dos botões de ação) abre a tela da tarefa
     // — exceto quando a tarefa veio de um Atendimento vencido: nesse caso, vai direto pro atendimento
@@ -10936,9 +10933,12 @@ function notifyCriadorConcluida(item,tipoLabel,tipo){
 }
 
 function atvMoveStatus(id,novoStatus){
-  if(!currentUser||!currentUser.master){showToast('Apenas o master pode alterar o status da tarefa','warn');return;}
   if(!appState.atividades) return;
   const a=appState.atividades.find(x=>x.id===id);if(!a)return;
+  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+  if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
+  // Reabrir uma tarefa concluída continua restrito ao master
+  if(a.status==='concluida' && !currentUser.master){showToast('Apenas o master pode reabrir uma tarefa concluída','warn');return;}
   const eraConcluida = a.status==='concluida';
   a.status=novoStatus;
   if(novoStatus==='concluida'){
@@ -10967,7 +10967,22 @@ function atvMoveStatus(id,novoStatus){
     }
   }
   saveState(appState);renderAtividades();
-  showToast('Tarefa → '+{aberta:'A Fazer',andamento:'Em Andamento',concluida:'Concluída'}[novoStatus],'success');
+  showToast('Tarefa → '+{aberta:'A Fazer',andamento:'Com Pendência',concluida:'Concluída'}[novoStatus],'success');
+}
+
+// Marca a tarefa como "Com Pendência" e registra o motivo (master ou colaborador responsável)
+function atvSetPendente(id){
+  if(!appState.atividades) return;
+  const a=appState.atividades.find(x=>x.id===id); if(!a) return;
+  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+  if(!podeAgir){ showToast('Você não tem permissão para alterar esta tarefa','warn'); return; }
+  const txt = window.prompt('Descreva a pendência (o que impede de concluir a tarefa):', a.pendencia||'');
+  if(txt===null) return; // cancelou
+  a.pendencia = txt.trim();
+  a.status = 'andamento';
+  saveState(appState);
+  renderAtividades();
+  showToast('Tarefa movida para "Com Pendência"','success');
 }
 
 function deleteAtividade(id){
