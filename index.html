@@ -9658,7 +9658,8 @@ const ATV_MARKETPLACE_CORES={
   'MAGALU VIXSUPPS':'#93a3ea',
   'MAGALU 4VITA':'#93a3ea',
   'DROG. PACHECO':'#f47a7a',
-  'DROG. S. PAULO':'#6fd0f5'
+  'DROG. S. PAULO':'#6fd0f5',
+  'BASE':'#9ca3af'
 };
 function _hexToRgb(hex){
   const h=hex.replace('#','');
@@ -9772,10 +9773,32 @@ function defAtvPrazo(){
 }
 
 // Regra: título com prazo configurado tem vencimento automático de N dias a partir da criação
+// Aplica os padrões do card "Entrada": Urgente, vence no mesmo dia (09h-18h;
+// senão próximo dia útil), comentário fixo e todos os marketplaces (incluindo Base).
+const ENTRADA_COMENTARIO='Criar/Atualizar o produto em questão informado';
+function atvVencimentoEntradaISO(){
+  const agora=new Date();
+  const noHorario = agora.getHours()>=9 && agora.getHours()<18;
+  const d = noHorario ? new Date() : addBusinessDays(new Date(),1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function aplicarPadraoEntrada(){
+  try{ _atvSelectPrior('urgente'); }catch(e){}
+  const vencEl=document.getElementById('atv-vencimento');
+  if(vencEl){ vencEl.value=atvVencimentoEntradaISO(); vencEl.disabled=true; vencEl.style.opacity='0.6'; }
+  const wrap=document.getElementById('atv-comentario-wrap'); if(wrap) wrap.style.display='block';
+  const com=document.getElementById('atv-comentario');
+  if(com){ com.value=ENTRADA_COMENTARIO;
+    const cnt=document.getElementById('atv-comentario-count'); if(cnt) cnt.textContent=(150-com.value.length)+' restantes'; }
+  _atvMktpRestrict=null;
+  try{ renderAtvMarketplaceOptions(); }catch(e){}
+  try{ atvSyncVencDisplay(); }catch(e){}
+}
 function atvTituloChanged(){
   const titulo=document.getElementById('atv-titulo').value;
   const vencEl=document.getElementById('atv-vencimento');
   if(!vencEl) return;
+  if(titulo==='Entrada'){ aplicarPadraoEntrada(); return; }
   const prazo=getAtvPrazo(titulo);
   if(prazo!==null){
     const d=addBusinessDays(new Date(), prazo);
@@ -12286,7 +12309,7 @@ function saveAtividade(){
   const responsaveis = (window._atvGetRespSelecionados ? window._atvGetRespSelecionados() : []).slice();
   const responsavel = responsaveis[0] || '';
   let vencimento=document.getElementById('atv-vencimento').value;
-  const prioridade=document.getElementById('atv-prioridade').value;
+  let prioridade=document.getElementById('atv-prioridade').value;
   const editId=document.getElementById('atv-edit-id').value;
   if(!titulo){showToast('Informe o título da tarefa','warn');return;}
   if(!responsavel){showToast('Selecione o colaborador responsável','warn');return;}
@@ -12298,6 +12321,8 @@ function saveAtividade(){
     const d=addBusinessDays(new Date(), prazoTitulo);
     vencimento=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   }
+  // Título "Entrada": sempre Urgente e vencimento no mesmo dia (09h-18h; senão próximo dia útil)
+  if(titulo==='Entrada'){ prioridade='urgente'; if(!editId) vencimento=atvVencimentoEntradaISO(); }
   if(!vencimento){showToast('Informe a data de vencimento','warn');return;}
   if(!Array.isArray(appState.atividades))appState.atividades=[];
 
@@ -12305,7 +12330,7 @@ function saveAtividade(){
   const vencFmt=new Date(vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
   const priorLabel={urgente:'🔴 Urgente',alta:'🟡 Alta',normal:'⚪ Normal'}[prioridade]||prioridade;
 
-  const comentario=(document.getElementById('atv-comentario')?.value||'').trim().slice(0,150);
+  const comentario=(titulo==='Entrada') ? ENTRADA_COMENTARIO : (document.getElementById('atv-comentario')?.value||'').trim().slice(0,150);
   const comentarioAutor=comentario?currentUser.name:'';
   const comentarioEm=comentario?new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
 
