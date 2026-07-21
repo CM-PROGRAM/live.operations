@@ -6660,7 +6660,7 @@ function buildDevCardFull(d, isConcluida){
     const v=document.createElement('span');v.style.cssText='font-size:15px;color:var(--text-primary);';v.textContent=val;
     r.appendChild(l);r.appendChild(v);card.appendChild(r);
   }
-  infoRow('Data Devolução',d.data);
+  infoRow('Nome Cliente',d.cliente);
   infoRow('Motivo',d.motivo);
   // Status — apenas texto colorido, sem fundo
   {
