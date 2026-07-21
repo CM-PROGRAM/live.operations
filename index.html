@@ -753,7 +753,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
       <!-- GRÁFICO DE VENDAS POR DIA -->
-      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1.5px solid rgba(167,139,250,0.5);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 16px rgba(167,139,250,0.4),0 0 42px rgba(167,139,250,0.25),0 0 78px rgba(167,139,250,0.13),inset 0 1px 0 rgba(255,255,255,0.06);">
+      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1.5px solid rgba(248,113,113,0.5);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),0 0 16px rgba(248,113,113,0.4),0 0 42px rgba(248,113,113,0.25),0 0 78px rgba(248,113,113,0.13),inset 0 1px 0 rgba(255,255,255,0.06);">
         <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border-bottom:1px solid var(--glass-border);padding:11px 16px;display:flex;align-items:center;gap:10px;">
           <div style="width:26px;height:26px;border-radius:6px;background:rgba(139,92,246,0.2);border:1px solid rgba(139,92,246,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;">📊</div>
           <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">VENDAS POR DIA</span>
@@ -3644,11 +3644,9 @@ function renderWpp(){
     card.style.marginBottom='14px';
     // Grupo estica verticalmente para preencher a tela
     card.style.flex='1';card.style.display='flex';card.style.flexDirection='column';
-    // Card neutro escuro + listra colorida na borda esquerda indicando a cor (verde=concluído, roxo=em andamento)
-    const _grpStripe = allDone ? 'var(--green)' : '#a78bfa';
-    card.style.border='1px solid var(--glass-border)';
-    card.style.borderLeft='4px solid '+_grpStripe;
-    card.style.boxShadow='0 8px 24px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.06)';
+    // Glow vermelho claro envolvendo o quadro do grupo (verde quando tudo concluído)
+    if(allDone){card.style.border='1px solid var(--green-dim)';card.style.boxShadow='0 0 0 2px var(--green-glow)';}
+    else{card.style.border='1.5px solid rgba(248,113,113,0.5)';card.style.boxShadow='0 8px 24px rgba(0,0,0,0.45),0 0 16px rgba(248,113,113,0.4),0 0 42px rgba(248,113,113,0.25),0 0 78px rgba(248,113,113,0.13),inset 0 1px 0 rgba(255,255,255,0.06)';}
 
     // Group header
     const header=document.createElement('div');header.className='task-group-header';
@@ -6580,7 +6578,7 @@ function buildDevCardFull(d, isConcluida){
   const cfg=DEV_STATUS_CONFIG[status]||{label:status,color:'var(--text-muted)',bg:'var(--bg-active)',border:'var(--border)'};
 
   const card=document.createElement('div');
-  const devGlow='#a78bfa'; // mesmo neon violeta dos cards de Atendimentos
+  const devGlow='#f87171'; // mesmo neon vermelho claro dos cards de Atendimentos
   card.style.cssText=`position:relative;background:linear-gradient(160deg,#14161f 0%,#0a0b10 100%);border:1.5px solid ${devGlow}80;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),0 0 16px ${devGlow}66,0 0 42px ${devGlow}40,0 0 78px ${devGlow}22,inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;${isConcluida?'opacity:0.75;':''}`;
   card.onmouseover=()=>{if(!isConcluida){card.style.transform='translateY(-3px)';card.style.borderColor=devGlow+'cc';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 20px ${devGlow}80,0 0 54px ${devGlow}55,0 0 96px ${devGlow}30,inset 0 1px 0 rgba(255,255,255,0.1)`;}};
   card.onmouseout=()=>{card.style.transform='';card.style.borderColor=devGlow+'80';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 16px ${devGlow}66,0 0 42px ${devGlow}40,0 0 78px ${devGlow}22,inset 0 1px 0 rgba(255,255,255,0.08)`;};
@@ -9142,7 +9140,7 @@ function buildRstCard(r, isEntregue){
   const sc = RST_STATUS_COLORS[r.status]||{bg:'var(--bg-active)',border:'var(--border)',color:'var(--text-muted)'};
 
   const card=document.createElement('div');
-  const rstGlow='#a78bfa';
+  const rstGlow='#f87171';
   card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,${isEntregue?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1.5px solid ${rstGlow}80;border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 8px 24px rgba(0,0,0,0.55),0 0 16px ${rstGlow}66,0 0 42px ${rstGlow}40,0 0 78px ${rstGlow}22,inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;${isEntregue?'opacity:0.75;':''}`;
   card.onmouseover=()=>{if(!isEntregue){card.style.transform='translateY(-2px)';card.style.borderColor=rstGlow+'cc';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 20px ${rstGlow}80,0 0 54px ${rstGlow}55,0 0 96px ${rstGlow}30,inset 0 1px 0 rgba(255,255,255,0.1)`;}};
   card.onmouseout=()=>{card.style.transform='';card.style.borderColor=rstGlow+'80';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 16px ${rstGlow}66,0 0 42px ${rstGlow}40,0 0 78px ${rstGlow}22,inset 0 1px 0 rgba(255,255,255,0.08)`;};
@@ -10647,7 +10645,7 @@ const ATV_PRIOR = {
 };
 
 // Cor de brilho (glow) fixa dos cards — roxo/lilás neon (referência Framer)
-const ATV_GLOW = { urgente:'#a78bfa', alta:'#a78bfa', normal:'#a78bfa' };
+const ATV_GLOW = { urgente:'#f87171', alta:'#f87171', normal:'#f87171' };
 
 function getAtvResponsaveis(item){
   if(item.responsaveis && Array.isArray(item.responsaveis) && item.responsaveis.length>0) return item.responsaveis;
