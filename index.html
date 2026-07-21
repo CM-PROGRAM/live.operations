@@ -8086,19 +8086,20 @@ function renderUsersGrid(){
   const grid=document.getElementById('users-grid');
   if(!grid) return;
   grid.innerHTML='';
+  // Ordem/nomes seguem o menu lateral (abas e sub-abas)
   const tabDefs=[
-    {id:'whatsapp',label:'💬 Vendas WhatsApp'},
-    {id:'plataformas',label:"🛒 Marketplaces"},
-    {id:'envios',label:'📦 Rastreios'},
-    {id:'devolucoes',label:'↩ Devoluções'},
-    {id:'atendimentos',label:'📞 Atendimentos'},
-    {id:'consultacpf',label:'🔎 Consulta CPF'},
-    {id:'conferencias',label:'✅ Conferências Realizadas'},
     {id:'tarefas',label:'📌 Central de Tarefas'},
+    {id:'atendimentos',label:'📞 Atendimentos'},
+    {id:'whatsapp',label:'🛍 Vendas · WhatsApp'},
+    {id:'envios',label:'🛍 Vendas · Rastreios'},
     {id:'financeiro',label:'💰 Financeiro'},
+    {id:'consultacpf',label:'🔎 Consulta CPF'},
     {id:'base',label:'🗄 Base'},
     {id:'integracoes',label:'🔗 Anúncios'},
-    {id:'cnpjs',label:"🏢 CNPJs Suplelive"},
+    {id:'conferencias',label:'✅ Conferências Realizadas'},
+    {id:'plataformas',label:'🛒 Marketplaces'},
+    {id:'devolucoes',label:'↩ Devoluções'},
+    {id:'cnpjs',label:'🏢 CNPJs Suplelive'},
     {id:'admin',label:'⚙ Adm. Master'}
   ];
 
