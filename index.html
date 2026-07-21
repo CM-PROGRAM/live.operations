@@ -10309,10 +10309,10 @@ function buildAteCard(d,isFinalizado){
   if(!isFinalizado) ateVerificarTarefaAutomatica(d, vencido);
 
   const card=document.createElement('div');
-  const ateGlow='#a78bfa'; // mesmo neon violeta dos cards de Tarefas Diárias
-  card.style.cssText=`position:relative;background:linear-gradient(160deg,#14161f 0%,#0a0b10 100%);border:1.5px solid ${ateGlow}80;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),0 0 16px ${ateGlow}66,0 0 42px ${ateGlow}40,0 0 78px ${ateGlow}22,inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;cursor:pointer;${isFinalizado?'opacity:0.75;':''}`;
-  card.onmouseover=()=>{card.style.transform='translateY(-3px)';card.style.borderColor=ateGlow+'cc';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 20px ${ateGlow}80,0 0 54px ${ateGlow}55,0 0 96px ${ateGlow}30,inset 0 1px 0 rgba(255,255,255,0.1)`;};
-  card.onmouseout=()=>{card.style.transform='';card.style.borderColor=ateGlow+'80';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 16px ${ateGlow}66,0 0 42px ${ateGlow}40,0 0 78px ${ateGlow}22,inset 0 1px 0 rgba(255,255,255,0.08)`;};
+  const ateGlow='#f87171'; // mesmo neon violeta dos cards de Tarefas Diárias
+  card.style.cssText=`position:relative;background:linear-gradient(160deg,#14161f 0%,#0a0b10 100%);border:1.5px solid ${ateGlow}45;border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),0 0 14px ${ateGlow}30,0 0 34px ${ateGlow}18,0 0 60px ${ateGlow}0c,inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;cursor:pointer;${isFinalizado?'opacity:0.75;':''}`;
+  card.onmouseover=()=>{card.style.transform='translateY(-3px)';card.style.borderColor=ateGlow+'45';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 16px ${ateGlow}45,0 0 40px ${ateGlow}2b,0 0 70px ${ateGlow}17,inset 0 1px 0 rgba(255,255,255,0.1)`;};
+  card.onmouseout=()=>{card.style.transform='';card.style.borderColor=ateGlow+'45';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 14px ${ateGlow}30,0 0 34px ${ateGlow}18,0 0 60px ${ateGlow}0c,inset 0 1px 0 rgba(255,255,255,0.08)`;};
   // Card inteiro abre o registro completo para edição (mesmas opções do lápis anterior)
   card.onclick=()=>{ if(canAte) openAteModal(d.id); };
   // Shine
@@ -11235,10 +11235,10 @@ function renderMktLinks(){
   const canMkt = currentUser && (currentUser.master || (currentUser.perms||[]).includes('plataformas'));
   MKT_LINKS.forEach(pf=>{
     const card=document.createElement('div');
-    const mktGlow='#c4b5fd'; // roxo mais claro
-    card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%);border:1.5px solid ${mktGlow}80;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.55),0 0 16px ${mktGlow}66,0 0 42px ${mktGlow}40,0 0 78px ${mktGlow}22,inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;`;
-    card.onmouseover=()=>{card.style.transform='translateY(-2px)';card.style.borderColor=mktGlow+'cc';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 20px ${mktGlow}80,0 0 54px ${mktGlow}55,0 0 96px ${mktGlow}30,inset 0 1px 0 rgba(255,255,255,0.1)`;};
-    card.onmouseout=()=>{card.style.transform='';card.style.borderColor=mktGlow+'80';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 16px ${mktGlow}66,0 0 42px ${mktGlow}40,0 0 78px ${mktGlow}22,inset 0 1px 0 rgba(255,255,255,0.09)`;};
+    const mktGlow='#f87171'; // roxo mais claro
+    card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%);border:1.5px solid ${mktGlow}45;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.55),0 0 14px ${mktGlow}30,0 0 34px ${mktGlow}18,0 0 60px ${mktGlow}0c,inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;`;
+    card.onmouseover=()=>{card.style.transform='translateY(-2px)';card.style.borderColor=mktGlow+'45';card.style.boxShadow=`0 14px 34px rgba(0,0,0,0.6),0 0 16px ${mktGlow}45,0 0 40px ${mktGlow}2b,0 0 70px ${mktGlow}17,inset 0 1px 0 rgba(255,255,255,0.1)`;};
+    card.onmouseout=()=>{card.style.transform='';card.style.borderColor=mktGlow+'45';card.style.boxShadow=`0 8px 24px rgba(0,0,0,0.55),0 0 14px ${mktGlow}30,0 0 34px ${mktGlow}18,0 0 60px ${mktGlow}0c,inset 0 1px 0 rgba(255,255,255,0.09)`;};
     const pnT=pf.platform.toLowerCase();
     let hc='#a78bfa';
     if(pnT.includes('loja integrada')) hc='#2dd4bf';
