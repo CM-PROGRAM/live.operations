@@ -3644,9 +3644,11 @@ function renderWpp(){
     card.style.marginBottom='14px';
     // Grupo estica verticalmente para preencher a tela
     card.style.flex='1';card.style.display='flex';card.style.flexDirection='column';
-    // Neon roxo no quadro do grupo (verde quando tudo concluído)
-    if(allDone){card.style.border='1px solid var(--green-dim)';card.style.boxShadow='0 0 0 2px var(--green-glow)';}
-    else{card.style.border='1.5px solid rgba(167,139,250,0.5)';card.style.boxShadow='0 8px 24px rgba(0,0,0,0.45),0 0 16px rgba(167,139,250,0.4),0 0 42px rgba(167,139,250,0.25),0 0 78px rgba(167,139,250,0.13),inset 0 1px 0 rgba(255,255,255,0.06)';}
+    // Card neutro escuro + listra colorida na borda esquerda indicando a cor (verde=concluído, roxo=em andamento)
+    const _grpStripe = allDone ? 'var(--green)' : '#a78bfa';
+    card.style.border='1px solid var(--glass-border)';
+    card.style.borderLeft='4px solid '+_grpStripe;
+    card.style.boxShadow='0 8px 24px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.06)';
 
     // Group header
     const header=document.createElement('div');header.className='task-group-header';
