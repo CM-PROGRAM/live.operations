@@ -2537,6 +2537,9 @@ function sanitizeFirebaseKeys(obj){
 }
 
 function saveState(s){
+  // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
+  // "ressuscitar" tarefas fantasma no blob compartilhado.
+  reconcileAutoTasks(s);
   _localVersion=Date.now();
   _lastSaveTs = _localVersion;
   // Salva localmente SEM _savedBy (para não contaminar o appState)
@@ -2869,6 +2872,7 @@ function applyRemoteState(data){
   }
   patchTaskOwners(data);
   patchDpspBaixas(data);
+  reconcileAutoTasks(data);
   return data;
 }
 
@@ -6346,6 +6350,22 @@ function criarTarefaAutoIntegracao(item){
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
   });
+}
+
+// Remove tarefas automáticas "órfãs": aquelas que vieram de uma Integração/Imagem
+// cuja solicitação de origem já não existe mais (foi excluída). Mantém o sistema
+// consistente entre todos os usuários — impede as "tarefas fantasma" que
+// reapareciam na conta de outro colaborador depois que o master excluía algo.
+function reconcileAutoTasks(state){
+  if(!state || !Array.isArray(state.atividades)) return state;
+  const integIds = new Set((state.integracoes||[]).map(x=>x&&x.id).filter(Boolean));
+  const imgIds   = new Set((state.imagensReq||[]).map(x=>x&&x.id).filter(Boolean));
+  state.atividades = state.atividades.filter(a=>{
+    if(a && a.origemIntegId) return integIds.has(a.origemIntegId);
+    if(a && a.origemImgId)   return imgIds.has(a.origemImgId);
+    return true; // tarefas manuais (sem origem) nunca são removidas aqui
+  });
+  return state;
 }
 
 // Cria automaticamente uma tarefa em Tarefas Diárias a partir de uma solicitação de Imagens
@@ -11031,9 +11051,16 @@ function atvSetPendente(id){
 function deleteAtividade(id){
   if(!currentUser.master){showToast('Apenas o master pode excluir','warn');return;}
   if(!confirm('Deseja excluir esta tarefa? Essa ação não pode ser desfeita.')) return;
+  const a=(appState.atividades||[]).find(x=>x.id===id);
   appState.atividades=(appState.atividades||[]).filter(x=>x.id!==id);
+  // Se a tarefa veio de uma Integração/Imagem, remove também a solicitação de
+  // origem para que a exclusão reflita em Integrações/Imagens para todos.
+  if(a && a.origemIntegId) appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==a.origemIntegId);
+  if(a && a.origemImgId)   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==a.origemImgId);
   saveState(appState);
   renderAtividades();
+  try{ renderIntegracoes(); }catch(e){}
+  try{ renderImagens(); }catch(e){}
   showToast('Tarefa excluída','success');
 }
 
@@ -11804,9 +11831,10 @@ function deleteIntegracao(id){
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
   if(!confirm('Excluir esta solicitação de integração?')) return;
   appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==id);
-  saveState(appState);
+  saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_integ_<id>)
   closeIntegModal();
   renderIntegracoes();
+  try{ renderAtividades(); }catch(e){}
   showToast('Solicitação excluída','success');
 }
 
@@ -12063,9 +12091,10 @@ function deleteImagemReq(id){
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
   if(!confirm('Excluir esta solicitação de imagens?')) return;
   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==id);
-  saveState(appState);
+  saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_img_<id>)
   closeImgModal();
   renderImagens();
+  try{ renderAtividades(); }catch(e){}
   showToast('Solicitação excluída','success');
 }
 
