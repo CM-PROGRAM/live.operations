@@ -10770,6 +10770,15 @@ function atvDiasRestantes(vencimento){
   return businessDaysBetween(hoje,venc);
 }
 
+// Renova o prazo para hoje quando a tarefa está atrasada e sofre uma ação
+// relevante (print anexado ou transferência) — evita continuar mostrando
+// "Atrasada Xd" com base num prazo antigo depois de uma atualização recente.
+function _atvRenovarPrazoSeAtrasado(a){
+  if(!a || !a.vencimento) return;
+  const hoje=todayStr();
+  if(a.vencimento < hoje) a.vencimento = hoje;
+}
+
 let _atvStatusFilter = 'all';
 
 function atvSetStatusFilter(s) {
@@ -12660,6 +12669,9 @@ function saveAtividade(){
       appState.atividades[idx]={...anterior,responsavel,responsaveis,
         ...(respMudou?{status:'aberta',pendencia:''}:{}),
         ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
+      // Ação recente (print anexado ou transferência) — não deve mais contar
+      // como atrasada com base num prazo antigo
+      if(provaAtualizacaoNova || respMudou) _atvRenovarPrazoSeAtrasado(appState.atividades[idx]);
       actionKind='transfer';
       showToast('Tarefa transferida','success');
     } else {
