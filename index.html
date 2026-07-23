@@ -1063,6 +1063,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="section-title">Devoluções</span>
         <button class="btn btn-sm" onclick="openDevModal()" id="btn-new-dev" style="display:none">+ Nova Devolução</button>
       </div>
+      <div style="margin-bottom:14px;">
+        <input id="dev-search" type="text" placeholder="🔎 Buscar por nome, pedido base ou motivo..." oninput="renderDev()"
+          style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:10px 18px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);"
+          onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--glass-border)'">
+      </div>
       <!-- Stats panel -->
       <div id="dev-stats-panel" style="margin-bottom:16px;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:14px;box-shadow:0 4px 24px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(12px);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
@@ -6577,9 +6582,12 @@ function renderDev(){
   const all = appState.tasks.devolucoes||[];
   all.forEach((d,idx)=>{ if(typeof d.ordemManual!=='number') d.ordemManual=idx; });
   all.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
+  const _devQ=(document.getElementById('dev-search')?.value||'').trim().toLowerCase();
+  const _devMatch=d=>!_devQ || [d.cliente,d.nped,d.motivo].some(v=>(v||'').toString().toLowerCase().includes(_devQ));
   const active = all.filter(d=>d.workflow!=='concluida'&&d.workflow!=='finalizada')
-    .filter(d=>!devFiltroPlataforma||devPltStd(d.plataforma)===devFiltroPlataforma);
-  const concluidas = all.filter(d=>d.workflow==='concluida'||d.workflow==='finalizada');
+    .filter(d=>!devFiltroPlataforma||devPltStd(d.plataforma)===devFiltroPlataforma)
+    .filter(_devMatch);
+  const concluidas = all.filter(d=>d.workflow==='concluida'||d.workflow==='finalizada').filter(_devMatch);
 
   const btnNew=document.getElementById('btn-new-dev');
   if(btnNew) btnNew.style.display=canCreate?'inline-block':'none';
@@ -6745,6 +6753,25 @@ function buildDevCardFull(d, isConcluida){
     const v=document.createElement('span');v.style.cssText=`font-size:15px;font-weight:700;letter-spacing:.5px;color:${isConcluida?'var(--green)':cfg.color};`;
     v.textContent=isConcluida?'CONCLUÍDA':cfg.label;
     r.appendChild(l);r.appendChild(v);card.appendChild(r);
+  }
+
+  // ── Links rápidos: Base e Plataforma ────────────────────────────────
+  if(d.linkBase || d.linkPlat){
+    const linksRow=document.createElement('div');
+    linksRow.style.cssText='display:flex;gap:8px;flex-wrap:wrap;';
+    function linkBtn(label,url){
+      const b=document.createElement('button');
+      b.type='button';
+      b.style.cssText='background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);border-radius:6px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;';
+      b.innerHTML='🔗 '+label;
+      b.onmouseover=()=>b.style.background='rgba(255,255,255,.12)';
+      b.onmouseout=()=>b.style.background='rgba(255,255,255,.06)';
+      b.onclick=(e)=>{ e.stopPropagation(); window.open(url,'_blank','noopener'); };
+      return b;
+    }
+    if(d.linkBase) linksRow.appendChild(linkBtn('Base',d.linkBase));
+    if(d.linkPlat) linksRow.appendChild(linkBtn('Plataforma',d.linkPlat));
+    card.appendChild(linksRow);
   }
 
   // ── Workflow buttons ───────────────────────────────────────────────
