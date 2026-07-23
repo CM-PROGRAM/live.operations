@@ -1945,12 +1945,18 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um comentário ou atualização..." oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
       </div>
       <div class="input-group" id="atv-prova-wrap" style="display:none;">
-        <label>📸 Print da conclusão</label>
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>📸 Print da conclusão</span>
+          <button type="button" id="atv-prova-remove-btn" class="btn-orb v-danger sm" title="Remover print" onclick="atvRemoverProva('conclusao')" style="display:none;width:20px;height:20px;"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+        </label>
         <div id="atv-prova-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;"></div>
         <img id="atv-prova-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src)">
       </div>
       <div class="input-group" id="atv-prova-upd-wrap" style="display:none;">
-        <label>📸 Print da última atualização</label>
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>📸 Print da última atualização</span>
+          <button type="button" id="atv-prova-upd-remove-btn" class="btn-orb v-danger sm" title="Remover print" onclick="atvRemoverProva('atualizacao')" style="display:none;width:20px;height:20px;"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+        </label>
         <div id="atv-prova-upd-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;"></div>
         <img id="atv-prova-upd-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src)">
       </div>
@@ -12377,26 +12383,31 @@ function openAtvModal(id){
     } else if(solicRow){ solicRow.style.display='none'; }
     window._atvCriadorKeyAtual=a.criadoPorKey||'';
 
-    // Print anexado na conclusão — visível a quem solicitou/master
+    // Print anexado na conclusão — visível a quem solicitou/master; quem pode
+    // agir na tarefa também pode remover, caso precise anexar um novo
     const provaWrap=document.getElementById('atv-prova-wrap');
     const provaInfo=document.getElementById('atv-prova-info');
     const provaThumb=document.getElementById('atv-prova-thumb');
+    const provaRemoveBtn=document.getElementById('atv-prova-remove-btn');
     if(a.provaConclusao && provaWrap && provaThumb){
       provaWrap.style.display='block';
       if(provaInfo) provaInfo.textContent='Enviado por '+(a.provaConclusaoPor||a.concluidoPor||'—')+(a.provaConclusaoEm?(' em '+a.provaConclusaoEm):'');
       provaThumb.src=a.provaConclusao;
       provaThumb.style.display='block';
+      if(provaRemoveBtn) provaRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
     } else if(provaWrap){ provaWrap.style.display='none'; if(provaThumb) provaThumb.style.display='none'; }
 
     // Print anexado na última atualização/transferência (Salvar Tarefa) — visível a todos
     const provaUpdWrap=document.getElementById('atv-prova-upd-wrap');
     const provaUpdInfo=document.getElementById('atv-prova-upd-info');
     const provaUpdThumb=document.getElementById('atv-prova-upd-thumb');
+    const provaUpdRemoveBtn=document.getElementById('atv-prova-upd-remove-btn');
     if(a.provaAtualizacao && provaUpdWrap && provaUpdThumb){
       provaUpdWrap.style.display='block';
       if(provaUpdInfo) provaUpdInfo.textContent='Enviado por '+(a.provaAtualizacaoPor||'—')+(a.provaAtualizacaoEm?(' em '+a.provaAtualizacaoEm):'');
       provaUpdThumb.src=a.provaAtualizacao;
       provaUpdThumb.style.display='block';
+      if(provaUpdRemoveBtn) provaUpdRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
     } else if(provaUpdWrap){ provaUpdWrap.style.display='none'; if(provaUpdThumb) provaUpdThumb.style.display='none'; }
 
     // Ações rápidas (Concluir / Pendente / Reabrir) — direto no card aberto
@@ -12509,15 +12520,20 @@ function atvAbrirConclusao(id){
   const a=(appState.atividades||[]).find(x=>x.id===id);if(!a)return;
   const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
   if(!podeAgir){showToast('Você não tem permissão para concluir esta tarefa','warn');return;}
+  // Print já pedido/anexado uma vez para conclusão — não pede de novo
+  if(a.provaConclusao){ atvMoveStatus(id,'concluida'); closeAtvModal(); return; }
   atvAbrirPrintModal('concluir',id);
 }
 
 // Clique em "Salvar Tarefa"/"Transferir Tarefa": tarefa nova não precisa de
-// print (nada para comprovar ainda); em edição de tarefa existente, exige o
-// print antes de persistir a alteração.
+// print (nada para comprovar ainda). Em edição de tarefa existente, o print
+// só é pedido a primeira vez — se já houver um anexado, os comandos seguintes
+// são aceitos direto (a pessoa pode removê-lo se precisar trocar por um novo).
 function atvSalvarClique(){
   const editId=document.getElementById('atv-edit-id').value;
   if(!editId){ saveAtividade(); return; }
+  const a=(appState.atividades||[]).find(x=>x.id===editId);
+  if(a && a.provaAtualizacao){ saveAtividade(); return; }
   atvAbrirPrintModal('save',editId);
 }
 
@@ -12559,6 +12575,22 @@ function atvVerProva(src){
   if(w) w.document.write('<img src="'+src+'" style="max-width:100%;">');
 }
 
+// Remove um print já anexado (conclusão ou atualização), liberando a
+// próxima ação (Concluir/Salvar) para pedir um novo
+function atvRemoverProva(tipo){
+  const id=document.getElementById('atv-edit-id').value;
+  const a=(appState.atividades||[]).find(x=>x.id===id);
+  if(!a) return;
+  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+  if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
+  if(!confirm('Remover este print? Será necessário anexar um novo na próxima vez que salvar/concluir.')) return;
+  if(tipo==='conclusao'){ a.provaConclusao=''; a.provaConclusaoPor=''; a.provaConclusaoEm=''; }
+  else { a.provaAtualizacao=''; a.provaAtualizacaoPor=''; a.provaAtualizacaoEm=''; }
+  saveState(appState);
+  showToast('Print removido','success');
+  openAtvModal(id);
+}
+
 function saveAtividade(){
   if(!currentUser){return;}
   const titulo=document.getElementById('atv-titulo').value.trim();
@@ -12594,15 +12626,18 @@ function saveAtividade(){
   const comentarioAutor=comentario?currentUser.name:'';
   const comentarioEm=comentario?new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
 
-  // Print anexado via tela "Anexar Print" — obrigatório para salvar/transferir
-  // uma tarefa já existente, para o outro usuário conseguir visualizar.
-  const provaAtualizacao = window._atvPendingSaveProva || '';
-  if(editId && !provaAtualizacao){
+  // Print anexado via tela "Anexar Print" — obrigatório apenas na primeira vez
+  // que a tarefa for salva/transferida; se já houver um anexado (e não tiver
+  // sido removido), os comandos seguintes são aceitos sem pedir de novo.
+  const anteriorParaCheck = editId ? appState.atividades.find(x=>x.id===editId) : null;
+  const jaTemPrintAtualizacao = !!(anteriorParaCheck && anteriorParaCheck.provaAtualizacao);
+  const provaAtualizacaoNova = window._atvPendingSaveProva || '';
+  if(editId && !provaAtualizacaoNova && !jaTemPrintAtualizacao){
     showToast('Anexe o print da tela para salvar/transferir a tarefa','warn');
     return;
   }
-  const provaAtualizacaoPor = provaAtualizacao ? currentUser.name : '';
-  const provaAtualizacaoEm = provaAtualizacao ? new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const provaAtualizacaoPor = provaAtualizacaoNova ? currentUser.name : '';
+  const provaAtualizacaoEm = provaAtualizacaoNova ? new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
 
   let actionKind='edit';
   if(editId){
@@ -12615,11 +12650,16 @@ function saveAtividade(){
       // Master edita todos os campos, inclusive comentário
       appState.atividades[idx]={...anterior,titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
         ...(comentario?{comentario,comentarioAutor,comentarioEm}:{}),
-        provaAtualizacao,provaAtualizacaoPor,provaAtualizacaoEm};
+        ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
       showToast('Tarefa atualizada','success');
     } else if(isResp){
-      // Colaborador responsável: só pode devolver ao criador ou transferir para outra pessoa
-      appState.atividades[idx]={...anterior,responsavel,responsaveis,provaAtualizacao,provaAtualizacaoPor,provaAtualizacaoEm};
+      // Colaborador responsável: só pode devolver ao criador ou transferir para outra
+      // pessoa. Ao transferir, a parte desse colaborador está concluída — a tarefa
+      // "sobe" para quem recebeu como pendente de fazer (volta para "A Fazer").
+      const respMudou = (anterior.responsaveis||[]).slice().sort().join(',') !== responsaveis.slice().sort().join(',');
+      appState.atividades[idx]={...anterior,responsavel,responsaveis,
+        ...(respMudou?{status:'aberta',pendencia:''}:{}),
+        ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
       actionKind='transfer';
       showToast('Tarefa transferida','success');
     } else {
