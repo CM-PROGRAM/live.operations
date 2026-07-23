@@ -2101,7 +2101,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </label>
         <textarea id="ate-ultima-desc" rows="4" maxlength="150" placeholder="Descreva o que aconteceu nesta atualização..." oninput="document.getElementById('ate-ultima-desc-count').textContent=(150-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
         <div style="text-align:right;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;"><span id="ate-ultima-desc-count">150 restantes</span></div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">⚠ Ao incluir um novo comentário, é necessário informar uma nova data em "Prazo Retorno" para salvar.</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">⚠ Ao incluir um novo comentário, é necessário informar uma nova data em "Prazo Retorno" e anexar um print da tratativa feita hoje para salvar.</div>
+        <div style="margin-top:8px;">
+          <input type="file" id="ate-foto" accept="image/*" style="display:none;" onchange="onAteFotoSelecionada(this)">
+          <button type="button" class="btn btn-sm" onclick="document.getElementById('ate-foto').click()" style="width:100%;">📎 <span id="ate-foto-name">Anexar print da tratativa de hoje…</span></button>
+          <img id="ate-foto-preview" style="display:none;max-width:100%;border-radius:8px;margin-top:8px;cursor:pointer;" onclick="atvVerProva(this.src)">
+        </div>
       </div>
       <div id="ate-rastreio-fields" style="display:none;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="input-group"><label>Cód. Rastreio</label><input type="text" id="ate-rastreio-cod" placeholder="Ex: BR123456789BR"></div>
@@ -2542,6 +2547,9 @@ function _stripHeavyForLocal(s){
         if(a && a.provaConclusao) a.provaConclusao='';
         if(a && a.provaAtualizacao) a.provaAtualizacao='';
       });
+    }
+    if(copy?.tasks?.atendimentos?.length){
+      copy.tasks.atendimentos.forEach(d=>{ if(d && d.ultimaFoto) d.ultimaFoto=''; });
     }
     return copy;
   }catch(e){
@@ -10169,6 +10177,13 @@ function openAteModal(id){
       if(dataLbl) dataLbl.textContent=d.ultimaData||'';
       const cntEl=document.getElementById('ate-ultima-desc-count');
       if(cntEl) cntEl.textContent=(150-(d.ultimaDesc||'').length)+' restantes';
+      // Mostra o último print enviado como referência — um novo comentário exige um novo print
+      if(d.ultimaFoto){
+        const fotoPrev=document.getElementById('ate-foto-preview');
+        const fotoName=document.getElementById('ate-foto-name');
+        if(fotoPrev){ fotoPrev.src=d.ultimaFoto; fotoPrev.style.display='block'; }
+        if(fotoName) fotoName.textContent='Print anterior — anexe um novo para o comentário de hoje';
+      }
       const statusSel=document.getElementById('ate-status');
       if(statusSel) statusSel.value=d.workflow||'aberto';
       toggleAteRastreio();
@@ -10201,6 +10216,25 @@ function ateResetComentario(){
   const btn=document.getElementById('ate-coment-btn');
   if(wrap) wrap.style.display='none';
   if(btn) btn.style.display='block';
+  _ateFotoBase64='';
+  const fotoInp=document.getElementById('ate-foto'); if(fotoInp) fotoInp.value='';
+  const fotoName=document.getElementById('ate-foto-name'); if(fotoName) fotoName.textContent='Anexar print da tratativa de hoje…';
+  const fotoPrev=document.getElementById('ate-foto-preview'); if(fotoPrev){ fotoPrev.style.display='none'; fotoPrev.src=''; }
+}
+
+// Print anexado como prova da tratativa do dia — obrigatório junto do
+// comentário/prazo para o solicitante/master conseguirem visualizar
+let _ateFotoBase64='';
+function onAteFotoSelecionada(input){
+  const f=input.files&&input.files[0];
+  if(!f) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _ateFotoBase64=String(e.target.result);
+    const nameEl=document.getElementById('ate-foto-name'); if(nameEl) nameEl.textContent=f.name;
+    const prev=document.getElementById('ate-foto-preview'); if(prev){ prev.src=_ateFotoBase64; prev.style.display='block'; }
+  };
+  reader.readAsDataURL(f);
 }
 
 function saveAte(){
@@ -10224,14 +10258,23 @@ function saveAte(){
   if(!appState.tasks.atendimentos) appState.tasks.atendimentos=[];
   const editId=document.getElementById('ate-edit-id').value;
   const existing=editId?appState.tasks.atendimentos.find(x=>x.id===editId):null;
-  // Regra: se um novo comentário do dia foi incluído/alterado, é obrigatório informar uma nova data em "Prazo Retorno"
-  if(existing && ultimaDesc && ultimaDesc!==(existing.ultimaDesc||'') && prazo===(existing.prazo||'')){
+  const descAnterior=existing?(existing.ultimaDesc||''):'';
+  const prazoAnterior=existing?(existing.prazo||''):'';
+  const descMudou = !!ultimaDesc && ultimaDesc!==descAnterior;
+  // Regra: se um novo comentário do dia foi incluído/alterado, é obrigatório informar uma nova
+  // data em "Prazo Retorno" e anexar um print da tratativa feita hoje
+  if(descMudou && prazo===prazoAnterior){
     showToast('Você incluiu um novo comentário — informe uma nova data em "Prazo Retorno" para salvar','error');return;
+  }
+  if(descMudou && !_ateFotoBase64){
+    showToast('Anexe um print da tratativa feita hoje para salvar','error');return;
   }
   const rec={
     id:editId||('ate_'+Date.now()),
     plataforma:plt,cliente,nped,natend,link,atendente,prazo,rastreioCod,rastreioLink,data,motivo,
     ultimaDesc, ultimaData,
+    ultimaFoto: descMudou ? _ateFotoBase64 : (existing?(existing.ultimaFoto||''):''),
+    ultimaFotoPor: descMudou ? currentUser.name : (existing?(existing.ultimaFotoPor||''):''),
     workflow:status,
     criadoEm:editId?undefined:nowTimeStr(),
     criadoPor:editId?undefined:currentUser.name,
@@ -10261,6 +10304,7 @@ function saveAte(){
   } else {
     appState.tasks.atendimentos.push(rec);
   }
+  _ateFotoBase64='';
   saveState(appState);closeAteModal();
   try{renderAte();}catch(e){console.warn('renderAte error:',e);}
   setTimeout(()=>{try{renderAteStats();}catch(e){}},80);
