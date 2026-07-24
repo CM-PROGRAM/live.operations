@@ -587,6 +587,8 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .btn-pill.v-amber{--pc: 245,158,11;}
 .btn-pill.v-rose{--pc: 244,63,94;}
 .btn-pill.v-gray{--pc: 148,163,184;}
+.btn-pill.v-aqua{--pc: 6,182,212;}
+.btn-pill.v-yellow{--pc: 217,119,6;}
 /* ── Central de Tarefas: pills modernos (status tabs + kanban headers) ── */
 .atv-stab2{
   display:inline-flex;align-items:center;gap:7px;
@@ -1915,7 +1917,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div class="input-group">
         <div style="background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.01));border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;">
-          <div id="atv-mkt-header" style="background:linear-gradient(135deg,#c0392b,#7a1f18);padding:8px 14px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#fff;">Marketplace</div>
+          <div id="atv-mkt-header" style="background:linear-gradient(135deg,#c0392b,#7a1f18);padding:8px 14px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#fff;text-align:center;">Marketplace</div>
           <div id="atv-marketplace-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:12px;"></div>
         </div>
         <input type="hidden" id="atv-marketplace">
@@ -1978,28 +1980,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="atv-prova-upd-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;"></div>
         <img id="atv-prova-upd-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src)">
       </div>
-      <div style="display:flex;gap:8px;" id="atv-modal-acoes"></div>
-      <div style="display:flex;gap:8px;margin-top:4px;">
-        <button class="btn btn-ghost btn-sm" onclick="closeAtvModal()" style="flex:1;padding:10px;">Cancelar</button>
-        <button class="btn btn-sm" id="atv-save-btn" onclick="atvSalvarClique()" style="flex:2;padding:10px;">Salvar Tarefa</button>
+      <div class="input-group" id="atv-imagem-wrap" style="display:none;">
+        <label>📎 Anexar Imagem</label>
+        <input type="file" id="atv-imagem-input" accept="image/*" style="display:none;" onchange="onAtvImagemSelecionada(this)">
+        <button type="button" class="btn btn-sm" onclick="document.getElementById('atv-imagem-input').click()" style="width:100%;">📎 <span id="atv-imagem-nome">Selecionar imagem…</span></button>
+        <img id="atv-imagem-preview" style="display:none;max-width:160px;border-radius:8px;margin-top:8px;cursor:pointer;" onclick="atvVerProva(this.src)">
       </div>
-    </div>
-  </div>
-</div>
-<div id="atv-concluir-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1700;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:420px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
-    <div style="position:relative;margin-bottom:16px;">
-      <div id="atv-concluir-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:22px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Concluir Tarefa</div>
-      <button onclick="closeAtvConcluirModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
-    </div>
-    <p id="atv-concluir-modal-desc" style="font-size:12.5px;color:var(--text-muted);margin:0 0 12px;line-height:1.5;">Anexe um print da tela com a tarefa concluída, para quem solicitou conseguir conferir.</p>
-    <input type="file" id="atv-concluir-print" accept="image/*" style="display:none;" onchange="onAtvConcluirPrintSelecionado(this)">
-    <button type="button" class="btn" onclick="document.getElementById('atv-concluir-print').click()" style="width:100%;">📎 <span id="atv-concluir-print-name">Selecionar print da tela…</span></button>
-    <img id="atv-concluir-preview" style="display:none;max-width:100%;border-radius:8px;margin-top:10px;">
-    <input type="hidden" id="atv-concluir-id">
-    <div style="display:flex;gap:10px;margin-top:16px;">
-      <button class="btn" onclick="closeAtvConcluirModal()" style="flex:1;">Cancelar</button>
-      <button class="btn" id="atv-concluir-confirm-btn" onclick="confirmarAtvConclusao()" style="flex:1;--bc:34,197,94;">Confirmar Conclusão</button>
+      <div style="display:flex;gap:8px;" id="atv-modal-acoes"></div>
     </div>
   </div>
 </div>
@@ -11183,12 +11170,12 @@ function renderAtividades(){
         }
       } else if(canAct){
         const btnConcluir=document.createElement('button');
-        btnConcluir.className='btn-pill v-green';
+        btnConcluir.className='btn-pill v-aqua';
         btnConcluir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
-        btnConcluir.onclick=(e)=>{e.stopPropagation();atvAbrirConclusao(a.id);};
+        btnConcluir.onclick=(e)=>{e.stopPropagation();atvConcluirCardFace(a.id);};
         acoesWrap.appendChild(btnConcluir);
         const btnPend=document.createElement('button');
-        btnPend.className='btn-pill v-amber';
+        btnPend.className='btn-pill v-yellow';
         btnPend.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Pendente';
         btnPend.onclick=(e)=>{e.stopPropagation();atvSetPendente(a.id);};
         acoesWrap.appendChild(btnPend);
@@ -12461,7 +12448,10 @@ function renderRelatorioAnuncios(){
 }
 
 function openAtvModal(id){
-  window._atvPendingSaveProva='';
+  _atvPendingImagem='';
+  const imgInp=document.getElementById('atv-imagem-input'); if(imgInp) imgInp.value='';
+  const imgNome=document.getElementById('atv-imagem-nome'); if(imgNome) imgNome.textContent='Selecionar imagem…';
+  const imgPrev=document.getElementById('atv-imagem-preview'); if(imgPrev){ imgPrev.style.display='none'; imgPrev.src=''; }
   const isMasterUser = currentUser && currentUser.master;
   const isNovaTask = !id;
   const a = id ? (appState.atividades||[]).find(x=>x.id===id) : null;
@@ -12505,7 +12495,6 @@ function openAtvModal(id){
   const comentWrap=document.getElementById('atv-comentario-wrap');
   const comentEl=document.getElementById('atv-comentario');
   const comentCnt=document.getElementById('atv-comentario-count');
-  const saveBtn=document.getElementById('atv-save-btn');
 
   // Campos editáveis: exclusivo do master (colaboradores têm acesso somente leitura)
   const podeEditarCampos = isMasterUser;
@@ -12591,7 +12580,6 @@ function openAtvModal(id){
       if(comentCnt) comentCnt.style.display='none';
       if(comentEl){ comentEl.disabled=!isMasterUser; comentEl.style.opacity=isMasterUser?'':'0.5'; }
     }
-    if(saveBtn) saveBtn.textContent=isMasterUser?'Salvar Tarefa':'Transferir Tarefa';
     // Trava o vencimento se a regra automática se aplicar
     atvTituloChanged();
     if(a.vencimento) document.getElementById('atv-vencimento').value=a.vencimento;
@@ -12624,6 +12612,13 @@ function openAtvModal(id){
       if(provaUpdRemoveBtn) provaUpdRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
     } else if(provaUpdWrap){ provaUpdWrap.style.display='none'; if(provaUpdThumb) provaUpdThumb.style.display='none'; }
 
+    // Anexar imagem — direto no card, sem tela separada. Quem pode agir na
+    // tarefa (master ou responsável) pode anexar a qualquer momento.
+    const imagemWrap=document.getElementById('atv-imagem-wrap');
+    if(imagemWrap){
+      imagemWrap.style.display=podeEditarResp?'block':'none';
+    }
+
     // Ações rápidas (Concluir / Pendente / Reabrir / Finalizar) — direto no card aberto
     const acoesEl=document.getElementById('atv-modal-acoes');
     if(acoesEl){
@@ -12655,23 +12650,23 @@ function openAtvModal(id){
           btnFinalizar.className='btn-pill v-green';
           btnFinalizar.style.flex='1';
           btnFinalizar.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Finalizar';
-          btnFinalizar.onclick=()=>{ atvMoveStatus(id,'finalizada'); closeAtvModal(); };
+          btnFinalizar.onclick=()=>{ if(!_atvPersistirCampos('finalizada'))return; closeAtvModal(); showToast('Tarefa → Finalizada','success'); };
           acoesEl.appendChild(btnFinalizar);
         }
       } else if(canAct){
         const btnConcluir=document.createElement('button');
         btnConcluir.type='button';
-        btnConcluir.className='btn-pill v-green';
+        btnConcluir.className='btn-pill v-aqua';
         btnConcluir.style.flex='1';
         btnConcluir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
-        btnConcluir.onclick=()=>atvAbrirConclusao(id);
+        btnConcluir.onclick=()=>atvConcluirModal(id);
         acoesEl.appendChild(btnConcluir);
         const btnPend=document.createElement('button');
         btnPend.type='button';
-        btnPend.className='btn-pill v-amber';
+        btnPend.className='btn-pill v-yellow';
         btnPend.style.flex='1';
         btnPend.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Pendente';
-        btnPend.onclick=()=>{ atvSetPendente(id); closeAtvModal(); };
+        btnPend.onclick=()=>atvPendenteModal(id);
         acoesEl.appendChild(btnPend);
       }
     }
@@ -12692,17 +12687,13 @@ function openAtvModal(id){
     if(comentCnt){ comentCnt.textContent='150 restantes'; comentCnt.style.display=''; }
     const historicoElNew=document.getElementById('atv-comentario-historico'); if(historicoElNew){ historicoElNew.style.display='none'; historicoElNew.innerHTML=''; }
     const novoLabelElNew=document.getElementById('atv-comentario-novo-label'); if(novoLabelElNew) novoLabelElNew.style.display='';
-    if(saveBtn) saveBtn.textContent='Salvar Tarefa';
     // Já inicia com "Entrada Produto" selecionado e vencimento automático (+2 dias)
     atvTituloChanged();
     const provaWrapNew=document.getElementById('atv-prova-wrap'); if(provaWrapNew) provaWrapNew.style.display='none';
     const provaUpdWrapNew=document.getElementById('atv-prova-upd-wrap'); if(provaUpdWrapNew) provaUpdWrapNew.style.display='none';
+    const imagemWrapNew=document.getElementById('atv-imagem-wrap'); if(imagemWrapNew) imagemWrapNew.style.display='none';
     const acoesElNew=document.getElementById('atv-modal-acoes'); if(acoesElNew) acoesElNew.innerHTML='';
   }
-  // Demais campos: exclusivos do master. O responsável pode alterar
-  // "Conferência Colaborador" (devolver/transferir) e adicionar comentários
-  // (ambos tratados acima, por título).
-  if(saveBtn) saveBtn.style.display=podeEditarResp?'':'none';
   overlay.style.display='flex';
 }
 
@@ -12710,81 +12701,20 @@ function closeAtvModal(){
   const o=document.getElementById('atv-modal-overlay');if(o)o.style.display='none';
 }
 
-// Abre a tela de anexar print — usada tanto para concluir quanto para salvar/
-// transferir uma tarefa. O outro usuário (quem solicitou/responsável) precisa
-// conseguir visualizar o que foi feito, por isso o print é sempre obrigatório.
-function atvAbrirPrintModal(mode,id){
-  window._atvPrintMode=mode;
-  window._atvConcluirBase64='';
-  document.getElementById('atv-concluir-id').value=id||'';
-  const nameEl=document.getElementById('atv-concluir-print-name'); if(nameEl) nameEl.textContent='Selecionar print da tela…';
-  const prev=document.getElementById('atv-concluir-preview'); if(prev){ prev.style.display='none'; prev.src=''; }
-  const inp=document.getElementById('atv-concluir-print'); if(inp) inp.value='';
-  const titleEl=document.getElementById('atv-concluir-modal-title');
-  const descEl=document.getElementById('atv-concluir-modal-desc');
-  const confirmBtn=document.getElementById('atv-concluir-confirm-btn');
-  if(mode==='concluir'){
-    if(titleEl) titleEl.textContent='Concluir Tarefa';
-    if(descEl) descEl.textContent='Anexe um print da tela com a tarefa concluída, para quem solicitou conseguir conferir.';
-    if(confirmBtn) confirmBtn.textContent='Confirmar Conclusão';
-  } else {
-    if(titleEl) titleEl.textContent='Anexar Print';
-    if(descEl) descEl.textContent='Anexe um print da tela comprovando a atualização, para o outro usuário conseguir visualizar.';
-    if(confirmBtn) confirmBtn.textContent='Confirmar e Salvar';
-  }
-  document.getElementById('atv-concluir-modal-overlay').style.display='flex';
-}
-
-function atvAbrirConclusao(id){
-  const a=(appState.atividades||[]).find(x=>x.id===id);if(!a)return;
-  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
-  if(!podeAgir){showToast('Você não tem permissão para concluir esta tarefa','warn');return;}
-  // Print já pedido/anexado uma vez para conclusão — não pede de novo
-  if(a.provaConclusao){ atvMoveStatus(id,'concluida'); closeAtvModal(); return; }
-  atvAbrirPrintModal('concluir',id);
-}
-
-// Clique em "Salvar Tarefa"/"Transferir Tarefa": tarefa nova não precisa de
-// print (nada para comprovar ainda). Em edição de tarefa existente, o print
-// só é pedido a primeira vez — se já houver um anexado, os comandos seguintes
-// são aceitos direto (a pessoa pode removê-lo se precisar trocar por um novo).
-function atvSalvarClique(){
-  const editId=document.getElementById('atv-edit-id').value;
-  if(!editId){ saveAtividade(); return; }
-  const a=(appState.atividades||[]).find(x=>x.id===editId);
-  if(a && a.provaAtualizacao){ saveAtividade(); return; }
-  atvAbrirPrintModal('save',editId);
-}
-
-function closeAtvConcluirModal(){
-  const o=document.getElementById('atv-concluir-modal-overlay');if(o)o.style.display='none';
-}
-
-function onAtvConcluirPrintSelecionado(input){
+// Imagem anexada inline no card (não é mais uma tela separada obrigatória
+// no momento de salvar) — fica pendente até a ação de Concluir/Pendente ser
+// clicada, quando é persistida junto com os demais campos.
+let _atvPendingImagem='';
+function onAtvImagemSelecionada(input){
   const f=input.files&&input.files[0];
   if(!f) return;
   const reader=new FileReader();
   reader.onload=e=>{
-    window._atvConcluirBase64=String(e.target.result);
-    const nameEl=document.getElementById('atv-concluir-print-name'); if(nameEl) nameEl.textContent=f.name;
-    const prev=document.getElementById('atv-concluir-preview'); if(prev){ prev.src=window._atvConcluirBase64; prev.style.display='block'; }
+    _atvPendingImagem=String(e.target.result);
+    const nameEl=document.getElementById('atv-imagem-nome'); if(nameEl) nameEl.textContent=f.name;
+    const prev=document.getElementById('atv-imagem-preview'); if(prev){ prev.src=_atvPendingImagem; prev.style.display='block'; }
   };
   reader.readAsDataURL(f);
-}
-
-function confirmarAtvConclusao(){
-  if(!window._atvConcluirBase64){ showToast('Anexe o print da tela para continuar','warn'); return; }
-  const mode=window._atvPrintMode||'concluir';
-  if(mode==='concluir'){
-    const id=document.getElementById('atv-concluir-id').value;
-    atvMoveStatus(id,'concluida',window._atvConcluirBase64);
-    closeAtvConcluirModal();
-    closeAtvModal();
-  } else {
-    window._atvPendingSaveProva=window._atvConcluirBase64;
-    closeAtvConcluirModal();
-    saveAtividade();
-  }
 }
 
 // Abre o print de conclusão em uma nova aba, em tamanho ampliado
@@ -12795,14 +12725,14 @@ function atvVerProva(src){
 }
 
 // Remove um print já anexado (conclusão ou atualização), liberando a
-// próxima ação (Concluir/Salvar) para pedir um novo
+// próxima ação (Concluir) para pedir um novo
 function atvRemoverProva(tipo){
   const id=document.getElementById('atv-edit-id').value;
   const a=(appState.atividades||[]).find(x=>x.id===id);
   if(!a) return;
   const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
   if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
-  if(!confirm('Remover este print? Será necessário anexar um novo na próxima vez que salvar/concluir.')) return;
+  if(!confirm('Remover este print? Será necessário anexar uma nova imagem para concluir novamente.')) return;
   if(tipo==='conclusao'){ a.provaConclusao=''; a.provaConclusaoPor=''; a.provaConclusaoEm=''; }
   else { a.provaAtualizacao=''; a.provaAtualizacaoPor=''; a.provaAtualizacaoEm=''; }
   saveState(appState);
@@ -12810,8 +12740,24 @@ function atvRemoverProva(tipo){
   openAtvModal(id);
 }
 
-function saveAtividade(){
-  if(!currentUser){return;}
+// Aplica os campos preenchidos no card (título/identificador/marketplace/
+// vencimento/prioridade, "Conferência Colaborador" e comentário novo) sobre
+// a tarefa em edição. É chamada pelas próprias ações de Concluir/Pendente/
+// Finalizar — não existe mais um botão "Salvar" separado. Retorna true se
+// persistiu com sucesso (false = validação falhou, toast já foi mostrado).
+// Aplica os campos preenchidos no card (título/identificador/marketplace/
+// vencimento/prioridade, "Conferência Colaborador", comentário novo e imagem
+// anexada) numa ÚNICA atualização da tarefa, já incluindo a troca de status
+// quando informada. Faz tudo de uma vez (em vez de mudar o responsável e só
+// depois mudar o status) para a permissão de quem está agindo ser sempre
+// avaliada a partir do estado anterior à edição — trocar de responsável não
+// pode "trancar a porta atrás de si" para quem está concluindo/pendenciando.
+// statusFinal: 'concluida' | 'andamento' | 'finalizada' | undefined (só edita campos)
+// pendenciaTexto: usado apenas quando statusFinal==='andamento'
+function _atvPersistirCampos(statusFinal,pendenciaTexto){
+  if(!currentUser) return false;
+  const editId=document.getElementById('atv-edit-id').value;
+  if(!editId) return true; // nada a persistir (tarefas não são mais criadas por aqui)
   const titulo=document.getElementById('atv-titulo').value.trim();
   const sku=document.getElementById('atv-sku').value.trim();
   const skuTipo=document.getElementById('atv-id-tipo')?.value||'SKU';
@@ -12822,35 +12768,28 @@ function saveAtividade(){
   const responsavel = responsaveis[0] || '';
   let vencimento=document.getElementById('atv-vencimento').value;
   let prioridade=document.getElementById('atv-prioridade').value;
-  const editId=document.getElementById('atv-edit-id').value;
-  if(!titulo){showToast('Informe o título da tarefa','warn');return;}
-  if(!responsavel){showToast('Selecione o colaborador responsável','warn');return;}
-
-  // Regra: título com prazo configurado tem vencimento automático de N dias a partir da criação.
-  // Só recalcula ao criar a tarefa; em edições o valor já vem travado no campo (definido na abertura do modal).
-  const prazoTitulo=getAtvPrazo(titulo);
-  if(prazoTitulo!==null && !editId){
-    const d=addBusinessDays(new Date(), prazoTitulo);
-    vencimento=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  }
-  // Título "Entrada": sempre Urgente e vencimento no mesmo dia (09h-18h; senão próximo dia útil)
-  if(titulo==='Entrada'){ prioridade='urgente'; if(!editId) vencimento=atvVencimentoEntradaISO(); }
-  if(!vencimento){showToast('Informe a data de vencimento','warn');return;}
+  if(!titulo){showToast('Informe o título da tarefa','warn');return false;}
+  if(!responsavel){showToast('Selecione o(a) Conferência Colaborador','warn');return false;}
+  if(titulo==='Entrada'){ prioridade='urgente'; }
+  if(!vencimento){showToast('Informe a data de vencimento','warn');return false;}
   if(!Array.isArray(appState.atividades))appState.atividades=[];
 
-  const vencFmt=new Date(vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
-  const priorLabel={urgente:'🔴 Urgente',alta:'🟡 Alta',normal:'⚪ Normal'}[prioridade]||prioridade;
+  const idx=appState.atividades.findIndex(x=>x.id===editId);
+  if(idx<0){showToast('Tarefa não encontrada','error');return false;}
+  const anterior=appState.atividades[idx];
+  const isMaster=currentUser.master;
+  const isResp=getAtvResponsaveis(anterior).includes(currentUser.key);
+  // Finalizar é liberado para CM Andrade/Matheus mesmo que, por algum motivo,
+  // a "Conferência Colaborador" não tenha sido atribuída a eles ainda
+  const isRevisorFinalizando = statusFinal==='finalizada' && _atvPodeRevisar();
+  if(!isMaster && !isResp && !isRevisorFinalizando){showToast('Você não tem permissão para alterar esta tarefa','warn');return false;}
 
-  // Comentário: no título "Entrada" é um texto fixo do sistema (comportamento
-  // já existente). Nos demais títulos, cada novo comentário é adicionado a um
-  // histórico — nunca substitui o que já foi escrito antes. Master e o
-  // colaborador responsável podem adicionar.
   const isEntradaTitulo = titulo==='Entrada';
   const comentarioFixo = isEntradaTitulo ? ENTRADA_COMENTARIO : '';
   const comentarioFixoAutor = isEntradaTitulo ? currentUser.name : '';
   const comentarioFixoEm = isEntradaTitulo ? new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const novoComentarioTexto = isEntradaTitulo ? '' : (document.getElementById('atv-comentario')?.value||'').trim().slice(0,150);
-  function _atvComentariosPatch(anterior){
+  function comentariosPatch(){
     if(!novoComentarioTexto) return {};
     const baseList = Array.isArray(anterior.comentarios) ? anterior.comentarios.slice()
       : (anterior.comentario ? [{texto:anterior.comentario,autor:anterior.comentarioAutor,em:anterior.comentarioEm}] : []);
@@ -12858,93 +12797,135 @@ function saveAtividade(){
     return {comentarios:[entrada,...baseList]};
   }
 
-  // Print anexado via tela "Anexar Print" — obrigatório apenas na primeira vez
-  // que a tarefa for salva/transferida; se já houver um anexado (e não tiver
-  // sido removido), os comandos seguintes são aceitos sem pedir de novo.
-  const anteriorParaCheck = editId ? appState.atividades.find(x=>x.id===editId) : null;
-  const jaTemPrintAtualizacao = !!(anteriorParaCheck && anteriorParaCheck.provaAtualizacao);
-  const provaAtualizacaoNova = window._atvPendingSaveProva || '';
-  if(editId && !provaAtualizacaoNova && !jaTemPrintAtualizacao){
-    showToast('Anexe o print da tela para salvar/transferir a tarefa','warn');
-    return;
-  }
+  // Imagem anexada inline (obrigatória apenas para Concluir — verificado
+  // antes de chamar esta função)
+  const provaAtualizacaoNova = _atvPendingImagem || '';
+  const agora=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const provaAtualizacaoPor = provaAtualizacaoNova ? currentUser.name : '';
-  const provaAtualizacaoEm = provaAtualizacaoNova ? new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const provaAtualizacaoEm = provaAtualizacaoNova ? agora : '';
 
-  let actionKind='edit';
-  if(editId){
-    const idx=appState.atividades.findIndex(x=>x.id===editId);
-    if(idx<0){showToast('Tarefa não encontrada','error');return;}
-    const anterior=appState.atividades[idx];
-    const isMaster=currentUser.master;
-    const isResp=getAtvResponsaveis(anterior).includes(currentUser.key);
-    if(isMaster){
-      // Master edita todos os campos, inclusive comentário
-      appState.atividades[idx]={...anterior,titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
-        ...(isEntradaTitulo?{comentario:comentarioFixo,comentarioAutor:comentarioFixoAutor,comentarioEm:comentarioFixoEm}:{}),
-        ..._atvComentariosPatch(anterior),
-        ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
-      showToast('Tarefa atualizada','success');
-    } else if(isResp){
-      // Colaborador responsável: pode devolver ao criador ou transferir para outra
-      // pessoa, e adicionar comentários. Ao transferir, a parte desse colaborador
-      // está concluída — a tarefa "sobe" para quem recebeu como pendente de fazer
-      // (volta para "A Fazer").
-      const respMudou = (anterior.responsaveis||[]).slice().sort().join(',') !== responsaveis.slice().sort().join(',');
-      appState.atividades[idx]={...anterior,responsavel,responsaveis,
-        ...(respMudou?{status:'aberta',pendencia:''}:{}),
-        ..._atvComentariosPatch(anterior),
-        ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
-      // Ação recente (print anexado ou transferência) — não deve mais contar
-      // como atrasada com base num prazo antigo
-      if(provaAtualizacaoNova || respMudou) _atvRenovarPrazoSeAtrasado(appState.atividades[idx]);
-      if(respMudou){ actionKind='transfer'; showToast('Tarefa transferida','success'); }
-      else if(novoComentarioTexto){ actionKind='comment'; showToast('Comentário adicionado','success'); }
-      else { showToast('Tarefa atualizada','success'); }
-    } else {
-      showToast('Você não tem permissão para alterar esta tarefa','warn');return;
+  const respMudou = (anterior.responsaveis||[]).slice().sort().join(',') !== responsaveis.slice().sort().join(',');
+  const eraConcluida = anterior.status==='concluida';
+
+  let patch = isMaster
+    ? {titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
+       ...(isEntradaTitulo?{comentario:comentarioFixo,comentarioAutor:comentarioFixoAutor,comentarioEm:comentarioFixoEm}:{})}
+    // Colaborador responsável: só altera "Conferência Colaborador" (devolver/
+    // transferir/atribuir para revisão) e comentários — demais campos ficam travados
+    : {responsavel,responsaveis};
+  patch = {...patch, ...comentariosPatch(), ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
+
+  if(statusFinal){
+    patch.status=statusFinal;
+    if(statusFinal==='concluida'){
+      patch.concluidoEm=new Date().toLocaleDateString('pt-BR');
+      patch.concluidoPor=currentUser.name;
+      if(provaAtualizacaoNova){ patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora; }
+    } else if(statusFinal==='andamento'){
+      patch.pendencia=(pendenciaTexto||'').trim();
+    } else if(statusFinal==='finalizada'){
+      patch.finalizadoEm=new Date().toLocaleDateString('pt-BR');
+      patch.finalizadoPor=currentUser.name;
     }
-    window._atvPendingSaveProva='';
-  } else {
-    if(!currentUser.master){showToast('Apenas o master pode criar tarefas','warn');return;}
-    appState.atividades.push({
-      id:'atv_'+Date.now(),titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
-      status:'aberta',criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
-      ordemManual:Date.now()
-    });
-    actionKind='nova';
-    showToast('Tarefa criada','success');
   }
+
+  appState.atividades[idx]={...anterior,...patch};
+
+  // Ação recente (imagem anexada ou transferência) — não deve mais contar
+  // como atrasada com base num prazo antigo
+  if(provaAtualizacaoNova || respMudou) _atvRenovarPrazoSeAtrasado(appState.atividades[idx]);
+
+  // Efeitos de concluir pela 1ª vez: notifica o criador e conclui a
+  // solicitação de origem (Integração/Imagens), igual ao fluxo anterior
+  if(statusFinal==='concluida' && !eraConcluida){
+    notifyCriadorConcluida(appState.atividades[idx],'Tarefa','tarefa');
+    if(anterior.origemIntegId){
+      const it=(appState.integracoes||[]).find(x=>x.id===anterior.origemIntegId);
+      if(it && it.status!=='concluida'){
+        it.status='concluida'; it.concluidoEm=new Date().toLocaleDateString('pt-BR'); it.concluidoPor=currentUser.name;
+        confRegistrarIntegracaoConcluida(it);
+        try{ renderIntegracoes(); }catch(e){}
+      } else if(it){ confRegistrarIntegracaoConcluida(it); }
+    }
+    if(anterior.origemImgId){
+      const it=(appState.imagensReq||[]).find(x=>x.id===anterior.origemImgId);
+      if(it && it.status!=='concluida'){
+        it.status='concluida'; it.concluidoEm=new Date().toLocaleDateString('pt-BR'); it.concluidoPor=currentUser.name;
+        confRegistrarImagemConcluida(it);
+        try{ renderImagens(); }catch(e){}
+      } else if(it){ confRegistrarImagemConcluida(it); }
+    }
+  }
+
   saveState(appState);
 
-  // ── Notificação a todos os colaboradores atribuídos ──────────
-  const notifMsg=actionKind==='nova'
-    ? `📌 Nova tarefa atribuída a você por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`
-    : actionKind==='transfer'
+  // ── Notificação a quem ficou responsável ──────────
+  const vencFmt=new Date(vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  const priorLabel={urgente:'🔴 Urgente',alta:'🟡 Alta',normal:'⚪ Normal'}[prioridade]||prioridade;
+  const notifMsg=statusFinal==='concluida'
+    ? `✅ Tarefa "${titulo}" concluída por ${currentUser.name} — atribuída para conferência`
+    : statusFinal==='finalizada'
+    ? `🏁 Tarefa "${titulo}" finalizada por ${currentUser.name}`
+    : respMudou
     ? `🔁 Tarefa transferida/devolvida por ${currentUser.name}: "${titulo}" · Vence ${vencFmt}`
-    : actionKind==='comment'
+    : novoComentarioTexto
     ? `💬 Novo comentário de ${currentUser.name} em "${titulo}"`
     : `✏ Tarefa atualizada por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`;
-
   (responsaveis.length?responsaveis:[responsavel]).filter(Boolean).forEach(respKey=>{
-    // Salva no Firebase para que o colaborador leia ao logar/recarregar
     if(db && fbConnected){
-      const notifRef=db.ref('suplelive/notificacoes/'+respKey);
-      notifRef.push({
-        msg: notifMsg,
-        ts:  Date.now(),
-        lida:false,
-        tipo:'tarefa',
-        de:  currentUser.name
-      });
+      db.ref('suplelive/notificacoes/'+respKey).push({msg:notifMsg,ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name});
     }
-    // Se o responsável for o próprio usuário logado, notifica imediatamente
-    if(respKey===currentUser.key){
-      pushNotify('Tarefa atribuída',notifMsg);
-    }
+    if(respKey===currentUser.key){ pushNotify('Tarefa atribuída',notifMsg); }
   });
 
-  closeAtvModal();renderAtividades();
+  renderAtividades();
+  return true;
+}
+
+// Clique em "Concluir" no card aberto na tela do kanban (sem o modal): se já
+// existe alguma evidência anexada, conclui direto; senão abre o card para
+// anexar a imagem por lá.
+function atvConcluirCardFace(id){
+  const a=(appState.atividades||[]).find(x=>x.id===id);if(!a)return;
+  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+  if(!podeAgir){showToast('Você não tem permissão para concluir esta tarefa','warn');return;}
+  if(a.provaConclusao || a.provaAtualizacao){
+    atvMoveStatus(id,'concluida');
+  } else {
+    showToast('Anexe uma imagem no card para concluir a tarefa','warn');
+    openAtvModal(id);
+  }
+}
+
+// Clique em "Concluir" dentro do card aberto (modal): exige uma imagem
+// anexada (a que acabou de ser selecionada ou uma já existente), persiste os
+// demais campos — inclusive quem ficará responsável pela conferência — e
+// muda o status para Concluída, tudo numa única ação.
+function atvConcluirModal(id){
+  const a=(appState.atividades||[]).find(x=>x.id===id);if(!a)return;
+  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+  if(!podeAgir){showToast('Você não tem permissão para concluir esta tarefa','warn');return;}
+  const temImagem = !!(_atvPendingImagem || a.provaConclusao || a.provaAtualizacao);
+  if(!temImagem){showToast('Anexe uma imagem para concluir a tarefa','warn');return;}
+  if(!_atvPersistirCampos('concluida')) return;
+  _atvPendingImagem='';
+  closeAtvModal();
+  showToast('Tarefa → Concluída','success');
+}
+
+// Clique em "Pendente" dentro do card aberto (modal): persiste os campos
+// preenchidos (incluindo imagem, se houver), pede o motivo da pendência e
+// registra tudo numa única ação.
+function atvPendenteModal(id){
+  const a=(appState.atividades||[]).find(x=>x.id===id);if(!a)return;
+  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+  if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
+  const txt=window.prompt('Descreva a pendência (o que impede de concluir a tarefa):', a.pendencia||'');
+  if(txt===null) return; // cancelou
+  if(!_atvPersistirCampos('andamento',txt)) return;
+  _atvPendingImagem='';
+  closeAtvModal();
+  showToast('Tarefa → Com Pendência','success');
 }
 
 document.getElementById('atv-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeAtvModal();};
