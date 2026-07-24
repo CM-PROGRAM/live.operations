@@ -1943,11 +1943,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <input type="hidden" id="atv-edit-id">
       <div class="input-group" id="atv-comentario-wrap" style="display:none;">
+        <label><span id="atv-comentario-titulo-label">💬 Comentários</span></label>
+        <div id="atv-comentario-historico" style="display:none;flex-direction:column;gap:6px;max-height:150px;overflow-y:auto;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:8px 10px;margin-bottom:8px;"></div>
         <label style="display:flex;align-items:center;justify-content:space-between;">
-          <span>💬 Comentário</span>
+          <span id="atv-comentario-novo-label" style="font-size:11px;color:var(--text-muted);">Adicionar comentário</span>
           <span id="atv-comentario-count" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">150 restantes</span>
         </label>
-        <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um comentário ou atualização..." oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
+        <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um novo comentário..." oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
       </div>
       <div class="input-group" id="atv-prova-wrap" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
@@ -12442,10 +12444,36 @@ function openAtvModal(id){
     _atvSelectPrior(a.prioridade||'normal');
     document.getElementById('atv-edit-id').value=id;
     if(titleEl)titleEl.textContent=isMasterUser?'Tarefa':(isResponsavel?'Tarefa':'Visualizar Tarefa');
-    // Mostrar campo comentário
+    // Comentários: histórico não pode ser apagado — cada novo comentário é
+    // adicionado à lista, nunca substitui o que já foi escrito. Master e o
+    // colaborador responsável podem adicionar (título "Entrada" é exceção:
+    // usa um texto fixo do sistema, tratado à parte em aplicarPadraoEntrada()).
     if(comentWrap) comentWrap.style.display='block';
-    if(comentEl){ comentEl.value=a.comentario||''; }
-    if(comentCnt) comentCnt.textContent=(150-(a.comentario||'').length)+' restantes';
+    const historicoEl=document.getElementById('atv-comentario-historico');
+    const novoLabelEl=document.getElementById('atv-comentario-novo-label');
+    if(a.titulo!=='Entrada'){
+      const lista = Array.isArray(a.comentarios) ? a.comentarios
+        : (a.comentario ? [{texto:a.comentario,autor:a.comentarioAutor,em:a.comentarioEm}] : []);
+      if(historicoEl){
+        if(lista.length){
+          historicoEl.style.display='flex';
+          historicoEl.innerHTML = lista.map(c=>`<div><div style="font-size:12px;color:var(--text-primary);line-height:1.4;">${String(c.texto||'').replace(/</g,'&lt;')}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${(c.autor||'—')}${c.em?(' · '+c.em):''}</div></div>`).join('<div style="height:1px;background:var(--border-light);margin:2px 0;"></div>');
+        } else {
+          historicoEl.style.display='none'; historicoEl.innerHTML='';
+        }
+      }
+      if(novoLabelEl) novoLabelEl.style.display='';
+      if(comentCnt) comentCnt.style.display='';
+      if(comentEl){ comentEl.value=''; comentEl.disabled=!podeEditarResp; comentEl.style.opacity=podeEditarResp?'':'0.5'; }
+      if(comentCnt) comentCnt.textContent='150 restantes';
+    } else {
+      // Título "Entrada": comentário é um texto fixo do sistema (definido em
+      // aplicarPadraoEntrada), sem histórico — só o master pode ver o campo habilitado
+      if(historicoEl){ historicoEl.style.display='none'; historicoEl.innerHTML=''; }
+      if(novoLabelEl) novoLabelEl.style.display='none';
+      if(comentCnt) comentCnt.style.display='none';
+      if(comentEl){ comentEl.disabled=!isMasterUser; comentEl.style.opacity=isMasterUser?'':'0.5'; }
+    }
     if(saveBtn) saveBtn.textContent=isMasterUser?'Salvar Tarefa':'Transferir Tarefa';
     // Trava o vencimento se a regra automática se aplicar
     atvTituloChanged();
@@ -12533,8 +12561,10 @@ function openAtvModal(id){
     document.getElementById('atv-edit-id').value='';
     if(titleEl)titleEl.textContent='Nova Tarefa';
     if(comentWrap) comentWrap.style.display='none';
-    if(comentEl) comentEl.value='';
-    if(comentCnt) comentCnt.textContent='150 restantes';
+    if(comentEl){ comentEl.value=''; comentEl.disabled=false; comentEl.style.opacity=''; }
+    if(comentCnt){ comentCnt.textContent='150 restantes'; comentCnt.style.display=''; }
+    const historicoElNew=document.getElementById('atv-comentario-historico'); if(historicoElNew){ historicoElNew.style.display='none'; historicoElNew.innerHTML=''; }
+    const novoLabelElNew=document.getElementById('atv-comentario-novo-label'); if(novoLabelElNew) novoLabelElNew.style.display='';
     if(saveBtn) saveBtn.textContent='Salvar Tarefa';
     // Já inicia com "Entrada Produto" selecionado e vencimento automático (+2 dias)
     atvTituloChanged();
@@ -12544,10 +12574,10 @@ function openAtvModal(id){
     const acoesElNew=document.getElementById('atv-modal-acoes'); if(acoesElNew) acoesElNew.innerHTML='';
     window._atvCriadorKeyAtual='';
   }
-  // Campos e comentário: exclusivos do master. O responsável pode apenas
-  // alterar "Colaborador(es) responsável(is)" (devolver/transferir) e salvar isso.
+  // Demais campos: exclusivos do master. O responsável pode alterar
+  // "Colaborador(es) responsável(is)" (devolver/transferir) e adicionar
+  // comentários (ambos tratados acima, por título).
   if(saveBtn) saveBtn.style.display=podeEditarResp?'':'none';
-  if(comentEl) comentEl.disabled=!isMasterUser;
   overlay.style.display='flex';
 }
 
@@ -12702,9 +12732,22 @@ function saveAtividade(){
   const vencFmt=new Date(vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
   const priorLabel={urgente:'🔴 Urgente',alta:'🟡 Alta',normal:'⚪ Normal'}[prioridade]||prioridade;
 
-  const comentario=(titulo==='Entrada') ? ENTRADA_COMENTARIO : (document.getElementById('atv-comentario')?.value||'').trim().slice(0,150);
-  const comentarioAutor=comentario?currentUser.name:'';
-  const comentarioEm=comentario?new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'';
+  // Comentário: no título "Entrada" é um texto fixo do sistema (comportamento
+  // já existente). Nos demais títulos, cada novo comentário é adicionado a um
+  // histórico — nunca substitui o que já foi escrito antes. Master e o
+  // colaborador responsável podem adicionar.
+  const isEntradaTitulo = titulo==='Entrada';
+  const comentarioFixo = isEntradaTitulo ? ENTRADA_COMENTARIO : '';
+  const comentarioFixoAutor = isEntradaTitulo ? currentUser.name : '';
+  const comentarioFixoEm = isEntradaTitulo ? new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const novoComentarioTexto = isEntradaTitulo ? '' : (document.getElementById('atv-comentario')?.value||'').trim().slice(0,150);
+  function _atvComentariosPatch(anterior){
+    if(!novoComentarioTexto) return {};
+    const baseList = Array.isArray(anterior.comentarios) ? anterior.comentarios.slice()
+      : (anterior.comentario ? [{texto:anterior.comentario,autor:anterior.comentarioAutor,em:anterior.comentarioEm}] : []);
+    const entrada={texto:novoComentarioTexto,autor:currentUser.name,em:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})};
+    return {comentarios:[entrada,...baseList]};
+  }
 
   // Print anexado via tela "Anexar Print" — obrigatório apenas na primeira vez
   // que a tarefa for salva/transferida; se já houver um anexado (e não tiver
@@ -12729,22 +12772,26 @@ function saveAtividade(){
     if(isMaster){
       // Master edita todos os campos, inclusive comentário
       appState.atividades[idx]={...anterior,titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
-        ...(comentario?{comentario,comentarioAutor,comentarioEm}:{}),
+        ...(isEntradaTitulo?{comentario:comentarioFixo,comentarioAutor:comentarioFixoAutor,comentarioEm:comentarioFixoEm}:{}),
+        ..._atvComentariosPatch(anterior),
         ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
       showToast('Tarefa atualizada','success');
     } else if(isResp){
-      // Colaborador responsável: só pode devolver ao criador ou transferir para outra
-      // pessoa. Ao transferir, a parte desse colaborador está concluída — a tarefa
-      // "sobe" para quem recebeu como pendente de fazer (volta para "A Fazer").
+      // Colaborador responsável: pode devolver ao criador ou transferir para outra
+      // pessoa, e adicionar comentários. Ao transferir, a parte desse colaborador
+      // está concluída — a tarefa "sobe" para quem recebeu como pendente de fazer
+      // (volta para "A Fazer").
       const respMudou = (anterior.responsaveis||[]).slice().sort().join(',') !== responsaveis.slice().sort().join(',');
       appState.atividades[idx]={...anterior,responsavel,responsaveis,
         ...(respMudou?{status:'aberta',pendencia:''}:{}),
+        ..._atvComentariosPatch(anterior),
         ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
       // Ação recente (print anexado ou transferência) — não deve mais contar
       // como atrasada com base num prazo antigo
       if(provaAtualizacaoNova || respMudou) _atvRenovarPrazoSeAtrasado(appState.atividades[idx]);
-      actionKind='transfer';
-      showToast('Tarefa transferida','success');
+      if(respMudou){ actionKind='transfer'; showToast('Tarefa transferida','success'); }
+      else if(novoComentarioTexto){ actionKind='comment'; showToast('Comentário adicionado','success'); }
+      else { showToast('Tarefa atualizada','success'); }
     } else {
       showToast('Você não tem permissão para alterar esta tarefa','warn');return;
     }
@@ -12766,6 +12813,8 @@ function saveAtividade(){
     ? `📌 Nova tarefa atribuída a você por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`
     : actionKind==='transfer'
     ? `🔁 Tarefa transferida/devolvida por ${currentUser.name}: "${titulo}" · Vence ${vencFmt}`
+    : actionKind==='comment'
+    ? `💬 Novo comentário de ${currentUser.name} em "${titulo}"`
     : `✏ Tarefa atualizada por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`;
 
   (responsaveis.length?responsaveis:[responsavel]).filter(Boolean).forEach(respKey=>{
