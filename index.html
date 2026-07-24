@@ -601,16 +601,18 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .atv-stab2 .ic{width:14px;height:14px;flex-shrink:0;display:inline-flex;}
 .atv-stab2 .ic svg{width:100%;height:100%;}
 .atv-stab2.active{color:#fff;border-color:transparent;}
-.atv-stab2[data-c="todas"]{--sc-border:rgba(139,143,245,.35);--sc-bg:rgba(99,102,241,.10);--sc-text:#a5a8f5;}
-.atv-stab2[data-c="todas"].active{background:rgba(99,102,241,.14);color:#c7c9fb;border-color:rgba(139,143,245,.35);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
-.atv-stab2[data-c="afazer"]{--sc-border:rgba(217,119,6,.4);--sc-bg:rgba(217,119,6,.10);--sc-text:#fbbf24;}
-.atv-stab2[data-c="afazer"].active{background:linear-gradient(135deg,#ffc670,#d97706);box-shadow:0 4px 16px rgba(217,119,6,.4),inset 0 1px 0 rgba(255,255,255,.15);}
-.atv-stab2[data-c="andamento"]{--sc-border:rgba(79,82,214,.4);--sc-bg:rgba(79,82,214,.10);--sc-text:#a5b4fc;}
-.atv-stab2[data-c="andamento"].active{background:linear-gradient(135deg,#8b8ff5,#4f52d6);box-shadow:0 4px 16px rgba(79,82,214,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="todas"]{--sc-border:rgba(255,255,255,.22);--sc-bg:rgba(255,255,255,.05);--sc-text:#d4d4d8;}
+.atv-stab2[data-c="todas"].active{background:linear-gradient(135deg,#3a3a3a,#000);color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);}
+.atv-stab2[data-c="afazer"]{--sc-border:rgba(255,255,255,.3);--sc-bg:rgba(255,255,255,.06);--sc-text:#f4f4f5;}
+.atv-stab2[data-c="afazer"].active{background:linear-gradient(135deg,#ffffff,#d4d4d8);color:#18181b;box-shadow:0 4px 16px rgba(255,255,255,.25),inset 0 1px 0 rgba(255,255,255,.4);}
+.atv-stab2[data-c="andamento"]{--sc-border:rgba(217,119,6,.4);--sc-bg:rgba(217,119,6,.10);--sc-text:#fbbf24;}
+.atv-stab2[data-c="andamento"].active{background:linear-gradient(135deg,#ffc670,#d97706);box-shadow:0 4px 16px rgba(217,119,6,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 .atv-stab2[data-c="atrasada"]{--sc-border:rgba(190,18,60,.4);--sc-bg:rgba(190,18,60,.10);--sc-text:#fb7185;}
 .atv-stab2[data-c="atrasada"].active{background:linear-gradient(135deg,#fb7185,#be123c);box-shadow:0 4px 16px rgba(190,18,60,.4),inset 0 1px 0 rgba(255,255,255,.15);}
-.atv-stab2[data-c="concluida"]{--sc-border:rgba(13,148,136,.4);--sc-bg:rgba(13,148,136,.10);--sc-text:#6ee7b7;}
-.atv-stab2[data-c="concluida"].active{background:linear-gradient(135deg,#4ade80,#0d9488);box-shadow:0 4px 16px rgba(13,148,136,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="concluida"]{--sc-border:rgba(6,182,212,.4);--sc-bg:rgba(6,182,212,.10);--sc-text:#67e8f9;}
+.atv-stab2[data-c="concluida"].active{background:linear-gradient(135deg,#22d3ee,#0891b2);box-shadow:0 4px 16px rgba(6,182,212,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="finalizada"]{--sc-border:rgba(34,197,94,.4);--sc-bg:rgba(34,197,94,.10);--sc-text:#86efac;}
+.atv-stab2[data-c="finalizada"].active{background:linear-gradient(135deg,#4ade80,#16a34a);box-shadow:0 4px 16px rgba(34,197,94,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 
 .atv-colhead{
   display:flex;align-items:center;gap:8px;margin-bottom:9px;padding:9px 14px;
@@ -625,6 +627,7 @@ header{background:linear-gradient(135deg,rgba(19,21,28,0.95) 0%,rgba(13,14,18,0.
 .atv-colhead[data-c="afazer"]{--hc-border:rgba(217,119,6,.4);--hc-bg:rgba(217,119,6,.10);--hc-bg2:rgba(217,119,6,.18);--hc-text:#fbbf24;}
 .atv-colhead[data-c="andamento"]{--hc-border:rgba(79,82,214,.4);--hc-bg:rgba(79,82,214,.10);--hc-bg2:rgba(79,82,214,.20);--hc-text:#a5b4fc;}
 .atv-colhead[data-c="concluida"]{--hc-border:rgba(13,148,136,.4);--hc-bg:rgba(13,148,136,.10);--hc-bg2:rgba(13,148,136,.20);--hc-text:#6ee7b7;}
+.atv-colhead[data-c="finalizada"]{--hc-border:rgba(34,197,94,.4);--hc-bg:rgba(34,197,94,.10);--hc-bg2:rgba(34,197,94,.20);--hc-text:#86efac;}
 </style>
 
 <!-- Firebase SDK -->
@@ -1136,6 +1139,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button onclick="atvSetStatusFilter('andamento')" id="atv-stab-andamento" class="atv-stab2" data-c="andamento">Com Pendência</button>
           <button onclick="atvSetStatusFilter('atrasada')" id="atv-stab-atrasada" class="atv-stab2" data-c="atrasada">Atrasada</button>
           <button onclick="atvSetStatusFilter('concluida')" id="atv-stab-concluida" class="atv-stab2" data-c="concluida">Concluídas</button>
+          <button onclick="atvSetStatusFilter('finalizada')" id="atv-stab-finalizada" class="atv-stab2" data-c="finalizada">Finalizadas</button>
         </div>
         <button id="btn-nova-atv" class="btn btn-sm" onclick="openAtvModal(null)" style="display:none;white-space:nowrap;flex-shrink:0;width:auto;min-width:max-content;--bc:255,90,60;">+ Criar</button>
       </div>
@@ -1154,7 +1158,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- Kanban board -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;min-width:0;" id="atv-kanban">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-width:0;" id="atv-kanban">
 
         <!-- Coluna: A Fazer -->
         <div id="atv-col-wrap-aberta">
@@ -1181,6 +1185,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <span id="atv-count-concluida" class="cnt">0</span>
           </div>
           <div id="atv-col-concluida" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
+        </div>
+
+        <!-- Coluna: Finalizada -->
+        <div id="atv-col-wrap-finalizada">
+          <div class="atv-colhead" data-c="finalizada">
+            <span class="lbl">Finalizadas</span>
+            <span id="atv-count-finalizada" class="cnt">0</span>
+          </div>
+          <div id="atv-col-finalizada" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
         </div>
 
       </div>
@@ -7745,7 +7758,7 @@ function renderProgressoAbas(containerId){
   // Central de Tarefas
   {
     const arr=appState.atividades||[];
-    const abertas=arr.filter(a=>a.status!=='concluida');
+    const abertas=arr.filter(a=>a.status!=='concluida'&&a.status!=='finalizada');
     const concHoje=arr.filter(a=>a.status==='concluida'&&(a.concluidoEm||'')===hojeFull).length;
     abas.push({label:'Central de Tarefas', icon:'🚀', total:abertas.length+concHoje, done:concHoje,
       pend:abertas.map(a=>({badge:'', text:a.titulo||a.text||'—'}))});
@@ -8289,8 +8302,33 @@ function renderUsersGrid(){
       }
       pl.appendChild(row);
     });
+    // Tarefas Diárias — quais abas de status (Todas/A Fazer/Com Pendência/
+    // Atrasada/Concluídas/Finalizadas) este colaborador pode ver. Master vê
+    // sempre todas; sem configuração aqui, o colaborador também vê todas.
+    if(!user.master){
+      const atvTitle=document.createElement('div');
+      atvTitle.style.cssText='font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.5px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);';
+      atvTitle.textContent='🗂 Central de Tarefas — abas visíveis';
+      pl.appendChild(atvTitle);
+      const atvTabsAtuais = Array.isArray(user.atvTabsVisiveis) ? user.atvTabsVisiveis : ATV_TAB_KEYS.slice();
+      ATV_TAB_LABELS.forEach(tb=>{
+        const has=atvTabsAtuais.includes(tb.id);
+        const row=document.createElement('div');row.className='perm-row';
+        row.innerHTML=`<span>${tb.label}</span><label class="perm-toggle"><input type="checkbox" ${has?'checked':''} onchange="toggleAtvTab('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div><span class="perm-toggle-label pt-on">ON</span><span class="perm-toggle-label pt-off">OFF</span></label>`;
+        pl.appendChild(row);
+      });
+    }
     grid.appendChild(card);
   });
+}
+
+function toggleAtvTab(key,tabId,checked){
+  const user=appState.users[key]; if(!user||user.master) return;
+  if(!Array.isArray(user.atvTabsVisiveis)) user.atvTabsVisiveis=ATV_TAB_KEYS.slice();
+  if(checked){ if(!user.atvTabsVisiveis.includes(tabId)) user.atvTabsVisiveis.push(tabId); }
+  else { user.atvTabsVisiveis=user.atvTabsVisiveis.filter(t=>t!==tabId); }
+  saveState(appState);
+  renderUsersGrid();
 }
 
 function _atvToggleTriorMenu(){
@@ -10853,31 +10891,64 @@ function _atvRenovarPrazoSeAtrasado(a){
 }
 
 let _atvStatusFilter = 'all';
+const ATV_TAB_KEYS = ['all','aberta','andamento','atrasada','concluida','finalizada'];
+const ATV_STATUS_COLS = ['aberta','andamento','concluida','finalizada'];
+const ATV_TAB_LABELS = [
+  {id:'all',label:'Todas'},
+  {id:'aberta',label:'A Fazer'},
+  {id:'andamento',label:'Com Pendência'},
+  {id:'atrasada',label:'Atrasada'},
+  {id:'concluida',label:'Concluídas'},
+  {id:'finalizada',label:'Finalizadas'}
+];
+
+// Revisão final (Concluída → Finalizada e volta) é restrita a CM Andrade e Matheus
+function _atvPodeRevisar(){
+  return !!(currentUser && ['cmandrade','matheusm'].includes(currentUser.key));
+}
+
+// Quais abas de status o usuário logado pode ver em Tarefas Diárias — master
+// sempre vê todas; para colaboradores, segue o que o master configurou no
+// painel Adm. Master (users[key].atvTabsVisiveis). Sem configuração = vê todas.
+function atvTabsPermitidas(){
+  const u = currentUser;
+  if(!u || u.master) return ATV_TAB_KEYS.slice();
+  return Array.isArray(u.atvTabsVisiveis) ? u.atvTabsVisiveis : ATV_TAB_KEYS.slice();
+}
 
 function atvSetStatusFilter(s) {
   _atvStatusFilter = s;
-  // Update active tab button styles
-  ['all','aberta','andamento','atrasada','concluida'].forEach(k => {
-    const btn = document.getElementById('atv-stab-'+k);
-    if (!btn) return;
-    btn.classList.toggle('active', k === s);
-  });
-  // Show/hide kanban columns based on filter
-  const colMap = { all:['aberta','andamento','concluida'], aberta:['aberta'], andamento:['andamento'], atrasada:['aberta'], concluida:['concluida'] };
-  const visible = colMap[s] || ['aberta','andamento','concluida'];
-  const kanban = document.getElementById('atv-kanban');
-  if (kanban) {
-    const cols = s === 'all' ? 3 : 1;
-    kanban.style.gridTemplateColumns = `repeat(${cols},1fr)`;
-  }
-  ['aberta','andamento','concluida'].forEach(c => {
-    const wrap = document.getElementById('atv-col-wrap-'+c);
-    if (wrap) wrap.style.display = visible.includes(c) ? '' : 'none';
-  });
   renderAtividades();
 }
 
+// Aplica a permissão de visibilidade das abas, destaca a aba ativa e mostra/
+// esconde as colunas do kanban de acordo com o filtro e a permissão do usuário
+function atvAtualizarAbasKanban(){
+  const permitidas = atvTabsPermitidas();
+  if(!permitidas.includes(_atvStatusFilter)){
+    _atvStatusFilter = permitidas.includes('all') ? 'all' : (permitidas[0] || 'all');
+  }
+  ATV_TAB_KEYS.forEach(k => {
+    const btn = document.getElementById('atv-stab-'+k);
+    if (!btn) return;
+    btn.style.display = permitidas.includes(k) ? '' : 'none';
+    btn.classList.toggle('active', k === _atvStatusFilter);
+  });
+  const colMap = { all:ATV_STATUS_COLS.filter(c=>permitidas.includes(c)), aberta:['aberta'], andamento:['andamento'], atrasada:['aberta'], concluida:['concluida'], finalizada:['finalizada'] };
+  const visible = (colMap[_atvStatusFilter] || ATV_STATUS_COLS).filter(c=>permitidas.includes(c));
+  const kanban = document.getElementById('atv-kanban');
+  if (kanban) {
+    const cols = _atvStatusFilter === 'all' ? Math.max(visible.length,1) : 1;
+    kanban.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+  }
+  ATV_STATUS_COLS.forEach(c => {
+    const wrap = document.getElementById('atv-col-wrap-'+c);
+    if (wrap) wrap.style.display = visible.includes(c) ? '' : 'none';
+  });
+}
+
 function atvDiasLabel(dias,status){
+  if(status==='finalizada') return {text:'🏁 Finalizada',color:'#4ade80'};
   if(status==='concluida') return {text:'✅ Concluída',color:'var(--green)'};
   if(dias===null) return null;
   if(dias<0)  return {text:`⚠ ${Math.abs(dias)}d atrasada`,color:'var(--red)'};
@@ -10943,13 +11014,15 @@ function renderAtividades(){
   const filterColab=fColab?fColab.value:'';
   const filterPrior=fPrior?fPrior.value:'';
 
-  ['aberta','andamento','concluida'].forEach(s=>{
+  atvAtualizarAbasKanban();
+
+  ATV_STATUS_COLS.forEach(s=>{
     const col=document.getElementById('atv-col-'+s);if(col)col.innerHTML='';
     const cnt=document.getElementById('atv-count-'+s);if(cnt)cnt.textContent='0';
   });
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  const counts={aberta:0,andamento:0,concluida:0};
+  const counts={aberta:0,andamento:0,concluida:0,finalizada:0};
   let total=0;
 
   appState.atividades.forEach(a=>{
@@ -10961,7 +11034,7 @@ function renderAtividades(){
     const user=appState.users[a.responsavel];
     const prior=ATV_PRIOR[a.prioridade]||ATV_PRIOR.normal;
     const dias=atvDiasRestantes(a.vencimento);
-    const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida';
+    const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida' && a.status !== 'finalizada';
     const diasLabel=atvDiasLabel(dias,a.status);
 
     // Apply status tab filter
@@ -10969,6 +11042,9 @@ function renderAtividades(){
     if (_atvStatusFilter === 'aberta' && a.status !== 'aberta') return;
     if (_atvStatusFilter === 'andamento' && a.status !== 'andamento') return;
     if (_atvStatusFilter === 'concluida' && a.status !== 'concluida') return;
+    if (_atvStatusFilter === 'finalizada' && a.status !== 'finalizada') return;
+    // "Todas": respeita a permissão de abas do usuário (colunas ocultas não aparecem)
+    if (_atvStatusFilter === 'all' && !atvTabsPermitidas().includes(a.status||'aberta')) return;
 
     const colKey=a.status||'aberta';
     const col=document.getElementById('atv-col-'+colKey);
@@ -10986,7 +11062,9 @@ function renderAtividades(){
     const vencFmt=a.vencimento?new Date(a.vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
     const prazoHtml=diasLabel?`<span style="font-size:10px;color:${diasLabel.color};font-family:var(--font-mono);">${diasLabel.text}</span>`:'';
 
-    const statusBadge=a.status==='concluida'
+    const statusBadge=a.status==='finalizada'
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#86efac;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.4);border-radius:999px;padding:2px 9px;">Finalizada</span>`
+      :a.status==='concluida'
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#6ee7b7;background:rgba(13,148,136,.10);border:1px solid rgba(13,148,136,.4);border-radius:999px;padding:2px 9px;">Concluída</span>`
       :a.status==='andamento'
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(79,82,214,.10);border:1px solid rgba(79,82,214,.4);border-radius:999px;padding:2px 9px;">Com Pendência</span>`
@@ -11065,18 +11143,35 @@ function renderAtividades(){
       actWrap.appendChild(btnDel);
     }
 
-    // Botões de ação (Concluir / Pendente / Reabrir) — via DOM
+    // Botões de ação (Concluir / Pendente / Reabrir / Finalizar) — via DOM
     const acoesWrap = card.querySelector(`#atv-acoes-${a.id}`);
-    if(canAct && acoesWrap){
-      if(a.status==='concluida'){
-        if(currentUser.master){
+    if(acoesWrap){
+      if(a.status==='finalizada'){
+        // Revisão final — só CM Andrade e Matheus podem reabrir
+        if(_atvPodeRevisar()){
+          const btnReabrirFin=document.createElement('button');
+          btnReabrirFin.className='btn-pill v-amber';
+          btnReabrirFin.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
+          btnReabrirFin.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'concluida');};
+          acoesWrap.appendChild(btnReabrirFin);
+        }
+      } else if(a.status==='concluida'){
+        if(canAct && currentUser.master){
           const btnReabrir=document.createElement('button');
           btnReabrir.className='btn-pill v-amber';
           btnReabrir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
           btnReabrir.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'aberta');};
           acoesWrap.appendChild(btnReabrir);
         }
-      } else {
+        // Finalizar — revisão de CM Andrade/Matheus sobre o que os demais concluíram
+        if(_atvPodeRevisar()){
+          const btnFinalizar=document.createElement('button');
+          btnFinalizar.className='btn-pill v-green';
+          btnFinalizar.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Finalizar';
+          btnFinalizar.onclick=(e)=>{e.stopPropagation();atvMoveStatus(a.id,'finalizada');};
+          acoesWrap.appendChild(btnFinalizar);
+        }
+      } else if(canAct){
         const btnConcluir=document.createElement('button');
         btnConcluir.className='btn-pill v-green';
         btnConcluir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
@@ -11094,7 +11189,7 @@ function renderAtividades(){
     const isMine2 = getAtvResponsaveis(a).includes(currentUser.key);
     const isCriador2 = a.criadoPorKey === currentUser.key;
     const podeEditar2 = currentUser.master || isCriador2;
-    if(podeEditar2 || isMine2){
+    if(podeEditar2 || isMine2 || _atvPodeRevisar()){
       card.style.cursor='pointer';
       if(a.origemAteId){
         card.addEventListener('click',()=>{
@@ -11127,13 +11222,22 @@ function notifyCriadorConcluida(item,tipoLabel,tipo){
 function atvMoveStatus(id,novoStatus,provaBase64){
   if(!appState.atividades) return;
   const a=appState.atividades.find(x=>x.id===id);if(!a)return;
-  const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
-  if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
-  // Reabrir uma tarefa concluída continua restrito ao master
-  if(a.status==='concluida' && !currentUser.master){showToast('Apenas o master pode reabrir uma tarefa concluída','warn');return;}
+  // Finalizar (Concluída → Finalizada) e reabrir uma revisão finalizada são
+  // restritos a CM Andrade e Matheus — não seguem a regra geral de permissão
+  if(novoStatus==='finalizada' || a.status==='finalizada'){
+    if(!_atvPodeRevisar()){showToast('Apenas CM Andrade e Matheus podem finalizar ou reabrir esta revisão','warn');return;}
+  } else {
+    const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
+    if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
+    // Reabrir uma tarefa concluída continua restrito ao master
+    if(a.status==='concluida' && !currentUser.master){showToast('Apenas o master pode reabrir uma tarefa concluída','warn');return;}
+  }
   const eraConcluida = a.status==='concluida';
+  const veioDeFinalizada = a.status==='finalizada';
   a.status=novoStatus;
-  if(novoStatus==='concluida'){
+  // Reabrir de Finalizada para Concluída: só volta o status, sem repetir os
+  // efeitos de "concluir" (data/print de conclusão, notificações, origem)
+  if(novoStatus==='concluida' && !veioDeFinalizada){
     a.concluidoEm=new Date().toLocaleDateString('pt-BR');a.concluidoPor=currentUser.name;
     if(provaBase64){ a.provaConclusao=provaBase64; a.provaConclusaoPor=currentUser.name; a.provaConclusaoEm=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
     if(!eraConcluida) notifyCriadorConcluida(a,'Tarefa','tarefa');
@@ -11159,8 +11263,11 @@ function atvMoveStatus(id,novoStatus,provaBase64){
       } else if(it){ confRegistrarImagemConcluida(it); }
     }
   }
+  if(novoStatus==='finalizada'){
+    a.finalizadoEm=new Date().toLocaleDateString('pt-BR');a.finalizadoPor=currentUser.name;
+  }
   saveState(appState);renderAtividades();
-  showToast('Tarefa → '+{aberta:'A Fazer',andamento:'Com Pendência',concluida:'Concluída'}[novoStatus],'success');
+  showToast('Tarefa → '+{aberta:'A Fazer',andamento:'Com Pendência',concluida:'Concluída',finalizada:'Finalizada'}[novoStatus],'success');
 }
 
 // Marca a tarefa como "Com Pendência" e registra o motivo (master ou colaborador responsável)
@@ -12353,8 +12460,9 @@ function openAtvModal(id){
   // Somente o master cria e edita tarefas; colaboradores têm acesso somente leitura
   const podeEditarTarefa = isMasterUser;
 
-  // Colaborador (responsável ou criador) pode abrir a tarefa apenas para visualizar
-  if(!isMasterUser && !isResponsavel && !isCriador && id){showToast('Apenas o master, o criador ou o responsável podem visualizar esta tarefa','warn');return;}
+  // Colaborador (responsável ou criador) pode abrir a tarefa apenas para visualizar.
+  // CM Andrade e Matheus também podem abrir qualquer tarefa concluída para revisão/finalização.
+  if(!isMasterUser && !isResponsavel && !isCriador && !_atvPodeRevisar() && id){showToast('Apenas o master, o criador ou o responsável podem visualizar esta tarefa','warn');return;}
   // Criação de novas tarefas é exclusiva do master
   if(isNovaTask && !isMasterUser){showToast('Apenas o master pode criar tarefas','warn');return;}
 
@@ -12518,12 +12626,41 @@ function openAtvModal(id){
       if(provaUpdRemoveBtn) provaUpdRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
     } else if(provaUpdWrap){ provaUpdWrap.style.display='none'; if(provaUpdThumb) provaUpdThumb.style.display='none'; }
 
-    // Ações rápidas (Concluir / Pendente / Reabrir) — direto no card aberto
+    // Ações rápidas (Concluir / Pendente / Reabrir / Finalizar) — direto no card aberto
     const acoesEl=document.getElementById('atv-modal-acoes');
     if(acoesEl){
       acoesEl.innerHTML='';
       const canAct = isMasterUser || isResponsavel;
-      if(canAct && a.status!=='concluida'){
+      if(a.status==='finalizada'){
+        if(_atvPodeRevisar()){
+          const btnReabrirFin=document.createElement('button');
+          btnReabrirFin.type='button';
+          btnReabrirFin.className='btn-pill v-amber';
+          btnReabrirFin.style.flex='1';
+          btnReabrirFin.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
+          btnReabrirFin.onclick=()=>{ atvMoveStatus(id,'concluida'); closeAtvModal(); };
+          acoesEl.appendChild(btnReabrirFin);
+        }
+      } else if(a.status==='concluida'){
+        if(isMasterUser){
+          const btnReabrir=document.createElement('button');
+          btnReabrir.type='button';
+          btnReabrir.className='btn-pill v-amber';
+          btnReabrir.style.flex='1';
+          btnReabrir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
+          btnReabrir.onclick=()=>{ atvMoveStatus(id,'aberta'); closeAtvModal(); };
+          acoesEl.appendChild(btnReabrir);
+        }
+        if(_atvPodeRevisar()){
+          const btnFinalizar=document.createElement('button');
+          btnFinalizar.type='button';
+          btnFinalizar.className='btn-pill v-green';
+          btnFinalizar.style.flex='1';
+          btnFinalizar.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Finalizar';
+          btnFinalizar.onclick=()=>{ atvMoveStatus(id,'finalizada'); closeAtvModal(); };
+          acoesEl.appendChild(btnFinalizar);
+        }
+      } else if(canAct){
         const btnConcluir=document.createElement('button');
         btnConcluir.type='button';
         btnConcluir.className='btn-pill v-green';
@@ -12538,14 +12675,6 @@ function openAtvModal(id){
         btnPend.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Pendente';
         btnPend.onclick=()=>{ atvSetPendente(id); closeAtvModal(); };
         acoesEl.appendChild(btnPend);
-      } else if(isMasterUser && a.status==='concluida'){
-        const btnReabrir=document.createElement('button');
-        btnReabrir.type='button';
-        btnReabrir.className='btn-pill v-amber';
-        btnReabrir.style.flex='1';
-        btnReabrir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir';
-        btnReabrir.onclick=()=>{ atvMoveStatus(id,'aberta'); closeAtvModal(); };
-        acoesEl.appendChild(btnReabrir);
       }
     }
   } else {
