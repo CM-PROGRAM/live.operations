@@ -1915,20 +1915,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div class="input-group">
         <div style="background:linear-gradient(135deg,rgba(255,255,255,.035),rgba(255,255,255,.01));border:1px solid var(--glass-border);border-radius:var(--radius);overflow:hidden;">
-          <div id="atv-mkt-header" style="background:linear-gradient(135deg,#a89552,#6b5e2e);padding:8px 14px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#fff;">Marketplace</div>
+          <div id="atv-mkt-header" style="background:linear-gradient(135deg,#c0392b,#7a1f18);padding:8px 14px;font-size:12px;font-weight:800;letter-spacing:.4px;color:#fff;">Marketplace</div>
           <div id="atv-marketplace-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:12px;"></div>
         </div>
         <input type="hidden" id="atv-marketplace">
       </div>
-      <div class="input-group" id="atv-solicitante-row" style="display:none;">
-        <label>Solicitado por</label>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span id="atv-solicitante-nome" style="font-size:13px;font-weight:700;color:var(--text-primary);"></span>
-          <button type="button" id="atv-devolver-btn" class="btn btn-ghost btn-sm" style="display:none;padding:4px 10px;font-size:11px;" onclick="atvDevolverCriador()">↩ Devolver para quem solicitou</button>
-        </div>
-      </div>
       <div class="input-group">
-        <label>Colaborador(es) responsável(is)</label>
+        <label>Conferência Colaborador</label>
         <div id="atv-responsavel-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
         <input type="hidden" id="atv-responsavel">
       </div>
@@ -12507,7 +12500,6 @@ function openAtvModal(id){
   }
   _atvRenderRespGrid();
   window._atvGetRespSelecionados=()=>_atvRespSelecionados;
-  window._atvRenderRespGrid=_atvRenderRespGrid;
   const overlay=document.getElementById('atv-modal-overlay');
   const titleEl=document.getElementById('atv-modal-title');
   const comentWrap=document.getElementById('atv-comentario-wrap');
@@ -12604,17 +12596,6 @@ function openAtvModal(id){
     atvTituloChanged();
     if(a.vencimento) document.getElementById('atv-vencimento').value=a.vencimento;
     atvSyncVencDisplay();
-
-    // Quem solicitou a tarefa — permite devolver a tarefa a essa pessoa
-    const solicRow=document.getElementById('atv-solicitante-row');
-    const solicNome=document.getElementById('atv-solicitante-nome');
-    const devolverBtn=document.getElementById('atv-devolver-btn');
-    if(a.criadoPor && solicRow && solicNome){
-      solicRow.style.display='block';
-      solicNome.textContent=a.criadoPor;
-      if(devolverBtn) devolverBtn.style.display=(podeEditarResp && a.criadoPorKey)?'inline-flex':'none';
-    } else if(solicRow){ solicRow.style.display='none'; }
-    window._atvCriadorKeyAtual=a.criadoPorKey||'';
 
     // Print anexado na conclusão — visível a quem solicitou/master; quem pode
     // agir na tarefa também pode remover, caso precise anexar um novo
@@ -12714,15 +12695,13 @@ function openAtvModal(id){
     if(saveBtn) saveBtn.textContent='Salvar Tarefa';
     // Já inicia com "Entrada Produto" selecionado e vencimento automático (+2 dias)
     atvTituloChanged();
-    const solicRowNew=document.getElementById('atv-solicitante-row'); if(solicRowNew) solicRowNew.style.display='none';
     const provaWrapNew=document.getElementById('atv-prova-wrap'); if(provaWrapNew) provaWrapNew.style.display='none';
     const provaUpdWrapNew=document.getElementById('atv-prova-upd-wrap'); if(provaUpdWrapNew) provaUpdWrapNew.style.display='none';
     const acoesElNew=document.getElementById('atv-modal-acoes'); if(acoesElNew) acoesElNew.innerHTML='';
-    window._atvCriadorKeyAtual='';
   }
   // Demais campos: exclusivos do master. O responsável pode alterar
-  // "Colaborador(es) responsável(is)" (devolver/transferir) e adicionar
-  // comentários (ambos tratados acima, por título).
+  // "Conferência Colaborador" (devolver/transferir) e adicionar comentários
+  // (ambos tratados acima, por título).
   if(saveBtn) saveBtn.style.display=podeEditarResp?'':'none';
   overlay.style.display='flex';
 }
@@ -12731,22 +12710,6 @@ function closeAtvModal(){
   const o=document.getElementById('atv-modal-overlay');if(o)o.style.display='none';
 }
 
-// Devolve a tarefa aberta no modal para quem a solicitou (único responsável)
-function atvDevolverCriador(){
-  const criadorKey=window._atvCriadorKeyAtual;
-  if(!criadorKey){showToast('Não foi possível identificar quem solicitou esta tarefa','warn');return;}
-  if(!window._atvGetRespSelecionados){return;}
-  // Substitui a seleção atual pelo criador (mesmo array usado pelo Salvar)
-  const arr=window._atvGetRespSelecionados();
-  arr.length=0;
-  arr.push(criadorKey);
-  const sel=document.getElementById('atv-responsavel');
-  if(sel) sel.value=criadorKey;
-  if(window._atvRenderRespGrid) window._atvRenderRespGrid();
-  showToast('Tarefa marcada para devolução — clique em "Transferir Tarefa" para confirmar','success');
-}
-
-// Abre a tela para anexar o print de conclusão (obrigatório para concluir a tarefa)
 // Abre a tela de anexar print — usada tanto para concluir quanto para salvar/
 // transferir uma tarefa. O outro usuário (quem solicitou/responsável) precisa
 // conseguir visualizar o que foi feito, por isso o print é sempre obrigatório.
