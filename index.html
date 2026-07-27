@@ -1099,12 +1099,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ATENDIMENTOS GERAL -->
     <div class="tab-panel" id="tab-atendimentos">
       <div class="section-header">
-        <span class="section-title">Registro Atendimentos Geral</span>
+        <span class="section-title" id="ate-section-title">Registro Atendimentos Geral</span>
         <button class="btn btn-sm" onclick="openAteModal()" id="btn-new-ate" style="display:none;--bc:255,90,60;">+ Criar</button>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <button onclick="ateSetSubTab('ativos')" id="ate-stab-ativos" class="atv-stab2 active" data-c="todas">📋 Em Atendimento</button>
-        <button onclick="ateSetSubTab('concluidas')" id="ate-stab-concluidas" class="atv-stab2" data-c="concluida">✅ Concluídas <span id="ate-stab-concluidas-badge" style="background:rgba(255,255,255,.18);border-radius:10px;font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 7px;margin-left:2px;">0</span></button>
       </div>
       <div style="margin-bottom:14px;">
         <input id="ate-search" type="text" placeholder="🔎 Buscar por nome, pedido base ou nº atendimento..." oninput="renderAte()"
@@ -3439,14 +3435,17 @@ function onNotasInput(ta){
 }
 
 
-let _navGroupOpen = new Set(['grp-tarefas']);
+let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos']);
 
 function buildTabs(){
   const tabs=[
     {type:'group', id:'grp-tarefas', icon:'📌', label:'Central de Tarefas', perm:'tarefas', children:[
       {id:'tarefas',   label:'Tarefas Diárias'}
     ]},
-    {id:'atendimentos',icon:'📞',label:'Atendimentos',          perm:'atendimentos'},
+    {type:'group', id:'grp-atendimentos', icon:'📞', label:'Atendimentos', perm:'atendimentos', children:[
+      {id:'atendimentos',   label:'Em Atendimento'},
+      {id:'ate-concluidas', label:'Concluídas', panel:'atendimentos'}
+    ]},
     {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', permAny:['whatsapp','envios'], children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)'},
       {id:'registrovendas', label:'Registro de Vendas'},
@@ -3486,7 +3485,8 @@ function buildTabs(){
   function fireTabHooks(id){
     if(id==='registrovendas'){ try{renderHistoricoWpp();}catch(e){console.warn('renderHistoricoWpp:',e);} }
     if(id==='devolucoes'){ try{renderDev();}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
-    if(id==='atendimentos'){ try{renderAte();}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
+    if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
+    if(id==='ate-concluidas'){ try{ateSetSubTab('concluidas');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
     if(id==='projetos'){ try{renderProjetos();}catch(e){console.warn('renderProjetos:',e);} }
     if(id==='plataformas'){ try{renderMktLinks();}catch(e){console.warn('renderMktLinks:',e);} }
@@ -3550,7 +3550,7 @@ function buildTabs(){
           cbtn.onclick=(e)=>navExternalLink(e,c.key,c.label,c.url);
         } else {
           cbtn.dataset.tab=c.id;
-          cbtn.onclick=()=>{ switchTab(c.id); fireTabHooks(c.id); };
+          cbtn.onclick=()=>{ switchTab(c.id, c.panel); fireTabHooks(c.id); };
         }
         childrenWrap.appendChild(cbtn);
       });
@@ -3608,9 +3608,9 @@ function navExternalLink(e,key,label,fallbackUrl){
   window.open(url,'_blank','noopener');
 }
 
-function switchTab(id){
+function switchTab(id, panelId){
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
-  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+id));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active',p.id==='tab-'+(panelId||id)));
 }
 
 function renderAll(){
@@ -10461,11 +10461,10 @@ function ateReabrir(id){
 let _ateSubTab='ativos';
 function ateSetSubTab(tab){
   _ateSubTab=tab;
-  const bAtivos=document.getElementById('ate-stab-ativos');
-  const bConc=document.getElementById('ate-stab-concluidas');
-  if(bAtivos) bAtivos.classList.toggle('active', tab==='ativos');
-  if(bConc) bConc.classList.toggle('active', tab==='concluidas');
+  const titulo=document.getElementById('ate-section-title');
+  if(titulo) titulo.textContent = tab==='concluidas' ? 'Atendimentos Concluídos' : 'Registro Atendimentos Geral';
   try{renderAte();}catch(e){}
+  try{renderAteStats();}catch(e){}
 }
 
 function renderAte(){
@@ -10481,7 +10480,7 @@ function renderAte(){
 
   const canAte = isMaster || (currentUser && (currentUser.perms||[]).includes('atendimentos'));
   const btnNew=document.getElementById('btn-new-ate');
-  if(btnNew) btnNew.style.display=canAte?'inline-block':'none';
+  if(btnNew) btnNew.style.display=(canAte && _ateSubTab!=='concluidas')?'inline-block':'none';
 
   const banner=document.getElementById('ate-filtro-banner');
   if(banner){
@@ -10490,7 +10489,7 @@ function renderAte(){
       banner.innerHTML='';
       const txt=document.createElement('span');
       txt.style.cssText='font-size:11px;color:var(--text-secondary);font-family:var(--font-mono);';
-      txt.textContent='Filtrando atendimentos em aberto de: ';
+      txt.textContent=(_ateSubTab==='concluidas'?'Filtrando atendimentos concluídos de: ':'Filtrando atendimentos em aberto de: ');
       const pill=document.createElement('span');
       pill.textContent=ateFiltroPlataforma;
       {
@@ -10513,17 +10512,12 @@ function renderAte(){
   const container=document.getElementById('ate-cards');
   const finCards=document.getElementById('ate-finalizados-cards');
   const empty=document.getElementById('ate-empty');
-  const statsPanel=document.getElementById('ate-stats-panel');
   container.innerHTML='';
   if(finCards) finCards.innerHTML='';
-
-  const concBadge=document.getElementById('ate-stab-concluidas-badge');
-  if(concBadge) concBadge.textContent=finalizados.length;
 
   const naAba=(_ateSubTab==='concluidas')?'concluidas':'ativos';
   container.style.display = naAba==='ativos' ? 'block' : 'none';
   if(finCards) finCards.style.display = naAba==='concluidas' ? 'grid' : 'none';
-  if(statsPanel) statsPanel.style.display = naAba==='ativos' ? 'block' : 'none';
 
   const lista = naAba==='ativos' ? active : finalizados;
 
@@ -10705,11 +10699,12 @@ function renderAteStats(){
     const all=ates.filter(d=>atePltEq(d.plataforma,plt));
     const resolved=all.filter(d=>d.workflow==='finalizado');
     const active=all.length-resolved.length;
+    const mostrar=(_ateSubTab==='concluidas')?resolved.length:active;
     const ativo=ateFiltroPlataforma===plt;
     const c=ATE_STAT_TILE_COLORS[plt]||ateGetPltColorHex(plt)||'#a78bfa';
     const tile=document.createElement('button');
     tile.type='button';
-    tile.title='Clique para filtrar atendimentos abertos desta plataforma';
+    tile.title=(_ateSubTab==='concluidas')?'Clique para filtrar atendimentos concluídos desta plataforma':'Clique para filtrar atendimentos abertos desta plataforma';
     tile.style.cssText=`background:linear-gradient(135deg,${_hexA(c,0.12)},${_hexA(c,0.02)});border:1.5px solid ${_hexA(c,ativo?0.95:0.5)};border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;color:${c};transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;${ativo?`box-shadow:0 0 14px ${_hexA(c,0.5)};`:''}`;
     tile.onmouseover=()=>{tile.style.borderColor=_hexA(c,0.9);tile.style.boxShadow=`0 0 14px ${_hexA(c,0.45)}`;tile.style.transform='translateY(-1px)';};
     tile.onmouseout=()=>{tile.style.borderColor=_hexA(c,ativo?0.95:0.5);tile.style.boxShadow=ativo?`0 0 14px ${_hexA(c,0.5)}`:'none';tile.style.transform='';};
@@ -10718,8 +10713,8 @@ function renderAteStats(){
     nm.textContent=plt;
     tile.appendChild(nm);
     const cnt=document.createElement('span');
-    cnt.style.cssText=`font-size:15px;font-weight:800;line-height:1;color:${active===0?'var(--green)':c};flex:0 0 auto;`;
-    cnt.textContent=active;
+    cnt.style.cssText=`font-size:15px;font-weight:800;line-height:1;color:${mostrar===0?'var(--green)':c};flex:0 0 auto;`;
+    cnt.textContent=mostrar;
     tile.appendChild(cnt);
     tile.onclick=()=>ateFiltrarPorPlataforma(plt);
     statsGrid.appendChild(tile);
@@ -11197,6 +11192,7 @@ function renderAtividades(){
         btnOrigem.onclick=(e)=>{
           e.stopPropagation();
           switchTab('atendimentos');
+          try{ateSetSubTab('ativos');}catch(e){}
           setTimeout(()=>openAteModal(a.origemAteId),50);
         };
       }
@@ -11263,6 +11259,7 @@ function renderAtividades(){
       if(a.origemAteId){
         card.addEventListener('click',()=>{
           switchTab('atendimentos');
+          try{ateSetSubTab('ativos');}catch(e){}
           setTimeout(()=>openAteModal(a.origemAteId),50);
         });
       } else {
