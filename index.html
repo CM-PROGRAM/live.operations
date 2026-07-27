@@ -6370,10 +6370,13 @@ function ateVerificarAlertaPrazo(d, vencido){
   }
 }
 
-// Cria automaticamente uma tarefa em Central de Tarefas quando o prazo de retorno vence (uma única vez por atendimento)
-function ateVerificarTarefaAutomatica(d, vencido){
+// Cria automaticamente uma tarefa em Central de Tarefas a partir do dia da
+// "Data Retorno" (para cobrar o cliente), uma única vez por Data Retorno —
+// se a Data Retorno for alterada, a tarefa antiga é removida (ver saveAte) e
+// esta função libera a criação de uma nova, no dia certo
+function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
   if(!d || d.tarefaAutoCriada) return;
-  if(!vencido) return;
+  if(!chegouODiaDeCobrar) return;
   if(!appState.atividades) appState.atividades=[];
   const novaTarefa={
     id:'atv_ate_'+d.id,
@@ -6393,7 +6396,7 @@ function ateVerificarTarefaAutomatica(d, vencido){
   if(db && fbConnected && d.criadoPorKey){
     const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
     notifRef.push({
-      msg:`🚨 Atendimento de "${d.cliente||d.natend||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e gerou uma tarefa em Central de Tarefas.`,
+      msg:`🚨 Atendimento de "${d.cliente||d.natend||'cliente'}" chegou na Data Retorno (${d.prazo||''}) e gerou uma tarefa em Central de Tarefas.`,
       ts:Date.now(),
       lida:false,
       tipo:'atendimento'
@@ -6420,17 +6423,19 @@ function criarTarefaAutoIntegracao(item){
   });
 }
 
-// Remove tarefas automáticas "órfãs": aquelas que vieram de uma Integração/Imagem
-// cuja solicitação de origem já não existe mais (foi excluída). Mantém o sistema
+// Remove tarefas automáticas "órfãs": aquelas que vieram de uma Integração/Imagem/
+// Atendimento cuja origem já não existe mais (foi excluída). Mantém o sistema
 // consistente entre todos os usuários — impede as "tarefas fantasma" que
 // reapareciam na conta de outro colaborador depois que o master excluía algo.
 function reconcileAutoTasks(state){
   if(!state || !Array.isArray(state.atividades)) return state;
   const integIds = new Set((state.integracoes||[]).map(x=>x&&x.id).filter(Boolean));
   const imgIds   = new Set((state.imagensReq||[]).map(x=>x&&x.id).filter(Boolean));
+  const ateIds   = new Set(((state.tasks&&state.tasks.atendimentos)||[]).map(x=>x&&x.id).filter(Boolean));
   state.atividades = state.atividades.filter(a=>{
     if(a && a.origemIntegId) return integIds.has(a.origemIntegId);
     if(a && a.origemImgId)   return imgIds.has(a.origemImgId);
+    if(a && a.origemAteId)   return ateIds.has(a.origemAteId);
     return true; // tarefas manuais (sem origem) nunca são removidas aqui
   });
   return state;
@@ -10397,9 +10402,15 @@ function saveAte(){
       rec.criadoPor=prev.criadoPor;
       rec.criadoPorKey=prev.criadoPorKey;
       rec.ordemManual=prev.ordemManual;
-      // se o prazo mudou, reabre a possibilidade de novo alerta de vencimento e nova tarefa automática
-      rec.alertaPrazoEnviado=(prazo===prev.prazo)?prev.alertaPrazoEnviado:false;
-      rec.tarefaAutoCriada=(prazo===prev.prazo)?prev.tarefaAutoCriada:false;
+      // se o prazo mudou, reabre a possibilidade de novo alerta de vencimento e nova tarefa
+      // automática, e remove a tarefa antiga de Tarefas Diárias (se existia) — ela só deve
+      // voltar a aparecer no dia da nova "Data Retorno"
+      const prazoMudou = prazo!==prev.prazo;
+      rec.alertaPrazoEnviado=prazoMudou?false:prev.alertaPrazoEnviado;
+      rec.tarefaAutoCriada=prazoMudou?false:prev.tarefaAutoCriada;
+      if(prazoMudou && Array.isArray(appState.atividades)){
+        appState.atividades=appState.atividades.filter(a=>a.origemAteId!==editId);
+      }
       // controla registro de finalização conforme o novo status escolhido
       if(status==='finalizado'){
         rec.finalizadoPor=prev.workflow==='finalizado'?prev.finalizadoPor:currentUser.name;
@@ -10421,7 +10432,9 @@ function saveAte(){
 
 function deleteAteById(id){
   appState.tasks.atendimentos=(appState.tasks.atendimentos||[]).filter(x=>x.id!==id);
-  saveState(appState);renderAte();
+  saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_ate_<id>)
+  renderAte();
+  try{ renderAtividades(); }catch(e){}
   showToast('🗑 Atendimento removido','success');
 }
 
@@ -10431,7 +10444,10 @@ function ateFinalizar(id){
   appState.tasks.atendimentos[idx].workflow='finalizado';
   appState.tasks.atendimentos[idx].finalizadoPor=currentUser.name;
   appState.tasks.atendimentos[idx].finalizadoEm=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+  // Atendimento concluído — remove a tarefa de cobrança vinculada em Tarefas Diárias, se houver
+  if(Array.isArray(appState.atividades)) appState.atividades=appState.atividades.filter(a=>a.origemAteId!==id);
   saveState(appState);renderAte();
+  try{ renderAtividades(); }catch(e){}
   showToast('✅ Atendimento finalizado','success');
 }
 
@@ -10567,8 +10583,11 @@ function buildAteCard(d,isFinalizado){
 
   const diasParaPrazo=ateDiasParaPrazo(d.prazo);
   const vencido=!isFinalizado && diasParaPrazo!==null && diasParaPrazo<0;
+  // A tarefa em Tarefas Diárias deve aparecer já no dia da "Data Retorno" (para
+  // cobrar o cliente nesse dia), não só depois de vencido
+  const chegouODiaDeCobrar=!isFinalizado && diasParaPrazo!==null && diasParaPrazo<=0;
   if(!isFinalizado) ateVerificarAlertaPrazo(d, vencido);
-  if(!isFinalizado) ateVerificarTarefaAutomatica(d, vencido);
+  if(!isFinalizado) ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar);
 
   const card=document.createElement('div');
   const ateGlow='#f87171'; // mesmo neon violeta dos cards de Tarefas Diárias
