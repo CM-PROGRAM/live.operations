@@ -1100,13 +1100,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div class="tab-panel" id="tab-atendimentos">
       <div class="section-header">
         <span class="section-title">Registro Atendimentos Geral</span>
-        <div id="ate-fin-chip" onclick="toggleAteFinalizados()" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.3);border-radius:50px;padding:3px 12px 3px 9px;cursor:pointer;transition:background .15s;user-select:none;margin-left:auto;margin-right:8px;"
-          onmouseover="this.style.background='rgba(34,197,94,0.18)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03))'">
-          <span id="ate-fin-chevron" style="font-size:10px;color:var(--green);transition:transform .2s;display:inline-block;">▶</span>
-          <span style="font-size:10px;font-weight:700;color:var(--green);font-family:var(--font-mono);">📁 Finalizados</span>
-          <span id="ate-fin-badge" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,0.35);border-radius:10px;color:var(--green);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
-        </div>
         <button class="btn btn-sm" onclick="openAteModal()" id="btn-new-ate" style="display:none;--bc:255,90,60;">+ Criar</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <button onclick="ateSetSubTab('ativos')" id="ate-stab-ativos" class="atv-stab2 active" data-c="todas">📋 Em Atendimento</button>
+        <button onclick="ateSetSubTab('concluidas')" id="ate-stab-concluidas" class="atv-stab2" data-c="concluida">✅ Concluídas <span id="ate-stab-concluidas-badge" style="background:rgba(255,255,255,.18);border-radius:10px;font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 7px;margin-left:2px;">0</span></button>
       </div>
       <div style="margin-bottom:14px;">
         <input id="ate-search" type="text" placeholder="🔎 Buscar por nome, pedido base ou nº atendimento..." oninput="renderAte()"
@@ -1120,12 +1118,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="ate-stats-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;"></div>
       </div>
-      <div id="ate-finalizados-wrap">
-        <div id="ate-finalizados-cards" style="display:none;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-bottom:14px;"></div>
-        <div id="ate-fin-separator" style="display:none;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);margin:2px 0 16px;"></div>
-      </div>
       <div id="ate-filtro-banner" style="display:none;align-items:center;gap:10px;background:linear-gradient(135deg,rgba(59,130,246,0.12),rgba(59,130,246,0.03));border:1px solid rgba(59,130,246,0.35);border-radius:var(--radius);padding:8px 14px;margin-bottom:12px;"></div>
       <div id="ate-cards" style="display:block;"></div>
+      <div id="ate-finalizados-cards" style="display:none;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;"></div>
       <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px;display:none;" id="ate-empty">Nenhum atendimento registrado.</div>
     </div>
 
@@ -10463,15 +10458,14 @@ function ateReabrir(id){
   showToast('↩ Atendimento reaberto','success');
 }
 
-function toggleAteFinalizados(){
-  const cards=document.getElementById('ate-finalizados-cards');
-  const chev=document.getElementById('ate-fin-chevron');
-  const sep=document.getElementById('ate-fin-separator');
-  if(!cards||!chev) return;
-  const open=cards.style.display!=='none'&&cards.style.display!=='';
-  cards.style.display=open?'none':'grid';
-  chev.style.transform=open?'':'rotate(90deg)';
-  if(sep) sep.style.display=open?'none':'block';
+let _ateSubTab='ativos';
+function ateSetSubTab(tab){
+  _ateSubTab=tab;
+  const bAtivos=document.getElementById('ate-stab-ativos');
+  const bConc=document.getElementById('ate-stab-concluidas');
+  if(bAtivos) bAtivos.classList.toggle('active', tab==='ativos');
+  if(bConc) bConc.classList.toggle('active', tab==='concluidas');
+  try{renderAte();}catch(e){}
 }
 
 function renderAte(){
@@ -10517,40 +10511,43 @@ function renderAte(){
   }
 
   const container=document.getElementById('ate-cards');
-  const empty=document.getElementById('ate-empty');
-  container.innerHTML='';
-
-  const finChip=document.getElementById('ate-fin-chip');
   const finCards=document.getElementById('ate-finalizados-cards');
-  const finBadge=document.getElementById('ate-fin-badge');
-  if(finChip) finChip.style.display=canAte?'flex':'none';
-  if(finBadge) finBadge.textContent=finalizados.length;
-  if(finCards){
-    finCards.innerHTML='';
-    finalizados.forEach(d=>{const c=buildAteCard(d,true);if(c)finCards.appendChild(c);});
-    // Ao buscar ou filtrar por plataforma, abre a pasta de finalizados para não esconder resultados
-    if((_ateQ || ateFiltroPlataforma) && finalizados.length>0){
-      finCards.style.display='grid';
-      const _chev=document.getElementById('ate-fin-chevron'); if(_chev) _chev.style.transform='rotate(90deg)';
-      const _sep=document.getElementById('ate-fin-separator'); if(_sep) _sep.style.display='block';
-    }
-  }
+  const empty=document.getElementById('ate-empty');
+  const statsPanel=document.getElementById('ate-stats-panel');
+  container.innerHTML='';
+  if(finCards) finCards.innerHTML='';
 
-  if(active.length===0){
+  const concBadge=document.getElementById('ate-stab-concluidas-badge');
+  if(concBadge) concBadge.textContent=finalizados.length;
+
+  const naAba=(_ateSubTab==='concluidas')?'concluidas':'ativos';
+  container.style.display = naAba==='ativos' ? 'block' : 'none';
+  if(finCards) finCards.style.display = naAba==='concluidas' ? 'grid' : 'none';
+  if(statsPanel) statsPanel.style.display = naAba==='ativos' ? 'block' : 'none';
+
+  const lista = naAba==='ativos' ? active : finalizados;
+
+  if(lista.length===0){
     empty.style.display='block';
-    empty.textContent = _ateQ
-      ? (finalizados.length>0 ? 'Nenhum atendimento em aberto para esta busca (veja em Finalizados).' : 'Nenhum atendimento encontrado para esta busca.')
-      : (ateFiltroPlataforma
-          ? (finalizados.length>0 ? `Nenhum atendimento em aberto para "${ateFiltroPlataforma}" (veja em Finalizados).` : `Nenhum atendimento em aberto para "${ateFiltroPlataforma}".`)
-          : 'Nenhum atendimento registrado.');
+    if(naAba==='concluidas'){
+      empty.textContent = (_ateQ||ateFiltroPlataforma) ? 'Nenhum atendimento concluído para esta busca/filtro.' : 'Nenhum atendimento concluído.';
+    } else {
+      empty.textContent = _ateQ
+        ? 'Nenhum atendimento encontrado para esta busca.'
+        : (ateFiltroPlataforma ? `Nenhum atendimento em aberto para "${ateFiltroPlataforma}".` : 'Nenhum atendimento registrado.');
+    }
     return;
   }
   empty.style.display='none';
 
-  const grid=document.createElement('div');
-  grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;';
-  container.appendChild(grid);
-  active.forEach(d=>{const c=buildAteCard(d,false);if(c)grid.appendChild(c);});
+  if(naAba==='ativos'){
+    const grid=document.createElement('div');
+    grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;';
+    container.appendChild(grid);
+    active.forEach(d=>{const c=buildAteCard(d,false);if(c)grid.appendChild(c);});
+  } else if(finCards){
+    finalizados.forEach(d=>{const c=buildAteCard(d,true);if(c)finCards.appendChild(c);});
+  }
 }
 
 function reorderAtendimentos(draggedId, targetId){
