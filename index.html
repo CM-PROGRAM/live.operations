@@ -10461,6 +10461,8 @@ function ateReabrir(id){
 let _ateSubTab='ativos';
 function ateSetSubTab(tab){
   _ateSubTab=tab;
+  // Restaura o filtro de plataforma guardado desta sub-aba (independente da outra)
+  ateFiltroPlataforma=_ateFiltroPorAba[_ateAbaAtual()]||'';
   const titulo=document.getElementById('ate-section-title');
   if(titulo) titulo.textContent = tab==='concluidas' ? 'Atendimentos Concluídos' : 'Registro Atendimentos Geral';
   try{renderAte();}catch(e){}
@@ -10639,16 +10641,22 @@ function buildAteCard(d,isFinalizado){
   return card;
 }
 
+// Cada sub-aba (Em Atendimento / Concluídas) guarda o próprio filtro de
+// plataforma — filtrar numa não mexe na outra
 let ateFiltroPlataforma='';
+const _ateFiltroPorAba={ativos:'',concluidas:''};
+function _ateAbaAtual(){ return _ateSubTab==='concluidas' ? 'concluidas' : 'ativos'; }
 function ateFiltrarPorPlataforma(plt){
   ateFiltroPlataforma = (ateFiltroPlataforma===plt) ? '' : plt;
+  _ateFiltroPorAba[_ateAbaAtual()]=ateFiltroPlataforma;
   try{renderAte();}catch(e){}
   try{renderAteStats();}catch(e){}
-  const cardsEl=document.getElementById('ate-cards');
+  const cardsEl=document.getElementById(_ateAbaAtual()==='concluidas'?'ate-finalizados-cards':'ate-cards');
   if(ateFiltroPlataforma && cardsEl) cardsEl.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function ateLimparFiltroPlataforma(){
   ateFiltroPlataforma='';
+  _ateFiltroPorAba[_ateAbaAtual()]='';
   try{renderAte();}catch(e){}
   try{renderAteStats();}catch(e){}
 }
