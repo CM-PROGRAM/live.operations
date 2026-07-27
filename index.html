@@ -2065,7 +2065,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
     <div style="display:grid;gap:12px;">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="input-group"><label>Data Abertura</label><input type="text" id="ate-data" placeholder="00/00/00" maxlength="8" oninput="fmtData(this)"></div>
+        <div class="input-group" style="position:relative;">
+          <label>Data Abertura</label>
+          <input type="text" id="ate-data" placeholder="Selecionar data" readonly onclick="ateCalOpen('ate-data')" style="cursor:pointer;">
+          <div id="ate-data-cal-popover" style="display:none;position:absolute;top:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:linear-gradient(135deg,rgba(28,31,42,0.99),rgba(15,16,22,0.99));border:1px solid var(--glass-border);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06);padding:12px;backdrop-filter:blur(20px);"></div>
+        </div>
         <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Motivo</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAteMotivo()" title="Adicionar novo motivo" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAteMotivo()" title="Excluir motivo selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
           <select id="ate-motivo">
             <option value="">— Selecionar —</option>
@@ -2073,44 +2077,45 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div class="input-group"><label>Pedido Base</label><input type="text" id="ate-nped" placeholder="Ex: 35017581"></div>
+        <div class="input-group"><label>Link Pedido Base</label><input type="text" id="ate-link-pedido" placeholder="https://..."></div>
         <div class="input-group"><label>Nome Cliente</label><input type="text" id="ate-cliente" placeholder="Nome do cliente"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="input-group"><label>Link Atendimento</label><input type="text" id="ate-link" placeholder="https://..."></div>
-        <div class="input-group"><label>Nome Atendente</label><input type="text" id="ate-atendente" placeholder="Nome de quem atendeu"></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div class="input-group"><label>N° Atendimento</label><input type="text" id="ate-natend" placeholder="Ex: 12345678"></div>
-        <div class="input-group"><label>Prazo Retorno</label><input type="text" id="ate-prazo" placeholder="00/00/00" maxlength="8" oninput="fmtData(this)"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div class="input-group" style="position:relative;">
+          <label>Data Retorno</label>
+          <input type="text" id="ate-prazo" placeholder="Selecionar data" readonly onclick="ateCalOpen('ate-prazo')" style="cursor:pointer;">
+          <div id="ate-prazo-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:linear-gradient(135deg,rgba(28,31,42,0.99),rgba(15,16,22,0.99));border:1px solid var(--glass-border);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06);padding:12px;backdrop-filter:blur(20px);"></div>
+        </div>
         <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Plataforma</span><span style="display:flex;gap:4px;"><button type="button" onclick="addAtePlataforma()" title="Adicionar nova plataforma" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtePlataforma()" title="Excluir plataforma selecionada" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
           <select id="ate-plataforma" onchange="toggleAteRastreio()">
             <option value="">— Selecionar —</option>
           </select>
         </div>
-        <div class="input-group"><label>Status</label>
-          <select id="ate-status">
-            <option value="aberto">Em aberto</option>
-            <option value="atendimento">Em atendimento</option>
-            <option value="finalizado">Concluído</option>
-          </select>
-        </div>
+      </div>
+      <div class="input-group"><label>Status</label>
+        <select id="ate-status">
+          <option value="atendimento">Em atendimento</option>
+          <option value="finalizado">Concluído</option>
+        </select>
       </div>
       <button type="button" id="ate-coment-btn" onclick="ateMostrarComentario()" class="btn btn-sm" style="width:100%;--bc:139,92,246;">💬 Incluir comentários</button>
       <div class="input-group" id="ate-coment-wrap" style="display:none;">
+        <label>💬 Comentários</label>
+        <div id="ate-comentario-historico" style="display:none;flex-direction:column;gap:10px;max-height:220px;overflow-y:auto;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:10px;margin-bottom:8px;"></div>
         <label style="display:flex;align-items:center;justify-content:space-between;">
-          <span>Comentário do dia</span>
-          <span id="ate-ultima-data" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+          <span style="font-size:11px;color:var(--text-muted);">Adicionar comentário</span>
+          <span id="ate-ultima-desc-count" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">500 restantes</span>
         </label>
-        <textarea id="ate-ultima-desc" rows="4" maxlength="150" placeholder="Descreva o que aconteceu nesta atualização..." oninput="document.getElementById('ate-ultima-desc-count').textContent=(150-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
-        <div style="text-align:right;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;"><span id="ate-ultima-desc-count">150 restantes</span></div>
-        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">⚠ Ao incluir um novo comentário, é necessário informar uma nova data em "Prazo Retorno" e anexar um print da tratativa feita hoje para salvar.</div>
+        <textarea id="ate-ultima-desc" rows="4" maxlength="500" placeholder="Descreva o que aconteceu nesta atualização..." oninput="document.getElementById('ate-ultima-desc-count').textContent=(500-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">⚠ Ao incluir um novo comentário, é necessário informar uma nova "Data Retorno" e anexar ao menos uma imagem da tratativa feita hoje para salvar. Comentários já salvos não podem ser apagados.</div>
         <div style="margin-top:8px;">
-          <input type="file" id="ate-foto" accept="image/*" style="display:none;" onchange="onAteFotoSelecionada(this)">
-          <button type="button" class="btn btn-sm" onclick="document.getElementById('ate-foto').click()" style="width:100%;">📎 <span id="ate-foto-name">Anexar print da tratativa de hoje…</span></button>
-          <img id="ate-foto-preview" style="display:none;max-width:100%;border-radius:8px;margin-top:8px;cursor:pointer;" onclick="atvVerProva(this.src)">
+          <input type="file" id="ate-foto" accept="image/*" multiple style="display:none;" onchange="previewAteFotos(this)">
+          <button type="button" class="btn btn-sm" onclick="document.getElementById('ate-foto').click()" style="width:100%;">📎 Anexar imagem(ns) da tratativa de hoje</button>
+          <div id="ate-fotos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;"></div>
         </div>
       </div>
       <div id="ate-rastreio-fields" style="display:none;grid-template-columns:1fr 1fr;gap:12px;">
@@ -2554,7 +2559,10 @@ function _stripHeavyForLocal(s){
       });
     }
     if(copy?.tasks?.atendimentos?.length){
-      copy.tasks.atendimentos.forEach(d=>{ if(d && d.ultimaFoto) d.ultimaFoto=''; });
+      copy.tasks.atendimentos.forEach(d=>{
+        if(d && d.ultimaFoto) d.ultimaFoto=''; // registros antigos (formato anterior)
+        if(d && Array.isArray(d.comentarios)) d.comentarios.forEach(c=>{ if(c && Array.isArray(c.fotos)) c.fotos=[]; });
+      });
     }
     return copy;
   }catch(e){
@@ -6354,7 +6362,7 @@ function ateVerificarAlertaPrazo(d, vencido){
   if(db && fbConnected && d.criadoPorKey){
     const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
     notifRef.push({
-      msg:`⚠️ Atendimento de "${d.cliente||d.nped||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e continua em aberto.`,
+      msg:`⚠️ Atendimento de "${d.cliente||d.natend||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e continua em aberto.`,
       ts:Date.now(),
       lida:false,
       tipo:'atendimento'
@@ -6385,7 +6393,7 @@ function ateVerificarTarefaAutomatica(d, vencido){
   if(db && fbConnected && d.criadoPorKey){
     const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
     notifRef.push({
-      msg:`🚨 Atendimento de "${d.cliente||d.nped||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e gerou uma tarefa em Central de Tarefas.`,
+      msg:`🚨 Atendimento de "${d.cliente||d.natend||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e gerou uma tarefa em Central de Tarefas.`,
       ts:Date.now(),
       lida:false,
       tipo:'atendimento'
@@ -9605,62 +9613,68 @@ const ATE_STATUS_CONFIG={
   finalizado:  {label:'CONCLUÍDO',      color:'#22c55e',bg:'rgba(34,197,94,0.10)', border:'rgba(34,197,94,0.3)'},
 };
 
-// ── Tópicos helpers ──────────────────────────────────────────
-let _ateTopicos=[];
-
-function ateUpdateHora(){
-  const descElN=document.getElementById('ate-ultima-desc');
-  const dataLblN=document.getElementById('ate-ultima-data');
-  if(descElN) descElN.value='';
-  if(dataLblN) dataLblN.textContent='';
-  const cntElN=document.getElementById('ate-ultima-desc-count');
-  if(cntElN) cntElN.textContent='150 restantes';
-  const el=document.getElementById('ate-topico-hora');
-  if(el) el.value=new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+// ── Data Abertura / Data Retorno — calendário customizado em popup ─────
+// Grava no formato DD/MM/AA (mesmo formato já usado nos registros salvos),
+// só que escolhido no calendário em vez de digitado.
+const _ateCalView={};
+function ateCalOpen(fieldId){
+  const inp=document.getElementById(fieldId);
+  const pop=document.getElementById(fieldId+'-cal-popover');
+  if(!inp||!pop) return;
+  if(pop.style.display==='block'){ pop.style.display='none'; return; }
+  const m=(inp.value||'').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  _ateCalView[fieldId] = m ? new Date(2000+parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10)) : new Date();
+  ateCalRender(fieldId);
+  pop.style.display='block';
 }
-
-function ateRenderTopicos(){
-  const list=document.getElementById('ate-topicos-list');
-  const count=document.getElementById('ate-topicos-count');
-  if(!list) return;
-  list.innerHTML='';
-  _ateTopicos.forEach((t,i)=>{
-    const row=document.createElement('div');
-    row.style.cssText='display:flex;align-items:flex-start;gap:6px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;';
-    const hora=document.createElement('span');hora.style.cssText='font-size:10px;font-family:var(--font-mono);color:var(--accent);white-space:nowrap;flex-shrink:0;padding-top:2px;';hora.textContent=t.hora;
-    const sep=document.createElement('span');sep.style.cssText='font-size:11px;color:var(--text-muted);flex-shrink:0;padding-top:1px;';sep.textContent='—';
-    const txt=document.createElement('span');txt.style.cssText='font-size:14px;color:var(--text-primary);flex:1;line-height:1.5;word-break:break-word;';txt.textContent=t.texto;
-    const del=document.createElement('button');del.type='button';
-    del.style.cssText='background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;line-height:1;flex-shrink:0;padding:0 2px;';
-    del.textContent='×';del.title='Remover';
-    del.onclick=(()=>{const idx=i;return()=>{_ateTopicos.splice(idx,1);ateRenderTopicos();}})();
-    row.appendChild(hora);row.appendChild(sep);row.appendChild(txt);row.appendChild(del);
-    list.appendChild(row);
+function ateCalClose(fieldId){ const pop=document.getElementById(fieldId+'-cal-popover'); if(pop) pop.style.display='none'; }
+function ateCalNav(fieldId,delta){
+  const v=_ateCalView[fieldId]||(_ateCalView[fieldId]=new Date());
+  v.setDate(1); v.setMonth(v.getMonth()+delta);
+  ateCalRender(fieldId);
+}
+function ateCalPick(fieldId,y,mo,dia){
+  const inp=document.getElementById(fieldId);
+  if(inp) inp.value=String(dia).padStart(2,'0')+'/'+String(mo+1).padStart(2,'0')+'/'+String(y).slice(-2);
+  ateCalClose(fieldId);
+}
+function ateCalRender(fieldId){
+  const pop=document.getElementById(fieldId+'-cal-popover');
+  if(!pop) return;
+  const view=_ateCalView[fieldId]||(_ateCalView[fieldId]=new Date());
+  const y=view.getFullYear(), mo=view.getMonth();
+  const inp=document.getElementById(fieldId);
+  const m=((inp&&inp.value)||'').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  const selKey = m ? (2000+parseInt(m[3],10))+'-'+parseInt(m[2],10)+'-'+parseInt(m[1],10) : '';
+  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const inicio=new Date(y,mo,1).getDay();
+  const diasNoMes=new Date(y,mo+1,0).getDate();
+  const hoje=new Date();
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+    <button type="button" onclick="ateCalNav('${fieldId}',-1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
+    <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
+    <button type="button" onclick="ateCalNav('${fieldId}',1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
+  ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
+  html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
+  for(let i=0;i<inicio;i++) html+='<div></div>';
+  for(let dia=1;dia<=diasNoMes;dia++){
+    const key=y+'-'+mo+'-'+dia;
+    const isSel=key===selKey;
+    const isHoje=dia===hoje.getDate()&&mo===hoje.getMonth()&&y===hoje.getFullYear();
+    html+=`<button type="button" onclick="ateCalPick('${fieldId}',${y},${mo},${dia})" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#6d5efc,#4f52d6)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+  }
+  html+='</div>';
+  pop.innerHTML=html;
+}
+document.addEventListener('click',function(e){
+  ['ate-data','ate-prazo'].forEach(fieldId=>{
+    const pop=document.getElementById(fieldId+'-cal-popover');
+    const inp=document.getElementById(fieldId);
+    if(pop&&pop.style.display==='block'&&!pop.contains(e.target)&&inp&&!inp.contains(e.target)) pop.style.display='none';
   });
-  if(count) count.textContent=_ateTopicos.length+' tópico(s)';
-}
-
-function ateAddTopico(){
-  const input=document.getElementById('ate-topico-input');
-  const horaEl=document.getElementById('ate-topico-hora');
-  if(!input) return;
-  const texto=input.value.trim();
-  const hora=(horaEl?horaEl.value:'').trim();
-  if(!hora){showToast('Preencha a data do tópico (DD/MM)','error');horaEl&&horaEl.focus();return;}
-  if(!texto){showToast('Digite o resumo da etapa','error');input.focus();return;}
-  _ateTopicos.push({hora,texto});
-  input.value='';
-  ateRenderTopicos();
-}
-
-function ateLoadTopicos(topicos){
-  _ateTopicos=Array.isArray(topicos)?[...topicos]:[];
-  ateRenderTopicos();
-}
-
-function ateGetTopicos(){
-  return [..._ateTopicos];
-}
+});
 
 function toggleAteRastreio(){
   const plt=document.getElementById('ate-plataforma').value;
@@ -10205,7 +10219,6 @@ function openAteModal(id){
   const overlay=document.getElementById('ate-modal-overlay');
   overlay.style.display='flex';
   ateResetComentario();
-  ateUpdateHora();
   renderAteMotivoOptions('');
   renderAtePlataformaOptions('');
   document.getElementById('ate-edit-id').value=id||'';
@@ -10214,42 +10227,48 @@ function openAteModal(id){
     if(d){
       renderAtePlataformaOptions(d.plataforma||'');
       document.getElementById('ate-cliente').value=d.cliente||'';
-      document.getElementById('ate-nped').value=d.nped||'';
+      document.getElementById('ate-link-pedido').value=d.linkPedido||'';
       document.getElementById('ate-natend').value=d.natend||'';
       document.getElementById('ate-link').value=d.link||'';
-      document.getElementById('ate-atendente').value=d.atendente||'';
       document.getElementById('ate-prazo').value=d.prazo||'';
       document.getElementById('ate-rastreio-cod').value=d.rastreioCod||'';
       document.getElementById('ate-rastreio-link').value=d.rastreioLink||'';
       document.getElementById('ate-data').value=d.data||'';
       renderAteMotivoOptions(d.motivo||'');
-      const descEl=document.getElementById('ate-ultima-desc');
-      const dataLbl=document.getElementById('ate-ultima-data');
-      if(descEl) descEl.value=d.ultimaDesc||'';
-      if(dataLbl) dataLbl.textContent=d.ultimaData||'';
-      const cntEl=document.getElementById('ate-ultima-desc-count');
-      if(cntEl) cntEl.textContent=(150-(d.ultimaDesc||'').length)+' restantes';
-      // Mostra o último print enviado como referência — um novo comentário exige um novo print
-      if(d.ultimaFoto){
-        const fotoPrev=document.getElementById('ate-foto-preview');
-        const fotoName=document.getElementById('ate-foto-name');
-        if(fotoPrev){ fotoPrev.src=d.ultimaFoto; fotoPrev.style.display='block'; }
-        if(fotoName) fotoName.textContent='Print anterior — anexe um novo para o comentário de hoje';
-      }
+      // Histórico de comentários — não pode ser apagado; migra o formato antigo
+      // (ultimaDesc/ultimaFoto únicos) para exibição, se a tarefa for anterior a essa mudança
+      const historico = Array.isArray(d.comentarios) ? d.comentarios
+        : (d.ultimaDesc ? [{texto:d.ultimaDesc,autor:d.criadoPor,em:d.ultimaData,fotos:d.ultimaFoto?[d.ultimaFoto]:[]}] : []);
+      renderAteComentarioHistorico(historico);
       const statusSel=document.getElementById('ate-status');
-      if(statusSel) statusSel.value=d.workflow||'aberto';
+      if(statusSel) statusSel.value=(d.workflow==='finalizado')?'finalizado':'atendimento';
       toggleAteRastreio();
     }
   } else {
     ['ate-plataforma','ate-motivo'].forEach(id=>document.getElementById(id).value='');
-    ['ate-cliente','ate-nped','ate-natend','ate-link','ate-atendente','ate-prazo','ate-rastreio-cod','ate-rastreio-link','ate-data','ate-ultima-desc'].forEach(id=>document.getElementById(id).value='');
-    const _cnt=document.getElementById('ate-ultima-desc-count'); if(_cnt) _cnt.textContent='150 restantes';
-    const _dl=document.getElementById('ate-ultima-data'); if(_dl) _dl.textContent='';
+    ['ate-cliente','ate-link-pedido','ate-natend','ate-link','ate-prazo','ate-rastreio-cod','ate-rastreio-link','ate-data','ate-ultima-desc'].forEach(id=>document.getElementById(id).value='');
+    renderAteComentarioHistorico([]);
     const statusSelNew=document.getElementById('ate-status');
-    if(statusSelNew) statusSelNew.value='aberto';
-    ateLoadTopicos([]);
+    if(statusSelNew) statusSelNew.value='atendimento';
     toggleAteRastreio();
   }
+}
+
+// Renderiza o histórico de comentários (mais recente primeiro) — somente
+// leitura, sem opção de apagar, com as imagens anexadas de cada dia
+function renderAteComentarioHistorico(lista){
+  const wrap=document.getElementById('ate-comentario-historico');
+  if(!wrap) return;
+  if(!lista.length){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  wrap.style.display='flex';
+  wrap.innerHTML=lista.map(c=>{
+    const fotosHtml=(c.fotos||[]).map(src=>`<img src="${src}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${src.replace(/'/g,"\\'")}')">`).join('');
+    return `<div>
+      <div style="font-size:13px;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;">${String(c.texto||'').replace(/</g,'&lt;')}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${c.autor||'—'}${c.em?(' · '+c.em):''}</div>
+      ${fotosHtml?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;">${fotosHtml}</div>`:''}
+    </div>`;
+  }).join('<div style="height:1px;background:var(--border-light);margin:2px 0;"></div>');
 }
 function closeAteModal(){ document.getElementById('ate-modal-overlay').style.display='none'; }
 
@@ -10268,65 +10287,102 @@ function ateResetComentario(){
   const btn=document.getElementById('ate-coment-btn');
   if(wrap) wrap.style.display='none';
   if(btn) btn.style.display='block';
-  _ateFotoBase64='';
+  const ta=document.getElementById('ate-ultima-desc'); if(ta) ta.value='';
+  const cnt=document.getElementById('ate-ultima-desc-count'); if(cnt) cnt.textContent='500 restantes';
+  _atePendingFotos=[];
   const fotoInp=document.getElementById('ate-foto'); if(fotoInp) fotoInp.value='';
-  const fotoName=document.getElementById('ate-foto-name'); if(fotoName) fotoName.textContent='Anexar print da tratativa de hoje…';
-  const fotoPrev=document.getElementById('ate-foto-preview'); if(fotoPrev){ fotoPrev.style.display='none'; fotoPrev.src=''; }
+  renderAteFotosPreview();
 }
 
-// Print anexado como prova da tratativa do dia — obrigatório junto do
-// comentário/prazo para o solicitante/master conseguirem visualizar
-let _ateFotoBase64='';
-function onAteFotoSelecionada(input){
-  const f=input.files&&input.files[0];
-  if(!f) return;
-  const reader=new FileReader();
-  reader.onload=e=>{
-    _ateFotoBase64=String(e.target.result);
-    const nameEl=document.getElementById('ate-foto-name'); if(nameEl) nameEl.textContent=f.name;
-    const prev=document.getElementById('ate-foto-preview'); if(prev){ prev.src=_ateFotoBase64; prev.style.display='block'; }
-  };
-  reader.readAsDataURL(f);
+// Imagens anexadas à tratativa de hoje — permite mais de uma (vários
+// retornos no mesmo dia). Só podem ser removidas ANTES de salvar; uma vez
+// salvas no histórico, ficam definitivas.
+let _atePendingFotos=[];
+function previewAteFotos(input){
+  const files=Array.from(input.files||[]);
+  if(!files.length) return;
+  const readers=files.map(f=>new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>res(e.target.result);
+    reader.readAsDataURL(f);
+  }));
+  Promise.all(readers).then(results=>{
+    _atePendingFotos.push(...results);
+    renderAteFotosPreview();
+    showToast(files.length+' imagem(ns) anexada(s)','success');
+    input.value='';
+  });
+}
+function renderAteFotosPreview(){
+  const prev=document.getElementById('ate-fotos-preview');
+  if(!prev) return;
+  prev.innerHTML='';
+  _atePendingFotos.forEach((src,i)=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:relative;width:60px;height:60px;';
+    const img=document.createElement('img');
+    img.src=src;
+    img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;';
+    img.onclick=()=>atvVerProva(src);
+    const rm=document.createElement('button');
+    rm.type='button';
+    rm.textContent='×';
+    rm.title='Remover imagem';
+    rm.onclick=()=>removeAteFoto(i);
+    rm.style.cssText='position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:16px;border-radius:50%;background:var(--accent,#e8322a);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    wrap.appendChild(img);
+    wrap.appendChild(rm);
+    prev.appendChild(wrap);
+  });
+}
+function removeAteFoto(idx){
+  _atePendingFotos.splice(idx,1);
+  renderAteFotosPreview();
+  showToast('Imagem removida','success');
 }
 
 function saveAte(){
   const plt=document.getElementById('ate-plataforma').value;
   const cliente=document.getElementById('ate-cliente').value.trim();
-  const nped=document.getElementById('ate-nped').value.trim();
+  const linkPedido=document.getElementById('ate-link-pedido').value.trim();
   const natend=document.getElementById('ate-natend').value.trim();
   const link=document.getElementById('ate-link').value.trim();
-  const atendente=document.getElementById('ate-atendente').value.trim();
   const prazo=document.getElementById('ate-prazo').value.trim();
   const rastreioCod=document.getElementById('ate-rastreio-cod').value.trim();
   const rastreioLink=document.getElementById('ate-rastreio-link').value.trim();
   const data=document.getElementById('ate-data').value.trim();
   const motivo=document.getElementById('ate-motivo').value;
-  const status=document.getElementById('ate-status')?.value||'aberto';
-  const ultimaDesc=(document.getElementById('ate-ultima-desc')?.value||'').trim();
-  const ultimaData=ultimaDesc ? new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
-  if(!plt||!cliente||!nped||!data||!motivo||!prazo){
-    showToast('Todos os campos são obrigatórios (exceto N°, Nome Atendente, Link e Comentário)','error');return;
+  const status=document.getElementById('ate-status')?.value||'atendimento';
+  const novoComentarioTexto=(document.getElementById('ate-ultima-desc')?.value||'').trim().slice(0,500);
+  if(!plt||!cliente||!data||!motivo||!prazo){
+    showToast('Todos os campos são obrigatórios (exceto Link Pedido Base, N°, Link Atendimento e Comentário)','error');return;
   }
   if(!appState.tasks.atendimentos) appState.tasks.atendimentos=[];
   const editId=document.getElementById('ate-edit-id').value;
   const existing=editId?appState.tasks.atendimentos.find(x=>x.id===editId):null;
-  const descAnterior=existing?(existing.ultimaDesc||''):'';
+  // Histórico de comentários — nunca é apagado; migra o campo único antigo
+  // (ultimaDesc/ultimaFoto) para o histórico, se a tarefa for anterior a essa mudança
+  const comentariosAnteriores = existing
+    ? (Array.isArray(existing.comentarios) ? existing.comentarios.slice()
+       : (existing.ultimaDesc ? [{texto:existing.ultimaDesc,autor:existing.criadoPor,em:existing.ultimaData,fotos:existing.ultimaFoto?[existing.ultimaFoto]:[]}] : []))
+    : [];
   const prazoAnterior=existing?(existing.prazo||''):'';
-  const descMudou = !!ultimaDesc && ultimaDesc!==descAnterior;
-  // Regra: se um novo comentário do dia foi incluído/alterado, é obrigatório informar uma nova
-  // data em "Prazo Retorno" e anexar um print da tratativa feita hoje
+  const descMudou = !!novoComentarioTexto;
+  // Regra: se um novo comentário do dia foi incluído, é obrigatório informar uma
+  // nova "Data Retorno" e anexar ao menos uma imagem da tratativa feita hoje
   if(descMudou && prazo===prazoAnterior){
-    showToast('Você incluiu um novo comentário — informe uma nova data em "Prazo Retorno" para salvar','error');return;
+    showToast('Você incluiu um novo comentário — informe uma nova "Data Retorno" para salvar','error');return;
   }
-  if(descMudou && !_ateFotoBase64){
-    showToast('Anexe um print da tratativa feita hoje para salvar','error');return;
+  if(descMudou && !_atePendingFotos.length){
+    showToast('Anexe ao menos uma imagem da tratativa feita hoje para salvar','error');return;
   }
+  const comentarios = descMudou
+    ? [{texto:novoComentarioTexto,autor:currentUser.name,em:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),fotos:[..._atePendingFotos]}, ...comentariosAnteriores]
+    : comentariosAnteriores;
   const rec={
     id:editId||('ate_'+Date.now()),
-    plataforma:plt,cliente,nped,natend,link,atendente,prazo,rastreioCod,rastreioLink,data,motivo,
-    ultimaDesc, ultimaData,
-    ultimaFoto: descMudou ? _ateFotoBase64 : (existing?(existing.ultimaFoto||''):''),
-    ultimaFotoPor: descMudou ? currentUser.name : (existing?(existing.ultimaFotoPor||''):''),
+    plataforma:plt,cliente,linkPedido,natend,link,prazo,rastreioCod,rastreioLink,data,motivo,
+    comentarios,
     workflow:status,
     criadoEm:editId?undefined:nowTimeStr(),
     criadoPor:editId?undefined:currentUser.name,
@@ -10356,7 +10412,7 @@ function saveAte(){
   } else {
     appState.tasks.atendimentos.push(rec);
   }
-  _ateFotoBase64='';
+  _atePendingFotos=[];
   saveState(appState);closeAteModal();
   try{renderAte();}catch(e){console.warn('renderAte error:',e);}
   setTimeout(()=>{try{renderAteStats();}catch(e){}},80);
@@ -10408,7 +10464,7 @@ function renderAte(){
   all.forEach((d,idx)=>{ if(typeof d.ordemManual!=='number') d.ordemManual=idx; });
   all.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
   const _ateQ=(document.getElementById('ate-search')?.value||'').trim().toLowerCase();
-  const _ateMatch=d=>!_ateQ || [d.cliente,d.nped,d.natend].some(v=>(v||'').toString().toLowerCase().includes(_ateQ));
+  const _ateMatch=d=>!_ateQ || [d.cliente,d.natend].some(v=>(v||'').toString().toLowerCase().includes(_ateQ));
   const _atePltOk=d=>!ateFiltroPlataforma||atePltEq(d.plataforma,ateFiltroPlataforma);
   const active=all.filter(d=>d.workflow!=='finalizado'&&_atePltOk(d)).filter(_ateMatch);
   const finalizados=all.filter(d=>d.workflow==='finalizado'&&_atePltOk(d)).filter(_ateMatch);
@@ -10566,7 +10622,7 @@ function buildAteCard(d,isFinalizado){
 
   infoRow('Cliente',d.cliente);
   infoRow('Motivo',d.motivo);
-  infoRow('Prazo Retorno', d.prazo, undefined, true);
+  infoRow('Data Retorno', d.prazo, undefined, true);
   infoRow('Responsável',d.criadoPor);
   infoRow('Status',cfg.label,cfg.color,true);
 
