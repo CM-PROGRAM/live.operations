@@ -21,8 +21,8 @@
   --bg-base:#0a0d15;--bg-surface:#10141f;--bg-card:#151a28;--bg-hover:#1b2133;--bg-active:#212942;
   --border:#27304b;--border-light:#33405f;
   --accent:#8fa8d8;--accent-dim:#2b3a5e;--accent-glow:rgba(143,168,216,0.18);--accent-soft:#aec3ea;
-  --green:#22c55e;--green-dim:#14532d;--green-glow:rgba(34,197,94,0.10);
-  --amber:#f59e0b;--amber-dim:#78350f;
+  --green:#8fa8d8;--green-dim:#14532d;--green-glow:rgba(143,168,216,0.10);
+  --amber:#b0bfd8;--amber-dim:#78350f;
   --red:#ef4444;--red-dim:#7f1d1d;
   --blue:#3b82f6;--blue-dim:#1e3a8a;
   --text-primary:#e3e5e8;--text-secondary:#949ba4;--text-muted:#6d7580;
@@ -189,7 +189,7 @@
   background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);pointer-events:none;
 }
 .wpp-card-3d:hover { box-shadow: 0 8px 36px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1); }
-.wpp-card-3d.done { border-color: rgba(34,197,94,0.4); box-shadow: 0 4px 24px rgba(34,197,94,0.15), inset 0 1px 0 rgba(255,255,255,0.08); }
+.wpp-card-3d.done { border-color: rgba(143,168,216,0.4); box-shadow: 0 4px 24px rgba(143,168,216,0.15), inset 0 1px 0 rgba(255,255,255,0.08); }
 *{margin:0;padding:0;box-sizing:border-box;}
 /* Sticky columns hover fix */
 #conf-tbody tr:hover td[style*="position:sticky"]{background:var(--bg-hover) !important;}
@@ -253,9 +253,9 @@ html{overflow-x:hidden;}
 .login-box h2{font-size:11px;font-weight:500;color:var(--text-muted);text-align:center;letter-spacing:3px;text-transform:uppercase;font-family:var(--font-mono);}
 .input-group{display:flex;flex-direction:column;gap:5px;}
 .atv-prior-dot{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2c2f36,#0d0e11);box-shadow:0 0 0 1px rgba(255,255,255,.1),inset 0 1px 1px rgba(255,255,255,.15);position:relative;display:inline-block;flex-shrink:0;}
-.atv-prior-dot::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;top:4px;left:4px;background:var(--dc,#22c55e);box-shadow:0 0 6px var(--dc,#22c55e),0 0 12px var(--dc,#22c55e);}
+.atv-prior-dot::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;top:4px;left:4px;background:var(--dc,#8fa8d8);box-shadow:0 0 6px var(--dc,#8fa8d8),0 0 12px var(--dc,#8fa8d8);}
 .atv-prior-dot.gray{--dc:#9ca3af;}
-.atv-prior-dot.yellow{--dc:#facc15;}
+.atv-prior-dot.yellow{--dc:#b0bfd8;}
 .atv-prior-dot.red{--dc:#ef4444;}
 .atv-prior-select{position:relative;}
 .atv-prior-trigger{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;padding:9px 12px;outline:none;width:100%;cursor:pointer;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:9px;}
@@ -288,7 +288,7 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .btn-ghost:hover{opacity:1;background:linear-gradient(135deg, rgba(var(--bc),0.4) 0%, rgba(var(--bc),0.16) 100%);border-color:rgba(var(--bc),0.6);color:#fff;}
 .btn-sm{font-size:11px;padding:5px 14px;width:auto;border-radius:50px;}
 .btn-danger{--bc: 244,63,94;}
-.btn-success{--bc: 16,185,129;}
+.btn-success{--bc: 143,168,216;}
 .btn-link{
   --bc: 148,163,184;
   background:linear-gradient(135deg, rgba(var(--bc),0.22) 0%, rgba(var(--bc),0.08) 100%);
@@ -381,7 +381,7 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .task-group{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.07);backdrop-filter:blur(12px);}
 .task-group-header{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));border-bottom:1px solid rgba(255,255,255,0.06);padding:10px 14px;display:flex;align-items:center;gap:9px;}
 .task-group-icon{width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
-.task-group-icon.done-glow{width:28px;height:28px;background:radial-gradient(circle at 35% 30%,#6ee7a0,#0f9d4d);border-radius:50%;border:1px solid rgba(255,255,255,.4);box-shadow:0 0 12px rgba(34,197,94,.8),0 0 2px rgba(255,255,255,.6),inset 0 1px 2px rgba(255,255,255,.4);color:#ffffff;font-size:13px;font-weight:900;}
+.task-group-icon.done-glow{width:28px;height:28px;background:radial-gradient(circle at 35% 30%,#6ee7a0,#0f9d4d);border-radius:50%;border:1px solid rgba(255,255,255,.4);box-shadow:0 0 12px rgba(143,168,216,.8),0 0 2px rgba(255,255,255,.6),inset 0 1px 2px rgba(255,255,255,.4);color:#ffffff;font-size:13px;font-weight:900;}
 .task-group-title{font-family:var(--font-sans);font-size:13px;font-weight:700;flex:1;letter-spacing:-0.02em;}
 .task-group-meta{font-size:11px;color:var(--text-muted);font-family:var(--font-sans);font-weight:400;}
 .task-group-count{font-size:11px;font-family:var(--font-mono);margin-left:6px;font-weight:800;padding:2px 9px;border-radius:8px;}
@@ -400,13 +400,13 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .status-dot-wpp{width:16px;height:16px;border-radius:50%;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;box-shadow:inset 0 1px 1px rgba(255,255,255,.25);}
 .status-dot-wpp.pending{background:linear-gradient(135deg,rgba(139,143,245,.55),rgba(79,82,214,.5));}
 .status-dot-wpp.pending::after{content:'';width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.9);}
-.status-dot-wpp.done{background:linear-gradient(135deg,#4ade80,#16a34a);}
+.status-dot-wpp.done{background:linear-gradient(135deg,#9db8e8,#5876b8);}
 .status-dot-wpp.done::after{content:'✓';font-size:9px;font-weight:900;color:#fff;line-height:1;}
 
 /* COMPLETE BUTTON */
 .complete-btn{background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);cursor:pointer;font-size:11px;font-family:var(--font-sans);font-weight:600;letter-spacing:0.01em;padding:5px 14px;transition:all .18s;white-space:nowrap;position:relative;min-width:102px;text-align:center;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);}
-.complete-btn:hover{background:linear-gradient(135deg,rgba(34,197,94,0.15),rgba(34,197,94,0.06));border-color:rgba(34,197,94,0.5);color:var(--green);}
-.complete-btn.done{background:linear-gradient(135deg,rgba(34,197,94,0.85),rgba(34,197,94,0.65));border-color:var(--green);color:#fff;box-shadow:0 4px 16px rgba(34,197,94,0.25),inset 0 1px 0 rgba(255,255,255,0.15);}
+.complete-btn:hover{background:linear-gradient(135deg,rgba(143,168,216,0.15),rgba(143,168,216,0.06));border-color:rgba(143,168,216,0.5);color:var(--green);}
+.complete-btn.done{background:linear-gradient(135deg,rgba(143,168,216,0.85),rgba(143,168,216,0.65));border-color:var(--green);color:#fff;box-shadow:0 4px 16px rgba(143,168,216,0.25),inset 0 1px 0 rgba(255,255,255,0.15);}
 .complete-btn.done:hover{background:linear-gradient(135deg,rgba(26,156,74,0.9),rgba(26,156,74,0.7));border-color:#1a9c4a;color:#fff;}
 .done-tooltip{display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:var(--bg-active);border:1px solid var(--border-light);border-radius:6px;padding:6px 10px;font-size:11px;color:var(--text-secondary);white-space:nowrap;z-index:50;font-family:var(--font-mono);pointer-events:none;}
 .complete-btn:hover .done-tooltip{display:block;}
@@ -502,8 +502,8 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 /* TIMER */
 .timer-btn{background:var(--bg-active);border:1px solid var(--border-light);border-radius:6px;color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);font-size:11px;font-weight:600;padding:5px 10px;transition:all .15s;white-space:nowrap;}
 .timer-btn:hover{border-color:var(--amber);color:var(--amber);}
-.timer-btn.running{background:rgba(245,158,11,0.12);border-color:var(--amber);color:var(--amber);animation:timerPulse 1.5s infinite;}
-.timer-btn.stopped{background:rgba(34,197,94,0.08);border-color:var(--green-dim);color:var(--green);}
+.timer-btn.running{background:rgba(176,191,216,0.12);border-color:var(--amber);color:var(--amber);animation:timerPulse 1.5s infinite;}
+.timer-btn.stopped{background:rgba(143,168,216,0.08);border-color:var(--green-dim);color:var(--green);}
 @keyframes timerPulse{0%,100%{opacity:1;}50%{opacity:.55;}}
 /* ACTIVITY PANEL */
 
@@ -556,7 +556,7 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .btn-orb.v-open{--orb-c: 148,163,184;}
 .btn-orb.v-ok{--orb-c: 232,121,163;}
 .btn-orb.v-danger{--orb-c: 248,113,113;}
-.btn-orb.v-warn{--orb-c: 245,158,11;}
+.btn-orb.v-warn{--orb-c: 176,191,216;}
 .btn-orb.v-edit{--orb-c: 129,140,248;}
 
 /* ===== BOTÕES PILL (com texto) — selo circular + texto, glow colorido ===== */
@@ -583,12 +583,12 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 }
 .btn-pill-ic svg{width:11px;height:11px;stroke:#fff;stroke-width:2.4;fill:none;}
 .btn-pill.v-indigo{--pc: 99,102,241;}
-.btn-pill.v-green{--pc: 16,185,129;}
-.btn-pill.v-amber{--pc: 245,158,11;}
+.btn-pill.v-green{--pc: 143,168,216;}
+.btn-pill.v-amber{--pc: 176,191,216;}
 .btn-pill.v-rose{--pc: 244,63,94;}
 .btn-pill.v-gray{--pc: 148,163,184;}
-.btn-pill.v-aqua{--pc: 6,182,212;}
-.btn-pill.v-yellow{--pc: 217,119,6;}
+.btn-pill.v-aqua{--pc: 143,168,216;}
+.btn-pill.v-yellow{--pc: 125,148,196;}
 /* ── Central de Tarefas: pills modernos (status tabs + kanban headers) ── */
 .atv-stab2{
   display:inline-flex;align-items:center;gap:7px;
@@ -607,14 +607,14 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .atv-stab2[data-c="todas"].active{background:linear-gradient(135deg,#3a3a3a,#000);color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);}
 .atv-stab2[data-c="afazer"]{--sc-border:rgba(255,255,255,.3);--sc-bg:rgba(255,255,255,.06);--sc-text:#f4f4f5;}
 .atv-stab2[data-c="afazer"].active{background:linear-gradient(135deg,#ffffff,#d4d4d8);color:#18181b;box-shadow:0 4px 16px rgba(255,255,255,.25),inset 0 1px 0 rgba(255,255,255,.4);}
-.atv-stab2[data-c="andamento"]{--sc-border:rgba(217,119,6,.4);--sc-bg:rgba(217,119,6,.10);--sc-text:#fbbf24;}
-.atv-stab2[data-c="andamento"].active{background:linear-gradient(135deg,#ffc670,#d97706);box-shadow:0 4px 16px rgba(217,119,6,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="andamento"]{--sc-border:rgba(125,148,196,.4);--sc-bg:rgba(125,148,196,.10);--sc-text:#b0bfd8;}
+.atv-stab2[data-c="andamento"].active{background:linear-gradient(135deg,#b8ccee,#7d94c4);box-shadow:0 4px 16px rgba(125,148,196,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 .atv-stab2[data-c="atrasada"]{--sc-border:rgba(190,18,60,.4);--sc-bg:rgba(190,18,60,.10);--sc-text:#fb7185;}
 .atv-stab2[data-c="atrasada"].active{background:linear-gradient(135deg,#fb7185,#be123c);box-shadow:0 4px 16px rgba(190,18,60,.4),inset 0 1px 0 rgba(255,255,255,.15);}
-.atv-stab2[data-c="concluida"]{--sc-border:rgba(6,182,212,.4);--sc-bg:rgba(6,182,212,.10);--sc-text:#67e8f9;}
-.atv-stab2[data-c="concluida"].active{background:linear-gradient(135deg,#22d3ee,#0891b2);box-shadow:0 4px 16px rgba(6,182,212,.4),inset 0 1px 0 rgba(255,255,255,.15);}
-.atv-stab2[data-c="finalizada"]{--sc-border:rgba(34,197,94,.4);--sc-bg:rgba(34,197,94,.10);--sc-text:#86efac;}
-.atv-stab2[data-c="finalizada"].active{background:linear-gradient(135deg,#4ade80,#16a34a);box-shadow:0 4px 16px rgba(34,197,94,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="concluida"]{--sc-border:rgba(143,168,216,.4);--sc-bg:rgba(143,168,216,.10);--sc-text:#b8ccee;}
+.atv-stab2[data-c="concluida"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);box-shadow:0 4px 16px rgba(143,168,216,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="finalizada"]{--sc-border:rgba(143,168,216,.4);--sc-bg:rgba(143,168,216,.10);--sc-text:#b8ccee;}
+.atv-stab2[data-c="finalizada"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);box-shadow:0 4px 16px rgba(143,168,216,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 
 .atv-colhead{
   display:flex;align-items:center;gap:8px;margin-bottom:9px;padding:9px 14px;
@@ -628,10 +628,10 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .atv-colhead .cnt{border-radius:999px;font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:2px 10px;background:var(--hc-bg2);color:var(--hc-text);}
 .atv-colhead .atv-colchev{font-size:10px;color:var(--hc-text);transition:transform .15s;display:inline-flex;flex-shrink:0;}
 .atv-colhead .atv-colchev.closed{transform:rotate(-90deg);}
-.atv-colhead[data-c="afazer"]{--hc-border:rgba(217,119,6,.4);--hc-bg:rgba(217,119,6,.10);--hc-bg2:rgba(217,119,6,.18);--hc-text:#fbbf24;}
+.atv-colhead[data-c="afazer"]{--hc-border:rgba(125,148,196,.4);--hc-bg:rgba(125,148,196,.10);--hc-bg2:rgba(125,148,196,.18);--hc-text:#b0bfd8;}
 .atv-colhead[data-c="andamento"]{--hc-border:rgba(79,82,214,.4);--hc-bg:rgba(79,82,214,.10);--hc-bg2:rgba(79,82,214,.20);--hc-text:#a5b4fc;}
-.atv-colhead[data-c="concluida"]{--hc-border:rgba(13,148,136,.4);--hc-bg:rgba(13,148,136,.10);--hc-bg2:rgba(13,148,136,.20);--hc-text:#6ee7b7;}
-.atv-colhead[data-c="finalizada"]{--hc-border:rgba(34,197,94,.4);--hc-bg:rgba(34,197,94,.10);--hc-bg2:rgba(34,197,94,.20);--hc-text:#86efac;}
+.atv-colhead[data-c="concluida"]{--hc-border:rgba(143,168,216,.4);--hc-bg:rgba(143,168,216,.10);--hc-bg2:rgba(143,168,216,.20);--hc-text:#b8ccee;}
+.atv-colhead[data-c="finalizada"]{--hc-border:rgba(143,168,216,.4);--hc-bg:rgba(143,168,216,.10);--hc-bg2:rgba(143,168,216,.20);--hc-text:#b8ccee;}
 </style>
 
 <!-- Firebase SDK -->
@@ -771,10 +771,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <!-- META SEMANAL -->
       <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.06);">
         <div style="padding:11px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div style="width:26px;height:26px;border-radius:6px;background:rgba(34,197,94,0.15);border:1px solid rgba(34,197,94,0.35);display:flex;align-items:center;justify-content:center;font-size:13px;">🎯</div>
+          <div style="width:26px;height:26px;border-radius:6px;background:rgba(143,168,216,0.15);border:1px solid rgba(143,168,216,0.35);display:flex;align-items:center;justify-content:center;font-size:13px;">🎯</div>
           <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;white-space:nowrap;">META SEMANAL</span>
           <div style="flex:1;min-width:180px;background:var(--bg-active);border-radius:8px;height:14px;overflow:hidden;position:relative;">
-            <div id="meta-vendas-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#8fa8d8,#4ade80);border-radius:8px;transition:width .6s ease;box-shadow:0 0 10px rgba(74,222,128,0.35);"></div>
+            <div id="meta-vendas-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#8fa8d8,#9db8e8);border-radius:8px;transition:width .6s ease;box-shadow:0 0 10px rgba(74,222,128,0.35);"></div>
             <div id="meta-vendas-marker" title="Meta" style="display:none;position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.85);box-shadow:0 0 6px rgba(255,255,255,0.6);"></div>
           </div>
           <span id="meta-vendas-label" style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-secondary);white-space:nowrap;">—</span>
@@ -810,7 +810,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <!-- Shine -->
         <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(34,197,94,0.3),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.4);display:flex;align-items:center;justify-content:center;font-size:18px;">🎉</div>
+          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(143,168,216,0.3),rgba(143,168,216,0.1));border:1px solid rgba(143,168,216,0.4);display:flex;align-items:center;justify-content:center;font-size:18px;">🎉</div>
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Registrar Venda</div>
             <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Preencha os dados da venda</div>
@@ -859,7 +859,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="modal-venda-error" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fca5a5;font-family:var(--font-mono);margin-top:12px;"></div>
         <div style="display:flex;gap:10px;margin-top:20px;">
           <button onclick="cancelarModalVenda()" style="flex:1;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);font-family:var(--font-sans);font-size:13px;font-weight:600;padding:11px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.25)';this.style.color='var(--text-primary)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text-muted)'">Cancelar</button>
-          <button onclick="confirmarModalVenda()" style="flex:2;background:linear-gradient(135deg,rgba(34,197,94,0.8),rgba(34,197,94,0.6));border:1px solid rgba(34,197,94,0.6);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.25),inset 0 1px 0 rgba(255,255,255,0.15);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Confirmar Venda</button>
+          <button onclick="confirmarModalVenda()" style="flex:2;background:linear-gradient(135deg,rgba(143,168,216,0.8),rgba(143,168,216,0.6));border:1px solid rgba(143,168,216,0.6);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.25),inset 0 1px 0 rgba(255,255,255,0.15);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">✓ Confirmar Venda</button>
         </div>
       </div>
     </div>
@@ -893,11 +893,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div id="rst-owner-badge" title="Responsável: Gustavo" style="width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e8edf855,#e8edf815 60%,transparent 75%),radial-gradient(circle at center,#e8edf822,transparent 70%);border:1px solid #e8edf855;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px #e8edf866,inset 0 1px 2px rgba(255,255,255,.15);">GU</div>
           <span id="rst-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           <!-- Pasta Entregues chip -->
-          <div id="rst-entregues-wrap" onclick="toggleEntregues()" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.3);border-radius:50px;padding:3px 12px 3px 9px;cursor:pointer;transition:background .15s;user-select:none;"
-            onmouseover="this.style.background='rgba(34,197,94,0.18)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03))'">
+          <div id="rst-entregues-wrap" onclick="toggleEntregues()" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(143,168,216,0.1),rgba(143,168,216,0.03));border:1px solid rgba(143,168,216,0.3);border-radius:50px;padding:3px 12px 3px 9px;cursor:pointer;transition:background .15s;user-select:none;"
+            onmouseover="this.style.background='rgba(143,168,216,0.18)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(143,168,216,0.1),rgba(143,168,216,0.03))'">
             <span id="rst-entregues-chevron" style="font-size:10px;color:var(--green);transition:transform .2s;display:inline-block;">▶</span>
             <span style="font-size:10px;font-weight:700;color:var(--green);font-family:var(--font-mono);">📁 Entregues</span>
-            <span id="rst-entregues-badge" style="background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,0.35);border-radius:10px;color:var(--green);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
+            <span id="rst-entregues-badge" style="background:rgba(143,168,216,.15);border:1px solid rgba(143,168,216,0.35);border-radius:10px;color:var(--green);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           </div>
           <button class="btn btn-sm" id="btn-new-rst" onclick="openRstModal(null)" style="font-size:11px;white-space:nowrap;display:none;">+ Novo Rastreio</button>
         </div>
@@ -932,7 +932,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="rst-empty" style="padding:32px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);display:none;">Nenhum rastreio cadastrado ainda.</div>
 
         <!-- Pasta Entregues (expande abaixo) -->
-        <div id="rst-entregues-rows" style="display:none;max-height:400px;overflow-y:auto;background:rgba(34,197,94,.03);border-top:1px solid var(--green-dim);"></div>
+        <div id="rst-entregues-rows" style="display:none;max-height:400px;overflow-y:auto;background:rgba(143,168,216,.03);border-top:1px solid var(--green-dim);"></div>
       </div>
 
       <!-- MODAL registrar pedidos -->
@@ -1249,7 +1249,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-              <span id="entrada-count-afazer" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+              <span id="entrada-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
             </div>
             <div id="entrada-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
             <div id="entrada-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
@@ -1257,7 +1257,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-              <span id="entrada-count-conc" style="background:rgba(13,148,136,.12);border:1px solid rgba(13,148,136,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+              <span id="entrada-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
             </div>
             <div id="entrada-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
             <div id="entrada-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
@@ -1286,7 +1286,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-              <span id="integ-count-afazer" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+              <span id="integ-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
             </div>
             <div id="integ-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
             <div id="integ-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
@@ -1294,7 +1294,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-              <span id="integ-count-conc" style="background:rgba(13,148,136,.12);border:1px solid rgba(13,148,136,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+              <span id="integ-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
             </div>
             <div id="integ-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
             <div id="integ-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
@@ -1323,7 +1323,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-              <span id="img-count-afazer" style="background:rgba(217,119,6,.12);border:1px solid rgba(217,119,6,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+              <span id="img-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
             </div>
             <div id="img-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
             <div id="img-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
@@ -1331,7 +1331,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
               <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-              <span id="img-count-conc" style="background:rgba(13,148,136,.12);border:1px solid rgba(13,148,136,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+              <span id="img-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
             </div>
             <div id="img-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
             <div id="img-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
@@ -1416,7 +1416,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               <option value="Pago">Pago</option>
             </select>
           </div>
-          <button class="btn btn-sm" onclick="gerarPlanilhaBaixas()" style="--bc:34,197,94;white-space:nowrap;">Gerar Relatório Formatado</button>
+          <button class="btn btn-sm" onclick="gerarPlanilhaBaixas()" style="--bc:143,168,216;white-space:nowrap;">Gerar Relatório Formatado</button>
           <button class="btn btn-sm" onclick="resetDrogarias()" style="--bc:143,168,216;white-space:nowrap;">Resetar</button>
         </div>
       </div>
@@ -1601,7 +1601,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn" onclick="closeProjModal()" style="flex:1;">Cancelar</button>
-        <button class="btn" onclick="saveProjeto()" style="flex:1;--bc:34,197,94;">Salvar</button>
+        <button class="btn" onclick="saveProjeto()" style="flex:1;--bc:143,168,216;">Salvar</button>
       </div>
       <div id="proj-delete-wrap" style="display:none;text-align:center;margin-top:4px;">
         <button class="btn btn-danger btn-sm" onclick="deleteProjeto(document.getElementById('proj-edit-id').value)">Excluir projeto</button>
@@ -1691,7 +1691,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn" onclick="closeEntradaModal()" style="flex:1;">Cancelar</button>
-        <button class="btn" onclick="saveEntradaReq()" style="flex:1;--bc:34,197,94;">Salvar</button>
+        <button class="btn" onclick="saveEntradaReq()" style="flex:1;--bc:143,168,216;">Salvar</button>
       </div>
       <div id="entrada-delete-wrap" style="display:none;text-align:center;margin-top:4px;">
         <button type="button" class="btn-orb v-danger sm" title="Excluir solicitação" onclick="deleteEntradaReq(document.getElementById('entrada-edit-id').value)"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
@@ -1778,7 +1778,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn" onclick="closeIntegModal()" style="flex:1;">Cancelar</button>
-        <button class="btn" onclick="saveIntegracao()" style="flex:1;--bc:34,197,94;">Salvar</button>
+        <button class="btn" onclick="saveIntegracao()" style="flex:1;--bc:143,168,216;">Salvar</button>
       </div>
       <div id="integ-delete-wrap" style="display:none;text-align:center;margin-top:4px;">
         <button type="button" class="btn-orb v-danger sm" title="Excluir solicitação" onclick="deleteIntegracao(document.getElementById('integ-edit-id').value)"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
@@ -1866,7 +1866,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div style="display:flex;gap:10px;margin-top:6px;">
         <button class="btn" onclick="closeImgModal()" style="flex:1;">Cancelar</button>
-        <button class="btn" onclick="saveImagemReq()" style="flex:1;--bc:34,197,94;">Salvar</button>
+        <button class="btn" onclick="saveImagemReq()" style="flex:1;--bc:143,168,216;">Salvar</button>
       </div>
       <div id="img-delete-wrap" style="display:none;text-align:center;margin-top:4px;">
         <button type="button" class="btn-orb v-danger sm" title="Excluir solicitação" onclick="deleteImagemReq(document.getElementById('img-edit-id').value)"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
@@ -2253,7 +2253,7 @@ function addBusinessDays(date, n){
 function defaultState(){
   return {
     users:{
-      cmandrade:{name:'CM Andrade',pass:'suple2024',master:true,color:'#22c55e',initials:'CM',perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','atividades','admin']},
+      cmandrade:{name:'CM Andrade',pass:'suple2024',master:true,color:'#8fa8d8',initials:'CM',perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','atividades','admin']},
       gustavo:{name:'Gustavo',pass:'gusta123',master:false,color:'#e8edf8',initials:'G',perms:['plataformas','envios']},
       matheusm:{name:'Matheus M',pass:'matheus123',master:false,color:'#3b82f6',initials:'MM',perms:['whatsapp']},
       carlosred:{name:'Carlos Red',pass:'carlos123',master:false,color:'#c0392b',initials:'CR',perms:['whatsapp','devolucoes']}
@@ -2288,7 +2288,7 @@ function defaultState(){
 function patchUsers(s){
   if(!s.users) s.users={};
   const CORE={
-    cmandrade:{name:'CM Andrade', pass:'suple2024', master:true,  color:'#22c55e', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
+    cmandrade:{name:'CM Andrade', pass:'suple2024', master:true,  color:'#8fa8d8', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
     gustavo:  {name:'Gustavo',    pass:'gusta123',  master:false, color:'#e8edf8', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
     matheusm: {name:'Matheus M',  pass:'matheus123',master:false, color:'#3b82f6', initials:'MM', perms:['whatsapp','tarefas','cnpjs','integracoes']},
     carlosred:{name:'Carlos Red', pass:'carlos123', master:false, color:'#c0392b', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
@@ -3717,8 +3717,8 @@ function renderWpp(){
     const badge=document.createElement('div');
     badge.style.cssText='display:inline-flex;align-items:center;gap:8px;padding:5px 16px 5px 5px;border-radius:999px;flex-shrink:0;'+
       (allDone
-        ? 'background:linear-gradient(135deg,#4ade80,#16a34a);box-shadow:0 3px 10px rgba(34,197,94,.28),inset 0 1px 0 rgba(255,255,255,.2);'
-        : 'background:linear-gradient(135deg,rgba(74,222,128,.22),rgba(22,163,74,.14));border:1px solid rgba(34,197,94,.4);box-shadow:0 3px 10px rgba(34,197,94,.15),inset 0 1px 0 rgba(255,255,255,.12);');
+        ? 'background:linear-gradient(135deg,#9db8e8,#5876b8);box-shadow:0 3px 10px rgba(143,168,216,.28),inset 0 1px 0 rgba(255,255,255,.2);'
+        : 'background:linear-gradient(135deg,rgba(74,222,128,.22),rgba(22,163,74,.14));border:1px solid rgba(143,168,216,.4);box-shadow:0 3px 10px rgba(143,168,216,.15),inset 0 1px 0 rgba(255,255,255,.12);');
     const icon=document.createElement('div');icon.className='task-group-icon';
     icon.style.cssText='width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;'+
       (allDone?'background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 1px 2px rgba(255,255,255,.25);':'background:rgba(255,255,255,.16);color:#fff;box-shadow:inset 0 1px 2px rgba(255,255,255,.2);');
@@ -3800,16 +3800,16 @@ function renderWpp(){
             let iconInner = '↗';
             if(b.action==='valores'){
               // Ícone etiqueta de valores (tag verde com cifrão)
-              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M3.4 11.2 11.2 3.4c.5-.5 1.2-.7 1.9-.6l5.3.8c.9.1 1.6.8 1.7 1.7l.8 5.3c.1.7-.1 1.4-.6 1.9l-7.8 7.8c-.7.7-1.9.7-2.6 0l-6.5-6.5c-.7-.7-.7-1.9 0-2.6z" fill="#0f2a1c" stroke="#8fa8d8" stroke-width="1.4"/><circle cx="16" cy="8" r="1.6" fill="#8fa8d8"/><path d="M10.9 9.3c-1.1 0-1.9.6-1.9 1.5 0 2 3.4 1.1 3.4 3 0 .9-.8 1.5-1.9 1.5m0-6c.8 0 1.5.3 1.8.9m-1.8 5.1c-.9 0-1.6-.4-1.9-1M10.9 8.2v1.1m0 6v1.1" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M3.4 11.2 11.2 3.4c.5-.5 1.2-.7 1.9-.6l5.3.8c.9.1 1.6.8 1.7 1.7l.8 5.3c.1.7-.1 1.4-.6 1.9l-7.8 7.8c-.7.7-1.9.7-2.6 0l-6.5-6.5c-.7-.7-.7-1.9 0-2.6z" fill="#141a2a" stroke="#8fa8d8" stroke-width="1.4"/><circle cx="16" cy="8" r="1.6" fill="#8fa8d8"/><path d="M10.9 9.3c-1.1 0-1.9.6-1.9 1.5 0 2 3.4 1.1 3.4 3 0 .9-.8 1.5-1.9 1.5m0-6c.8 0 1.5.3 1.8.9m-1.8 5.1c-.9 0-1.6-.4-1.9-1M10.9 8.2v1.1m0 6v1.1" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/></svg>';
             } else if(b.action==='registrarVenda'){
               // Ícone recibo verde com "+"
-              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M5.5 2.8h13v18.4l-2.2-1.4-2.2 1.4-2.1-1.4-2.1 1.4-2.2-1.4-2.2 1.4z" fill="#0f2a1c" stroke="#8fa8d8" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.4 7.6h7.2M8.4 10.8h7.2" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/><circle cx="18.4" cy="6.4" r="4" fill="#22c55e" stroke="#0b1220" stroke-width="0.8"/><path d="M18.4 4.7v3.4M16.7 6.4h3.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M5.5 2.8h13v18.4l-2.2-1.4-2.2 1.4-2.1-1.4-2.1 1.4-2.2-1.4-2.2 1.4z" fill="#141a2a" stroke="#8fa8d8" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.4 7.6h7.2M8.4 10.8h7.2" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/><circle cx="18.4" cy="6.4" r="4" fill="#8fa8d8" stroke="#0b1220" stroke-width="0.8"/><path d="M18.4 4.7v3.4M16.7 6.4h3.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>';
             } else if(b.link&&b.link.includes('drive.google.com')){
               // Ícone pasta Google Drive
               iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><path d="M2.6 7.2c0-1 .8-1.8 1.8-1.8h4.2l2 2h6.9c1 0 1.8.8 1.8 1.8v7.6c0 1-.8 1.8-1.8 1.8H4.4c-1 0-1.8-.8-1.8-1.8z" fill="#3b82f6"/><path d="M2.6 9.4h18.8v7.4c0 1-.8 1.8-1.8 1.8H4.4c-1 0-1.8-.8-1.8-1.8z" fill="#60a5fa"/></svg>';
             } else if(b.link&&b.link.includes('spreadsheets')){
               // Ícone planilha (verde Google Sheets)
-              iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="4.5" y="2.6" width="15" height="18.8" rx="2" fill="#0f2a1c" stroke="#22c55e" stroke-width="1.2"/><path d="M8 7.2h8M8 10.4h8M8 13.6h8M11 6v11.2M15 6v11.2" stroke="#86efac" stroke-width="1.1"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="4.5" y="2.6" width="15" height="18.8" rx="2" fill="#141a2a" stroke="#8fa8d8" stroke-width="1.2"/><path d="M8 7.2h8M8 10.4h8M8 13.6h8M11 6v11.2M15 6v11.2" stroke="#b8ccee" stroke-width="1.1"/></svg>';
             } else if(b.action==='precificacaoPix'){
               iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="5.4" y="5.4" width="13.2" height="13.2" rx="3.2" transform="rotate(45 12 12)" fill="#32BCAD"/><path d="M5.6 10.4C8.3 10.4 8.9 13.6 12 13.6s3.7-3.2 6.4-3.2" stroke="#101318" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M5.6 13.6C8.3 13.6 8.9 10.4 12 10.4s3.7 3.2 6.4 3.2" stroke="#101318" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>';
             } else if(b.action==='valoresCredito'){
@@ -3822,7 +3822,7 @@ function renderWpp(){
               iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><circle cx="12" cy="12" r="10" fill="#04070f" stroke="#4db8ff" stroke-width="1.4"/><circle cx="12" cy="9.4" r="2.6" stroke="#9adcff" stroke-width="1.3"/><path d="M6.8 17.3c.4-2.6 2.6-4.4 5.2-4.4s4.8 1.8 5.2 4.4" stroke="#9adcff" stroke-width="1.3" stroke-linecap="round"/></svg>';
             } else if(b.label==='Cadastrar'){
               // Ícone bloquinho preto/dourado com caneta
-              iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="3.6" y="4.4" width="13.4" height="17" rx="2.4" fill="#191a20" stroke="#d4a63f" stroke-width="1.1"/><path d="M6.2 4.4V2.4M9 4.4V2.4M11.8 4.4V2.4M14.6 4.4V2.4" stroke="#d4a63f" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.4" cy="9" r="0.8" fill="#d4a63f"/><path d="M8.2 9h6.4" stroke="#d4a63f" stroke-width="1.1" stroke-linecap="round"/><circle cx="6.4" cy="12.2" r="0.8" fill="#d4a63f"/><path d="M8.2 12.2h6.4" stroke="#d4a63f" stroke-width="1.1" stroke-linecap="round"/><circle cx="6.4" cy="15.4" r="0.8" fill="#d4a63f"/><path d="M8.2 15.4h4.2" stroke="#d4a63f" stroke-width="1.1" stroke-linecap="round"/><path d="M21.6 6.2 16.9 13" stroke="#101014" stroke-width="2.8" stroke-linecap="round"/><path d="M21.9 5.7l-1 1.5" stroke="#d4a63f" stroke-width="2.8" stroke-linecap="round"/><path d="M16.9 13l-1.7 3.9 3.4-1.5z" fill="#d4a63f"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="3.6" y="4.4" width="13.4" height="17" rx="2.4" fill="#191a20" stroke="#8fa8d8" stroke-width="1.1"/><path d="M6.2 4.4V2.4M9 4.4V2.4M11.8 4.4V2.4M14.6 4.4V2.4" stroke="#8fa8d8" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.4" cy="9" r="0.8" fill="#8fa8d8"/><path d="M8.2 9h6.4" stroke="#8fa8d8" stroke-width="1.1" stroke-linecap="round"/><circle cx="6.4" cy="12.2" r="0.8" fill="#8fa8d8"/><path d="M8.2 12.2h6.4" stroke="#8fa8d8" stroke-width="1.1" stroke-linecap="round"/><circle cx="6.4" cy="15.4" r="0.8" fill="#8fa8d8"/><path d="M8.2 15.4h4.2" stroke="#8fa8d8" stroke-width="1.1" stroke-linecap="round"/><path d="M21.6 6.2 16.9 13" stroke="#101014" stroke-width="2.8" stroke-linecap="round"/><path d="M21.9 5.7l-1 1.5" stroke="#8fa8d8" stroke-width="2.8" stroke-linecap="round"/><path d="M16.9 13l-1.7 3.9 3.4-1.5z" fill="#8fa8d8"/></svg>';
             } else if(b.action==='envioRastreio'){
               // Ícone foguete iridescente roxo/azul
               iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><defs><linearGradient id="wppRocketG" x1="4" y1="20" x2="20" y2="4" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#7c3aed"/><stop offset="0.5" stop-color="#4f6bd8"/><stop offset="1" stop-color="#312e81"/></linearGradient></defs><path d="M20.6 3.4c-4.2.3-7.4 1.9-9.9 4.4l-3.4 3.4c-.5.5-.5 1.3 0 1.8l3.7 3.7c.5.5 1.3.5 1.8 0l3.4-3.4c2.5-2.5 4.1-5.7 4.4-9.9z" fill="url(#wppRocketG)"/><circle cx="15.4" cy="8.6" r="1.9" fill="#0f1226" stroke="#a5b4fc" stroke-width="0.9"/><path d="M8.3 7.2 5 8.4c-.6.2-.8 1-.3 1.5l2 2z" fill="#3b2f7a"/><path d="M16.8 15.7l-1.2 3.3c-.2.6-1 .8-1.5.3l-2-2z" fill="#3b2f7a"/><path d="M7.4 14.9c-1.2 1-1.9 2.8-2.1 4.3 1.5-.2 3.3-.9 4.3-2.1z" fill="#e879f9"/><path d="M6.2 16.4c-.6.6-1 1.7-1.1 2.6.9-.1 2-.5 2.6-1.1z" fill="#fcd34d"/></svg>';
@@ -4153,8 +4153,8 @@ function renderPedidosWpp(){
   if(empty) empty.style.display='none';
 
   const PAG_COLORS={
-    'Pix Manoel':               {bg:'rgba(34,197,94,.12)',   border:'rgba(34,197,94,0.4)',   color:'var(--green)'},
-    'Pix Vix Comercio':         {bg:'rgba(16,185,129,.12)',  border:'rgba(16,185,129,0.4)',  color:'#10b981'},
+    'Pix Manoel':               {bg:'rgba(143,168,216,.12)',   border:'rgba(143,168,216,0.4)',   color:'var(--green)'},
+    'Pix Vix Comercio':         {bg:'rgba(143,168,216,.12)',  border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'},
     'Pix 4Vita':                {bg:'rgba(52,211,153,.12)',  border:'rgba(52,211,153,0.4)',  color:'#34d399'},
     'C. de Crédito Infinity Pay':{bg:'rgba(59,130,246,.12)', border:'rgba(59,130,246,0.4)', color:'var(--blue)'},
     'C. de Crédito Merc. Pago': {bg:'rgba(143,168,216,.12)', border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'}
@@ -4316,16 +4316,16 @@ function renderMetaVendas(){
   lbl.textContent=fmtR(totalSemana)+' de '+fmtR(meta)+(temSuper?' · Super: '+fmtR(superMeta):'');
   pctEl.textContent=pct+'%'+(atingiuSuper?' 🏆':'');
   // Cores: <50% vermelho · 50–59% roxo · 60–99% âmbar · ≥100% verde · super meta dourado
-  const cor=atingiuSuper?'#fbbf24':(pct>=100?'var(--green)':(pct>=60?'var(--amber)':(pct>=50?'#8fa8d8':'#ef4444')));
+  const cor=atingiuSuper?'#b0bfd8':(pct>=100?'var(--green)':(pct>=60?'var(--amber)':(pct>=50?'#8fa8d8':'#ef4444')));
   pctEl.style.color=cor;
   if(pct<50){
     fill.style.background='linear-gradient(90deg,#7f1d1d,#ef4444)';
     fill.style.boxShadow='0 0 10px rgba(239,68,68,0.4)';
   } else if(atingiuSuper){
-    fill.style.background='linear-gradient(90deg,#4ade80,#fbbf24)';
+    fill.style.background='linear-gradient(90deg,#9db8e8,#b0bfd8)';
     fill.style.boxShadow='0 0 12px rgba(251,191,36,0.5)';
   } else {
-    fill.style.background='linear-gradient(90deg,#8fa8d8,#4ade80)';
+    fill.style.background='linear-gradient(90deg,#8fa8d8,#9db8e8)';
     fill.style.boxShadow='0 0 10px rgba(74,222,128,0.35)';
   }
   fill.style.width=fillPct+'%';
@@ -4394,7 +4394,7 @@ function renderVendasChart(){
     const isHoje=dt===hojeStr;
     // Dias com venda abaixo de R$500 → vermelho leve; hoje verde; demais violeta
     const abaixo500=info.total>0&&info.total<500;
-    const c=abaixo500?'#f87171':(isHoje?'#4ade80':'#8fa8d8');
+    const c=abaixo500?'#f87171':(isHoje?'#9db8e8':'#8fa8d8');
     const dataObj=new Date(dt+'T12:00:00');
     const lblCurta=compacto
       ? String(dataObj.getDate()).padStart(2,'0')
@@ -4470,12 +4470,12 @@ function renderHistoricoWpp(){
   });
 
   const PAG_COLORS = {
-    'Pix Manoel':               {bg:'rgba(34,197,94,.12)',   border:'rgba(34,197,94,0.4)',   color:'var(--green)'},
-    'Pix Vix Comercio':         {bg:'rgba(16,185,129,.12)',  border:'rgba(16,185,129,0.4)',  color:'#10b981'},
+    'Pix Manoel':               {bg:'rgba(143,168,216,.12)',   border:'rgba(143,168,216,0.4)',   color:'var(--green)'},
+    'Pix Vix Comercio':         {bg:'rgba(143,168,216,.12)',  border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'},
     'Pix 4Vita':                {bg:'rgba(52,211,153,.12)',  border:'rgba(52,211,153,0.4)',  color:'#34d399'},
     'C. de Crédito Infinity Pay':{bg:'rgba(59,130,246,.12)',border:'rgba(59,130,246,0.4)',  color:'var(--blue)'},
     'C. de Crédito Merc. Pago': {bg:'rgba(143,168,216,.12)', border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'},
-    'Pix':    {bg:'rgba(34,197,94,.12)', border:'rgba(34,197,94,0.4)', color:'var(--green)'},
+    'Pix':    {bg:'rgba(143,168,216,.12)', border:'rgba(143,168,216,0.4)', color:'var(--green)'},
     'Crédito':{bg:'rgba(59,130,246,.12)',border:'rgba(59,130,246,0.4)',color:'var(--blue)'}
   };
 
@@ -4620,7 +4620,7 @@ function _mixHex(a,b,t){
 }
 function pctBadgeCSS(pct){
   const t = Math.max(0,Math.min(100,pct))/100;
-  const top = _mixHex('#4a4d54','#8ce89a',t);
+  const top = _mixHex('#4a4d54','#9db8e8',t);
   const bot = t<0.85 ? _mixHex('#33363c','#3f6b46',t/0.85) : _mixHex('#3f6b46','#5fae5a',(t-0.85)/0.15);
   const txt = t<0.85 ? '#eef1f4' : _mixHex('#eef1f4','#123018',(t-0.85)/0.15);
   return `background:linear-gradient(180deg,${top},${bot});color:${txt};box-shadow:0 1px 3px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.25);`;
@@ -4789,9 +4789,9 @@ function renderPlt(){
 
     // Card principal
     const card=document.createElement('div');
-    card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,${allDoneG?'0.03':'0.06'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid ${allDoneG?'rgba(34,197,94,0.35)':'rgba(255,255,255,0.09)'};border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.35)${allDoneG?',0 0 16px rgba(34,197,94,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.07);transition:box-shadow .2s,transform .15s;`;
+    card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,${allDoneG?'0.03':'0.06'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid ${allDoneG?'rgba(143,168,216,0.35)':'rgba(255,255,255,0.09)'};border-radius:14px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.35)${allDoneG?',0 0 16px rgba(143,168,216,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.07);transition:box-shadow .2s,transform .15s;`;
     card.onmouseover=()=>{card.style.transform='translateY(-2px)';card.style.boxShadow=`0 8px 28px rgba(0,0,0,0.45),0 0 20px rgba(59,130,246,0.08),inset 0 1px 0 rgba(255,255,255,0.09)`;};
-    card.onmouseout=()=>{card.style.transform='';card.style.boxShadow=`0 4px 20px rgba(0,0,0,0.35)${allDoneG?',0 0 16px rgba(34,197,94,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.07)`;};
+    card.onmouseout=()=>{card.style.transform='';card.style.boxShadow=`0 4px 20px rgba(0,0,0,0.35)${allDoneG?',0 0 16px rgba(143,168,216,0.08)':''},inset 0 1px 0 rgba(255,255,255,0.07)`;};
 
     // Shine
     const shine=document.createElement('div');shine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);pointer-events:none;';card.appendChild(shine);
@@ -4818,7 +4818,7 @@ function renderPlt(){
     const [_ptr,_ptg,_ptb]=_hexToRgb(pltCorHex.length===7?pltCorHex:'#9ca3af');
     titleEl.style.cssText=`font-size:11px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:inline-block;max-width:100%;padding:4px 11px;border-radius:20px;box-sizing:border-box;`;
     if(allDoneG){
-      titleEl.style.background='rgba(34,197,94,.10)';titleEl.style.border='1.5px solid rgba(34,197,94,.4)';titleEl.style.color='var(--green)';
+      titleEl.style.background='rgba(143,168,216,.10)';titleEl.style.border='1.5px solid rgba(143,168,216,.4)';titleEl.style.color='var(--green)';
     } else {
       titleEl.style.background=`rgba(${_ptr},${_ptg},${_ptb},.10)`;titleEl.style.border=`1.5px solid rgba(${_ptr},${_ptg},${_ptb},.4)`;titleEl.style.color=pltCorHex;
     }
@@ -4873,7 +4873,7 @@ function renderPlt(){
       name.textContent=label;
       if(repeats>1){
         const badge=document.createElement('span');
-        badge.style.cssText=`font-size:9px;font-family:var(--font-mono);font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;${isDone?'color:var(--green);background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);':'color:var(--amber);background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.25);'}`;
+        badge.style.cssText=`font-size:9px;font-family:var(--font-mono);font-weight:700;padding:1px 5px;border-radius:8px;margin-left:4px;${isDone?'color:var(--green);background:rgba(143,168,216,0.12);border:1px solid rgba(143,168,216,0.3);':'color:var(--amber);background:rgba(176,191,216,0.10);border:1px solid rgba(176,191,216,0.25);'}`;
         badge.textContent=execCount+'/'+repeats+'×';
         name.appendChild(badge);
       }
@@ -4916,18 +4916,18 @@ function renderPlt(){
       if(repeats>1){
         if(!isDone){
           const btn=document.createElement('button');
-          btn.style.cssText='font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.06));border:1px solid rgba(245,158,11,0.35);color:var(--amber);cursor:pointer;white-space:nowrap;transition:all .12s;';
+          btn.style.cssText='font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(176,191,216,0.15),rgba(176,191,216,0.06));border:1px solid rgba(176,191,216,0.35);color:var(--amber);cursor:pointer;white-space:nowrap;transition:all .12s;';
           btn.textContent='+ Exec';
           btn.onclick=()=>execTask('plataformas',g,tk.id);
-          btn.onmouseover=()=>btn.style.background='linear-gradient(135deg,rgba(245,158,11,0.3),rgba(245,158,11,0.12))';
-          btn.onmouseout=()=>btn.style.background='linear-gradient(135deg,rgba(245,158,11,0.15),rgba(245,158,11,0.06))';
+          btn.onmouseover=()=>btn.style.background='linear-gradient(135deg,rgba(176,191,216,0.3),rgba(176,191,216,0.12))';
+          btn.onmouseout=()=>btn.style.background='linear-gradient(135deg,rgba(176,191,216,0.15),rgba(176,191,216,0.06))';
           acts.appendChild(btn);
         } else {
           const btn=document.createElement('button');
-          btn.style.cssText='position:relative;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(34,197,94,0.7),rgba(34,197,94,0.5));border:1px solid rgba(34,197,94,0.6);color:#fff;cursor:pointer;white-space:nowrap;transition:all .12s;box-shadow:0 2px 8px rgba(34,197,94,0.2);';
+          btn.style.cssText='position:relative;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(143,168,216,0.7),rgba(143,168,216,0.5));border:1px solid rgba(143,168,216,0.6);color:#fff;cursor:pointer;white-space:nowrap;transition:all .12s;box-shadow:0 2px 8px rgba(143,168,216,0.2);';
           btn.textContent='✓';
           const tip2=document.createElement('div');
-          tip2.style.cssText='display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:#1a2235;border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:6px 10px;font-size:10px;color:#e2e8f0;white-space:nowrap;z-index:99;font-family:var(--font-mono);pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.5);line-height:1.6;';
+          tip2.style.cssText='display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:#1a2235;border:1px solid rgba(143,168,216,0.35);border-radius:8px;padding:6px 10px;font-size:10px;color:#e2e8f0;white-space:nowrap;z-index:99;font-family:var(--font-mono);pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.5);line-height:1.6;';
           tip2.innerHTML=`<span style="color:var(--green);font-weight:700;">✓ Concluído</span><br>${tk.doneBy||'—'}<br><span style="color:var(--text-muted);">${tk.doneAt||''}</span>`;
           btn.appendChild(tip2);
           btn.onmouseenter=()=>tip2.style.display='block';
@@ -4938,11 +4938,11 @@ function renderPlt(){
       } else {
         const btn=document.createElement('button');
         if(isDone){
-          btn.style.cssText='position:relative;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(34,197,94,0.7),rgba(34,197,94,0.5));border:1px solid rgba(34,197,94,0.6);color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(34,197,94,0.2);';
+          btn.style.cssText='position:relative;font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:linear-gradient(135deg,rgba(143,168,216,0.7),rgba(143,168,216,0.5));border:1px solid rgba(143,168,216,0.6);color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 2px 8px rgba(143,168,216,0.2);';
           btn.textContent='✓';
           // Tooltip com nome e horário
           const tip=document.createElement('div');
-          tip.style.cssText='display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:#1a2235;border:1px solid rgba(34,197,94,0.35);border-radius:8px;padding:6px 10px;font-size:10px;color:#e2e8f0;white-space:nowrap;z-index:99;font-family:var(--font-mono);pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.5);line-height:1.6;';
+          tip.style.cssText='display:none;position:absolute;bottom:calc(100% + 6px);right:0;background:#1a2235;border:1px solid rgba(143,168,216,0.35);border-radius:8px;padding:6px 10px;font-size:10px;color:#e2e8f0;white-space:nowrap;z-index:99;font-family:var(--font-mono);pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,0.5);line-height:1.6;';
           tip.innerHTML=`<span style="color:var(--green);font-weight:700;">✓ Concluído</span><br>${tk.doneBy||'—'}<br><span style="color:var(--text-muted);">${tk.doneAt||''}</span>`;
           btn.appendChild(tip);
           btn.onmouseenter=()=>tip.style.display='block';
@@ -4951,7 +4951,7 @@ function renderPlt(){
         } else {
           btn.style.cssText='font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;white-space:nowrap;transition:all .12s;';
           btn.textContent='Concluir';
-          btn.onmouseover=()=>{btn.style.borderColor='rgba(34,197,94,0.5)';btn.style.color='var(--green)';};
+          btn.onmouseover=()=>{btn.style.borderColor='rgba(143,168,216,0.5)';btn.style.color='var(--green)';};
           btn.onmouseout=()=>{btn.style.borderColor='rgba(255,255,255,0.12)';btn.style.color='var(--text-muted)';};
           btn.onclick=()=>markGroupDone('plataformas',g,tk.id);
         }
@@ -5013,7 +5013,7 @@ function renderAnu(){
     const iconEl=document.createElement('div');iconEl.className='task-group-icon';
     if(allDoneG){iconEl.classList.add('done-glow');iconEl.textContent='✓';}else{iconEl.textContent=g.icon;}
     const titleSpan=document.createElement('span');titleSpan.className='task-group-title';
-    if(allDoneG){ titleSpan.style.color='var(--green)'; titleSpan.style.textShadow='0 0 8px rgba(34,197,94,.5)'; titleSpan.textContent=g.group; }
+    if(allDoneG){ titleSpan.style.color='var(--green)'; titleSpan.style.textShadow='0 0 8px rgba(143,168,216,.5)'; titleSpan.textContent=g.group; }
     else { const _aBadge=document.createElement('span'); _aBadge.textContent=g.group; applyPltBadge(_aBadge,g.group); titleSpan.appendChild(_aBadge); }
     const countSpan=document.createElement('span');countSpan.className='task-group-count';
     const _grpPct=g.items.length>0?Math.round((doneG/g.items.length)*100):0;
@@ -5075,9 +5075,9 @@ function renderAnu(){
         cardItems.forEach(tk=>{
           const isDone=tk.done;
           const c=document.createElement('div');
-          c.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,${isDone?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid ${isDone?'rgba(34,197,94,0.4)':'rgba(255,255,255,0.1)'};border-radius:14px;padding:16px;box-shadow:0 4px 24px rgba(0,0,0,0.4)${isDone?',0 0 20px rgba(34,197,94,0.1)':''},inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s;`;
+          c.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,${isDone?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid ${isDone?'rgba(143,168,216,0.4)':'rgba(255,255,255,0.1)'};border-radius:14px;padding:16px;box-shadow:0 4px 24px rgba(0,0,0,0.4)${isDone?',0 0 20px rgba(143,168,216,0.1)':''},inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s;`;
           c.onmouseover=()=>{c.style.transform='translateY(-2px)';c.style.boxShadow=`0 8px 32px rgba(0,0,0,0.5),0 0 24px rgba(59,130,246,0.12),inset 0 1px 0 rgba(255,255,255,0.1)`;};
-          c.onmouseout=()=>{c.style.transform='';c.style.boxShadow=`0 4px 24px rgba(0,0,0,0.4)${isDone?',0 0 20px rgba(34,197,94,0.1)':''},inset 0 1px 0 rgba(255,255,255,0.09)`;};
+          c.onmouseout=()=>{c.style.transform='';c.style.boxShadow=`0 4px 24px rgba(0,0,0,0.4)${isDone?',0 0 20px rgba(143,168,216,0.1)':''},inset 0 1px 0 rgba(255,255,255,0.09)`;};
           // shine
           const shine=document.createElement('div');shine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);pointer-events:none;';c.appendChild(shine);
           // title
@@ -5189,17 +5189,17 @@ const CONF_NOME_KEY={
 // Opções e estilos para IMAGENS (coluna especial)
 const CONF_IMG_OPTS = ['','Criada','Atualizada','Revisar'];
 const CONF_IMG_STYLE = {
-  'Criada':    {bg:'rgba(34,197,94,0.15)',  border:'var(--green-dim)',  color:'var(--green)'},
+  'Criada':    {bg:'rgba(143,168,216,0.15)',  border:'var(--green-dim)',  color:'var(--green)'},
   'Atualizada':{bg:'rgba(143,168,216,0.15)', border:'#2b3a5e',           color:'#8fa8d8'},
-  'Revisar':   {bg:'rgba(245,158,11,0.15)', border:'var(--amber-dim)', color:'var(--amber)'},
+  'Revisar':   {bg:'rgba(176,191,216,0.15)', border:'var(--amber-dim)', color:'var(--amber)'},
 };
 
 // Opções e estilos para PLATAFORMAS
 const CONF_STATUS_OPTS = ['','Cadastrar','Feito','Revisar','Não Cadastrar','Caiu'];
 const CONF_STATUS_STYLE = {
   'Cadastrar':    {bg:'rgba(56,189,248,0.15)',  border:'#0369a1',           color:'#38bdf8'},
-  'Feito':        {bg:'rgba(34,197,94,0.15)',   border:'var(--green-dim)',  color:'var(--green)'},
-  'Revisar':      {bg:'rgba(245,158,11,0.15)',  border:'var(--amber-dim)', color:'var(--amber)'},
+  'Feito':        {bg:'rgba(143,168,216,0.15)',   border:'var(--green-dim)',  color:'var(--green)'},
+  'Revisar':      {bg:'rgba(176,191,216,0.15)',  border:'var(--amber-dim)', color:'var(--amber)'},
   'Não Cadastrar':{bg:'rgba(30,58,138,0.20)',   border:'#1e3a8a',           color:'#93c5fd'},
   'Não cadastrar':{bg:'rgba(30,58,138,0.20)',   border:'#1e3a8a',           color:'#93c5fd'}, // legado
   'Caiu':         {bg:'rgba(239,68,68,0.15)',   border:'var(--red-dim)',    color:'var(--red)'},
@@ -5211,13 +5211,13 @@ const CONF_MARCAS = [
   {nome:'MRM Nutrition',             cor:'#4c1d95'},
   {nome:'Natrol',                    cor:'#7c3aed'},
   {nome:'Now Foods',                 cor:'#ea580c'},
-  {nome:'KN Nutrition',              cor:'#4ade80'},
+  {nome:'KN Nutrition',              cor:'#9db8e8'},
   {nome:"Puritan's Pride",           cor:'#38bdf8'},
   {nome:'Nutrata',                   cor:'#e3e5e8'},
   {nome:'Dragon Elite',              cor:'#111111'},
   {nome:'Rogaine',                   cor:'#9ca3af'},
-  {nome:'Hi-Tech Pharmaceuticals',   cor:'#fbbf24'},
-  {nome:'Androtech Research',        cor:'#d97706'},
+  {nome:'Hi-Tech Pharmaceuticals',   cor:'#b0bfd8'},
+  {nome:'Androtech Research',        cor:'#7d94c4'},
   {nome:'Swanson',                   cor:'#166534'},
 ];
 
@@ -5344,8 +5344,8 @@ function _ensureCnpjMkt(){
 }
 // Status possíveis de cada conta cadastrada
 const CNPJ_STATUS_META = {
-  ativa:     {label:'Ativa',              color:'#4ade80'},
-  pendente:  {label:'Pendente Cadastro',  color:'#fbbf24'},
+  ativa:     {label:'Ativa',              color:'#9db8e8'},
+  pendente:  {label:'Pendente Cadastro',  color:'#b0bfd8'},
   bloqueada: {label:'Bloqueada',          color:'#f87171'},
 };
 // Lê o valor de uma célula normalizando formato legado (string simples)
@@ -5674,7 +5674,7 @@ function renderConferencia(){
     const found = getAllMarcas().find(m=>m.nome===marca);
     const cor = found ? found.cor : '#555';
     // Text color: white for dark bg, dark for light bg
-    const isLight = ['#e3e5e8','#4ade80','#38bdf8','#fbbf24'].includes(cor);
+    const isLight = ['#e3e5e8','#9db8e8','#38bdf8','#b0bfd8'].includes(cor);
     const textCol = isLight ? '#111' : '#fff';
     return `<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px;background:${cor};color:${textCol};white-space:nowrap;">${marca||'—'}</span>`;
   }
@@ -6128,16 +6128,16 @@ function makeCompleteBtnWpp(task, onMarkDone, onUnmark){
   function renderDone(){
     const locked=!currentUser.master && !!task.doneBy && task.doneBy!==currentUser.name;
     btn.className='complete-btn done';
-    btn.style.background='linear-gradient(135deg,#4ade80,#16a34a)';
+    btn.style.background='linear-gradient(135deg,#9db8e8,#5876b8)';
     btn.style.border='1px solid rgba(255,255,255,.25)';
-    btn.style.boxShadow='0 3px 10px rgba(34,197,94,.3),inset 0 1px 0 rgba(255,255,255,.2)';
+    btn.style.boxShadow='0 3px 10px rgba(143,168,216,.3),inset 0 1px 0 rgba(255,255,255,.2)';
     btn.style.color='#fff';
     btn.style.fontWeight='700';
     btn.style.fontSize='11px';
     btn.style.padding='5px 14px 5px 5px';
     btn.style.minWidth='102px';
     btn.style.justifyContent='center';
-    const check='<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#16a34a" stroke-width="2"><path d="M2 5.2L4.2 7.4L8 3"/></svg>';
+    const check='<svg width="9" height="9" viewBox="0 0 10 10" fill="none" stroke="#5876b8" stroke-width="2"><path d="M2 5.2L4.2 7.4L8 3"/></svg>';
     btn.innerHTML=iconCircle('rgba(255,255,255,.9)',check)+`<span>Concluído${locked?' 🔒':''}</span>`;
     if(locked){
       btn.style.opacity='0.75';
@@ -6564,15 +6564,15 @@ function deleteDevById(id){
 
 const DEV_STATUS_CONFIG={
   // step 1 — CM Andrade filling info
-  aberta:       {label:'EM ABERTO',           color:'#f59e0b', bg:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.3)', owner:'cmandrade'},
+  aberta:       {label:'EM ABERTO',           color:'#b0bfd8', bg:'rgba(176,191,216,0.10)', border:'rgba(176,191,216,0.3)', owner:'cmandrade'},
   // step 2 — ready, waiting Carlos Red to issue NF
   pronto_estorno:{label:'PRONTO PARA ESTORNO',color:'#3b82f6', bg:'rgba(59,130,246,0.10)', border:'rgba(59,130,246,0.3)', owner:'carlosred'},
   // archived (concluded)
-  concluida:    {label:'CONCLUÍDA',           color:'#22c55e', bg:'rgba(34,197,94,0.10)',  border:'rgba(34,197,94,0.3)', owner:null},
+  concluida:    {label:'CONCLUÍDA',           color:'#8fa8d8', bg:'rgba(143,168,216,0.10)',  border:'rgba(143,168,216,0.3)', owner:null},
   // legacy compat
-  transito:     {label:'EM TRÂNSITO',         color:'#f59e0b', bg:'rgba(245,158,11,0.10)', border:'rgba(245,158,11,0.3)', owner:'cmandrade'},
+  transito:     {label:'EM TRÂNSITO',         color:'#b0bfd8', bg:'rgba(176,191,216,0.10)', border:'rgba(176,191,216,0.3)', owner:'cmandrade'},
   estorno:      {label:'AGUARD. ESTORNO',     color:'#ef4444', bg:'rgba(239,68,68,0.10)',  border:'rgba(239,68,68,0.3)',  owner:'carlosred'},
-  finalizada:   {label:'FINALIZADA',          color:'#22c55e', bg:'rgba(34,197,94,0.10)',  border:'rgba(34,197,94,0.3)',  owner:null},
+  finalizada:   {label:'FINALIZADA',          color:'#8fa8d8', bg:'rgba(143,168,216,0.10)',  border:'rgba(143,168,216,0.3)',  owner:null},
 };
 
 function renderDev(){
@@ -6716,7 +6716,7 @@ function buildDevCardFull(d, isConcluida){
     const checkBtn=document.createElement('button');
     checkBtn.type='button';
     checkBtn.title=isConcluida?'Reabrir devolução':'Concluir devolução';
-    checkBtn.style.cssText=`background:${isConcluida?'linear-gradient(135deg,#4ade80,#16a34a)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+    checkBtn.style.cssText=`background:${isConcluida?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
     checkBtn.textContent=isConcluida?'✓':'';
     checkBtn.onclick=(e)=>{e.stopPropagation(); if(isConcluida) devReabrir(d.id); else devEstornado(d.id);};
     pillWrap.appendChild(checkBtn);
@@ -6811,10 +6811,10 @@ function buildDevCardFull(d, isConcluida){
     if((status==='pronto_estorno'||status==='estorno') && (isMaster||isCR)){
       const btn=document.createElement('button');
       btn.setAttribute('data-devid', d.id);
-      btn.style.cssText='background:rgba(34,197,94,.15);border:1px solid var(--green-dim);color:var(--green);border-radius:6px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;';
+      btn.style.cssText='background:rgba(143,168,216,.15);border:1px solid var(--green-dim);color:var(--green);border-radius:6px;padding:6px 14px;font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;';
       btn.innerHTML='✅ Estornado';
-      btn.onmouseover=()=>btn.style.background='rgba(34,197,94,.28)';
-      btn.onmouseout=()=>btn.style.background='rgba(34,197,94,.15)';
+      btn.onmouseover=()=>btn.style.background='rgba(143,168,216,.28)';
+      btn.onmouseout=()=>btn.style.background='rgba(143,168,216,.15)';
       btn.onclick=function(e){ e.stopPropagation(); devEstornado(this.getAttribute('data-devid')); };
       wf.appendChild(btn);
       const info=document.createElement('span');info.style.cssText='font-size:10px;color:var(--blue);font-family:var(--font-mono);';
@@ -6946,7 +6946,7 @@ async function consultarCpf(){
       // Botão WhatsApp
       const wa=document.createElement('a');wa.className='btn-link btn-sm';wa.textContent='WhatsApp';wa.title='Abrir conversa no WhatsApp';
       wa.href='https://wa.me/55'+num;wa.target='_blank';
-      wa.style.cssText+=';border-color:rgba(34,197,94,.5);color:var(--green);';
+      wa.style.cssText+=';border-color:rgba(143,168,216,.5);color:var(--green);';
       row.appendChild(wa);
       fonesEl.appendChild(row);
     });
@@ -7242,7 +7242,7 @@ function renderDrogTable(){
   }
 
   tbody.innerHTML = rows.map((r,i)=>`
-    <tr id="drow-${r._idx}" style="border-bottom:1px solid var(--border);${r.consultado?'background:rgba(34,197,94,0.06)':''}" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${r.consultado?'rgba(34,197,94,0.06)':'transparent'}'">
+    <tr id="drow-${r._idx}" style="border-bottom:1px solid var(--border);${r.consultado?'background:rgba(143,168,216,0.06)':''}" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${r.consultado?'rgba(143,168,216,0.06)':'transparent'}'">
       <td style="padding:9px 14px;white-space:nowrap;">
         <span style="font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 11px;border-radius:20px;text-transform:uppercase;${r.plataforma.includes('Pacheco')?'background:rgba(143,168,216,.10);border:1.5px solid rgba(143,168,216,.4);color:#8fa8d8;':'background:rgba(143,168,216,.10);border:1.5px solid rgba(143,168,216,.4);color:#8fa8d8;'}">${r.plataforma.includes('Pacheco')?'Drog. Pacheco':'Drog. S. Paulo'}</span>
       </td>
@@ -7809,7 +7809,7 @@ function showPendentesDia(dateKey, h){
     html+='<ul style="margin:0;padding-left:0;list-style:none;display:flex;flex-direction:column;gap:4px;max-height:220px;overflow-y:auto;">'+
       pendentes.map((t,i)=>`<li style="display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-secondary);font-family:var(--font-mono);line-height:1.4;">`+
         `<button type="button" onclick="concluirPendenteHistorico('${dateKey}',${i})" title="Marcar como concluída (retroativo)" `+
-        `style="flex-shrink:0;width:16px;height:16px;border-radius:4px;border:1px solid var(--green,#22c55e);background:transparent;color:var(--green,#22c55e);font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">✓</button>`+
+        `style="flex-shrink:0;width:16px;height:16px;border-radius:4px;border:1px solid var(--green,#8fa8d8);background:transparent;color:var(--green,#8fa8d8);font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;">✓</button>`+
         `<span>${t}</span></li>`).join('')+
       '</ul>';
   }
@@ -7854,16 +7854,16 @@ function renderDash(){
     const todayKey = todayStr();
     const vendasKpi = (appState.vendasWpp && appState.vendasWpp[todayKey]) || 0;
     const kpis = [
-      {val:today.done+'/'+today.total, lbl:'Tarefas Hoje',   color:'var(--green)',  bg:'rgba(34,197,94,.10)',
-        icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+      {val:today.done+'/'+today.total, lbl:'Tarefas Hoje',   color:'var(--green)',  bg:'rgba(143,168,216,.10)',
+        icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#8fa8d8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
       {val:today.total-today.done,     lbl:'Pendentes',      color:'var(--red)',    bg:'rgba(239,68,68,.10)',
         icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#ef4444" stroke-width="2"/><path d="M12 7v5l3 3" stroke="#ef4444" stroke-width="2" stroke-linecap="round"/></svg>`},
       {val:taxaHoje+'%',               lbl:'Taxa Hoje',      color:'var(--blue)',   bg:'rgba(59,130,246,.10)',
         icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><polyline points="3,17 9,11 13,15 21,7" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="17,7 21,7 21,11" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
-      {val:vendasKpi,                  lbl:'Vendas Hoje',    color:'var(--amber)',  bg:'rgba(245,158,11,.10)',
-        icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
-      {val:doneW+'/'+totalW,           lbl:'Semana',         color:'var(--green)',  bg:'rgba(34,197,94,.06)',
-        icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#22c55e" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="#22c55e" stroke-width="2"/></svg>`},
+      {val:vendasKpi,                  lbl:'Vendas Hoje',    color:'var(--amber)',  bg:'rgba(176,191,216,.10)',
+        icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="#b0bfd8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
+      {val:doneW+'/'+totalW,           lbl:'Semana',         color:'var(--green)',  bg:'rgba(143,168,216,.06)',
+        icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#8fa8d8" stroke-width="2"/><line x1="16" y1="2" x2="16" y2="6" stroke="#8fa8d8" stroke-width="2" stroke-linecap="round"/><line x1="8" y1="2" x2="8" y2="6" stroke="#8fa8d8" stroke-width="2" stroke-linecap="round"/><line x1="3" y1="10" x2="21" y2="10" stroke="#8fa8d8" stroke-width="2"/></svg>`},
       {val:taxaSem+'%',                lbl:'Taxa Semana',    color:'var(--blue)',   bg:'rgba(59,130,246,.06)',
         icon:`<svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`},
     ];
@@ -7883,7 +7883,7 @@ function renderDash(){
     days.forEach(d=>{
       const h=hist[d]||{}; const tot=h.total||0; const done=h.done||0; const pend=tot-done;
       const taxa = tot>0 ? Math.round(done/tot*100) : 0;
-      const mainC = taxa>=80 ? '#22c55e' : taxa>=50 ? '#f59e0b' : '#c0392b';
+      const mainC = taxa>=80 ? '#8fa8d8' : taxa>=50 ? '#b0bfd8' : '#c0392b';
       const dObj = new Date(d+'T12:00:00');
       const lblCurta = dObj.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+' '+String(dObj.getDate()).padStart(2,'0');
       const col=document.createElement('div');
@@ -7967,7 +7967,7 @@ function renderDash(){
       const x    = cx - barW / 2;
 
       // Color based on taxa
-      const mainColor = taxa >= 0.8 ? '#22c55e' : taxa >= 0.5 ? '#f59e0b' : '#c0392b';
+      const mainColor = taxa >= 0.8 ? '#8fa8d8' : taxa >= 0.5 ? '#b0bfd8' : '#c0392b';
       const pendColor = 'rgba(239,68,68,0.5)';
 
       // Total bar height
@@ -8220,7 +8220,7 @@ function renderUsersGrid(){
     const initials = getUserInitials(user);
     const color = user.color||'#888';
     const roleLabel = user.master?'MASTER':'Colaborador';
-    const roleColor = user.master?'#22c55e':'var(--text-muted)';
+    const roleColor = user.master?'#8fa8d8':'var(--text-muted)';
     card.innerHTML=`
       <div class="user-card-header">
         ${userAvatarHTML(user,32)}
@@ -9037,7 +9037,7 @@ function renderEnvDashboard(){
       <div style="font-size:26px;font-weight:700;font-family:var(--font-sans);letter-spacing:-0.04em;color:var(--blue);line-height:1.1;">${todayD.env1||0}</div>
       <div style="font-size:9px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-top:4px;">Pronto→Enviado</div>
     </div>
-    <div style="background:rgba(34,197,94,.08);border:1px solid var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;">
+    <div style="background:rgba(143,168,216,.08);border:1px solid var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;">
       <div style="font-size:26px;font-weight:700;font-family:var(--font-sans);letter-spacing:-0.04em;color:var(--green);line-height:1.1;">${todayD.env2||0}</div>
       <div style="font-size:9px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-top:4px;">Enviado→Entregue</div>
     </div>
@@ -9045,7 +9045,7 @@ function renderEnvDashboard(){
       <div style="font-size:26px;font-weight:700;font-family:var(--font-sans);letter-spacing:-0.04em;color:var(--text-primary);line-height:1.1;">${(todayD.env1||0)+(todayD.env2||0)}</div>
       <div style="font-size:9px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-top:4px;">Total Hoje</div>
     </div>
-    <div style="background:rgba(245,158,11,.08);border:1px solid var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;">
+    <div style="background:rgba(176,191,216,.08);border:1px solid var(--border);border-radius:var(--radius);padding:12px 10px;text-align:center;">
       <div style="font-size:26px;font-weight:700;font-family:var(--font-sans);letter-spacing:-0.04em;color:var(--amber);line-height:1.1;">${days.reduce((a,d)=>(hist[d]?a+(hist[d].env1||0)+(hist[d].env2||0):a),0)}</div>
       <div style="font-size:9px;color:var(--text-muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:600;margin-top:4px;">Total 7 Dias</div>
     </div>`;
@@ -9176,9 +9176,9 @@ function getRastreios(){
 
 const RST_STATUS_COLORS={
   'Enviado':         {bg:'rgba(59,130,246,.15)', border:'var(--blue)',      color:'var(--blue)'},
-  'Entregue':        {bg:'rgba(34,197,94,.12)',  border:'var(--green-dim)', color:'var(--green)'},
+  'Entregue':        {bg:'rgba(143,168,216,.12)',  border:'var(--green-dim)', color:'var(--green)'},
   'Extraviado':      {bg:'rgba(239,68,68,.12)',  border:'var(--red-dim)',   color:'var(--red)'},
-  'Endereço errado': {bg:'rgba(245,158,11,.12)', border:'var(--amber-dim)', color:'var(--amber)'},
+  'Endereço errado': {bg:'rgba(176,191,216,.12)', border:'var(--amber-dim)', color:'var(--amber)'},
   'Voltando':        {bg:'rgba(168,85,247,.12)', border:'#a855f7',          color:'#a855f7'},
 };
 
@@ -9228,7 +9228,7 @@ function renderRastreios(){
   if(entRows){
     entRows.innerHTML='';
     entRows.style.cssText = _rstEntreguesOpen
-      ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;padding:12px;background:rgba(34,197,94,.03);border-top:1px solid var(--green-dim);'
+      ? 'display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;padding:12px;background:rgba(143,168,216,.03);border-top:1px solid var(--green-dim);'
       : 'display:none;';
     if(_rstEntreguesOpen){
       realEntregues.forEach(r=>{
@@ -9306,10 +9306,10 @@ function buildRstCard(r, isEntregue){
   if(canRst && !isEntregue && r.status!=='Entregue'){
     const okBtn=document.createElement('button');
     okBtn.title='Marcar como Entregue';
-    okBtn.style.cssText='background:linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07));border:1px solid rgba(34,197,94,0.4);border-radius:50px;color:var(--green);cursor:pointer;font-size:11px;padding:3px 12px;line-height:1;font-weight:700;transition:all .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
+    okBtn.style.cssText='background:linear-gradient(135deg,rgba(143,168,216,0.18),rgba(143,168,216,0.07));border:1px solid rgba(143,168,216,0.4);border-radius:50px;color:var(--green);cursor:pointer;font-size:11px;padding:3px 12px;line-height:1;font-weight:700;transition:all .15s;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);';
     okBtn.textContent='✓ Entregue';
-    okBtn.onmouseover=()=>{okBtn.style.background='linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.15))';okBtn.style.transform='translateY(-1px)';};
-    okBtn.onmouseout=()=>{okBtn.style.background='linear-gradient(135deg,rgba(34,197,94,0.18),rgba(34,197,94,0.07))';okBtn.style.transform='';};
+    okBtn.onmouseover=()=>{okBtn.style.background='linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.15))';okBtn.style.transform='translateY(-1px)';};
+    okBtn.onmouseout=()=>{okBtn.style.background='linear-gradient(135deg,rgba(143,168,216,0.18),rgba(143,168,216,0.07))';okBtn.style.transform='';};
     okBtn.setAttribute('data-rst-id', r.id);
     okBtn.addEventListener('click', function(e){
       e.stopPropagation();
@@ -9609,9 +9609,9 @@ const ATE_PLATAFORMAS=['Melhor Envio','Manda Bem','Base','LOJA INTEGRADA','SHP S
 const ATE_RASTREIO_PLTS=['Manda Bem','Melhor Envio'];
 
 const ATE_STATUS_CONFIG={
-  aberto:      {label:'EM ABERTO',      color:'#f59e0b',bg:'rgba(245,158,11,0.10)',border:'rgba(245,158,11,0.3)'},
+  aberto:      {label:'EM ABERTO',      color:'#b0bfd8',bg:'rgba(176,191,216,0.10)',border:'rgba(176,191,216,0.3)'},
   atendimento: {label:'EM ATENDIMENTO', color:'#3b82f6',bg:'rgba(59,130,246,0.10)',border:'rgba(59,130,246,0.3)'},
-  finalizado:  {label:'CONCLUÍDO',      color:'#22c55e',bg:'rgba(34,197,94,0.10)', border:'rgba(34,197,94,0.3)'},
+  finalizado:  {label:'CONCLUÍDO',      color:'#8fa8d8',bg:'rgba(143,168,216,0.10)', border:'rgba(143,168,216,0.3)'},
 };
 
 // ── Data Abertura / Data Retorno — calendário customizado em popup ─────
@@ -9664,7 +9664,7 @@ function ateCalRender(fieldId){
     const key=y+'-'+mo+'-'+dia;
     const isSel=key===selKey;
     const isHoje=dia===hoje.getDate()&&mo===hoje.getMonth()&&y===hoje.getFullYear();
-    html+=`<button type="button" onclick="ateCalPick('${fieldId}',${y},${mo},${dia})" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#6d5efc,#4f52d6)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+    html+=`<button type="button" onclick="ateCalPick('${fieldId}',${y},${mo},${dia})" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
   }
   html+='</div>';
   pop.innerHTML=html;
@@ -9860,7 +9860,7 @@ function renderAtvMarketplaceOptions(sel){
     const [r,g,b]=_hexToRgb(cor);
     return `<span style="display:inline-flex;align-items:center;background:rgba(${r},${g},${b},.10);border-radius:20px;padding:2px;border:1.5px solid ${ativo?cor:`rgba(${r},${g},${b},.4)`};box-shadow:${ativo?`0 0 0 2px rgba(${r},${g},${b},.15)`:'none'};opacity:${feito?'.55':'1'};">
       <button type="button" onclick="_atvSelectMarketplace('${idSafe}')" style="background:transparent;border:none;color:${cor};padding:4px 8px 4px 10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;cursor:pointer;text-decoration:${feito?'line-through':'none'};">${m}</button>
-      <button type="button" onclick="event.stopPropagation();_atvToggleMktpConcluido('${idSafe}')" title="${feito?'Marcar como pendente':'Marcar como concluído'}" style="background:${feito?'linear-gradient(135deg,#8b8ff5,#4f52d6)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;">${feito?'✓':''}</button>
+      <button type="button" onclick="event.stopPropagation();_atvToggleMktpConcluido('${idSafe}')" title="${feito?'Marcar como pendente':'Marcar como concluído'}" style="background:${feito?'linear-gradient(135deg,#8b8ff5,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;">${feito?'✓':''}</button>
     </span>`;
   }).join('');
 }
@@ -10035,7 +10035,7 @@ function atvRenderCal(){
   for(let dia=1;dia<=diasNoMes;dia++){
     const iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
     const isSel=iso===selIso, isHoje=iso===hojeIso;
-    html+=`<button type="button" onclick="atvCalPick('${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#6d5efc,#4f52d6)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+    html+=`<button type="button" onclick="atvCalPick('${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
   }
   html+='</div>';
   pop.innerHTML=html;
@@ -10605,7 +10605,7 @@ function buildAteCard(d,isFinalizado){
     const checkBtn=document.createElement('button');
     checkBtn.type='button';
     checkBtn.title=isFinalizado?'Reabrir atendimento':'Concluir atendimento';
-    checkBtn.style.cssText=`background:${isFinalizado?'linear-gradient(135deg,#4ade80,#16a34a)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+    checkBtn.style.cssText=`background:${isFinalizado?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
     checkBtn.textContent=isFinalizado?'✓':'';
     checkBtn.onclick=(e)=>{e.stopPropagation(); if(isFinalizado) ateReabrir(d.id); else ateFinalizar(d.id);};
     pillWrap.appendChild(checkBtn);
@@ -10805,10 +10805,10 @@ function renderTarefas(){
 
       // Build history entries
       const histLines = [];
-      if(t.doneBy||t.doneAt) histLines.push({icon:'✅', label:'Concluído por', value:(t.doneBy||'?')+(t.doneAt?' às '+t.doneAt:''), color:'#22c55e'});
-      if(t.timerStart)        histLines.push({icon:'▶️', label:'Iniciado',     value:t.timerStart,  color:'#f59e0b'});
-      if(t.timerEnd)          histLines.push({icon:'⏹️', label:'Parado',       value:t.timerEnd,    color:'#f59e0b'});
-      if(dur)                 histLines.push({icon:'⏱', label:'Duração',     value:dur,           color:'#f59e0b'});
+      if(t.doneBy||t.doneAt) histLines.push({icon:'✅', label:'Concluído por', value:(t.doneBy||'?')+(t.doneAt?' às '+t.doneAt:''), color:'#8fa8d8'});
+      if(t.timerStart)        histLines.push({icon:'▶️', label:'Iniciado',     value:t.timerStart,  color:'#b0bfd8'});
+      if(t.timerEnd)          histLines.push({icon:'⏹️', label:'Parado',       value:t.timerEnd,    color:'#b0bfd8'});
+      if(dur)                 histLines.push({icon:'⏱', label:'Duração',     value:dur,           color:'#b0bfd8'});
       histLines.push({icon:'📂', label:'Grupo',         value:t.grupo,       color:'#7a94c0'});
       if(ownerKeys.length){
         const ownerNames=ownerKeys.map(k=>appState.users[k]?appState.users[k].name:'?').join(', ');
@@ -10828,7 +10828,7 @@ function renderTarefas(){
         <div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${col}55,${col}15 60%,transparent 75%),radial-gradient(circle at center,${col}22,transparent 70%);border:1px solid ${col}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${col}66,inset 0 1px 2px rgba(255,255,255,.15);">${ini}</div>
         <div style="flex:1;">
           <div style="font-size:12px;text-decoration:line-through;color:var(--text-muted);word-break:break-word;">${ownerPrefix}${t.text}</div>
-          <div style="font-size:10px;color:#22c55e;font-family:var(--font-mono);margin-top:2px;">✓ ${t.doneBy||'?'}${t.doneAt?' às '+t.doneAt:''}${dur?' · ⏱ '+dur:''}</div>
+          <div style="font-size:10px;color:#8fa8d8;font-family:var(--font-mono);margin-top:2px;">✓ ${t.doneBy||'?'}${t.doneAt?' às '+t.doneAt:''}${dur?' · ⏱ '+dur:''}</div>
         </div>
         <span class="tf-chev" style="font-size:14px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;line-height:1;">▾</span>`;
 
@@ -10873,13 +10873,13 @@ function populateTfFilters(){
 
 function buildDevCard(d, showWf){
   // stub — actual card built inline in renderDev, this is for estornadas
-  const cfg=DEV_STATUS_CONFIG[d.status]||{label:'ESTORNADA',color:'#22c55e',bg:'rgba(34,197,94,0.1)',border:'rgba(34,197,94,0.3)'};
+  const cfg=DEV_STATUS_CONFIG[d.status]||{label:'ESTORNADA',color:'#8fa8d8',bg:'rgba(143,168,216,0.1)',border:'rgba(143,168,216,0.3)'};
   const card=document.createElement('div');
   card.style.cssText='background:var(--bg-card);border:1px solid var(--green-dim);border-radius:var(--radius-lg);padding:14px;opacity:.8;';
   card.innerHTML=`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <span style="font-size:12px;font-weight:700;color:var(--accent);flex:1;">${d.plataforma||'—'}</span>
-      <span style="font-size:9px;font-weight:700;color:var(--green);background:rgba(34,197,94,.12);border:1px solid var(--green-dim);border-radius:10px;padding:2px 8px;">✅ ESTORNADA</span>
+      <span style="font-size:9px;font-weight:700;color:var(--green);background:rgba(143,168,216,.12);border:1px solid var(--green-dim);border-radius:10px;padding:2px 8px;">✅ ESTORNADA</span>
     </div>
     <div style="font-size:12px;color:var(--text-secondary);">${d.cliente||'—'}</div>
     <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:4px;">Estornado por ${d.estornadaPor||'?'} às ${d.estornadaEm||'?'}</div>`;
@@ -10921,7 +10921,7 @@ document.addEventListener('firebase-ready', function(){
 
 const ATV_PRIOR = {
   urgente: { label:'Urgente', color:'#ef4444', bg:'rgba(239,68,68,.12)', border:'rgba(239,68,68,.35)', dot:'red' },
-  alta:    { label:'Alta',    color:'#f59e0b', bg:'rgba(245,158,11,.12)', border:'rgba(245,158,11,.35)', dot:'yellow' },
+  alta:    { label:'Alta',    color:'#b0bfd8', bg:'rgba(176,191,216,.12)', border:'rgba(176,191,216,.35)', dot:'yellow' },
   normal:  { label:'Normal',  color:'#6d7580', bg:'rgba(109,117,128,.10)', border:'rgba(109,117,128,.25)', dot:'gray' }
 };
 
@@ -11016,7 +11016,7 @@ function atvAtualizarAbasKanban(){
 }
 
 function atvDiasLabel(dias,status){
-  if(status==='finalizada') return {text:'🏁 Finalizada',color:'#4ade80'};
+  if(status==='finalizada') return {text:'🏁 Finalizada',color:'#9db8e8'};
   if(status==='concluida') return {text:'✅ Concluída',color:'var(--green)'};
   if(dias===null) return null;
   if(dias<0)  return {text:`⚠ ${Math.abs(dias)}d atrasada`,color:'var(--red)'};
@@ -11132,14 +11132,14 @@ function renderAtividades(){
     const prazoHtml=diasLabel?`<span style="font-size:10px;color:${diasLabel.color};font-family:var(--font-mono);">${diasLabel.text}</span>`:'';
 
     const statusBadge=a.status==='finalizada'
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#86efac;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.4);border-radius:999px;padding:2px 9px;">Finalizada</span>`
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b8ccee;background:rgba(143,168,216,.10);border:1px solid rgba(143,168,216,.4);border-radius:999px;padding:2px 9px;">Finalizada</span>`
       :a.status==='concluida'
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#6ee7b7;background:rgba(13,148,136,.10);border:1px solid rgba(13,148,136,.4);border-radius:999px;padding:2px 9px;">Concluída</span>`
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b8ccee;background:rgba(143,168,216,.10);border:1px solid rgba(143,168,216,.4);border-radius:999px;padding:2px 9px;">Concluída</span>`
       :a.status==='andamento'
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(79,82,214,.10);border:1px solid rgba(79,82,214,.4);border-radius:999px;padding:2px 9px;">Com Pendência</span>`
       :dias!==null&&dias<0
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fb7185;background:rgba(190,18,60,.10);border:1px solid rgba(190,18,60,.4);border-radius:999px;padding:2px 9px;">Atrasada</span>`
-      :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fbbf24;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
+      :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b0bfd8;background:rgba(125,148,196,.10);border:1px solid rgba(125,148,196,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
 
     const isMine=getAtvResponsaveis(a).includes(currentUser.key);
     const canAct=currentUser.master || isMine; // master ou o colaborador responsável podem concluir/marcar pendência
@@ -11478,10 +11478,10 @@ function renderProjetos(){
     total++;
 
     const statusBadge=p.status==='concluida'
-      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#6ee7b7;background:rgba(13,148,136,.10);border:1px solid rgba(13,148,136,.4);border-radius:999px;padding:2px 9px;">Concluído</span>`
+      ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b8ccee;background:rgba(143,168,216,.10);border:1px solid rgba(143,168,216,.4);border-radius:999px;padding:2px 9px;">Concluído</span>`
       :p.status==='andamento'
       ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(79,82,214,.10);border:1px solid rgba(79,82,214,.4);border-radius:999px;padding:2px 9px;">Em Andamento</span>`
-      :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fbbf24;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
+      :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b0bfd8;background:rgba(125,148,196,.10);border:1px solid rgba(125,148,196,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
 
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;overflow:hidden;transition:border-color .15s,transform .15s;cursor:pointer;';
@@ -11660,7 +11660,7 @@ function renderMktLinks(){
           const checkBtn=document.createElement('button');
           checkBtn.type='button';
           checkBtn.title=isDone?'Desmarcar tarefa concluída':'Marcar tarefa como concluída';
-          checkBtn.style.cssText=`background:${isDone?'linear-gradient(135deg,#4ade80,#16a34a)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.4);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+          checkBtn.style.cssText=`background:${isDone?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.4);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
           checkBtn.textContent=isDone?'✓':'';
           checkBtn.onclick=(e)=>{
             e.stopPropagation();
@@ -11769,7 +11769,7 @@ function _renderMktGrid(containerId,onClick,showCanva,showAtacado){
   if(!grid) return;
   grid.innerHTML='';
   if(showCanva){
-    const c='#7c3aed';
+    const c='#8fa8d8';
     const canvaTile=document.createElement('button');
     canvaTile.type='button';
     canvaTile.style.cssText=`background:linear-gradient(135deg,${_hexA(c,0.12)},${_hexA(c,0.02)});border:1.5px solid ${_hexA(c,0.5)};border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;color:${c};transition:all .15s;`;
@@ -11894,7 +11894,7 @@ function vencRenderCal(prefix){
   for(let dia=1;dia<=diasNoMes;dia++){
     const iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
     const isSel=iso===selIso, isHoje=iso===hojeIso;
-    html+=`<button type="button" onclick="vencCalPick('${prefix}','${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#6d5efc,#4f52d6)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+    html+=`<button type="button" onclick="vencCalPick('${prefix}','${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
   }
   html+='</div>';
   pop.innerHTML=html;
@@ -12130,10 +12130,10 @@ function deleteIntegracao(id){
 
 function _statusBadgeHtml(status){
   return status==='concluida'
-    ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#6ee7b7;background:rgba(13,148,136,.10);border:1px solid rgba(13,148,136,.4);border-radius:999px;padding:2px 9px;">Concluído</span>`
+    ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b8ccee;background:rgba(143,168,216,.10);border:1px solid rgba(143,168,216,.4);border-radius:999px;padding:2px 9px;">Concluído</span>`
     :status==='andamento'
     ?`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(79,82,214,.10);border:1px solid rgba(79,82,214,.4);border-radius:999px;padding:2px 9px;">Em Andamento</span>`
-    :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#fbbf24;background:rgba(217,119,6,.10);border:1px solid rgba(217,119,6,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
+    :`<span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#b0bfd8;background:rgba(125,148,196,.10);border:1px solid rgba(125,148,196,.4);border-radius:999px;padding:2px 9px;">A Fazer</span>`;
 }
 // Rótulo do código (SKU/MLB/ID Anúncio/Nome) para exibir nos cards da listagem
 function _mktCodigoLabel(it){
@@ -12486,8 +12486,8 @@ function renderRelatorioAnuncios(){
     const idCell  = ml ? (it.mlb||'—') : '—';
     const feito = it.status==='concluida';
     const statusBadge = feito
-      ? `<span style="background:rgba(34,197,94,.14);border:1px solid var(--green-dim);color:var(--green);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;">Feito</span>`
-      : `<span style="background:rgba(217,119,6,.12);border:1px solid var(--amber-dim);color:var(--amber);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;">A Fazer</span>`;
+      ? `<span style="background:rgba(143,168,216,.14);border:1px solid var(--green-dim);color:var(--green);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;">Feito</span>`
+      : `<span style="background:rgba(125,148,196,.12);border:1px solid var(--amber-dim);color:var(--amber);padding:3px 12px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;">A Fazer</span>`;
     rows+=`<tr style="border-bottom:1px solid var(--border);">
       <td style="padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap;">${it.criadoEm||'—'}</td>
       <td style="padding:7px 10px;font-family:var(--font-mono);font-size:11px;color:var(--text-primary);white-space:nowrap;">${_esc(skuCell)}</td>
@@ -13204,10 +13204,10 @@ function executarAcaoBotao(action){
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.98),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:400px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(24px);position:relative;">
     <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
 
-    <button id="precpix-copy-corner" onclick="copiarPrecificacaoPix()" title="Copiar texto todo" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(34,197,94,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    <button id="precpix-copy-corner" onclick="copiarPrecificacaoPix()" title="Copiar texto todo" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08));border:1px solid rgba(143,168,216,0.4);color:#b8ccee;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(143,168,216,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(34,197,94,0.25),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.35);display:flex;align-items:center;justify-content:center;"></div>
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(143,168,216,0.25),rgba(143,168,216,0.1));border:1px solid rgba(143,168,216,0.35);display:flex;align-items:center;justify-content:center;"></div>
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Precificação Pix</div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Gerar texto de desconto p/ WhatsApp</div>
@@ -13217,9 +13217,9 @@ function executarAcaoBotao(action){
 
     <div id="precpix-form">
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Valor bruto do produto no site (R$) *</label>
-      <input type="text" id="precpix-valor-base" placeholder="Ex: 259,99" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this);atualizarFormulaPix()" onkeydown="if(event.key==='Enter')gerarPrecificacaoPix()">
+      <input type="text" id="precpix-valor-base" placeholder="Ex: 259,99" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(143,168,216,0.6)';this.style.boxShadow='0 0 16px rgba(143,168,216,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this);atualizarFormulaPix()" onkeydown="if(event.key==='Enter')gerarPrecificacaoPix()">
       <div id="precpix-error" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fca5a5;font-family:var(--font-mono);margin-top:12px;"></div>
-      <button onclick="gerarPrecificacaoPix()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Texto</button>
+      <button onclick="gerarPrecificacaoPix()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.22));border:1px solid rgba(143,168,216,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Texto</button>
 
       <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:14px;">
         <button id="precpix-gear-btn" onclick="togglePrecpixMasterPanel()" title="Regra de desconto (MASTER)" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03));border:1px solid var(--glass-border);color:#a5d8ff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.color='#d0ecff';this.style.borderColor='rgba(165,216,255,0.4)'" onmouseout="this.style.color='#a5d8ff';this.style.borderColor='var(--glass-border)'">⚙</button>
@@ -13236,7 +13236,7 @@ function executarAcaoBotao(action){
       <textarea id="precpix-texto" readonly style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;line-height:1.6;padding:12px 13px;outline:none;width:100%;box-sizing:border-box;height:190px;resize:none;"></textarea>
       <div style="display:flex;gap:10px;margin-top:14px;">
         <button onclick="voltarPrecificacaoPix()" style="flex:1;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);font-family:var(--font-sans);font-size:13px;font-weight:600;padding:11px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='rgba(255,255,255,0.25)';this.style.color='var(--text-primary)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text-muted)'">← Editar valor</button>
-        <button onclick="copiarPrecificacaoPix()" style="flex:2;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Copiar</button>
+        <button onclick="copiarPrecificacaoPix()" style="flex:2;background:linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.22));border:1px solid rgba(143,168,216,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Copiar</button>
       </div>
     </div>
 
@@ -13639,10 +13639,10 @@ function copiarTextoValoresCredito(){
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.98),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:420px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(24px);position:relative;">
     <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
 
-    <button id="val-copy-corner" onclick="copiarTextoValores()" title="Copiar texto" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(34,197,94,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    <button id="val-copy-corner" onclick="copiarTextoValores()" title="Copiar texto" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08));border:1px solid rgba(143,168,216,0.4);color:#b8ccee;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(143,168,216,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(34,197,94,0.25),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.35);display:flex;align-items:center;justify-content:center;"></div>
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(143,168,216,0.25),rgba(143,168,216,0.1));border:1px solid rgba(143,168,216,0.35);display:flex;align-items:center;justify-content:center;"></div>
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Valores</div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Gerar orçamento PIX + Cartão p/ WhatsApp</div>
@@ -13652,16 +13652,16 @@ function copiarTextoValoresCredito(){
 
     <div id="val-form">
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Preço Site (R$) *</label>
-      <input type="text" id="val-preco-site" inputmode="decimal" placeholder="Ex: 259,99" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this);atualizarPreviewValores()" onkeydown="if(event.key==='Enter')gerarValores()">
+      <input type="text" id="val-preco-site" inputmode="decimal" placeholder="Ex: 259,99" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(143,168,216,0.6)';this.style.boxShadow='0 0 16px rgba(143,168,216,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this);atualizarPreviewValores()" onkeydown="if(event.key==='Enter')gerarValores()">
 
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin:14px 0 6px;">Valor Frete (R$)</label>
-      <input type="text" id="val-frete" inputmode="decimal" placeholder="Ex: 24,90" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this);atualizarPreviewValores()" onkeydown="if(event.key==='Enter')gerarValores()">
+      <input type="text" id="val-frete" inputmode="decimal" placeholder="Ex: 24,90" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(143,168,216,0.6)';this.style.boxShadow='0 0 16px rgba(143,168,216,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="fmtValorModal(this);atualizarPreviewValores()" onkeydown="if(event.key==='Enter')gerarValores()">
 
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin:14px 0 6px;">Quantidade (Und.) *</label>
-      <input type="text" id="val-qtd" inputmode="numeric" placeholder="Ex: 2" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="this.value=this.value.replace(/\D/g,'');atualizarPreviewValores()" onkeydown="if(event.key==='Enter')gerarValores()">
+      <input type="text" id="val-qtd" inputmode="numeric" placeholder="Ex: 2" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:14px;padding:10px 13px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(143,168,216,0.6)';this.style.boxShadow='0 0 16px rgba(143,168,216,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''" oninput="this.value=this.value.replace(/\D/g,'');atualizarPreviewValores()" onkeydown="if(event.key==='Enter')gerarValores()">
 
       <div id="val-error" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fca5a5;font-family:var(--font-mono);margin-top:12px;"></div>
-      <button onclick="gerarValores()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Texto</button>
+      <button onclick="gerarValores()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.22));border:1px solid rgba(143,168,216,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Texto</button>
 
       <div style="display:flex;align-items:center;justify-content:flex-end;margin-top:14px;">
         <button id="val-gear-btn" onclick="toggleValMasterPanel()" title="Regras de cálculo (MASTER)" style="width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,rgba(255,255,255,0.08),rgba(255,255,255,0.03));border:1px solid var(--glass-border);color:#a5d8ff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.color='#d0ecff';this.style.borderColor='rgba(165,216,255,0.4)'" onmouseout="this.style.color='#a5d8ff';this.style.borderColor='var(--glass-border)'">⚙</button>
@@ -13683,7 +13683,7 @@ function copiarTextoValoresCredito(){
     <div id="val-resultado" style="display:none;">
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px;">Texto gerado (confira antes de enviar)</label>
       <textarea id="val-texto" readonly style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;line-height:1.6;padding:12px 13px;outline:none;width:100%;box-sizing:border-box;height:280px;resize:none;white-space:pre;"></textarea>
-      <button onclick="copiarTextoValores()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar texto</button>
+      <button onclick="copiarTextoValores()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.22));border:1px solid rgba(143,168,216,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar texto</button>
       <div style="margin-top:14px;">
         <button onclick="voltarValores()" style="width:100%;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-sans);font-size:12px;padding:8px;cursor:pointer;transition:color .15s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">← Editar valores</button>
       </div>
@@ -14108,10 +14108,10 @@ function copiarDadosCliente(){
   <div style="background:linear-gradient(135deg,rgba(24,27,36,0.98),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:420px;max-width:94vw;box-shadow:0 20px 60px rgba(0,0,0,0.8),inset 0 1px 0 rgba(255,255,255,0.08);backdrop-filter:blur(24px);position:relative;">
     <div style="position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);border-radius:var(--radius-lg) var(--radius-lg) 0 0;pointer-events:none;"></div>
 
-    <button id="rastreio-copy-corner" onclick="copiarEnvioRastreio()" title="Copiar texto" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08));border:1px solid rgba(34,197,94,0.4);color:#86efac;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(34,197,94,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.22),rgba(34,197,94,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+    <button id="rastreio-copy-corner" onclick="copiarEnvioRastreio()" title="Copiar texto" style="display:none;position:absolute;top:14px;right:14px;width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08));border:1px solid rgba(143,168,216,0.4);color:#b8ccee;font-size:13px;cursor:pointer;align-items:center;justify-content:center;transition:all .15s;" onmouseover="this.style.background='rgba(143,168,216,0.32)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08))'"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
 
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
-      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(34,197,94,0.25),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.35);display:flex;align-items:center;justify-content:center;"></div>
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,rgba(143,168,216,0.25),rgba(143,168,216,0.1));border:1px solid rgba(143,168,216,0.35);display:flex;align-items:center;justify-content:center;"></div>
       <div>
         <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Envio Rastreio</div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Gerar mensagem de rastreio p/ WhatsApp</div>
@@ -14121,20 +14121,20 @@ function copiarDadosCliente(){
 
     <div id="rastreio-form">
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Código de Rastreio</label>
-      <input type="text" id="rastreio-codigo" placeholder="Ex: BR123456789BR" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;margin-bottom:14px;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
+      <input type="text" id="rastreio-codigo" placeholder="Ex: BR123456789BR" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;margin-bottom:14px;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(143,168,216,0.6)';this.style.boxShadow='0 0 16px rgba(143,168,216,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
 
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:6px;">Link do Rastreio</label>
-      <input type="text" id="rastreio-link" placeholder="Ex: https://rastreamento.correios.com.br/..." style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(34,197,94,0.6)';this.style.boxShadow='0 0 16px rgba(34,197,94,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
+      <input type="text" id="rastreio-link" placeholder="Ex: https://rastreamento.correios.com.br/..." style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:13px;padding:9px 11px;outline:none;width:100%;box-sizing:border-box;transition:border-color .2s,box-shadow .2s;" onfocus="this.style.borderColor='rgba(143,168,216,0.6)';this.style.boxShadow='0 0 16px rgba(143,168,216,0.15)'" onblur="this.style.borderColor='var(--glass-border)';this.style.boxShadow=''">
 
       <div id="rastreio-error" style="display:none;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.35);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#fca5a5;font-family:var(--font-mono);margin-top:12px;"></div>
-      <button onclick="gerarEnvioRastreio()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Mensagem</button>
+      <button onclick="gerarEnvioRastreio()" style="width:100%;margin-top:16px;background:linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.22));border:1px solid rgba(143,168,216,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Gerar Mensagem</button>
     </div>
 
     <div id="rastreio-resultado" style="display:none;">
       <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:8px;">Texto gerado (confira antes de enviar)</label>
 
       <textarea id="rastreio-texto" readonly style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12.5px;line-height:1.6;padding:12px 13px;outline:none;width:100%;box-sizing:border-box;height:170px;resize:none;white-space:pre;"></textarea>
-      <button onclick="copiarEnvioRastreio()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,rgba(34,197,94,0.35),rgba(34,197,94,0.22));border:1px solid rgba(34,197,94,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(34,197,94,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar texto</button>
+      <button onclick="copiarEnvioRastreio()" style="width:100%;margin-top:12px;background:linear-gradient(135deg,rgba(143,168,216,0.35),rgba(143,168,216,0.22));border:1px solid rgba(143,168,216,0.45);border-radius:50px;color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:all .15s;box-shadow:0 4px 20px rgba(143,168,216,0.12),inset 0 1px 0 rgba(255,255,255,0.1);" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">📋 Copiar texto</button>
 
       <div style="margin-top:14px;">
         <button onclick="voltarEnvioRastreio()" style="width:100%;background:transparent;border:none;color:var(--text-muted);font-family:var(--font-sans);font-size:12px;padding:8px;cursor:pointer;transition:color .15s;" onmouseover="this.style.color='var(--text-primary)'" onmouseout="this.style.color='var(--text-muted)'">← Editar dados</button>
