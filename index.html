@@ -629,6 +629,7 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .atv-colhead .atv-colchev{font-size:10px;color:var(--hc-text);transition:transform .15s;display:inline-flex;flex-shrink:0;}
 .atv-colhead .atv-colchev.closed{transform:rotate(-90deg);}
 .atv-colhead[data-c="afazer"]{--hc-border:rgba(125,148,196,.4);--hc-bg:rgba(125,148,196,.10);--hc-bg2:rgba(125,148,196,.18);--hc-text:#b0bfd8;}
+.atv-colhead[data-c="atrasada"]{--hc-border:rgba(143,168,216,.4);--hc-bg:rgba(143,168,216,.10);--hc-bg2:rgba(143,168,216,.20);--hc-text:#b8ccee;}
 .atv-colhead[data-c="andamento"]{--hc-border:rgba(79,82,214,.4);--hc-bg:rgba(79,82,214,.10);--hc-bg2:rgba(79,82,214,.20);--hc-text:#a5b4fc;}
 .atv-colhead[data-c="concluida"]{--hc-border:rgba(143,168,216,.4);--hc-bg:rgba(143,168,216,.10);--hc-bg2:rgba(143,168,216,.20);--hc-text:#b8ccee;}
 .atv-colhead[data-c="finalizada"]{--hc-border:rgba(143,168,216,.4);--hc-bg:rgba(143,168,216,.10);--hc-bg2:rgba(143,168,216,.20);--hc-text:#b8ccee;}
@@ -890,7 +891,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div style="width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:11px;">📦</div>
           <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">RASTREIOS</span>
-          <div id="rst-owner-badge" title="Responsável: Gustavo" style="width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e8edf855,#e8edf815 60%,transparent 75%),radial-gradient(circle at center,#e8edf822,transparent 70%);border:1px solid #e8edf855;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px #e8edf866,inset 0 1px 2px rgba(255,255,255,.15);">GU</div>
+          <div id="rst-owner-badge" title="Responsável: Gustavo" style="width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:#ffffff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">GU</div>
           <span id="rst-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           <!-- Pasta Entregues chip -->
           <div id="rst-entregues-wrap" onclick="toggleEntregues()" style="display:flex;align-items:center;gap:5px;background:linear-gradient(135deg,rgba(143,168,216,0.1),rgba(143,168,216,0.03));border:1px solid rgba(143,168,216,0.3);border-radius:50px;padding:3px 12px 3px 9px;cursor:pointer;transition:background .15s;user-select:none;"
@@ -1144,7 +1145,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- Kanban board -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;min-width:0;" id="atv-kanban">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;min-width:0;" id="atv-kanban">
 
         <!-- Coluna: A Fazer -->
         <div id="atv-col-wrap-aberta">
@@ -1164,6 +1165,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <span id="atv-count-andamento" class="cnt">0</span>
           </div>
           <div id="atv-col-andamento" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
+        </div>
+
+        <!-- Coluna: Atrasadas -->
+        <div id="atv-col-wrap-atrasada">
+          <div class="atv-colhead" data-c="atrasada" onclick="atvToggleColuna('atrasada')" style="cursor:pointer;">
+            <span id="atv-colchev-atrasada" class="atv-colchev">▾</span>
+            <span class="lbl">Atrasadas</span>
+            <span id="atv-count-atrasada" class="cnt">0</span>
+          </div>
+          <div id="atv-col-atrasada" style="display:flex;flex-direction:column;gap:8px;min-height:60px;"></div>
         </div>
 
         <!-- Coluna: Concluída -->
@@ -2253,10 +2264,10 @@ function addBusinessDays(date, n){
 function defaultState(){
   return {
     users:{
-      cmandrade:{name:'CM Andrade',pass:'suple2024',master:true,color:'#8fa8d8',initials:'CM',perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','atividades','admin']},
-      gustavo:{name:'Gustavo',pass:'gusta123',master:false,color:'#e8edf8',initials:'G',perms:['plataformas','envios']},
+      cmandrade:{name:'CM Andrade',pass:'suple2024',master:true,color:'#e8c25a',initials:'CM',perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','atividades','admin']},
+      gustavo:{name:'Gustavo',pass:'gusta123',master:false,color:'#ffffff',initials:'G',perms:['plataformas','envios']},
       matheusm:{name:'Matheus M',pass:'matheus123',master:false,color:'#3b82f6',initials:'MM',perms:['whatsapp']},
-      carlosred:{name:'Carlos Red',pass:'carlos123',master:false,color:'#c0392b',initials:'CR',perms:['whatsapp','devolucoes']}
+      carlosred:{name:'Carlos Red',pass:'carlos123',master:false,color:'#ef4444',initials:'CR',perms:['whatsapp','devolucoes']}
     },
     tasks:{
       whatsapp:initWpp(),
@@ -2288,10 +2299,10 @@ function defaultState(){
 function patchUsers(s){
   if(!s.users) s.users={};
   const CORE={
-    cmandrade:{name:'CM Andrade', pass:'suple2024', master:true,  color:'#8fa8d8', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
-    gustavo:  {name:'Gustavo',    pass:'gusta123',  master:false, color:'#e8edf8', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
+    cmandrade:{name:'CM Andrade', pass:'suple2024', master:true,  color:'#e8c25a', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
+    gustavo:  {name:'Gustavo',    pass:'gusta123',  master:false, color:'#ffffff', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
     matheusm: {name:'Matheus M',  pass:'matheus123',master:false, color:'#3b82f6', initials:'MM', perms:['whatsapp','tarefas','cnpjs','integracoes']},
-    carlosred:{name:'Carlos Red', pass:'carlos123', master:false, color:'#c0392b', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
+    carlosred:{name:'Carlos Red', pass:'carlos123', master:false, color:'#ef4444', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
   };
   Object.entries(CORE).forEach(([key,def])=>{
     if(!s.users[key]) s.users[key]={...def};
@@ -2591,6 +2602,7 @@ function saveState(s){
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
   reconcileAutoTasks(s);
+  _padronizarCoresUsuarios(s);
   _localVersion=Date.now();
   _lastSaveTs = _localVersion;
   // Salva localmente SEM _savedBy (para não contaminar o appState)
@@ -2924,6 +2936,7 @@ function applyRemoteState(data){
   patchTaskOwners(data);
   patchDpspBaixas(data);
   reconcileAutoTasks(data);
+  _padronizarCoresUsuarios(data);
   return data;
 }
 
@@ -3089,7 +3102,7 @@ function renderActPanel(entries){
     const c=e.color||'#888';
     const icon=e.action==='concluiu'?'<span style="color:var(--green)">✓</span>':e.action==='desmarcou'?'<span style="color:var(--amber)">↩</span>':'<span style="color:var(--text-muted)">▶</span>';
     return `<div class="act-entry ${isMine?'act-mine':'act-other'}">
-      <div class="act-avatar" style="background:radial-gradient(circle at 35% 30%,${c}55,${c}15 60%,transparent 75%),radial-gradient(circle at center,${c}22,transparent 70%);border:1px solid ${c}55;color:#fff;box-shadow:0 0 8px ${c}66,inset 0 1px 2px rgba(255,255,255,.15);">${e.initials||'?'}</div>
+      <div class="act-avatar" style="background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${c};box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${e.initials||'?'}</div>
       <div class="act-body">
         <div class="act-who">${e.user} ${icon} <span style="font-size:10px;color:var(--text-muted);font-weight:400;">${e.action}</span></div>
         <div class="act-what" title="${e.task}">${e.task}</div>
@@ -4534,7 +4547,7 @@ function renderHistoricoWpp(){
       const _uEntry = Object.values(appState.users||{}).find(u=>u.name===p.registradoPor);
       const initials = _uEntry ? getUserInitials(_uEntry) : (p.registradoPor||'?').substring(0,2).toUpperCase();
       const uColor = _uEntry ? (_uEntry.color||'#6d7580') : '#6d7580';
-      userBadge.style.cssText = `width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${uColor}55,${uColor}15 60%,transparent 75%),radial-gradient(circle at center,${uColor}22,transparent 70%);border:1px solid ${uColor}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${uColor}66,inset 0 1px 2px rgba(255,255,255,.15);`;
+      userBadge.style.cssText = `width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${uColor};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);`;
       userBadge.textContent = initials;
       userBadge.title = p.registradoPor||'Desconhecido';
 
@@ -5136,7 +5149,7 @@ function renderAnu(){
       if(anuOwnerKeys.length===0){
         const ob=document.createElement('div');ob.style.cssText='width:20px;height:20px;border-radius:50%;background:#88888833;border:1px solid #888;color:#888;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;opacity:0.3;';ob.textContent='—';anuBadge.appendChild(ob);
       } else {
-        anuOwnerKeys.forEach(k=>{const u=appState.users[k];if(!u)return;const ob=document.createElement('div');ob.style.cssText=`width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${u.color||'#888'}55,${u.color||'#888'}15 60%,transparent 75%),radial-gradient(circle at center,${u.color||'#888'}22,transparent 70%);border:1px solid ${u.color||'#888'}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:-0.5px;box-shadow:0 0 8px ${u.color||'#888'}66,inset 0 1px 2px rgba(255,255,255,.15);`;ob.textContent=getUserInitials(u);ob.title='Responsável: '+u.name;anuBadge.appendChild(ob);});
+        anuOwnerKeys.forEach(k=>{const u=appState.users[k];if(!u)return;const ob=document.createElement('div');ob.style.cssText=`width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${u.color||'#888'};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;letter-spacing:-0.5px;box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);`;ob.textContent=getUserInitials(u);ob.title='Responsável: '+u.name;anuBadge.appendChild(ob);});
       }
       row.appendChild(anuBadge);
       row.appendChild(dot);row.appendChild(txtw);row.appendChild(actions);body.appendChild(row);
@@ -6414,6 +6427,16 @@ function criarTarefaAutoIntegracao(item){
   });
 }
 
+// Cores padrão das letras dos avatares por usuário. O quadro/círculo do avatar
+// é igual (padrão navy) para todos — apenas a letra muda de cor.
+const USER_LETTER_COLORS={cmandrade:'#e8c25a',matheusm:'#3b82f6',carlosred:'#ef4444',gustavo:'#ffffff'};
+function _padronizarCoresUsuarios(state){
+  try{
+    const users=(state&&state.users)||{};
+    Object.keys(USER_LETTER_COLORS).forEach(k=>{ if(users[k]) users[k].color=USER_LETTER_COLORS[k]; });
+  }catch(e){}
+}
+
 // Remove tarefas automáticas "órfãs": aquelas que vieram de uma Integração/Imagem/
 // Atendimento cuja origem já não existe mais (foi excluída). Mantém o sistema
 // consistente entre todos os usuários — impede as "tarefas fantasma" que
@@ -6642,7 +6665,7 @@ function renderDev(){
     // Owner badge in section header
     const ownerUser = cfg.owner ? appState.users[cfg.owner] : null;
     const ownerBadgeHtml = ownerUser
-      ? `<div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${ownerUser.color}55,${ownerUser.color}15 60%,transparent 75%),radial-gradient(circle at center,${ownerUser.color}22,transparent 70%);border:1px solid ${ownerUser.color}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px ${ownerUser.color}66,inset 0 1px 2px rgba(255,255,255,.15);">${getUserInitials(ownerUser)}</div>`
+      ? `<div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${ownerUser.color};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${getUserInitials(ownerUser)}</div>`
       : '';
     sec.innerHTML=`${ownerBadgeHtml}<span style="font-size:11px;font-weight:700;letter-spacing:1.5px;color:${cfg.color};padding:3px 10px;background:${cfg.bg};border:1px solid ${cfg.border};border-radius:20px;">${cfg.label}</span><div style="flex:1;height:1px;background:${cfg.border};"></div><span style="font-size:11px;color:${cfg.color};font-family:var(--font-mono);">${group.length}</span>`;
     container.appendChild(sec);
@@ -6696,7 +6719,7 @@ function buildDevCardFull(d, isConcluida){
   if(ownerUser){
     const ob=document.createElement('div');
     ob.title='Responsável: '+ownerUser.name;
-    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${ownerUser.color}55,${ownerUser.color}15 60%,transparent 75%),radial-gradient(circle at center,${ownerUser.color}22,transparent 70%);border:1px solid ${ownerUser.color}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px ${ownerUser.color}66,inset 0 1px 2px rgba(255,255,255,.15);`;
+    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${ownerUser.color};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);`;
     ob.textContent=getUserInitials(ownerUser);
     hdr.appendChild(ob);
   }
@@ -7576,7 +7599,7 @@ function renderTimeGoals(){
     const uHdr=document.createElement('div');
     uHdr.style.cssText=`background:${uColor}11;border-bottom:1px solid ${uColor}44;padding:9px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;`;
     uHdr.innerHTML=`
-      <div style="width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${uColor}55,${uColor}15 60%,transparent 75%),radial-gradient(circle at center,${uColor}22,transparent 70%);border:1px solid ${uColor}55;color:#fff;font-size:10px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px ${uColor}66,inset 0 1px 2px rgba(255,255,255,.15);">${uInitials}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${uColor};font-size:10px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 14px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${uInitials}</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;">${userName}</div>
         <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:1px;">${uData.tasks.length} tarefa${uData.tasks.length!==1?'s':''} cronometrada${uData.tasks.length!==1?'s':''}</div>
@@ -8186,7 +8209,7 @@ function userAvatarHTML(user,size){
   const initials=getUserInitials(user);
   const fontSize=Math.max(8,Math.round(size*0.34));
   const glow=Math.round(size/2);
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${color}55,${color}15 60%,transparent 75%),radial-gradient(circle at center,${color}22,transparent 70%);border:1px solid ${color}55;color:#fff;font-size:${fontSize}px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 ${glow}px ${color}66,inset 0 1px 2px rgba(255,255,255,.15);">${initials}</div>`;
+  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${color};font-size:${fontSize}px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 ${glow}px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${initials}</div>`;
 }
 function renderUsersGrid(){
   const grid=document.getElementById('users-grid');
@@ -8950,7 +8973,7 @@ function assignTask(tab, groupId, itemId, ownerKey, badgeEl){
     const u=userList.find(u=>u.key===ownerKey);
     if(u){
       badgeEl.innerHTML=`
-        <div style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${u.color}55,${u.color}15 60%,transparent 75%),radial-gradient(circle at center,${u.color}22,transparent 70%);border:1px solid ${u.color}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 9px ${u.color}66,inset 0 1px 2px rgba(255,255,255,.15);">${u.initials}</div>
+        <div style="width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${u.color};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 9px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${u.initials}</div>
         <span style="font-size:11px;color:var(--text-secondary);white-space:nowrap;">${u.name}</span>`;
     } else {
       badgeEl.innerHTML=`<span style="font-size:11px;color:var(--text-muted);font-style:italic;">Não atribuído</span>`;
@@ -9291,7 +9314,7 @@ function buildRstCard(r, isEntregue){
   if(ownerUser){
     const ob=document.createElement('div');
     ob.title='Responsável: '+ownerUser.name;
-    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${ownerUser.color||'#888'}55,${ownerUser.color||'#888'}15 60%,transparent 75%),radial-gradient(circle at center,${ownerUser.color||'#888'}22,transparent 70%);border:1px solid ${ownerUser.color||'#888'}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px ${ownerUser.color||'#888'}66,inset 0 1px 2px rgba(255,255,255,.15);`;
+    ob.style.cssText=`width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${ownerUser.color||'#888'};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);`;
     ob.textContent=getUserInitials(ownerUser);
     hdr.appendChild(ob);
   }
@@ -10755,7 +10778,7 @@ function renderTarefas(){
     card.style.cssText='background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;';
     card.innerHTML=`
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${color}55,${color}15 60%,transparent 75%),radial-gradient(circle at center,${color}22,transparent 70%);border:1px solid ${color}55;color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);flex-shrink:0;box-shadow:0 0 18px ${color}66,inset 0 1px 2px rgba(255,255,255,.15);">${initials}</div>
+        <div style="width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${color};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--font-mono);flex-shrink:0;box-shadow:0 0 18px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${initials}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:600;letter-spacing:-0.02em;">${user.name}</div>
           <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">${user.master?'MASTER':'Colaborador'} · ${myTasks.length} atribuídas</div>
@@ -10782,7 +10805,7 @@ function renderTarefas(){
       const ini = ownerUser?getUserInitials(ownerUser):'?';
       const r=document.createElement('div');
       r.style.cssText='background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;';
-      r.innerHTML=`<div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${col}55,${col}15 60%,transparent 75%),radial-gradient(circle at center,${col}22,transparent 70%);border:1px solid ${col}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${col}66,inset 0 1px 2px rgba(255,255,255,.15);">${ini}</div><div style="flex:1;"><div style="font-size:12px;color:var(--text-primary);">${ownerPrefix}${t.text}</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${t.grupo}</div></div>`;
+      r.innerHTML=`<div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${col};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${ini}</div><div style="flex:1;"><div style="font-size:12px;color:var(--text-primary);">${ownerPrefix}${t.text}</div><div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${t.grupo}</div></div>`;
       abertas.appendChild(r);
     });
   }
@@ -10825,7 +10848,7 @@ function renderTarefas(){
       mainRow.onmouseover=function(){mainRow.style.background='var(--bg-hover)';};
       mainRow.onmouseout=function(){mainRow.style.background='';};
       mainRow.innerHTML=`
-        <div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,${col}55,${col}15 60%,transparent 75%),radial-gradient(circle at center,${col}22,transparent 70%);border:1px solid ${col}55;color:#fff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px ${col}66,inset 0 1px 2px rgba(255,255,255,.15);">${ini}</div>
+        <div style="width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);color:${col};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${ini}</div>
         <div style="flex:1;">
           <div style="font-size:12px;text-decoration:line-through;color:var(--text-muted);word-break:break-word;">${ownerPrefix}${t.text}</div>
           <div style="font-size:10px;color:#8fa8d8;font-family:var(--font-mono);margin-top:2px;">✓ ${t.doneBy||'?'}${t.doneAt?' às '+t.doneAt:''}${dur?' · ⏱ '+dur:''}</div>
@@ -10960,7 +10983,7 @@ function atvToggleColuna(status){
   if(chev) chev.classList.toggle('closed', _atvColunasFechadas.has(status));
 }
 const ATV_TAB_KEYS = ['all','aberta','andamento','atrasada','concluida','finalizada'];
-const ATV_STATUS_COLS = ['aberta','andamento','concluida','finalizada'];
+const ATV_STATUS_COLS = ['aberta','andamento','atrasada','concluida','finalizada'];
 const ATV_TAB_LABELS = [
   {id:'all',label:'Todas'},
   {id:'aberta',label:'A Fazer'},
@@ -11002,9 +11025,7 @@ function atvAtualizarAbasKanban(){
     btn.style.display = permitidas.includes(k) ? '' : 'none';
     btn.classList.toggle('active', k === _atvStatusFilter);
   });
-  // "Atrasada" mostra as colunas A Fazer e Com Pendência — uma tarefa atrasada
-  // pode estar em qualquer um dos dois status
-  const colMap = { all:ATV_STATUS_COLS.filter(c=>permitidas.includes(c)), aberta:['aberta'], andamento:['andamento'], atrasada:['aberta','andamento'], concluida:['concluida'], finalizada:['finalizada'] };
+  const colMap = { all:ATV_STATUS_COLS.filter(c=>permitidas.includes(c)), aberta:['aberta'], andamento:['andamento'], atrasada:['atrasada'], concluida:['concluida'], finalizada:['finalizada'] };
   const visible = (colMap[_atvStatusFilter] || ATV_STATUS_COLS).filter(c=>permitidas.includes(c));
   const kanban = document.getElementById('atv-kanban');
   if (kanban) {
@@ -11092,7 +11113,7 @@ function renderAtividades(){
   });
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
-  const counts={aberta:0,andamento:0,concluida:0,finalizada:0};
+  const counts={aberta:0,andamento:0,atrasada:0,concluida:0,finalizada:0};
   let total=0;
 
   appState.atividades.forEach(a=>{
@@ -11112,16 +11133,18 @@ function renderAtividades(){
     const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida' && a.status !== 'finalizada';
     const diasLabel=atvDiasLabel(dias,a.status);
 
-    // Apply status tab filter
+    // Apply status tab filter — tarefa atrasada vive na coluna "Atrasadas",
+    // e não mais em A Fazer / Com Pendência
     if (_atvStatusFilter === 'atrasada' && !isAtrasada) return;
-    if (_atvStatusFilter === 'aberta' && a.status !== 'aberta') return;
-    if (_atvStatusFilter === 'andamento' && a.status !== 'andamento') return;
+    if (_atvStatusFilter === 'aberta' && (a.status !== 'aberta' || isAtrasada)) return;
+    if (_atvStatusFilter === 'andamento' && (a.status !== 'andamento' || isAtrasada)) return;
     if (_atvStatusFilter === 'concluida' && a.status !== 'concluida') return;
     if (_atvStatusFilter === 'finalizada' && a.status !== 'finalizada') return;
-    // "Todas": respeita a permissão de abas do usuário (colunas ocultas não aparecem)
-    if (_atvStatusFilter === 'all' && !atvTabsPermitidas().includes(a.status||'aberta')) return;
 
-    const colKey=a.status||'aberta';
+    const colKey = isAtrasada ? 'atrasada' : (a.status||'aberta');
+    // "Todas": respeita a permissão de abas do usuário (colunas ocultas não aparecem)
+    if (_atvStatusFilter === 'all' && !atvTabsPermitidas().includes(colKey)) return;
+
     const col=document.getElementById('atv-col-'+colKey);
     if(!col) return;
 
@@ -11176,7 +11199,7 @@ function renderAtividades(){
       <div style="position:relative;border-radius:20px;overflow:hidden;">
       <div style="position:relative;padding:16px 16px 14px;">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
-          <div style="width:40px;height:40px;border-radius:13px;background:radial-gradient(circle at 35% 30%,${avColor}80,${avColor}26 60%,transparent 75%);border:1px solid ${avColor}80;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px ${avColor}66,inset 0 1px 2px rgba(255,255,255,.18);color:#fff;font-size:13px;font-weight:800;font-family:var(--font-mono);">${uInit}</div>
+          <div style="width:40px;height:40px;border-radius:13px;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);color:${avColor};font-size:13px;font-weight:800;font-family:var(--font-mono);">${uInit}</div>
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
         ${ateOrigemBtnId?`<button type="button" id="${ateOrigemBtnId}" style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:3px 10px;margin-bottom:8px;cursor:pointer;">↗ Atendimento</button>`:''}
