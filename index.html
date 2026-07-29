@@ -204,9 +204,14 @@ html{overflow-x:hidden;}
 .brand-logo-img{
   background:var(--logo-liveops) center/contain no-repeat;
   aspect-ratio:365/83;
+  /* PNG nativo 365x83 — realce de brilho/contraste + glow para não ficar fosco */
+  filter:brightness(1.22) contrast(1.15) saturate(1.28)
+    drop-shadow(0 0 16px rgba(255,255,255,0.10))
+    drop-shadow(0 0 34px rgba(232,50,42,0.38))
+    drop-shadow(0 3px 12px rgba(0,0,0,0.55));
 }
-.splash-logo .brand-logo-img{width:460px;max-width:86vw;margin:0 auto;}
-.header-brand-logo{height:46px;aspect-ratio:365/83;background:var(--logo-liveops) center/contain no-repeat;margin:-4px 0;}
+.splash-logo .brand-logo-img{width:365px;max-width:86vw;margin:0 auto;}
+.header-brand-logo{height:46px;aspect-ratio:365/83;background:var(--logo-liveops) center/contain no-repeat;margin:-4px 0;filter:brightness(1.2) contrast(1.12) saturate(1.25) drop-shadow(0 0 10px rgba(232,50,42,0.32)) drop-shadow(0 0 4px rgba(255,255,255,0.08));}
 .splash-logo .brand{
   font-family:var(--font-brand);
   font-size:62px;
