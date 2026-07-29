@@ -11103,6 +11103,11 @@ function renderAtividades(){
     const user=appState.users[a.responsavel];
     const prior=ATV_PRIOR[a.prioridade]||ATV_PRIOR.normal;
     const dias=atvDiasRestantes(a.vencimento);
+
+    // Tarefa com vencimento futuro fica "adormecida": some do quadro e volta
+    // apenas no dia do prazo — evita poluir o kanban com tratativas agendadas
+    // (ex.: atendimento cuja data de retorno foi remarcada).
+    if(dias!==null && dias>0 && a.status!=='concluida' && a.status!=='finalizada') return;
     const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida' && a.status !== 'finalizada';
     const diasLabel=atvDiasLabel(dias,a.status);
 
