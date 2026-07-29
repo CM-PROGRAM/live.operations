@@ -1067,7 +1067,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- DEVOLUÇÕES -->
     <div class="tab-panel" id="tab-devolucoes">
       <div class="section-header">
-        <span class="section-title">Devoluções</span>
+        <span class="section-title" id="dev-section-title">Devoluções</span>
         <button class="btn btn-sm" onclick="openDevModal()" id="btn-new-dev" style="display:none">+ Nova Devolução</button>
       </div>
       <div style="margin-bottom:14px;">
@@ -1083,16 +1083,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="dev-stats-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;"></div>
       </div>
-      <!-- Pasta Estornadas -->
-      <div id="dev-estornadas-wrap" style="margin-bottom:14px;display:none;">
-        <div onclick="toggleDevEstornadas()" style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03));border:1px solid rgba(34,197,94,0.3);border-radius:var(--radius);padding:9px 14px;cursor:pointer;user-select:none;transition:background .15s;" onmouseover="this.style.background='rgba(34,197,94,0.16)'" onmouseout="this.style.background='linear-gradient(135deg,rgba(34,197,94,0.1),rgba(34,197,94,0.03))'">
-          <span id="dev-est-chevron" style="font-size:11px;color:var(--green);transition:transform .2s;">▶</span>
-          <span style="font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--green);font-family:var(--font-mono);">📁 Dev. Concluídas</span>
-          <span id="dev-est-badge" style="background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,0.35);border-radius:10px;color:var(--green);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
-        </div>
-        <div id="dev-estornadas-cards" style="display:none;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:10px;"></div>
-      </div>
       <div id="dev-cards" style="display:block;"></div>
+      <div id="dev-estornadas-cards" style="display:none;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;"></div>
       <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:40px;display:none;" id="dev-empty">Nenhuma devolução registrada.</div>
     </div>
 
@@ -3435,7 +3427,7 @@ function onNotasInput(ta){
 }
 
 
-let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos']);
+let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes']);
 
 function buildTabs(){
   const tabs=[
@@ -3468,7 +3460,10 @@ function buildTabs(){
     ]},
     {id:'conferencias',icon:'✅', label:'Conferências Realizadas', perm:'conferencias'},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
-    {id:'devolucoes', icon:'↩',  label:'Devoluções',            perm:'devolucoes'},
+    {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
+      {id:'devolucoes',     label:'Em Devolução'},
+      {id:'dev-concluidas', label:'Concluídas', panel:'devolucoes'}
+    ]},
     {id:'cnpjs',      icon:'🏢', label:'CNPJs Suplelive', perm:'cnpjs'},
     {id:'admin',      icon:'⚙', label:'Adm. Master',           perm:'admin'}
   ];
@@ -3484,7 +3479,8 @@ function buildTabs(){
 
   function fireTabHooks(id){
     if(id==='registrovendas'){ try{renderHistoricoWpp();}catch(e){console.warn('renderHistoricoWpp:',e);} }
-    if(id==='devolucoes'){ try{renderDev();}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
+    if(id==='devolucoes'){ try{devSetSubTab('ativos');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
+    if(id==='dev-concluidas'){ try{devSetSubTab('concluidas');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='ate-concluidas'){ try{ateSetSubTab('concluidas');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
@@ -6592,33 +6588,43 @@ function renderDev(){
   all.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
   const _devQ=(document.getElementById('dev-search')?.value||'').trim().toLowerCase();
   const _devMatch=d=>!_devQ || [d.cliente,d.nped,d.motivo].some(v=>(v||'').toString().toLowerCase().includes(_devQ));
+  const _devPltOk=d=>!devFiltroPlataforma||devPltStd(d.plataforma)===devFiltroPlataforma;
   const active = all.filter(d=>d.workflow!=='concluida'&&d.workflow!=='finalizada')
-    .filter(d=>!devFiltroPlataforma||devPltStd(d.plataforma)===devFiltroPlataforma)
+    .filter(_devPltOk)
     .filter(_devMatch);
-  const concluidas = all.filter(d=>d.workflow==='concluida'||d.workflow==='finalizada').filter(_devMatch);
+  const concluidas = all.filter(d=>d.workflow==='concluida'||d.workflow==='finalizada')
+    .filter(_devPltOk)
+    .filter(_devMatch);
 
+  const naAba=(_devSubTab==='concluidas')?'concluidas':'ativos';
   const btnNew=document.getElementById('btn-new-dev');
-  if(btnNew) btnNew.style.display=canCreate?'inline-block':'none';
+  if(btnNew) btnNew.style.display=(canCreate && naAba==='ativos')?'inline-block':'none';
 
   const container=document.getElementById('dev-cards');
+  const estCards=document.getElementById('dev-estornadas-cards');
   const empty=document.getElementById('dev-empty');
   container.innerHTML='';
+  if(estCards) estCards.innerHTML='';
 
-  // ── Pasta Dev. Concluídas ──────────────────────────────────────────
-  const estWrap=document.getElementById('dev-estornadas-wrap');
-  const estCards=document.getElementById('dev-estornadas-cards');
-  const estBadge=document.getElementById('dev-est-badge');
-  if(estWrap) estWrap.style.display=concluidas.length>0?'block':'none';
-  if(estBadge) estBadge.textContent=concluidas.length;
-  if(estCards){
-    estCards.innerHTML='';
-    concluidas.forEach(d=>{
-      const card=buildDevCardFull(d,true);
-      if(card) estCards.appendChild(card);
-    });
+  container.style.display = naAba==='ativos' ? 'block' : 'none';
+  if(estCards) estCards.style.display = naAba==='concluidas' ? 'grid' : 'none';
+
+  if(naAba==='concluidas'){
+    if(concluidas.length===0){
+      empty.style.display='block';
+      empty.textContent=(_devQ||devFiltroPlataforma)?'Nenhuma devolução concluída para esta busca/filtro.':'Nenhuma devolução concluída.';
+      return;
+    }
+    empty.style.display='none';
+    if(estCards) concluidas.forEach(d=>{ const card=buildDevCardFull(d,true); if(card) estCards.appendChild(card); });
+    return;
   }
 
-  if(active.length===0){ empty.style.display='block'; return; }
+  if(active.length===0){
+    empty.style.display='block';
+    empty.textContent=(_devQ||devFiltroPlataforma)?'Nenhuma devolução em aberto para esta busca/filtro.':'Nenhuma devolução registrada.';
+    return;
+  }
   empty.style.display='none';
 
   // Group active by status: aberta first, then pronto_estorno
@@ -9516,21 +9522,27 @@ window._deleteRst = function(id){
 
 
 /* ===== DEVOLUÇÕES WORKFLOW ===== */
-function toggleDevEstornadas(){
-  const cards=document.getElementById('dev-estornadas-cards');
-  const chev=document.getElementById('dev-est-chevron');
-  if(!cards) return;
-  const open=cards.style.display!=='none';
-  cards.style.display=open?'none':'grid';
-  chev.style.transform=open?'rotate(0deg)':'rotate(90deg)';
-}
-
-let devFiltroPlataforma='';
-function devFiltrarPorPlataforma(plt){
-  devFiltroPlataforma = (devFiltroPlataforma===plt) ? '' : plt;
+let _devSubTab='ativos';
+function _devAbaAtual(){ return _devSubTab==='concluidas' ? 'concluidas' : 'ativos'; }
+function devSetSubTab(tab){
+  _devSubTab=tab;
+  // Restaura o filtro de plataforma guardado desta sub-aba (independente da outra)
+  devFiltroPlataforma=_devFiltroPorAba[_devAbaAtual()]||'';
+  const titulo=document.getElementById('dev-section-title');
+  if(titulo) titulo.textContent = tab==='concluidas' ? 'Devoluções Concluídas' : 'Devoluções';
   try{renderDev();}catch(e){}
   try{renderDevStats();}catch(e){}
-  const cardsEl=document.getElementById('dev-cards');
+}
+
+// Cada sub-aba (Em Devolução / Concluídas) guarda o próprio filtro de plataforma
+let devFiltroPlataforma='';
+const _devFiltroPorAba={ativos:'',concluidas:''};
+function devFiltrarPorPlataforma(plt){
+  devFiltroPlataforma = (devFiltroPlataforma===plt) ? '' : plt;
+  _devFiltroPorAba[_devAbaAtual()]=devFiltroPlataforma;
+  try{renderDev();}catch(e){}
+  try{renderDevStats();}catch(e){}
+  const cardsEl=document.getElementById(_devAbaAtual()==='concluidas'?'dev-estornadas-cards':'dev-cards');
   if(devFiltroPlataforma && cardsEl) cardsEl.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -9570,11 +9582,12 @@ function renderDevStats(){
     const resolved=all.filter(d=>d.status==='Entregue'||d.workflow==='concluida');
     if(all.length===0) return;
     const abertas=all.length-resolved.length;
+    const mostrar=(_devSubTab==='concluidas')?resolved.length:abertas;
     const ativo=devFiltroPlataforma===plt;
     const c=(typeof ATE_STAT_TILE_COLORS!=='undefined'&&ATE_STAT_TILE_COLORS[plt])||ateGetPltColorHex(plt)||'#8fa8d8';
     const tile=document.createElement('button');
     tile.type='button';
-    tile.title='Clique para filtrar devoluções em aberto desta plataforma';
+    tile.title=(_devSubTab==='concluidas')?'Clique para filtrar devoluções concluídas desta plataforma':'Clique para filtrar devoluções em aberto desta plataforma';
     tile.style.cssText=`background:linear-gradient(135deg,${_hexA(c,0.12)},${_hexA(c,0.02)});border:1.5px solid ${_hexA(c,ativo?0.95:0.5)};border-radius:10px;padding:14px 10px;cursor:pointer;text-align:center;font-family:var(--font-sans);font-size:12.5px;font-weight:700;color:${c};transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;${ativo?`box-shadow:0 0 14px ${_hexA(c,0.5)};`:''}`;
     tile.onmouseover=()=>{tile.style.borderColor=_hexA(c,0.9);tile.style.boxShadow=`0 0 14px ${_hexA(c,0.45)}`;tile.style.transform='translateY(-1px)';};
     tile.onmouseout=()=>{tile.style.borderColor=_hexA(c,ativo?0.95:0.5);tile.style.boxShadow=ativo?`0 0 14px ${_hexA(c,0.5)}`:'none';tile.style.transform='';};
@@ -9583,8 +9596,8 @@ function renderDevStats(){
     nm.textContent=plt;
     tile.appendChild(nm);
     const cnt=document.createElement('span');
-    cnt.style.cssText=`font-size:15px;font-weight:800;line-height:1;color:${abertas===0?'var(--green)':c};flex:0 0 auto;`;
-    cnt.textContent=abertas;
+    cnt.style.cssText=`font-size:15px;font-weight:800;line-height:1;color:${mostrar===0?'var(--green)':c};flex:0 0 auto;`;
+    cnt.textContent=mostrar;
     tile.appendChild(cnt);
     tile.onclick=()=>devFiltrarPorPlataforma(plt);
     statsGrid.appendChild(tile);
