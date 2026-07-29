@@ -16,7 +16,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LiveOps — Live Operations</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap');
 :root {
   --bg-base:#0a0d15;--bg-surface:#10141f;--bg-card:#151a28;--bg-hover:#1b2133;--bg-active:#212942;
   --border:#27304b;--border-light:#33405f;
@@ -26,8 +26,8 @@
   --red:#ef4444;--red-dim:#7f1d1d;
   --blue:#3b82f6;--blue-dim:#1e3a8a;
   --text-primary:#e3e5e8;--text-secondary:#949ba4;--text-muted:#6d7580;
-  --font-brand:'Outfit',sans-serif;
-  --font-mono:'DM Mono',monospace;--font-sans:'Outfit',sans-serif;
+  --font-brand:'Inter',sans-serif;
+  --font-mono:'DM Mono',monospace;--font-sans:'Inter',sans-serif;
   --radius:10px;--radius-lg:16px;
   /* 3D Glass tokens */
   --glass-bg: rgba(255,255,255,0.04);
@@ -950,7 +950,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       <!-- MODAL novo/editar rastreio -->
       <div id="rst-modal-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.72);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-        <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:520px;max-width:96vw;position:relative;">
+        <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:520px;max-width:96vw;position:relative;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
             <div id="rst-modal-title" style="flex:1;text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Rastreio</div>
             <button onclick="closeRstModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1024,7 +1024,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       <!-- MODAL conferencia -->
       <div id="conf-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-        <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;position:relative;">
+        <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;position:relative;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
             <div id="conf-modal-title" style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);">Novo Produto</div>
             <button onclick="closeConfModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1375,7 +1375,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <!-- Drogaria Pacheco -->
           <div id="drog-box-pacheco" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-              <span style="background:rgba(244,122,122,.10);border:1.5px solid rgba(244,122,122,.4);color:#f47a7a;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 11px;border-radius:20px;font-family:var(--font-sans);text-transform:uppercase;display:inline-block;">Drog. Pacheco</span>
+              <span style="background:rgba(143,168,216,.10);border:1.5px solid rgba(143,168,216,.4);color:#8fa8d8;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 11px;border-radius:20px;font-family:var(--font-sans);text-transform:uppercase;display:inline-block;">Drog. Pacheco</span>
               <a href="https://marketplace.drogariaspacheco.com.br/v3/pedidos" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Gerar Relatório</a>
               <a href="https://marketplace.drogariaspacheco.com.br/v3/relatorios" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Baixas Relatório</a>
             </div>
@@ -1393,7 +1393,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <!-- Drogaria São Paulo -->
           <div id="drog-box-saopaulo" style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-              <span style="background:rgba(111,208,245,.10);border:1.5px solid rgba(111,208,245,.4);color:#6fd0f5;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 11px;border-radius:20px;font-family:var(--font-sans);text-transform:uppercase;display:inline-block;">Drog. S. Paulo</span>
+              <span style="background:rgba(143,168,216,.10);border:1.5px solid rgba(143,168,216,.4);color:#8fa8d8;font-size:11px;font-weight:700;letter-spacing:.3px;padding:4px 11px;border-radius:20px;font-family:var(--font-sans);text-transform:uppercase;display:inline-block;">Drog. S. Paulo</span>
               <a href="https://marketplace.drogariasaopaulo.com.br/v3/pedidos" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Gerar Relatório</a>
               <a href="https://marketplace.drogariasaopaulo.com.br/v3/relatorios" target="_blank" class="btn-link btn-sm" style="font-size:10px;">Baixas Relatório</a>
             </div>
@@ -1490,14 +1490,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;left:150px;background:var(--bg-surface);z-index:4;">CNPJ</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;">CONTA</th>
                 <th style="padding:8px 10px;text-align:left;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;border-right:2px solid var(--border-light);">LOCALIZAÇÃO</th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#ddb438,#a98000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #d4a00066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">MERCADO LIVRE</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#fa9149,#c75c11);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #f9731666,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">SHOPEE</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5b9765,#24612e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #2d7a3a66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">RD MARKETPLACE</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#38bcff,#0088cc);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #00aaff66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">D. SÃO PAULO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#e63838,#b30000);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #e0000066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">D. PACHECO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#667fe2,#2f48af);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #3b5bdb66,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">MAGALU</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#387ab8,#004484);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #0055a566,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">WEBCO</span></th>
-                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#727851,#3c4219);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #4b532066,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">LOJA INTEGRADA</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">MERCADO LIVRE</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">SHOPEE</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">RD MARKETPLACE</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">D. SÃO PAULO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">D. PACHECO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">MAGALU</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#ffffff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">WEBCO</span></th>
+                <th style="padding:8px 10px;text-align:center;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border);white-space:nowrap;position:sticky;top:0;background:var(--bg-surface);z-index:3;"><span style="background:linear-gradient(135deg,#5876b8,#2b3a5e);color:#fff;padding:3px 12px;border-radius:20px;display:inline-block;box-shadow:0 2px 8px #5876b866,inset 0 1px 0 rgba(255,255,255,.25);font-weight:700;letter-spacing:.3px;">LOJA INTEGRADA</span></th>
               </tr>
             </thead>
             <tbody id="cnpj-tbody"></tbody>
@@ -1585,7 +1585,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
 <!-- MODAL NOVA TAREFA -->
 <div id="proj-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="proj-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:26px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Novo Projeto</div>
       <button onclick="closeProjModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1621,7 +1621,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
 
 <div id="entrada-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="entrada-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Solicitar Entrada</div>
       <button onclick="closeEntradaModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1712,7 +1712,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="integ-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="integ-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Solicitar Integração</div>
       <button onclick="closeIntegModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1799,7 +1799,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="img-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="img-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Solicitar Imagens</div>
       <button onclick="closeImgModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1885,7 +1885,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   </div>
 </div>
 <div id="atv-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:680px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:680px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="atv-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:26px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Nova Tarefa</div>
       <button onclick="closeAtvModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -1983,7 +1983,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="cpf-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid rgba(143,168,216,0.35);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),0 0 40px rgba(143,168,216,0.15),inset 0 1px 0 rgba(255,255,255,0.07);max-width:480px;margin:0 auto;position:relative;overflow:hidden;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid rgba(143,168,216,0.35);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),0 0 40px rgba(143,168,216,0.15),inset 0 1px 0 rgba(255,255,255,0.07);max-width:480px;margin:0 auto;position:relative;overflow:hidden;">
     <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#9db8e8,#8fa8d8,#5876b8);"></div>
     <div style="display:flex;align-items:center;justify-content:center;margin-bottom:18px;position:relative;">
       <div style="font-family:var(--font-brand);font-size:26px;font-weight:800;letter-spacing:-0.05em;background:linear-gradient(135deg,#9db8e8 0%,#8fa8d8 50%,#5876b8 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 14px rgba(143,168,216,0.4));text-align:center;">Consulta CPF</div>
@@ -2003,7 +2003,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="dev-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
     <div style="display:flex;align-items:center;justify-content:center;margin-bottom:18px;position:relative;">
       <div style="font-family:var(--font-brand);font-size:26px;font-weight:800;letter-spacing:-0.05em;background:linear-gradient(135deg,#ffffff 0%,#e2e8f0 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;filter:drop-shadow(0 0 12px rgba(255,255,255,0.25));text-align:center;">Devolução</div>
       <button onclick="closeDevModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;right:0;top:50%;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -2049,7 +2049,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
 <!-- MODAL ATENDIMENTOS -->
 <div id="ate-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-  <div style="background:linear-gradient(135deg,rgba(24,27,36,0.97),rgba(13,14,18,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);max-width:560px;margin:0 auto;position:relative;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
       <div style="font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);">Atendimento</div>
       <button onclick="closeAteModal()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
@@ -3804,10 +3804,10 @@ function renderWpp(){
             let iconInner = '↗';
             if(b.action==='valores'){
               // Ícone etiqueta de valores (tag verde com cifrão)
-              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M3.4 11.2 11.2 3.4c.5-.5 1.2-.7 1.9-.6l5.3.8c.9.1 1.6.8 1.7 1.7l.8 5.3c.1.7-.1 1.4-.6 1.9l-7.8 7.8c-.7.7-1.9.7-2.6 0l-6.5-6.5c-.7-.7-.7-1.9 0-2.6z" fill="#0f2a1c" stroke="#4ade80" stroke-width="1.4"/><circle cx="16" cy="8" r="1.6" fill="#4ade80"/><path d="M10.9 9.3c-1.1 0-1.9.6-1.9 1.5 0 2 3.4 1.1 3.4 3 0 .9-.8 1.5-1.9 1.5m0-6c.8 0 1.5.3 1.8.9m-1.8 5.1c-.9 0-1.6-.4-1.9-1M10.9 8.2v1.1m0 6v1.1" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M3.4 11.2 11.2 3.4c.5-.5 1.2-.7 1.9-.6l5.3.8c.9.1 1.6.8 1.7 1.7l.8 5.3c.1.7-.1 1.4-.6 1.9l-7.8 7.8c-.7.7-1.9.7-2.6 0l-6.5-6.5c-.7-.7-.7-1.9 0-2.6z" fill="#0f2a1c" stroke="#8fa8d8" stroke-width="1.4"/><circle cx="16" cy="8" r="1.6" fill="#8fa8d8"/><path d="M10.9 9.3c-1.1 0-1.9.6-1.9 1.5 0 2 3.4 1.1 3.4 3 0 .9-.8 1.5-1.9 1.5m0-6c.8 0 1.5.3 1.8.9m-1.8 5.1c-.9 0-1.6-.4-1.9-1M10.9 8.2v1.1m0 6v1.1" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/></svg>';
             } else if(b.action==='registrarVenda'){
               // Ícone recibo verde com "+"
-              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M5.5 2.8h13v18.4l-2.2-1.4-2.2 1.4-2.1-1.4-2.1 1.4-2.2-1.4-2.2 1.4z" fill="#0f2a1c" stroke="#4ade80" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.4 7.6h7.2M8.4 10.8h7.2" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/><circle cx="18.4" cy="6.4" r="4" fill="#22c55e" stroke="#0b1220" stroke-width="0.8"/><path d="M18.4 4.7v3.4M16.7 6.4h3.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M5.5 2.8h13v18.4l-2.2-1.4-2.2 1.4-2.1-1.4-2.1 1.4-2.2-1.4-2.2 1.4z" fill="#0f2a1c" stroke="#8fa8d8" stroke-width="1.3" stroke-linejoin="round"/><path d="M8.4 7.6h7.2M8.4 10.8h7.2" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/><circle cx="18.4" cy="6.4" r="4" fill="#22c55e" stroke="#0b1220" stroke-width="0.8"/><path d="M18.4 4.7v3.4M16.7 6.4h3.4" stroke="#fff" stroke-width="1.3" stroke-linecap="round"/></svg>';
             } else if(b.link&&b.link.includes('drive.google.com')){
               // Ícone pasta Google Drive
               iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><path d="M2.6 7.2c0-1 .8-1.8 1.8-1.8h4.2l2 2h6.9c1 0 1.8.8 1.8 1.8v7.6c0 1-.8 1.8-1.8 1.8H4.4c-1 0-1.8-.8-1.8-1.8z" fill="#3b82f6"/><path d="M2.6 9.4h18.8v7.4c0 1-.8 1.8-1.8 1.8H4.4c-1 0-1.8-.8-1.8-1.8z" fill="#60a5fa"/></svg>';
@@ -3817,7 +3817,7 @@ function renderWpp(){
             } else if(b.action==='precificacaoPix'){
               iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="5.4" y="5.4" width="13.2" height="13.2" rx="3.2" transform="rotate(45 12 12)" fill="#32BCAD"/><path d="M5.6 10.4C8.3 10.4 8.9 13.6 12 13.6s3.7-3.2 6.4-3.2" stroke="#101318" stroke-width="1.5" fill="none" stroke-linecap="round"/><path d="M5.6 13.6C8.3 13.6 8.9 10.4 12 10.4s3.7 3.2 6.4 3.2" stroke="#101318" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>';
             } else if(b.action==='valoresCredito'){
-              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.6" stroke="#4ade80" stroke-width="1.5"/><rect x="8.7" y="5.2" width="6.6" height="3.6" rx="0.9" stroke="#4ade80" stroke-width="1.2"/><circle cx="9.7" cy="12" r="1" fill="#8fa8d8"/><circle cx="12" cy="12" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="12" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="12" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="17.4" r="1" fill="#fb923c"/><circle cx="12" cy="17.4" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="17.4" r="1" fill="#4ade80"/></svg>';
+              iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.6" stroke="#8fa8d8" stroke-width="1.5"/><rect x="8.7" y="5.2" width="6.6" height="3.6" rx="0.9" stroke="#8fa8d8" stroke-width="1.2"/><circle cx="9.7" cy="12" r="1" fill="#8fa8d8"/><circle cx="12" cy="12" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="12" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="12" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="17.4" r="1" fill="#8fa8d8"/><circle cx="12" cy="17.4" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="17.4" r="1" fill="#8fa8d8"/></svg>';
             } else if(b.action==='cotacaoFrete'){
               // Ícone calculadora (tecla C vermelha, operações azuis, = verde)
               iconInner='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><rect x="3.6" y="2.6" width="16.8" height="18.8" rx="3" fill="#1b2536" stroke="#9fd8ff" stroke-width="1.1"/><rect x="5.8" y="4.6" width="12.4" height="2.8" rx="0.7" fill="#0c1220"/><rect x="5.8" y="8.8" width="2.6" height="2.2" rx="0.5" fill="#e05563"/><rect x="9" y="8.8" width="2.6" height="2.2" rx="0.5" fill="#3f83f8"/><rect x="12.2" y="8.8" width="2.6" height="2.2" rx="0.5" fill="#3f83f8"/><rect x="15.4" y="8.8" width="2.8" height="2.2" rx="0.5" fill="#3f83f8"/><rect x="5.8" y="11.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/><rect x="9" y="11.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/><rect x="12.2" y="11.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/><rect x="15.4" y="11.8" width="2.8" height="2.2" rx="0.5" fill="#3f83f8"/><rect x="5.8" y="14.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/><rect x="9" y="14.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/><rect x="12.2" y="14.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/><rect x="15.4" y="14.8" width="2.8" height="5.2" rx="0.6" fill="#22a45d"/><rect x="5.8" y="17.8" width="5.8" height="2.2" rx="0.5" fill="#3a465c"/><rect x="12.2" y="17.8" width="2.6" height="2.2" rx="0.5" fill="#3a465c"/></svg>';
@@ -3845,7 +3845,7 @@ function renderWpp(){
           // Ícones personalizados nos links: maquininha (Pagamento Crédito), pasta 3D (Pasta), cadeado neon (Planilha Vendas)
           let linkIcon='↗';
           if(tk.id==='wpp_c3'||/pagamento/i.test(tk.text||'')){
-            linkIcon='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.6" stroke="#4ade80" stroke-width="1.5"/><rect x="8.7" y="5.2" width="6.6" height="3.6" rx="0.9" stroke="#4ade80" stroke-width="1.2"/><circle cx="9.7" cy="12" r="1" fill="#8fa8d8"/><circle cx="12" cy="12" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="12" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="12" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="17.4" r="1" fill="#fb923c"/><circle cx="12" cy="17.4" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="17.4" r="1" fill="#4ade80"/></svg>';
+            linkIcon='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><rect x="6.4" y="2.8" width="11.2" height="18.4" rx="2.6" stroke="#8fa8d8" stroke-width="1.5"/><rect x="8.7" y="5.2" width="6.6" height="3.6" rx="0.9" stroke="#8fa8d8" stroke-width="1.2"/><circle cx="9.7" cy="12" r="1" fill="#8fa8d8"/><circle cx="12" cy="12" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="12" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="12" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="14.7" r="1" fill="#8fa8d8"/><circle cx="9.7" cy="17.4" r="1" fill="#8fa8d8"/><circle cx="12" cy="17.4" r="1" fill="#8fa8d8"/><circle cx="14.3" cy="17.4" r="1" fill="#8fa8d8"/></svg>';
           } else if(tk.id==='wpp_c4'||(tk.linkLabel||'')==='Pasta'){
             linkIcon='<svg viewBox="0 0 24 24" style="width:19px;height:19px;display:block;"><path d="M2.6 6.4c0-.9.7-1.6 1.6-1.6h4.4l1.8 1.8h8.9c.9 0 1.6.7 1.6 1.6v1.4H2.6z" fill="#141d3d"/><rect x="5" y="6.6" width="12.6" height="8.6" rx="0.8" fill="#f3f4f8"/><rect x="4.4" y="7.4" width="12.6" height="8.6" rx="0.8" fill="#c084fc"/><rect x="3.8" y="8.2" width="12.6" height="8.6" rx="0.8" fill="#f08fe0"/><path d="M2.2 9.6h19.6l-1.7 9.5c-.2.9-.9 1.5-1.8 1.5H5.7c-.9 0-1.6-.6-1.8-1.5z" fill="#2743a6"/><path d="M2.2 9.6h19.6l-.4 2.2H2.6z" fill="#1b2f7d"/></svg>';
           } else if(tk.id==='wpp_c2'||(tk.linkLabel||'')==='Planilha Vendas'){
@@ -4587,23 +4587,23 @@ function renderHistoricoWpp(){
 
 /* ===== PLATFORM BRAND COLORS ===== */
 const PLT_COLORS = {
-  'SHOPEE':                    '#f97316',  // laranja Shopee
-  'Shopee':                    '#f97316',
-  'MERCADO LIVRE':             '#d4a000',  // amarelo escuro Mercado Livre
-  'Merc. Livre':               '#d4a000',
-  'MERC. LIVRE':               '#d4a000',
-  'MAGALU':                    '#3b5bdb',  // azul Magalu
-  'Magalu':                    '#3b5bdb',
-  'WEB CONTINENTAL':           '#0055a5',  // azul Web Continental
-  'Web Continental':           '#0055a5',
-  'RD MARKETPLACE':            '#2d7a3a',  // verde escuro RD
-  'RD Marketplace':            '#2d7a3a',
-  'DPSP — Drogaria Pacheco':   '#e00000',  // vermelho Drogaria Pacheco
-  'DPSP — Drog. Pacheco':      '#e00000',
-  'Drog. Pacheco':             '#e00000',
-  'DPSP — Drogaria São Paulo': '#00aaff',  // azul claro Drogaria SP
-  'DPSP — Drog. São Paulo':    '#00aaff',
-  'Drog. São Paulo':           '#00aaff',
+  'SHOPEE':                    '#8fa8d8',  // laranja Shopee
+  'Shopee':                    '#8fa8d8',
+  'MERCADO LIVRE':             '#8fa8d8',  // amarelo escuro Mercado Livre
+  'Merc. Livre':               '#8fa8d8',
+  'MERC. LIVRE':               '#8fa8d8',
+  'MAGALU':                    '#8fa8d8',  // azul Magalu
+  'Magalu':                    '#8fa8d8',
+  'WEB CONTINENTAL':           '#8fa8d8',  // azul Web Continental
+  'Web Continental':           '#8fa8d8',
+  'RD MARKETPLACE':            '#8fa8d8',  // verde escuro RD
+  'RD Marketplace':            '#8fa8d8',
+  'DPSP — Drogaria Pacheco':   '#8fa8d8',  // vermelho Drogaria Pacheco
+  'DPSP — Drog. Pacheco':      '#8fa8d8',
+  'Drog. Pacheco':             '#8fa8d8',
+  'DPSP — Drogaria São Paulo': '#8fa8d8',  // azul claro Drogaria SP
+  'DPSP — Drog. São Paulo':    '#8fa8d8',
+  'Drog. São Paulo':           '#8fa8d8',
 };
 
 function getPltColor(groupName){
@@ -4680,10 +4680,10 @@ function applyPltBadge(el, platformName){
   const p = platformName||'';
   // Transportadoras — mesmo estilo dos rastreios
   if(p.includes('Melhor Envio')){
-    _applyPillStyle(el, '#b8860b', true); return;
+    _applyPillStyle(el, '#8fa8d8', true); return;
   }
   if(p.includes('Manda Bem')){
-    _applyPillStyle(el, '#8b1a1a', false); return;
+    _applyPillStyle(el, '#8fa8d8', false); return;
   }
   // Nomes padronizados da Central de Tarefas (ex: "M.L VITALIFE", "SHP SUPLENIUM") têm cor própria no mapa ATV_MARKETPLACE_CORES
   if(typeof ATV_MARKETPLACE_CORES!=='undefined' && ATV_MARKETPLACE_CORES[p]){
@@ -5156,29 +5156,29 @@ function renderAnu(){
 /* ===== RELAÇÃO DE SOLICITAÇÃO (aba Produtos) ===== */
 // Colunas de conferência — ordem, rótulo, link do portal e cores do pill do cabeçalho
 const CONF_PLATS = [
-  {key:'imagens',    label:'Imagens',                          url:'https://www.canva.com/',                                                              g1:'#8d57e1',g2:'#5720ad',sh:'#6d28d966', w:110},
-  {key:'lojaint',    label:'Loja Integrada',                    url:'https://app.lojaintegrada.com.br/painel',                                             g1:'#727851',g2:'#3c4219',sh:'#4b532066', w:135},
-  {key:'rd',         label:'RD Marketplace',                    url:'https://portal.rdmarketplace.com.br/app/products',                                    g1:'#5b9765',g2:'#24612e',sh:'#2d7a3a66', w:140},
-  {key:'webcont',    label:'Web Continental',                   url:'https://portal.webcontinental.com.br/#/listar/produtos',                              g1:'#387ab8',g2:'#004484',sh:'#0055a566', w:145},
-  {key:'mg4v',       label:'Magalu 4Vita',                      url:'https://seller.magalu.com/products/',                                                 g1:'#667fe2',g2:'#2f48af',sh:'#3b5bdb66', w:125},
-  {key:'pacheco',    label:'Drogaria Pacheco',                  url:'https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar',                    g1:'#e63838',g2:'#b30000',sh:'#e0000066', w:150},
-  {key:'saopaulo',   label:'Drogaria São Paulo',                url:'https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar',                    g1:'#38bcff',g2:'#0088cc',sh:'#00aaff66', w:160},
-  {key:'shpsuple',   label:'Shopee Suplenium',                  url:'https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2',   g1:'#fa9149',g2:'#c75c11',sh:'#f9731666', w:155},
-  {key:'shpsuple2x', label:'Shopee Suplenium 2x',               url:'https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2',   g1:'#fa9149',g2:'#c75c11',sh:'#f9731666', w:170},
-  {key:'shp1',       label:'Shopee Primevitaminas',             url:'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2',g1:'#fa9149',g2:'#c75c11',sh:'#f9731666', w:180},
-  {key:'shp2',       label:'Shopee Primevitaminas 2x',          url:'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2',g1:'#fa9149',g2:'#c75c11',sh:'#f9731666', w:195},
-  {key:'mlvx',       label:'Mercado Livre VXShop',              url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:180},
-  {key:'mlvx2x',     label:'Mercado Livre VXShop 2x',           url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:195},
-  {key:'mlvxclas',   label:'Mercado Livre VXShop Clássico',     url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:225},
-  {key:'mlvxclas2x', label:'Mercado Livre VXShop Clássico 2x',  url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:240},
-  {key:'mlvxprem',   label:'Mercado Livre VXShop Premium',      url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:225},
-  {key:'mlvxprem2x', label:'Mercado Livre VXShop Premium 2x',   url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:240},
-  {key:'mlvital',    label:'Mercado Livre Vitalife',            url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:180},
-  {key:'mlvital2x',  label:'Mercado Livre Vitalife 2x',         url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:195},
-  {key:'mlvitclas',  label:'Mercado Livre Vitalife Clássico',   url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:225},
-  {key:'mlvitclas2x',label:'Mercado Livre Vitalife Clássico 2x',url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:240},
-  {key:'mlvitprem',  label:'Mercado Livre Vitalife Premium',    url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:225},
-  {key:'mlvitprem2x',label:'Mercado Livre Vitalife Premium 2x', url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#ddb438',g2:'#a98000',sh:'#d4a00066', w:240},
+  {key:'imagens',    label:'Imagens',                          url:'https://www.canva.com/',                                                              g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:110},
+  {key:'lojaint',    label:'Loja Integrada',                    url:'https://app.lojaintegrada.com.br/painel',                                             g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:135},
+  {key:'rd',         label:'RD Marketplace',                    url:'https://portal.rdmarketplace.com.br/app/products',                                    g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:140},
+  {key:'webcont',    label:'Web Continental',                   url:'https://portal.webcontinental.com.br/#/listar/produtos',                              g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:145},
+  {key:'mg4v',       label:'Magalu 4Vita',                      url:'https://seller.magalu.com/products/',                                                 g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:125},
+  {key:'pacheco',    label:'Drogaria Pacheco',                  url:'https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar',                    g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:150},
+  {key:'saopaulo',   label:'Drogaria São Paulo',                url:'https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar',                    g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:160},
+  {key:'shpsuple',   label:'Shopee Suplenium',                  url:'https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2',   g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:155},
+  {key:'shpsuple2x', label:'Shopee Suplenium 2x',               url:'https://seller.shopee.com.br/portal/product/list/all?operationSortBy=recommend_v2',   g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:170},
+  {key:'shp1',       label:'Shopee Primevitaminas',             url:'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2',g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:180},
+  {key:'shp2',       label:'Shopee Primevitaminas 2x',          url:'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2',g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:195},
+  {key:'mlvx',       label:'Mercado Livre VXShop',              url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:180},
+  {key:'mlvx2x',     label:'Mercado Livre VXShop 2x',           url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:195},
+  {key:'mlvxclas',   label:'Mercado Livre VXShop Clássico',     url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:225},
+  {key:'mlvxclas2x', label:'Mercado Livre VXShop Clássico 2x',  url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:240},
+  {key:'mlvxprem',   label:'Mercado Livre VXShop Premium',      url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:225},
+  {key:'mlvxprem2x', label:'Mercado Livre VXShop Premium 2x',   url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:240},
+  {key:'mlvital',    label:'Mercado Livre Vitalife',            url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:180},
+  {key:'mlvital2x',  label:'Mercado Livre Vitalife 2x',         url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:195},
+  {key:'mlvitclas',  label:'Mercado Livre Vitalife Clássico',   url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:225},
+  {key:'mlvitclas2x',label:'Mercado Livre Vitalife Clássico 2x',url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:240},
+  {key:'mlvitprem',  label:'Mercado Livre Vitalife Premium',    url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:225},
+  {key:'mlvitprem2x',label:'Mercado Livre Vitalife Premium 2x', url:'https://app.mercadoturbo.com.br/sistema/anuncio/anuncios#',                           g1:'#5876b8',g2:'#2b3a5e',sh:'#5876b866', w:240},
 ];
 
 // Mapeia nome do marketplace/variação (Integração & Imagens) → coluna da tabela
@@ -5306,14 +5306,14 @@ function saveNewMarca(nome,cor){
 // ===== CNPJs & CONTAS POR PLATAFORMA =====
 // Cor padrão de cada marketplace no sistema (mesma usada nos cabeçalhos/aba Produtos)
 const CNPJ_MKT_COLORS = {
-  ml:     '#d4a000', // Mercado Livre
-  shopee: '#f97316', // Shopee
-  rd:     '#2d7a3a', // RD Marketplace
-  dsp:    '#00aaff', // Drogaria São Paulo
-  dp:     '#e00000', // Drogaria Pacheco
-  magalu: '#3b5bdb', // Magalu
-  webco:  '#0055a5', // Web Continental (fundo branco, texto nesta cor)
-  li:     '#4b5320', // Loja Integrada
+  ml:     '#8fa8d8', // Mercado Livre
+  shopee: '#8fa8d8', // Shopee
+  rd:     '#8fa8d8', // RD Marketplace
+  dsp:    '#8fa8d8', // Drogaria São Paulo
+  dp:     '#8fa8d8', // Drogaria Pacheco
+  magalu: '#8fa8d8', // Magalu
+  webco:  '#8fa8d8', // Web Continental (fundo branco, texto nesta cor)
+  li:     '#8fa8d8', // Loja Integrada
 };
 const CNPJ_MKT_BG = {
   webco: '#ffffff', // Web Continental usa fundo branco com texto azul
@@ -5598,11 +5598,11 @@ const CONF_FIXED_COLS=[
 ];
 // Cor do tile de cada coluna (mesma paleta do grid de Integração & Imagens)
 const CONF_TILE_COLOR={
-  imagens:'#8fa8d8', lojaint:'#2dd4bf', rd:'#15803d', webcont:'#3b82f6', mg4v:'#a78bfa',
-  pacheco:'#f87171', saopaulo:'#38bdf8',
-  shpsuple:'#fb923c', shpsuple2x:'#fb923c', shp1:'#fb923c', shp2:'#fb923c',
-  mlvx:'#fde047', mlvx2x:'#fde047', mlvxclas:'#fde047', mlvxclas2x:'#fde047', mlvxprem:'#fde047', mlvxprem2x:'#fde047',
-  mlvital:'#fde047', mlvital2x:'#fde047', mlvitclas:'#fde047', mlvitclas2x:'#fde047', mlvitprem:'#fde047', mlvitprem2x:'#fde047'
+  imagens:'#8fa8d8', lojaint:'#8fa8d8', rd:'#8fa8d8', webcont:'#8fa8d8', mg4v:'#8fa8d8',
+  pacheco:'#8fa8d8', saopaulo:'#8fa8d8',
+  shpsuple:'#8fa8d8', shpsuple2x:'#8fa8d8', shp1:'#8fa8d8', shp2:'#8fa8d8',
+  mlvx:'#8fa8d8', mlvx2x:'#8fa8d8', mlvxclas:'#8fa8d8', mlvxclas2x:'#8fa8d8', mlvxprem:'#8fa8d8', mlvxprem2x:'#8fa8d8',
+  mlvital:'#8fa8d8', mlvital2x:'#8fa8d8', mlvitclas:'#8fa8d8', mlvitclas2x:'#8fa8d8', mlvitprem:'#8fa8d8', mlvitprem2x:'#8fa8d8'
 };
 function _buildConfHead(){
   const colg=document.getElementById('conf-colgroup');
@@ -6670,7 +6670,7 @@ function buildDevCardFull(d, isConcluida){
   const cfg=DEV_STATUS_CONFIG[status]||{label:status,color:'var(--text-muted)',bg:'var(--bg-active)',border:'var(--border)'};
 
   const card=document.createElement('div');
-  card.style.cssText=`position:relative;background:linear-gradient(160deg,#141a2a 0%,#0a0e18 100%);border:1px solid var(--glass-border);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;${isConcluida?'opacity:0.75;':''}`;
+  card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;${isConcluida?'opacity:0.75;':''}`;
   card.onmouseover=()=>{if(!isConcluida){card.style.transform='translateY(-3px)';card.style.boxShadow='0 14px 34px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1)';}};
   card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08)';};
   const _devshine=document.createElement('div');_devshine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);pointer-events:none;';card.appendChild(_devshine);
@@ -7238,7 +7238,7 @@ function renderDrogTable(){
   tbody.innerHTML = rows.map((r,i)=>`
     <tr id="drow-${r._idx}" style="border-bottom:1px solid var(--border);${r.consultado?'background:rgba(34,197,94,0.06)':''}" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${r.consultado?'rgba(34,197,94,0.06)':'transparent'}'">
       <td style="padding:9px 14px;white-space:nowrap;">
-        <span style="font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 11px;border-radius:20px;text-transform:uppercase;${r.plataforma.includes('Pacheco')?'background:rgba(244,122,122,.10);border:1.5px solid rgba(244,122,122,.4);color:#f47a7a;':'background:rgba(111,208,245,.10);border:1.5px solid rgba(111,208,245,.4);color:#6fd0f5;'}">${r.plataforma.includes('Pacheco')?'Drog. Pacheco':'Drog. S. Paulo'}</span>
+        <span style="font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 11px;border-radius:20px;text-transform:uppercase;${r.plataforma.includes('Pacheco')?'background:rgba(143,168,216,.10);border:1.5px solid rgba(143,168,216,.4);color:#8fa8d8;':'background:rgba(143,168,216,.10);border:1.5px solid rgba(143,168,216,.4);color:#8fa8d8;'}">${r.plataforma.includes('Pacheco')?'Drog. Pacheco':'Drog. S. Paulo'}</span>
       </td>
       <td style="padding:9px 14px;font-family:var(--font-mono);font-size:12px;color:var(--text-primary);white-space:nowrap;">${r.id||'—'}</td>
       <td style="padding:9px 14px;font-family:var(--font-mono);font-size:11px;color:var(--text-muted);white-space:nowrap;">${r.data||'—'}</td>
@@ -7648,16 +7648,6 @@ function _admTileColor(name){
   if(!name) return '#8fa8d8';
   if(typeof ATE_STAT_TILE_COLORS!=='undefined' && ATE_STAT_TILE_COLORS[name]) return ATE_STAT_TILE_COLORS[name];
   const n=String(name).toLowerCase();
-  if(n.includes('loja integrada')) return '#2dd4bf';
-  if(n.includes('rd')) return '#15803d';
-  if(n.includes('web')) return '#3b82f6';
-  if(n.includes('magalu')) return '#a78bfa';
-  if(n.includes('pacheco')) return '#f87171';
-  if(n.includes('são paulo')||n.includes('s. paulo')||n.includes('sao paulo')) return '#38bdf8';
-  if(n.includes('prime')) return '#4ade80';
-  if(n.includes('shopee')||n.includes('shp')||n.includes('suplenium')) return '#fb923c';
-  if(n.includes('mercado')||n.includes('m.l')||n.includes('vxshop')||n.includes('vitalife')) return '#fde047';
-  if(n.includes('whatsapp')) return '#4ade80';
   return '#8fa8d8';
 }
 function _admTileBadge(name){
@@ -8394,7 +8384,7 @@ function addUser(){
   if(!name||!pass){showToast('Preencha nome e senha','error');return;}
   const key=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
   if(appState.users[key]){showToast('Usuário já existe','error');return;}
-  const colors=['#3b82f6','#f59e0b','#ec4899','#06b6d4','#8b5cf6'];
+  const colors=['#9db8e8','#7d9bd8','#5876b8','#b8ccee','#42588c'];
   const color=colors[Object.keys(appState.users).length%colors.length];
   appState.users[key]={name,pass,master:false,color,perms:[]};
   saveState(appState);document.getElementById('new-user-name').value='';document.getElementById('new-user-pass').value='';
@@ -9775,32 +9765,32 @@ const ATV_MARKETPLACE_LINKS={
   'BASE':'https://panel-u.baselinker.com/inventory_products'
 };
 const ATV_MARKETPLACE_CORES={
-  'IMAGENS':'#b794f6',
-  'ATACADO':'#9ca3af',
-  'LOJA INTEGRADA':'#b7c08a',
-  'M.L VITALIFE':'#f0d078',
-  'M.L VITALIFE 2X':'#f0d078',
-  'M.L VITALIFE CLASSICO':'#f0d078',
-  'M.L VITALIFE PREMIUM':'#f0d078',
-  'M.L VITALIFE 2X CLASSICO':'#f0d078',
-  'M.L VITALIFE 2X PREMIUM':'#f0d078',
-  'M.L VXSHOP':'#f0d078',
-  'M.L VXSHOP 2X':'#f0d078',
-  'M.L VXSHOP CLASSICO':'#f0d078',
-  'M.L VXSHOP PREMIUM':'#f0d078',
-  'M.L VXSHOP 2X CLASSICO':'#f0d078',
-  'M.L VXSHOP 2X PREMIUM':'#f0d078',
-  'SHP SUPLENIUM':'#ffab6b',
-  'SHP SUPLENIUM 2X':'#ffab6b',
-  'SHP PRIMEVITAMINAS':'#ffab6b',
-  'SHP PRIMEVITAMINAS 2X':'#ffab6b',
-  'WEB CONTINENTAL':'#6fabde',
-  'RD MARKETPLACE':'#82c98d',
-  'MAGALU VIXSUPPS':'#93a3ea',
-  'MAGALU 4VITA':'#93a3ea',
-  'DROG. PACHECO':'#f47a7a',
-  'DROG. S. PAULO':'#6fd0f5',
-  'BASE':'#9ca3af'
+  'IMAGENS':'#8fa8d8',
+  'ATACADO':'#8fa8d8',
+  'LOJA INTEGRADA':'#8fa8d8',
+  'M.L VITALIFE':'#8fa8d8',
+  'M.L VITALIFE 2X':'#8fa8d8',
+  'M.L VITALIFE CLASSICO':'#8fa8d8',
+  'M.L VITALIFE PREMIUM':'#8fa8d8',
+  'M.L VITALIFE 2X CLASSICO':'#8fa8d8',
+  'M.L VITALIFE 2X PREMIUM':'#8fa8d8',
+  'M.L VXSHOP':'#8fa8d8',
+  'M.L VXSHOP 2X':'#8fa8d8',
+  'M.L VXSHOP CLASSICO':'#8fa8d8',
+  'M.L VXSHOP PREMIUM':'#8fa8d8',
+  'M.L VXSHOP 2X CLASSICO':'#8fa8d8',
+  'M.L VXSHOP 2X PREMIUM':'#8fa8d8',
+  'SHP SUPLENIUM':'#8fa8d8',
+  'SHP SUPLENIUM 2X':'#8fa8d8',
+  'SHP PRIMEVITAMINAS':'#8fa8d8',
+  'SHP PRIMEVITAMINAS 2X':'#8fa8d8',
+  'WEB CONTINENTAL':'#8fa8d8',
+  'RD MARKETPLACE':'#8fa8d8',
+  'MAGALU VIXSUPPS':'#8fa8d8',
+  'MAGALU 4VITA':'#8fa8d8',
+  'DROG. PACHECO':'#8fa8d8',
+  'DROG. S. PAULO':'#8fa8d8',
+  'BASE':'#8fa8d8'
 };
 function _hexToRgb(hex){
   const h=hex.replace('#','');
@@ -10557,14 +10547,14 @@ function reorderAtendimentos(draggedId, targetId){
   renderAte();
 }
 
-const ATE_PLT_COR_FALLBACK={'Melhor Envio':'#b8860b','Manda Bem':'#8b1a1a'};
+const ATE_PLT_COR_FALLBACK={'Melhor Envio':'#8fa8d8','Manda Bem':'#8fa8d8'};
 function ateGetPltColorHex(platformName){
   const p=platformName||'';
   if(typeof ATV_MARKETPLACE_CORES!=='undefined' && ATV_MARKETPLACE_CORES[p]) return ATV_MARKETPLACE_CORES[p];
   if(ATE_PLT_COR_FALLBACK[p]) return ATE_PLT_COR_FALLBACK[p];
   const col=getPltColor(p);
   if(col) return col;
-  return '#9ca3af';
+  return '#8fa8d8';
 }
 
 function buildAteCard(d,isFinalizado){
@@ -10581,7 +10571,7 @@ function buildAteCard(d,isFinalizado){
   if(!isFinalizado) ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar);
 
   const card=document.createElement('div');
-  card.style.cssText=`position:relative;background:linear-gradient(160deg,#141a2a 0%,#0a0e18 100%);border:1px solid var(--glass-border);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;cursor:pointer;${isFinalizado?'opacity:0.75;':''}`;
+  card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;cursor:pointer;${isFinalizado?'opacity:0.75;':''}`;
   card.onmouseover=()=>{card.style.transform='translateY(-3px)';card.style.boxShadow='0 14px 34px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1)';};
   card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08)';};
   // Card inteiro abre o registro completo para edição (mesmas opções do lápis anterior)
@@ -10660,19 +10650,19 @@ function ateLimparFiltroPlataforma(){
 
 // Cores dos tiles do painel (mesma paleta dos tiles de Integração & Imagens)
 const ATE_STAT_TILE_COLORS={
-  'LOJA INTEGRADA':     '#2dd4bf', // verde água
-  'RD MARKETPLACE':     '#15803d', // verde escuro
-  'WEB CONTINENTAL':    '#1e3a8a', // azul escuro
-  'MAGALU 4VITA':       '#a78bfa', // lilás
-  'DROG. PACHECO':      '#f87171', // vermelho claro
-  'DROG. S. PAULO':     '#38bdf8', // azul claro
-  'SHP SUPLENIUM':      '#fb923c', // laranja claro
-  'SHP PRIMEVITAMINAS': '#fb923c', // laranja claro
-  'M.L VXSHOP':         '#fde047', // amarelo claro
-  'M.L VITALIFE':       '#fde047', // amarelo claro
-  'Melhor Envio':       '#e8edf8', // branco
-  'Manda Bem':          '#ef4444', // vermelho
-  'Base':               '#94a3b8'  // cinza-azulado (sistema)
+  'LOJA INTEGRADA':     '#8fa8d8', // verde água
+  'RD MARKETPLACE':     '#8fa8d8', // verde escuro
+  'WEB CONTINENTAL':    '#8fa8d8', // azul escuro
+  'MAGALU 4VITA':       '#8fa8d8', // lilás
+  'DROG. PACHECO':      '#8fa8d8', // vermelho claro
+  'DROG. S. PAULO':     '#8fa8d8', // azul claro
+  'SHP SUPLENIUM':      '#8fa8d8', // laranja claro
+  'SHP PRIMEVITAMINAS': '#8fa8d8', // laranja claro
+  'M.L VXSHOP':         '#8fa8d8', // amarelo claro
+  'M.L VITALIFE':       '#8fa8d8', // amarelo claro
+  'Melhor Envio':       '#8fa8d8', // branco
+  'Manda Bem':          '#8fa8d8', // vermelho
+  'Base':               '#8fa8d8'  // cinza-azulado (sistema)
 };
 // Ordem de exibição no painel (mesma sequência do grid de Integração)
 const ATE_STAT_ORDER=['LOJA INTEGRADA','RD MARKETPLACE','WEB CONTINENTAL','MAGALU 4VITA','DROG. PACHECO','DROG. S. PAULO','SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VXSHOP','M.L VITALIFE','Melhor Envio','Manda Bem','Base'];
@@ -11144,7 +11134,7 @@ function renderAtividades(){
     const avColor=uColor||'#888';
 
     const card=document.createElement('div');
-    card.style.cssText=`position:relative;background:linear-gradient(160deg,#141a2a 0%,#0a0e18 100%);border:1px solid var(--glass-border);border-radius:20px;overflow:visible;transition:transform .2s,box-shadow .2s,border-color .2s;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);cursor:default;`;
+    card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:20px;overflow:visible;transition:transform .2s,box-shadow .2s,border-color .2s;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08);cursor:default;`;
     card.onmouseover=()=>{card.style.transform='translateY(-3px)';card.style.boxShadow='0 14px 34px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1)';};
     card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.08)';};
     const ateOrigemBtnId = a.origemAteId ? `atv-ate-origem-${a.id}` : '';
@@ -11612,15 +11602,7 @@ function renderMktLinks(){
     card.style.cssText=`position:relative;background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;`;
     card.onmouseover=()=>{card.style.transform='translateY(-2px)';card.style.boxShadow='0 14px 34px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1)';};
     card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='0 8px 24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.09)';};
-    const pnT=pf.platform.toLowerCase();
-    let hc='#8fa8d8';
-    if(pnT.includes('loja integrada')) hc='#2dd4bf';
-    else if(pnT.includes('rd')) hc='#15803d';
-    else if(pnT.includes('web')) hc='#3b82f6';
-    else if(pnT.includes('magalu')) hc='#a78bfa';
-    else if(pnT.includes('dpsp')) hc='#f87171';
-    else if(pnT.includes('shopee')) hc='#fb923c';
-    else if(pnT.includes('mercado')) hc='#fde047';
+    const hc='#8fa8d8';
     const head=document.createElement('div');
     head.style.cssText=`display:inline-block;background:linear-gradient(135deg,${_hexA(hc,0.12)},${_hexA(hc,0.02)});border:1.5px solid ${_hexA(hc,0.5)};border-radius:10px;padding:6px 14px;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:${hc};`;
     head.textContent=pf.platform;
@@ -11650,15 +11632,7 @@ function renderMktLinks(){
       const row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
       // Cor do tile por plataforma/loja (mesma paleta dos painéis por plataforma)
-      let tc='#8fa8d8';
-      const pn=pf.platform.toLowerCase(), sn=st.store.toLowerCase();
-      if(pn.includes('loja integrada')) tc='#2dd4bf';
-      else if(pn.includes('rd')) tc='#15803d';
-      else if(pn.includes('web')) tc='#3b82f6';
-      else if(pn.includes('magalu')) tc='#a78bfa';
-      else if(pn.includes('dpsp')) tc = sn.includes('pacheco') ? '#f87171' : '#38bdf8';
-      else if(pn.includes('shopee')) tc = sn.includes('prime') ? '#4ade80' : '#fb923c';
-      else if(pn.includes('mercado')) tc='#fde047';
+      const tc='#8fa8d8';
       const storeLbl=document.createElement('span');
       storeLbl.style.cssText=`min-width:170px;text-align:center;background:linear-gradient(135deg,${_hexA(tc,0.12)},${_hexA(tc,0.02)});border:1.5px solid ${_hexA(tc,0.5)};border-radius:10px;padding:6px 12px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${tc};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
       storeLbl.textContent=st.store;
@@ -11759,16 +11733,16 @@ function _renderVariacaoField(fieldId,selId,marketplace,selected){
 
 // Cor neon por marketplace (aplicada em Integração e Imagens)
 const MKT_TILE_COLORS={
-  'Loja Integrada':          '#2dd4bf', // verde água
-  'RD Marketplace':          '#15803d', // verde escuro
-  'Web Continental':         '#1e3a8a', // azul escuro
-  'Magalu 4Vita':            '#a78bfa', // lilás (sem cor definida pelo usuário)
-  'Drogaria Pacheco':        '#f87171', // vermelho claro
-  'Drogaria São Paulo':      '#38bdf8', // azul claro
-  'Shopee Suplenium':        '#fb923c', // laranja claro
-  'Shopee Primevitaminas':   '#fb923c', // laranja claro
-  'Mercado Livre VXShop':    '#fde047', // amarelo claro
-  'Mercado Livre Vitalife':  '#fde047'  // amarelo claro
+  'Loja Integrada':          '#8fa8d8', // verde água
+  'RD Marketplace':          '#8fa8d8', // verde escuro
+  'Web Continental':         '#8fa8d8', // azul escuro
+  'Magalu 4Vita':            '#8fa8d8', // lilás (sem cor definida pelo usuário)
+  'Drogaria Pacheco':        '#8fa8d8', // vermelho claro
+  'Drogaria São Paulo':      '#8fa8d8', // azul claro
+  'Shopee Suplenium':        '#8fa8d8', // laranja claro
+  'Shopee Primevitaminas':   '#8fa8d8', // laranja claro
+  'Mercado Livre VXShop':    '#8fa8d8', // amarelo claro
+  'Mercado Livre Vitalife':  '#8fa8d8'  // amarelo claro
 };
 
 function _hexA(hex,alpha){
