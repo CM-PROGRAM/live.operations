@@ -605,12 +605,12 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .atv-stab2.active{color:#fff;border-color:transparent;}
 .atv-stab2[data-c="todas"]{--sc-border:rgba(255,255,255,.22);--sc-bg:rgba(255,255,255,.05);--sc-text:#d4d4d8;}
 .atv-stab2[data-c="todas"].active{background:linear-gradient(135deg,#3a3a3a,#000);color:#fff;border-color:transparent;box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.12);}
-.atv-stab2[data-c="afazer"]{--sc-border:rgba(255,255,255,.3);--sc-bg:rgba(255,255,255,.06);--sc-text:#f4f4f5;}
-.atv-stab2[data-c="afazer"].active{background:linear-gradient(135deg,#ffffff,#d4d4d8);color:#18181b;box-shadow:0 4px 16px rgba(255,255,255,.25),inset 0 1px 0 rgba(255,255,255,.4);}
+.atv-stab2[data-c="afazer"]{--sc-border:rgba(143,168,216,.4);--sc-bg:rgba(143,168,216,.10);--sc-text:#b8ccee;}
+.atv-stab2[data-c="afazer"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);box-shadow:0 4px 16px rgba(143,168,216,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 .atv-stab2[data-c="andamento"]{--sc-border:rgba(125,148,196,.4);--sc-bg:rgba(125,148,196,.10);--sc-text:#b0bfd8;}
 .atv-stab2[data-c="andamento"].active{background:linear-gradient(135deg,#b8ccee,#7d94c4);box-shadow:0 4px 16px rgba(125,148,196,.4),inset 0 1px 0 rgba(255,255,255,.15);}
-.atv-stab2[data-c="atrasada"]{--sc-border:rgba(190,18,60,.4);--sc-bg:rgba(190,18,60,.10);--sc-text:#fb7185;}
-.atv-stab2[data-c="atrasada"].active{background:linear-gradient(135deg,#fb7185,#be123c);box-shadow:0 4px 16px rgba(190,18,60,.4),inset 0 1px 0 rgba(255,255,255,.15);}
+.atv-stab2[data-c="atrasada"]{--sc-border:rgba(143,168,216,.4);--sc-bg:rgba(143,168,216,.10);--sc-text:#b8ccee;}
+.atv-stab2[data-c="atrasada"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);box-shadow:0 4px 16px rgba(143,168,216,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 .atv-stab2[data-c="concluida"]{--sc-border:rgba(143,168,216,.4);--sc-bg:rgba(143,168,216,.10);--sc-text:#b8ccee;}
 .atv-stab2[data-c="concluida"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);box-shadow:0 4px 16px rgba(143,168,216,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 .atv-stab2[data-c="finalizada"]{--sc-border:rgba(143,168,216,.4);--sc-bg:rgba(143,168,216,.10);--sc-text:#b8ccee;}
@@ -11002,12 +11002,13 @@ function atvAtualizarAbasKanban(){
     btn.style.display = permitidas.includes(k) ? '' : 'none';
     btn.classList.toggle('active', k === _atvStatusFilter);
   });
-  const colMap = { all:ATV_STATUS_COLS.filter(c=>permitidas.includes(c)), aberta:['aberta'], andamento:['andamento'], atrasada:['aberta'], concluida:['concluida'], finalizada:['finalizada'] };
+  // "Atrasada" mostra as colunas A Fazer e Com Pendência — uma tarefa atrasada
+  // pode estar em qualquer um dos dois status
+  const colMap = { all:ATV_STATUS_COLS.filter(c=>permitidas.includes(c)), aberta:['aberta'], andamento:['andamento'], atrasada:['aberta','andamento'], concluida:['concluida'], finalizada:['finalizada'] };
   const visible = (colMap[_atvStatusFilter] || ATV_STATUS_COLS).filter(c=>permitidas.includes(c));
   const kanban = document.getElementById('atv-kanban');
   if (kanban) {
-    const cols = _atvStatusFilter === 'all' ? Math.max(visible.length,1) : 1;
-    kanban.style.gridTemplateColumns = `repeat(${cols},1fr)`;
+    kanban.style.gridTemplateColumns = `repeat(${Math.max(visible.length,1)},1fr)`;
   }
   ATV_STATUS_COLS.forEach(c => {
     const wrap = document.getElementById('atv-col-wrap-'+c);
