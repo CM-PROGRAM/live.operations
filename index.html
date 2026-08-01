@@ -2121,6 +2121,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div class="input-group"><label>Cód. Rastreio</label><input type="text" id="ate-rastreio-cod" placeholder="Ex: BR123456789BR"></div>
         <div class="input-group"><label>Link Rastreio</label><input type="text" id="ate-rastreio-link" placeholder="https://..."></div>
       </div>
+      <!-- Histórico de alterações (auditoria) -->
+      <div id="ate-log-wrap" style="display:none;border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;">
+        <div onclick="ateToggleLog()" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none;background:var(--bg-surface);">
+          <span style="font-size:12px;font-weight:700;color:var(--text-primary);flex:1;">📋 Histórico de alterações</span>
+          <span id="ate-log-chevron" style="font-size:10px;color:var(--text-muted);transition:transform .2s;">▼</span>
+        </div>
+        <div id="ate-log-body" style="display:none;max-height:260px;overflow-y:auto;border-top:1px solid var(--border-light);"></div>
+      </div>
     </div>
     <input type="hidden" id="ate-edit-id">
     <div style="display:flex;gap:8px;margin-top:16px;justify-content:flex-end;">
@@ -2603,11 +2611,122 @@ function sanitizeFirebaseKeys(obj){
   return obj;
 }
 
+/* ═══════════ AUDITORIA — HISTÓRICO DE ALTERAÇÕES ═══════════
+   Registra quem alterou o quê, campo a campo. O diff roda em UM único
+   ponto (saveState), então cobre qualquer tela que grave estado.
+   IMPORTANTE: só audita mudança de origem LOCAL. O estado que chega pela
+   sincronização apenas atualiza o snapshot (sem gravar log), senão cada
+   usuário conectado registraria de novo a alteração feita por outro.
+   Os logs ficam FORA do blob de estado (que é reescrito inteiro a cada
+   gravação), num caminho append-only indexado por registro.            */
+const FB_LOGS_PATH = 'suplelive/logs';
+
+// Autor corrente — rotinas automáticas usam logComoAutomacao()
+let _logAutor = null;
+function logComoAutomacao(fn){
+  const anterior=_logAutor;
+  _logAutor={nome:'Automação', key:'_auto', tipo:'automacao'};
+  try{ return fn(); } finally { _logAutor=anterior; }
+}
+function _logAutorAtual(){
+  if(_logAutor) return _logAutor;
+  if(typeof currentUser!=='undefined' && currentUser) return {nome:currentUser.name, key:currentUser.key, tipo:'usuario'};
+  return {nome:'Sistema', key:'_sys', tipo:'automacao'};
+}
+
+// Rótulos amigáveis — o histórico mostra "Data Retorno", não "prazo"
+const LOG_ROTULOS={
+  atendimento:{ data:'Data Abertura', motivo:'Motivo', linkPedido:'Link Pedido Base',
+    cliente:'Nome Cliente', linkAtend:'Link Atendimento', natend:'Nº Atendimento',
+    prazo:'Data Retorno', plataforma:'Plataforma', workflow:'Status', criadoPor:'Responsável' }
+};
+// Ruído interno — nunca entra no histórico
+const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','tarefaAutoCriada','alertaPrazoEnviado','criadoEm','finalizadoEm']);
+// Campos volumosos (base64/histórico): registra só a variação de quantidade
+const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
+
+function _logValorLegivel(entidade,campo,v){
+  if(v===undefined||v===null||v==='') return '—';
+  if(entidade==='atendimento'&&campo==='workflow'){
+    const cfg=(typeof ATE_STATUS_CONFIG!=='undefined')?ATE_STATUS_CONFIG[v]:null;
+    if(cfg) return cfg.label;
+  }
+  const s=String(v);
+  return s.length>120 ? s.slice(0,120)+'…' : s;
+}
+
+// Cópia enxuta usada na comparação (sem imagens nem objetos aninhados)
+function _logClone(o){
+  const out={};
+  for(const k in o){
+    if(LOG_IGNORAR.has(k)) continue;
+    const v=o[k];
+    if(LOG_POR_CONTAGEM[k]){ out['__n_'+k]=Array.isArray(v)?v.length:0; continue; }
+    if(v && typeof v==='object') continue;
+    out[k]=v;
+  }
+  return out;
+}
+
+function _logDiffRegistro(entidade,antes,depois){
+  const campos=[];
+  const chaves=new Set([...Object.keys(antes||{}),...Object.keys(depois||{})]);
+  chaves.forEach(k=>{
+    const a=antes?antes[k]:undefined, d=depois?depois[k]:undefined;
+    if(k.startsWith('__n_')){
+      const real=k.slice(4);
+      const na=a||0, nd=d||0;
+      if(na!==nd) campos.push({campo:real, rotulo:LOG_POR_CONTAGEM[real]||real, de:String(na), para:String(nd)});
+      return;
+    }
+    if((a===undefined?'':a)===(d===undefined?'':d)) return;
+    campos.push({campo:k, rotulo:(LOG_ROTULOS[entidade]||{})[k]||k,
+      de:_logValorLegivel(entidade,k,a), para:_logValorLegivel(entidade,k,d)});
+  });
+  return campos;
+}
+
+function _logGravar(entidade,registroId,evento,campos){
+  if(!db||!fbConnected||!registroId) return;
+  db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push({
+    ts:Date.now(), autor:_logAutorAtual(), evento, campos:campos||[]
+  }).catch(()=>{});
+}
+
+// Snapshot do último estado conhecido, por entidade
+let _logSnapshot={};
+let _logPronto=false;
+function _logMapear(state){
+  const m={};
+  ((state&&state.tasks&&state.tasks.atendimentos)||[]).forEach(a=>{ if(a&&a.id) m[a.id]=_logClone(a); });
+  return m;
+}
+// Atualiza a referência SEM gravar log (login e chegada de estado remoto)
+function logSincronizarSnapshot(state){
+  _logSnapshot.atendimento=_logMapear(state);
+  _logPronto=true;
+}
+
+function auditarMudancas(novo){
+  if(!db||!fbConnected) return;
+  if(!_logPronto){ logSincronizarSnapshot(novo); return; }
+  const antes=_logSnapshot.atendimento||{};
+  const agora=_logMapear(novo);
+  Object.keys(agora).forEach(id=>{
+    if(!antes[id]){ _logGravar('atendimento',id,'criado',[]); return; }
+    const campos=_logDiffRegistro('atendimento',antes[id],agora[id]);
+    if(campos.length) _logGravar('atendimento',id,'editado',campos);
+  });
+  Object.keys(antes).forEach(id=>{ if(!agora[id]) _logGravar('atendimento',id,'excluido',[]); });
+  _logSnapshot.atendimento=agora;
+}
+
 function saveState(s){
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
   reconcileAutoTasks(s);
   _padronizarCoresUsuarios(s);
+  try{ auditarMudancas(s); }catch(e){ console.warn('[auditoria]',e); }
   _localVersion=Date.now();
   _lastSaveTs = _localVersion;
   // Salva localmente SEM _savedBy (para não contaminar o appState)
@@ -3016,6 +3135,9 @@ function startFirebaseSync(){
     if(!patched){ console.warn('[SYNC] applyRemoteState retornou vazio'); return; }
 
     appState = patched;
+    // Estado veio de outro usuário: só atualiza a referência da auditoria,
+    // sem gravar log (quem alterou já registrou na própria sessão)
+    try{ logSincronizarSnapshot(appState); }catch(e){}
     saveLocal(appState);
     renderAll();
     console.log('[SYNC] re-renderizado com sucesso');
@@ -3388,6 +3510,9 @@ function doLogout(){
 /* ===== INIT ===== */
 function initApp(){
   _actLoginTs = Date.now();
+  // Referência inicial da auditoria — sem isso, o primeiro save marcaria
+  // todos os registros já existentes como "criado"
+  try{ logSincronizarSnapshot(appState); }catch(e){}
   // buildTabs() cria o footer com avatar/nome/relógio/sair dinamicamente
   buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
   initNotifListener();
@@ -10272,8 +10397,11 @@ function openAteModal(id){
       const statusSel=document.getElementById('ate-status');
       if(statusSel) statusSel.value=(d.workflow==='finalizado')?'finalizado':'atendimento';
       toggleAteRastreio();
+      carregarLogAtendimento(id);
     }
   } else {
+    const logWrap=document.getElementById('ate-log-wrap');
+    if(logWrap) logWrap.style.display='none';
     ['ate-plataforma','ate-motivo'].forEach(id=>document.getElementById(id).value='');
     ['ate-cliente','ate-link-pedido','ate-natend','ate-link','ate-prazo','ate-rastreio-cod','ate-rastreio-link','ate-data','ate-ultima-desc'].forEach(id=>document.getElementById(id).value='');
     renderAteComentarioHistorico([]);
@@ -10281,6 +10409,68 @@ function openAteModal(id){
     if(statusSelNew) statusSelNew.value='atendimento';
     toggleAteRastreio();
   }
+}
+
+// ── Histórico de alterações do atendimento (auditoria) ────────────
+function ateToggleLog(){
+  const body=document.getElementById('ate-log-body');
+  const chev=document.getElementById('ate-log-chevron');
+  if(!body) return;
+  const aberto=body.style.display!=='none';
+  body.style.display=aberto?'none':'block';
+  if(chev) chev.style.transform=aberto?'':'rotate(180deg)';
+}
+
+const LOG_EVENTO_ROTULO={criado:'Registro criado', editado:'Dados editados', excluido:'Registro excluído'};
+
+function carregarLogAtendimento(id){
+  const wrap=document.getElementById('ate-log-wrap');
+  const body=document.getElementById('ate-log-body');
+  if(!wrap||!body) return;
+  // Recolhido por padrão a cada abertura
+  body.style.display='none';
+  const chev=document.getElementById('ate-log-chevron');
+  if(chev) chev.style.transform='';
+  if(!db||!fbConnected){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+  body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Carregando…</div>';
+  db.ref(FB_LOGS_PATH+'/atendimento/'+id).limitToLast(80).once('value').then(snap=>{
+    const val=snap.val();
+    const lista=val?Object.values(val).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
+    renderLogAtendimento(lista);
+  }).catch(()=>{
+    body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Não foi possível carregar o histórico.</div>';
+  });
+}
+
+function renderLogAtendimento(lista){
+  const body=document.getElementById('ate-log-body');
+  if(!body) return;
+  if(!lista.length){
+    body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma alteração registrada ainda.</div>';
+    return;
+  }
+  const esc=s=>String(s==null?'':s).replace(/</g,'&lt;');
+  const linhas=lista.map(e=>{
+    const dt=e.ts?new Date(e.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    const autor=(e.autor&&e.autor.nome)||'—';
+    const auto=e.autor&&e.autor.tipo==='automacao';
+    const detalhes=(e.campos&&e.campos.length)
+      ? e.campos.map(c=>`<div style="margin-bottom:3px;">Alteração em<br><span style="color:var(--text-secondary);">${esc(c.rotulo)}:</span> <span style="font-style:italic;color:var(--text-muted);">${esc(c.de)}</span> → <span style="font-style:italic;color:var(--text-primary);">${esc(c.para)}</span></div>`).join('')
+      : '<span style="color:var(--text-muted);">—</span>';
+    return `<div style="display:grid;grid-template-columns:minmax(140px,40%) 1fr;gap:12px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px;line-height:1.45;">
+      <div>
+        <div style="color:var(--text-primary);font-family:var(--font-mono);">${dt}</div>
+        <div style="color:var(--text-secondary);margin-top:2px;">${esc(LOG_EVENTO_ROTULO[e.evento]||e.evento||'—')}</div>
+        <div style="color:${auto?'var(--text-muted)':'var(--accent)'};margin-top:2px;font-weight:600;">${auto?'Automação':esc(autor)}</div>
+      </div>
+      <div style="color:var(--text-secondary);">${detalhes}</div>
+    </div>`;
+  }).join('');
+  body.innerHTML=`<div style="display:grid;grid-template-columns:minmax(140px,40%) 1fr;gap:12px;padding:8px 12px;border-bottom:1px solid var(--border-light);background:var(--bg-surface);position:sticky;top:0;">
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Evento</span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Informações adicionais</span>
+    </div>${linhas}`;
 }
 
 // Renderiza o histórico de comentários (mais recente primeiro) — somente
