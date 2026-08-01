@@ -552,8 +552,8 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 }
 .btn-orb:active{transform:translateY(0);}
 .btn-orb:disabled{opacity:.35;cursor:not-allowed;transform:none;}
-.btn-orb.sm{width:24px;height:24px;font-size:11px;}
-.btn-orb.sm svg{width:11px;height:11px;}
+.btn-orb.sm{width:20px;height:20px;font-size:10px;}
+.btn-orb.sm svg{width:9px;height:9px;}
 .btn-orb.xs{width:18px;height:18px;font-size:9px;}
 .btn-orb.xs svg{width:9px;height:9px;}
 /* variantes de cor (seguem a referência: teal/verde=add, cinza=neutro/abrir, rosa=confirmar, vermelho=excluir, âmbar=alerta) */
@@ -567,13 +567,13 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 /* ===== BOTÕES PILL (com texto) — selo circular + texto, glow colorido ===== */
 .btn-pill{
   --pc: 99,102,241;
-  display:inline-flex;align-items:center;gap:7px;
+  display:inline-flex;align-items:center;gap:5px;
   background:linear-gradient(135deg, rgba(var(--pc),0.22), rgba(var(--pc),0.06));
   border:1px solid rgba(var(--pc),0.4);
   border-radius:50px;
-  padding:4px 12px 4px 4px;
+  padding:3px 10px 3px 3px;
   color:#eef0f6;
-  font-size:11px;font-weight:700;font-family:var(--font-sans);letter-spacing:.1px;
+  font-size:9.5px;font-weight:700;font-family:var(--font-sans);letter-spacing:.1px;
   cursor:pointer;
   box-shadow:0 2px 10px rgba(var(--pc),0.18), inset 0 1px 0 rgba(255,255,255,0.08);
   transition:all .15s;
@@ -581,12 +581,12 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .btn-pill:hover{border-color:rgba(var(--pc),0.65);transform:translateY(-1px);box-shadow:0 4px 16px rgba(var(--pc),0.32), inset 0 1px 0 rgba(255,255,255,0.12);}
 .btn-pill:active{transform:translateY(0);}
 .btn-pill-ic{
-  width:20px;height:20px;border-radius:50%;flex-shrink:0;
+  width:16px;height:16px;border-radius:50%;flex-shrink:0;
   display:inline-flex;align-items:center;justify-content:center;
   background:radial-gradient(circle at 35% 30%, rgba(var(--pc),0.9), rgba(var(--pc),0.5) 75%);
   box-shadow:0 0 8px rgba(var(--pc),0.5);
 }
-.btn-pill-ic svg{width:11px;height:11px;stroke:#fff;stroke-width:2.4;fill:none;}
+.btn-pill-ic svg{width:9px;height:9px;stroke:#fff;stroke-width:2.4;fill:none;}
 .btn-pill.v-indigo{--pc: 99,102,241;}
 .btn-pill.v-green{--pc: 143,168,216;}
 .btn-pill.v-amber{--pc: 176,191,216;}
@@ -6780,16 +6780,16 @@ function buildDevCardFull(d, isConcluida){
   // ── Capa — apenas campos essenciais (detalhes completos ficam no modal) ──
   function infoRow(label,val){
     if(!val) return;
-    const r=document.createElement('div');r.style.cssText='display:flex;gap:8px;align-items:baseline;';
-    const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:110px;';l.textContent=label;
-    const v=document.createElement('span');v.style.cssText='font-size:15px;color:var(--text-primary);';v.textContent=val;
+    const r=document.createElement('div');r.style.cssText='display:flex;gap:6px;align-items:baseline;';
+    const l=document.createElement('span');l.style.cssText='font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);min-width:90px;flex-shrink:0;';l.textContent=label;
+    const v=document.createElement('span');v.style.cssText='font-size:11.5px;font-weight:600;color:var(--text-primary);';v.textContent=val;
     r.appendChild(l);r.appendChild(v);card.appendChild(r);
   }
   infoRow('Nome Cliente',d.cliente);
   infoRow('Motivo',d.motivo);
   // Status — apenas texto colorido, sem fundo
   {
-    const r=document.createElement('div');r.style.cssText='display:flex;gap:8px;align-items:baseline;';
+    const r=document.createElement('div');r.style.cssText='display:flex;gap:6px;align-items:baseline;';
     const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:110px;';l.textContent='Status';
     const v=document.createElement('span');v.style.cssText=`font-size:15px;font-weight:700;letter-spacing:.5px;color:${isConcluida?'var(--green)':cfg.color};`;
     v.textContent=isConcluida?'CONCLUÍDA':cfg.label;
@@ -10624,16 +10624,16 @@ function buildAteCard(d,isFinalizado){
   const hdr=document.createElement('div');hdr.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
   const corHex=(typeof ATE_STAT_TILE_COLORS!=='undefined'&&ATE_STAT_TILE_COLORS[d.plataforma])||ateGetPltColorHex(d.plataforma);
   const pillWrap=document.createElement('span');
-  pillWrap.style.cssText=`display:inline-flex;align-items:center;background:linear-gradient(135deg,${_hexA(corHex,0.12)},${_hexA(corHex,0.02)});border-radius:10px;padding:2px;border:1.5px solid ${_hexA(corHex,0.5)};`;
+  pillWrap.style.cssText=`display:inline-flex;align-items:center;background:linear-gradient(135deg,${_hexA(corHex,0.12)},${_hexA(corHex,0.02)});border-radius:8px;padding:1px;border:1px solid ${_hexA(corHex,0.5)};`;
   const pltName=document.createElement('span');
-  pltName.style.cssText=`padding:4px 8px 4px 10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:${corHex};`;
+  pltName.style.cssText=`padding:2px 7px 2px 8px;font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:${corHex};`;
   pltName.textContent=d.plataforma||'—';
   pillWrap.appendChild(pltName);
   if(canAte){
     const checkBtn=document.createElement('button');
     checkBtn.type='button';
     checkBtn.title=isFinalizado?'Reabrir atendimento':'Concluir atendimento';
-    checkBtn.style.cssText=`background:${isFinalizado?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+    checkBtn.style.cssText=`background:${isFinalizado?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1px solid rgba(255,255,255,.35);color:#fff;width:15px;height:15px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
     checkBtn.textContent=isFinalizado?'✓':'';
     checkBtn.onclick=(e)=>{e.stopPropagation(); if(isFinalizado) ateReabrir(d.id); else ateFinalizar(d.id);};
     pillWrap.appendChild(checkBtn);
@@ -10654,9 +10654,9 @@ function buildAteCard(d,isFinalizado){
   // Capa — apenas os campos essenciais (detalhes completos ficam no modal de edição)
   function infoRow(label,val,color,alwaysShow){
     if(!val&&!alwaysShow) return;
-    const r=document.createElement('div');r.style.cssText='display:flex;gap:8px;align-items:baseline;';
-    const l=document.createElement('span');l.style.cssText='font-size:11px;color:var(--text-muted);font-family:var(--font-mono);min-width:130px;';l.textContent=label;
-    const v=document.createElement('span');v.style.cssText=`font-size:15px;color:${color||'var(--text-primary)'};`;v.textContent=val||'—';
+    const r=document.createElement('div');r.style.cssText='display:flex;gap:6px;align-items:baseline;';
+    const l=document.createElement('span');l.style.cssText='font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);min-width:96px;flex-shrink:0;';l.textContent=label;
+    const v=document.createElement('span');v.style.cssText=`font-size:11.5px;font-weight:600;color:${color||'var(--text-primary)'};`;v.textContent=val||'—';
     r.appendChild(l);r.appendChild(v);card.appendChild(r);
   }
 
@@ -11201,23 +11201,24 @@ function renderAtividades(){
       solicitadoPor = a.criadoPor||'—';
     }
     card.innerHTML=`
-      <div style="position:relative;border-radius:20px;overflow:hidden;">
-      <div style="position:relative;padding:16px 16px 14px;">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">
-          <div style="width:40px;height:40px;border-radius:13px;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 16px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);color:${avColor};font-size:13px;font-weight:800;font-family:var(--font-mono);">${uInit}</div>
+      <div style="position:relative;border-radius:12px;overflow:hidden;">
+      <div style="position:relative;padding:10px 12px 10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="width:28px;height:28px;border-radius:8px;background:radial-gradient(circle at 35% 30%,#26314b,#131826);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${avColor};font-size:10px;font-weight:800;font-family:var(--font-mono);">${uInit}</div>
+          ${ateOrigemBtnId?`<button type="button" id="${ateOrigemBtnId}" style="display:inline-flex;align-items:center;gap:4px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:8.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;border-radius:999px;padding:2px 8px;cursor:pointer;flex-shrink:0;">↗ Atend.</button>`:''}
+          <div style="flex:1;"></div>
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
-        ${ateOrigemBtnId?`<button type="button" id="${ateOrigemBtnId}" style="display:inline-flex;align-items:center;gap:5px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);color:#fca5a5;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border-radius:999px;padding:3px 10px;margin-bottom:8px;cursor:pointer;">↗ Atendimento</button>`:''}
-        <div style="font-size:16px;font-weight:800;color:#f5f6fa;letter-spacing:-.01em;line-height:1.3;margin-bottom:8px;">${a.titulo||'Sem título'}</div>
-        ${codigoLabel?`<div style="font-size:12.5px;color:#c3c8d4;font-family:var(--font-mono);font-weight:600;margin-bottom:4px;">${codigoLabel}</div>`:''}
-        <div style="font-size:11px;color:#9aa1b0;margin-bottom:${(a.status==='andamento'&&a.pendencia)?'8':'12'}px;">Solicitado por: <span style="color:#c3c8d4;font-weight:600;">${solicitadoPor||'—'}</span></div>
-        ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:11px;color:#fca5a5;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:6px 9px;margin-bottom:12px;line-height:1.4;">⚠ Pendência: ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
-        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:11px;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;gap:6px;">
-          <div style="display:flex;flex-direction:column;gap:3px;">
-            <span style="display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:11px;height:11px;"></span>${prior.label}</span>
-            <span style="font-size:9.5px;color:#7d8494;">${isAtrasada?`<span style="color:#fb7185;font-weight:700;">Atrasada ${Math.abs(dias)}d</span> · `:''}Vence: ${vencFmt}</span>
+        <div style="font-size:13.5px;font-weight:700;color:#f5f6fa;letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${a.titulo||'Sem título'}</div>
+        ${codigoLabel?`<div style="font-size:10.5px;color:#c3c8d4;font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
+        <div style="font-size:10px;color:#9aa1b0;margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':'8'}px;">Solicitado por: <span style="color:#c3c8d4;font-weight:600;">${solicitadoPor||'—'}</span></div>
+        ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:#fca5a5;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);flex-wrap:wrap;gap:5px;">
+          <div style="display:flex;flex-direction:column;gap:1px;">
+            <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:9px;height:9px;"></span>${prior.label}</span>
+            <span style="font-size:9px;color:#7d8494;">${isAtrasada?`<span style="color:#fb7185;font-weight:700;">Atrasada ${Math.abs(dias)}d</span> · `:''}${vencFmt}</span>
           </div>
-          <div style="display:flex;gap:6px;align-items:center;" id="atv-acoes-${a.id}"></div>
+          <div style="display:flex;gap:5px;align-items:center;" id="atv-acoes-${a.id}"></div>
         </div>
       </div>
       </div>`;
