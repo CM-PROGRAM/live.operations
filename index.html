@@ -1535,6 +1535,33 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="master-badge">MASTER ONLY</span>
       </div>
 
+      <!-- AUDITORIA — histórico geral de alterações -->
+      <div class="admin-panel" id="auditoria-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">🔍 Auditoria — Histórico de Alterações</div>
+          <button class="btn btn-sm" onclick="carregarAuditoriaGeral()" style="width:auto;">↻ Atualizar</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <select id="audit-f-entidade" onchange="renderAuditoriaGeral()" style="width:auto;min-width:150px;">
+            <option value="">Todas as áreas</option>
+            <option value="atendimento">Atendimentos</option>
+            <option value="tarefa">Tarefas</option>
+            <option value="devolucao">Devoluções</option>
+          </select>
+          <select id="audit-f-autor" onchange="renderAuditoriaGeral()" style="width:auto;min-width:150px;">
+            <option value="">Todos os autores</option>
+          </select>
+          <select id="audit-f-periodo" onchange="renderAuditoriaGeral()" style="width:auto;min-width:130px;">
+            <option value="7">Últimos 7 dias</option>
+            <option value="30">Últimos 30 dias</option>
+            <option value="1">Hoje</option>
+            <option value="">Todo o período</option>
+          </select>
+          <input type="text" id="audit-f-busca" oninput="renderAuditoriaGeral()" placeholder="🔎 Buscar registro ou campo..." style="flex:1;min-width:200px;width:auto;">
+        </div>
+        <div id="audit-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:520px;overflow-y:auto;"></div>
+      </div>
+
       <div class="admin-panel" id="dash-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">⬡ Dashboard de Desempenho</div>
@@ -1986,6 +2013,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <img id="atv-imagem-preview" style="display:none;max-width:160px;border-radius:8px;margin-top:8px;cursor:pointer;" onclick="atvVerProva(this.src)">
       </div>
       <div style="display:flex;gap:8px;" id="atv-modal-acoes"></div>
+      <!-- Histórico de alterações (auditoria) -->
+      <div id="atv-log-wrap" style="display:none;border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;">
+        <div onclick="toggleLogHistorico('atv')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none;background:var(--bg-surface);">
+          <span style="font-size:12px;font-weight:700;color:var(--text-primary);flex:1;">📋 Histórico de alterações</span>
+          <span id="atv-log-chevron" style="font-size:10px;color:var(--text-muted);transition:transform .2s;">▼</span>
+        </div>
+        <div id="atv-log-body" style="display:none;max-height:260px;overflow-y:auto;border-top:1px solid var(--border-light);"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -2045,6 +2080,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           📎 Anexar Imagem
         </button>
         <div id="dev-fotos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
+      </div>
+      <!-- Histórico de alterações (auditoria) -->
+      <div id="dev-log-wrap" style="display:none;border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;">
+        <div onclick="toggleLogHistorico('dev')" style="display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;user-select:none;background:var(--bg-surface);">
+          <span style="font-size:12px;font-weight:700;color:var(--text-primary);flex:1;">📋 Histórico de alterações</span>
+          <span id="dev-log-chevron" style="font-size:10px;color:var(--text-muted);transition:transform .2s;">▼</span>
+        </div>
+        <div id="dev-log-body" style="display:none;max-height:260px;overflow-y:auto;border-top:1px solid var(--border-light);"></div>
       </div>
     </div>
     <input type="hidden" id="dev-edit-id">
@@ -2634,16 +2677,38 @@ function _logAutorAtual(){
   return {nome:'Sistema', key:'_sys', tipo:'automacao'};
 }
 
+// Entidades auditadas — onde encontrar a lista de registros em cada uma
+const LOG_ENTIDADES={
+  atendimento:{ rotulo:'Atendimento', lista:s=>((s&&s.tasks&&s.tasks.atendimentos)||[]) },
+  tarefa:     { rotulo:'Tarefa',      lista:s=>((s&&s.atividades)||[]) },
+  devolucao:  { rotulo:'Devolução',   lista:s=>((s&&s.tasks&&s.tasks.devolucoes)||[]) }
+};
+
 // Rótulos amigáveis — o histórico mostra "Data Retorno", não "prazo"
 const LOG_ROTULOS={
   atendimento:{ data:'Data Abertura', motivo:'Motivo', linkPedido:'Link Pedido Base',
     cliente:'Nome Cliente', linkAtend:'Link Atendimento', natend:'Nº Atendimento',
-    prazo:'Data Retorno', plataforma:'Plataforma', workflow:'Status', criadoPor:'Responsável' }
+    prazo:'Data Retorno', plataforma:'Plataforma', workflow:'Status', criadoPor:'Responsável' },
+  tarefa:{ titulo:'Título', descricao:'Descrição', status:'Status', prioridade:'Prioridade',
+    vencimento:'Vencimento', pendencia:'Pendência', sku:'SKU', responsaveis:'Conferência Colaborador',
+    responsavel:'Responsável', criadoPor:'Solicitado por', finalizadoPor:'Finalizado por' },
+  devolucao:{ plataforma:'Plataforma', cliente:'Nome Cliente', nped:'Nº Pedido', data:'Data',
+    motivo:'Motivo', status:'Status', workflow:'Etapa', linkBase:'Link Base',
+    linkPlat:'Link Plataforma', criadoPor:'Responsável', atualizadoPor:'Atualizado por' }
+};
+// Valores internos traduzidos para o que o usuário lê na tela
+const LOG_VALORES={
+  tarefa:{ status:{aberta:'A Fazer', andamento:'Com Pendência', concluida:'Concluída', finalizada:'Finalizada'},
+           prioridade:{urgente:'Urgente', alta:'Alta', normal:'Normal'} }
 };
 // Ruído interno — nunca entra no histórico
-const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','tarefaAutoCriada','alertaPrazoEnviado','criadoEm','finalizadoEm']);
+const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','tarefaAutoCriada','alertaPrazoEnviado',
+  'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemImgId','origemAteId',
+  'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
+// Campos base64 tratados como "anexado/removido", sem gravar o conteúdo
+const LOG_BOOLEANOS={provaConclusao:'Print de conclusão', ultimaFoto:'Imagem'};
 
 function _logValorLegivel(entidade,campo,v){
   if(v===undefined||v===null||v==='') return '—';
@@ -2651,8 +2716,19 @@ function _logValorLegivel(entidade,campo,v){
     const cfg=(typeof ATE_STATUS_CONFIG!=='undefined')?ATE_STATUS_CONFIG[v]:null;
     if(cfg) return cfg.label;
   }
+  const mapa=(LOG_VALORES[entidade]||{})[campo];
+  if(mapa && mapa[v]) return mapa[v];
   const s=String(v);
   return s.length>120 ? s.slice(0,120)+'…' : s;
+}
+
+// Nomes dos colaboradores em vez das chaves internas
+function _logNomesUsuarios(keys){
+  if(!Array.isArray(keys)||!keys.length) return '';
+  return keys.map(k=>{
+    const u=(typeof appState!=='undefined'&&appState.users)?appState.users[k]:null;
+    return u?u.name:k;
+  }).join(', ');
 }
 
 // Cópia enxuta usada na comparação (sem imagens nem objetos aninhados)
@@ -2662,6 +2738,12 @@ function _logClone(o){
     if(LOG_IGNORAR.has(k)) continue;
     const v=o[k];
     if(LOG_POR_CONTAGEM[k]){ out['__n_'+k]=Array.isArray(v)?v.length:0; continue; }
+    if(LOG_BOOLEANOS[k]){ out['__b_'+k]=v?1:0; continue; }
+    // Listas de chaves (ex.: responsáveis) viram texto legível
+    if(Array.isArray(v)){
+      if(v.every(x=>x===null||typeof x!=='object')) out[k]=(k==='responsaveis')?_logNomesUsuarios(v):v.join(', ');
+      continue;
+    }
     if(v && typeof v==='object') continue;
     out[k]=v;
   }
@@ -2679,6 +2761,12 @@ function _logDiffRegistro(entidade,antes,depois){
       if(na!==nd) campos.push({campo:real, rotulo:LOG_POR_CONTAGEM[real]||real, de:String(na), para:String(nd)});
       return;
     }
+    if(k.startsWith('__b_')){
+      const real=k.slice(4);
+      if((a||0)!==(d||0)) campos.push({campo:real, rotulo:LOG_BOOLEANOS[real]||real,
+        de:(a?'Anexado':'—'), para:(d?'Anexado':'Removido')});
+      return;
+    }
     if((a===undefined?'':a)===(d===undefined?'':d)) return;
     campos.push({campo:k, rotulo:(LOG_ROTULOS[entidade]||{})[k]||k,
       de:_logValorLegivel(entidade,k,a), para:_logValorLegivel(entidade,k,d)});
@@ -2686,39 +2774,54 @@ function _logDiffRegistro(entidade,antes,depois){
   return campos;
 }
 
-function _logGravar(entidade,registroId,evento,campos){
+function _logGravar(entidade,registroId,evento,campos,resumo){
   if(!db||!fbConnected||!registroId) return;
-  db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push({
-    ts:Date.now(), autor:_logAutorAtual(), evento, campos:campos||[]
-  }).catch(()=>{});
+  const entrada={ts:Date.now(), autor:_logAutorAtual(), evento, campos:campos||[]};
+  if(resumo) entrada.resumo=resumo;
+  // Por registro (histórico dentro do card) e no índice geral (Adm. Master)
+  db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push(entrada).catch(()=>{});
+  db.ref(FB_LOGS_PATH+'/_geral').push(Object.assign({entidade,registroId},entrada)).catch(()=>{});
+}
+
+// Descrição curta do registro, para o índice geral fazer sentido sem abrir o card
+function _logResumoRegistro(entidade,r){
+  if(!r) return '';
+  if(entidade==='atendimento') return [r.plataforma,r.cliente].filter(Boolean).join(' · ');
+  if(entidade==='devolucao')   return [r.plataforma,r.cliente,r.nped].filter(Boolean).join(' · ');
+  if(entidade==='tarefa')      return [r.titulo,r.sku].filter(Boolean).join(' · ');
+  return '';
 }
 
 // Snapshot do último estado conhecido, por entidade
 let _logSnapshot={};
 let _logPronto=false;
-function _logMapear(state){
+function _logMapear(state,entidade){
   const m={};
-  ((state&&state.tasks&&state.tasks.atendimentos)||[]).forEach(a=>{ if(a&&a.id) m[a.id]=_logClone(a); });
+  (LOG_ENTIDADES[entidade].lista(state)||[]).forEach(r=>{
+    if(r&&r.id) m[r.id]={campos:_logClone(r), resumo:_logResumoRegistro(entidade,r)};
+  });
   return m;
 }
 // Atualiza a referência SEM gravar log (login e chegada de estado remoto)
 function logSincronizarSnapshot(state){
-  _logSnapshot.atendimento=_logMapear(state);
+  Object.keys(LOG_ENTIDADES).forEach(e=>{ _logSnapshot[e]=_logMapear(state,e); });
   _logPronto=true;
 }
 
 function auditarMudancas(novo){
   if(!db||!fbConnected) return;
   if(!_logPronto){ logSincronizarSnapshot(novo); return; }
-  const antes=_logSnapshot.atendimento||{};
-  const agora=_logMapear(novo);
-  Object.keys(agora).forEach(id=>{
-    if(!antes[id]){ _logGravar('atendimento',id,'criado',[]); return; }
-    const campos=_logDiffRegistro('atendimento',antes[id],agora[id]);
-    if(campos.length) _logGravar('atendimento',id,'editado',campos);
+  Object.keys(LOG_ENTIDADES).forEach(entidade=>{
+    const antes=_logSnapshot[entidade]||{};
+    const agora=_logMapear(novo,entidade);
+    Object.keys(agora).forEach(id=>{
+      if(!antes[id]){ _logGravar(entidade,id,'criado',[],agora[id].resumo); return; }
+      const campos=_logDiffRegistro(entidade,antes[id].campos,agora[id].campos);
+      if(campos.length) _logGravar(entidade,id,'editado',campos,agora[id].resumo);
+    });
+    Object.keys(antes).forEach(id=>{ if(!agora[id]) _logGravar(entidade,id,'excluido',[],antes[id].resumo); });
+    _logSnapshot[entidade]=agora;
   });
-  Object.keys(antes).forEach(id=>{ if(!agora[id]) _logGravar('atendimento',id,'excluido',[]); });
-  _logSnapshot.atendimento=agora;
 }
 
 function saveState(s){
@@ -3636,7 +3739,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='conferencias'){ try{renderConferenciasRealizadas();}catch(e){console.warn('renderConferenciasRealizadas:',e);} }
-    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); }catch(e){ console.warn('admin render:',e); } }
+    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -6526,7 +6629,7 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
   };
   appState.atividades.push(novaTarefa);
   d.tarefaAutoCriada=true;
-  saveState(appState);
+  logComoAutomacao(()=>saveState(appState));
   if(db && fbConnected && d.criadoPorKey){
     const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
     notifRef.push({
@@ -6608,6 +6711,8 @@ function openDevModal(id){
   const overlay=document.getElementById('dev-modal-overlay');
   overlay.style.display='flex';
   document.getElementById('dev-edit-id').value=id||'';
+  if(id) carregarLogRegistro('dev','devolucao',id);
+  else { const w=document.getElementById('dev-log-wrap'); if(w) w.style.display='none'; }
   document.getElementById('dev-fotos-preview').innerHTML='';
   renderDevStatusOptions('');
   renderDevMotivoOptions('');
@@ -10411,47 +10516,44 @@ function openAteModal(id){
   }
 }
 
-// ── Histórico de alterações do atendimento (auditoria) ────────────
-function ateToggleLog(){
-  const body=document.getElementById('ate-log-body');
-  const chev=document.getElementById('ate-log-chevron');
+// ── Histórico de alterações (auditoria) — comum aos três modais ────
+const LOG_EVENTO_ROTULO={criado:'Registro criado', editado:'Dados editados', excluido:'Registro excluído'};
+
+// prefixo: 'ate' (Atendimento) | 'atv' (Tarefa) | 'dev' (Devolução)
+function toggleLogHistorico(prefixo){
+  const body=document.getElementById(prefixo+'-log-body');
+  const chev=document.getElementById(prefixo+'-log-chevron');
   if(!body) return;
   const aberto=body.style.display!=='none';
   body.style.display=aberto?'none':'block';
   if(chev) chev.style.transform=aberto?'':'rotate(180deg)';
 }
+function ateToggleLog(){ toggleLogHistorico('ate'); }
 
-const LOG_EVENTO_ROTULO={criado:'Registro criado', editado:'Dados editados', excluido:'Registro excluído'};
-
-function carregarLogAtendimento(id){
-  const wrap=document.getElementById('ate-log-wrap');
-  const body=document.getElementById('ate-log-body');
+function carregarLogRegistro(prefixo,entidade,id){
+  const wrap=document.getElementById(prefixo+'-log-wrap');
+  const body=document.getElementById(prefixo+'-log-body');
   if(!wrap||!body) return;
   // Recolhido por padrão a cada abertura
   body.style.display='none';
-  const chev=document.getElementById('ate-log-chevron');
+  const chev=document.getElementById(prefixo+'-log-chevron');
   if(chev) chev.style.transform='';
-  if(!db||!fbConnected){ wrap.style.display='none'; return; }
+  if(!db||!fbConnected||!id){ wrap.style.display='none'; return; }
   wrap.style.display='block';
   body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Carregando…</div>';
-  db.ref(FB_LOGS_PATH+'/atendimento/'+id).limitToLast(80).once('value').then(snap=>{
+  db.ref(FB_LOGS_PATH+'/'+entidade+'/'+id).limitToLast(80).once('value').then(snap=>{
     const val=snap.val();
     const lista=val?Object.values(val).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
-    renderLogAtendimento(lista);
+    renderLogHistorico(prefixo,lista);
   }).catch(()=>{
     body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Não foi possível carregar o histórico.</div>';
   });
 }
+function carregarLogAtendimento(id){ carregarLogRegistro('ate','atendimento',id); }
 
-function renderLogAtendimento(lista){
-  const body=document.getElementById('ate-log-body');
-  if(!body) return;
-  if(!lista.length){
-    body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma alteração registrada ainda.</div>';
-    return;
-  }
+function _logLinhasHTML(lista){
   const esc=s=>String(s==null?'':s).replace(/</g,'&lt;');
-  const linhas=lista.map(e=>{
+  return lista.map(e=>{
     const dt=e.ts?new Date(e.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
     const autor=(e.autor&&e.autor.nome)||'—';
     const auto=e.autor&&e.autor.tipo==='automacao';
@@ -10467,10 +10569,111 @@ function renderLogAtendimento(lista){
       <div style="color:var(--text-secondary);">${detalhes}</div>
     </div>`;
   }).join('');
-  body.innerHTML=`<div style="display:grid;grid-template-columns:minmax(140px,40%) 1fr;gap:12px;padding:8px 12px;border-bottom:1px solid var(--border-light);background:var(--bg-surface);position:sticky;top:0;">
+}
+
+function _logCabecalhoHTML(){
+  return `<div style="display:grid;grid-template-columns:minmax(140px,40%) 1fr;gap:12px;padding:8px 12px;border-bottom:1px solid var(--border-light);background:var(--bg-surface);position:sticky;top:0;">
       <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Evento</span>
       <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Informações adicionais</span>
-    </div>${linhas}`;
+    </div>`;
+}
+
+function renderLogHistorico(prefixo,lista){
+  const body=document.getElementById(prefixo+'-log-body');
+  if(!body) return;
+  if(!lista.length){
+    body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma alteração registrada ainda.</div>';
+    return;
+  }
+  body.innerHTML=_logCabecalhoHTML()+_logLinhasHTML(lista);
+}
+function renderLogAtendimento(lista){ renderLogHistorico('ate',lista); }
+
+// ── Auditoria geral (Adm. Master) ─────────────────────────────────
+let _auditEntradas=[];
+function carregarAuditoriaGeral(){
+  const alvo=document.getElementById('audit-lista');
+  if(!alvo) return;
+  if(!db||!fbConnected){
+    alvo.innerHTML='<div style="padding:14px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Sem conexão com a nuvem — histórico indisponível.</div>';
+    return;
+  }
+  alvo.innerHTML='<div style="padding:14px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Carregando…</div>';
+  db.ref(FB_LOGS_PATH+'/_geral').limitToLast(400).once('value').then(snap=>{
+    const val=snap.val();
+    _auditEntradas=val?Object.values(val).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
+    _auditPopularAutores();
+    renderAuditoriaGeral();
+  }).catch(()=>{
+    alvo.innerHTML='<div style="padding:14px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Não foi possível carregar o histórico.</div>';
+  });
+}
+
+function _auditPopularAutores(){
+  const sel=document.getElementById('audit-f-autor');
+  if(!sel) return;
+  const atual=sel.value;
+  const nomes=[...new Set(_auditEntradas.map(e=>(e.autor&&e.autor.nome)||'').filter(Boolean))].sort();
+  sel.innerHTML='<option value="">Todos os autores</option>'+nomes.map(n=>`<option value="${n.replace(/"/g,'&quot;')}">${n}</option>`).join('');
+  if(nomes.includes(atual)) sel.value=atual;
+}
+
+function renderAuditoriaGeral(){
+  const alvo=document.getElementById('audit-lista');
+  if(!alvo) return;
+  const fEnt=(document.getElementById('audit-f-entidade')||{}).value||'';
+  const fAutor=(document.getElementById('audit-f-autor')||{}).value||'';
+  const fPer=(document.getElementById('audit-f-periodo')||{}).value||'';
+  const q=((document.getElementById('audit-f-busca')||{}).value||'').trim().toLowerCase();
+
+  let limite=0;
+  if(fPer){
+    const d=new Date(); d.setHours(0,0,0,0);
+    d.setDate(d.getDate()-(parseInt(fPer,10)-1));
+    limite=d.getTime();
+  }
+  const lista=_auditEntradas.filter(e=>{
+    if(fEnt && e.entidade!==fEnt) return false;
+    if(fAutor && ((e.autor&&e.autor.nome)||'')!==fAutor) return false;
+    if(limite && (e.ts||0)<limite) return false;
+    if(q){
+      const alvoTxt=[e.resumo,e.registroId,(e.campos||[]).map(c=>c.rotulo+' '+c.de+' '+c.para).join(' ')].join(' ').toLowerCase();
+      if(!alvoTxt.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if(!lista.length){
+    alvo.innerHTML='<div style="padding:14px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma alteração para os filtros selecionados.</div>';
+    return;
+  }
+  const esc=s=>String(s==null?'':s).replace(/</g,'&lt;');
+  const linhas=lista.slice(0,250).map(e=>{
+    const dt=e.ts?new Date(e.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
+    const auto=e.autor&&e.autor.tipo==='automacao';
+    const area=(LOG_ENTIDADES[e.entidade]||{}).rotulo||e.entidade||'—';
+    const detalhes=(e.campos&&e.campos.length)
+      ? e.campos.map(c=>`<div style="margin-bottom:2px;"><span style="color:var(--text-secondary);">${esc(c.rotulo)}:</span> <span style="font-style:italic;color:var(--text-muted);">${esc(c.de)}</span> → <span style="font-style:italic;color:var(--text-primary);">${esc(c.para)}</span></div>`).join('')
+      : '<span style="color:var(--text-muted);">—</span>';
+    return `<div style="display:grid;grid-template-columns:minmax(130px,20%) minmax(140px,26%) 1fr;gap:12px;padding:9px 12px;border-bottom:1px solid var(--border);font-size:11px;line-height:1.45;">
+      <div>
+        <div style="color:var(--text-primary);font-family:var(--font-mono);">${dt}</div>
+        <div style="color:${auto?'var(--text-muted)':'var(--accent)'};margin-top:2px;font-weight:600;">${auto?'Automação':esc((e.autor&&e.autor.nome)||'—')}</div>
+      </div>
+      <div>
+        <div style="color:var(--text-secondary);">${esc(area)} · ${esc(LOG_EVENTO_ROTULO[e.evento]||e.evento||'')}</div>
+        <div style="color:var(--text-muted);margin-top:2px;">${esc(e.resumo||e.registroId||'')}</div>
+      </div>
+      <div style="color:var(--text-secondary);">${detalhes}</div>
+    </div>`;
+  }).join('');
+  const cab=`<div style="display:grid;grid-template-columns:minmax(130px,20%) minmax(140px,26%) 1fr;gap:12px;padding:8px 12px;border-bottom:1px solid var(--border-light);background:var(--bg-surface);position:sticky;top:0;z-index:2;">
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Quando / Quem</span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Registro</span>
+      <span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Informações adicionais</span>
+    </div>`;
+  const rodape=lista.length>250?`<div style="padding:8px 12px;font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">Mostrando 250 de ${lista.length} registros — refine os filtros.</div>`:'';
+  alvo.innerHTML=cab+linhas+rodape;
 }
 
 // Renderiza o histórico de comentários (mais recente primeiro) — somente
@@ -12758,6 +12961,8 @@ function openAtvModal(id){
   _atvRenderRespGrid();
   window._atvGetRespSelecionados=()=>_atvRespSelecionados;
   const overlay=document.getElementById('atv-modal-overlay');
+  if(id) carregarLogRegistro('atv','tarefa',id);
+  else { const w=document.getElementById('atv-log-wrap'); if(w) w.style.display='none'; }
   const titleEl=document.getElementById('atv-modal-title');
   const comentWrap=document.getElementById('atv-comentario-wrap');
   const comentEl=document.getElementById('atv-comentario');
