@@ -2076,7 +2076,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div class="input-group"><label>Link Plataforma</label><input type="text" id="dev-link-plat" placeholder="https://..."></div>
       <div class="input-group"><label>Fotos do Produto</label>
         <input type="file" id="dev-fotos" multiple accept="image/*" style="display:none;" onchange="previewDevFotos(this)">
-        <button type="button" onclick="window.open('https://drive.google.com/drive/u/0/folders/1zXrzMkdB_CMek4fq5E1PZRhBn5q7MQt1','_blank')" style="display:flex;align-items:center;gap:8px;background:var(--bg-surface);border:1px dashed var(--border-light);border-radius:var(--radius);color:var(--text-secondary);font-size:13px;padding:10px 14px;cursor:pointer;width:100%;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-secondary)';">
+        <button type="button" onclick="document.getElementById('dev-fotos').click()" style="display:flex;align-items:center;gap:8px;background:var(--bg-surface);border:1px dashed var(--border-light);border-radius:var(--radius);color:var(--text-secondary);font-size:13px;padding:10px 14px;cursor:pointer;width:100%;justify-content:center;transition:all .15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)';" onmouseout="this.style.borderColor='var(--border-light)';this.style.color='var(--text-secondary)';">
           📎 Anexar Imagem
         </button>
         <div id="dev-fotos-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;"></div>
@@ -7043,6 +7043,25 @@ function buildDevCardFull(d, isConcluida){
     if(d.linkBase) linksRow.appendChild(linkBtn('Base',d.linkBase));
     if(d.linkPlat) linksRow.appendChild(linkBtn('Plataforma',d.linkPlat));
     card.appendChild(linksRow);
+  }
+
+  // ── Imagens anexadas — ficam no próprio card (clique amplia) ────────
+  if(Array.isArray(d.fotos) && d.fotos.length){
+    const fotosRow=document.createElement('div');
+    fotosRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap;';
+    d.fotos.forEach(src=>{
+      if(!src) return;
+      const img=document.createElement('img');
+      img.src=src;
+      img.loading='lazy';
+      img.title='Clique para ampliar';
+      img.style.cssText='width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--glass-border);cursor:pointer;transition:transform .15s;';
+      img.onmouseover=()=>img.style.transform='scale(1.06)';
+      img.onmouseout=()=>img.style.transform='';
+      img.onclick=(e)=>{ e.stopPropagation(); atvVerProva(src); };
+      fotosRow.appendChild(img);
+    });
+    if(fotosRow.children.length) card.appendChild(fotosRow);
   }
 
   // ── Workflow buttons ───────────────────────────────────────────────
