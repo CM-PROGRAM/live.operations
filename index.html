@@ -6933,8 +6933,13 @@ function buildDevCardFull(d, isConcluida){
   const status = d.workflow||'aberta';
   const cfg=DEV_STATUS_CONFIG[status]||{label:status,color:'var(--text-muted)',bg:'var(--bg-active)',border:'var(--border)'};
 
+  // Filete lateral na cor do responsável pela etapa: CM dourado, Carlos Red
+  // vermelho — identifica de bate-pronto de quem é o card
+  const donoEtapa = cfg.owner ? appState.users[cfg.owner] : null;
+  const corLateral = isConcluida ? 'var(--glass-border)' : ((donoEtapa && donoEtapa.color) || '#8fa8d8');
+
   const card=document.createElement('div');
-  card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-left:3px solid ${isConcluida?'var(--glass-border)':'#ef4444'};border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;${isConcluida?'opacity:0.75;':''}`;
+  card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-left:4px solid ${corLateral};border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 4px 14px rgba(0,0,0,0.4);overflow:hidden;transition:transform .2s,box-shadow .2s,border-color .2s;${isConcluida?'opacity:0.75;':''}`;
   card.onmouseover=()=>{if(!isConcluida){card.style.transform='translateY(-3px)';card.style.boxShadow='0 8px 20px rgba(0,0,0,0.5)';}};
   card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='0 4px 14px rgba(0,0,0,0.4)';};
   const _devshine=document.createElement('div');_devshine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);pointer-events:none;';card.appendChild(_devshine);
