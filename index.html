@@ -6517,15 +6517,25 @@ function renderDevFotosPreview(){
     wrap.style.cssText='position:relative;width:60px;height:60px;';
     const img=document.createElement('img');
     img.src=src;
-    img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
+    img.title='Clique para ampliar e baixar';
+    img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;';
+    const nomeBase='devolucao-'+((document.getElementById('dev-cliente')||{}).value||'imagem')+'-'+(i+1);
+    img.onclick=()=>atvVerProva(src,nomeBase);
     const rm=document.createElement('button');
     rm.type='button';
     rm.textContent='×';
     rm.title='Remover foto';
     rm.onclick=()=>removeDevFoto(i);
     rm.style.cssText='position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:16px;border-radius:50%;background:var(--accent,#8fa8d8);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    const dl=document.createElement('button');
+    dl.type='button';
+    dl.textContent='⬇';
+    dl.title='Baixar imagem';
+    dl.onclick=(e)=>{ e.stopPropagation(); baixarImagem(src,nomeBase); };
+    dl.style.cssText='position:absolute;bottom:2px;right:2px;width:19px;height:19px;border-radius:5px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.7);color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
     wrap.appendChild(img);
     wrap.appendChild(rm);
+    wrap.appendChild(dl);
     prev.appendChild(wrap);
   });
 }
@@ -6975,15 +6985,9 @@ function buildDevCardFull(d, isConcluida){
   pltName.style.cssText=`padding:4px 8px 4px 10px;font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:${_devCorHex};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
   pltName.textContent=_pltStd||'—';
   pillWrap.appendChild(pltName);
-  if(canDev){
-    const checkBtn=document.createElement('button');
-    checkBtn.type='button';
-    checkBtn.title=isConcluida?'Reabrir devolução':'Concluir devolução';
-    checkBtn.style.cssText=`background:${isConcluida?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.35);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-right:2px;cursor:pointer;font-size:11px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
-    checkBtn.textContent=isConcluida?'✓':'';
-    checkBtn.onclick=(e)=>{e.stopPropagation(); if(isConcluida) devReabrir(d.id); else devEstornado(d.id);};
-    pillWrap.appendChild(checkBtn);
-  }
+  // O círculo de conclusão ao lado da plataforma foi removido: a devolução é
+  // concluída pelo fluxo do card (Pronto para Estorno → Estornado) e as
+  // concluídas têm o botão "↩ Reabrir" próprio.
   pltWrapOuter.appendChild(pillWrap);
   hdr.appendChild(pltWrapOuter);
 
@@ -7050,21 +7054,31 @@ function buildDevCardFull(d, isConcluida){
     card.appendChild(linksRow);
   }
 
-  // ── Imagens anexadas — ficam no próprio card (clique amplia) ────────
+  // ── Imagens anexadas — ficam no próprio card (clique amplia, ⬇ baixa) ──
   if(Array.isArray(d.fotos) && d.fotos.length){
     const fotosRow=document.createElement('div');
     fotosRow.style.cssText='display:flex;gap:6px;flex-wrap:wrap;';
-    d.fotos.forEach(src=>{
+    const nomeBase=['devolucao',d.plataforma,d.cliente,d.nped].filter(Boolean).join('-');
+    d.fotos.forEach((src,i)=>{
       if(!src) return;
+      const box=document.createElement('div');
+      box.style.cssText='position:relative;width:52px;height:52px;flex-shrink:0;';
       const img=document.createElement('img');
       img.src=src;
       img.loading='lazy';
       img.title='Clique para ampliar';
       img.style.cssText='width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--glass-border);cursor:pointer;transition:transform .15s;';
-      img.onmouseover=()=>img.style.transform='scale(1.06)';
-      img.onmouseout=()=>img.style.transform='';
-      img.onclick=(e)=>{ e.stopPropagation(); atvVerProva(src); };
-      fotosRow.appendChild(img);
+      img.onclick=(e)=>{ e.stopPropagation(); atvVerProva(src,nomeBase+'-'+(i+1)); };
+      const dl=document.createElement('button');
+      dl.type='button';
+      dl.title='Baixar imagem';
+      dl.textContent='⬇';
+      dl.style.cssText='position:absolute;bottom:2px;right:2px;width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.7);color:#fff;font-size:10px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;opacity:0;transition:opacity .15s;';
+      dl.onclick=(e)=>{ e.stopPropagation(); baixarImagem(src,nomeBase+'-'+(i+1)); };
+      box.onmouseover=()=>{ img.style.transform='scale(1.06)'; dl.style.opacity='1'; };
+      box.onmouseout=()=>{ img.style.transform=''; dl.style.opacity='0'; };
+      box.appendChild(img); box.appendChild(dl);
+      fotosRow.appendChild(box);
     });
     if(fotosRow.children.length) card.appendChild(fotosRow);
   }
@@ -13214,10 +13228,56 @@ function onAtvImagemSelecionada(input){
 }
 
 // Abre o print de conclusão em uma nova aba, em tamanho ampliado
-function atvVerProva(src){
+// Baixa uma imagem embutida (data:) com nome de arquivo legível
+function baixarImagem(src,nomeBase){
   if(!src) return;
-  const w=window.open('');
-  if(w) w.document.write('<img src="'+src+'" style="max-width:100%;">');
+  try{
+    const m=/^data:image\/([a-zA-Z0-9.+-]+)[;,]/.exec(src);
+    let ext=m?m[1].toLowerCase():'png';
+    if(ext==='jpeg') ext='jpg';
+    if(ext==='svg+xml') ext='svg';
+    const nome=(nomeBase||'imagem').toString().normalize('NFD').replace(/[̀-ͯ]/g,'')
+      .replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'-').slice(0,60)||'imagem';
+    const a=document.createElement('a');
+    a.href=src; a.download=nome+'.'+ext;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    showToast('⬇ Imagem baixada','success');
+  }catch(e){ window.open(src,'_blank','noopener'); }
+}
+
+// Visualizador de imagem em tela cheia, com opção de baixar
+function atvVerProva(src,nomeBase){
+  if(!src) return;
+  const antigo=document.getElementById('img-viewer-overlay');
+  if(antigo) antigo.remove();
+  const ov=document.createElement('div');
+  ov.id='img-viewer-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:3000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;';
+  ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
+
+  const img=document.createElement('img');
+  img.src=src;
+  img.style.cssText='max-width:92vw;max-height:78vh;object-fit:contain;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.6);';
+  ov.appendChild(img);
+
+  const barra=document.createElement('div');
+  barra.style.cssText='display:flex;gap:10px;align-items:center;';
+  const btnBaixar=document.createElement('button');
+  btnBaixar.className='btn btn-sm';
+  btnBaixar.style.width='auto';
+  btnBaixar.textContent='⬇ Baixar imagem';
+  btnBaixar.onclick=(e)=>{ e.stopPropagation(); baixarImagem(src,nomeBase); };
+  const btnFechar=document.createElement('button');
+  btnFechar.className='btn btn-ghost btn-sm';
+  btnFechar.style.width='auto';
+  btnFechar.textContent='✕ Fechar';
+  btnFechar.onclick=()=>ov.remove();
+  barra.appendChild(btnBaixar); barra.appendChild(btnFechar);
+  ov.appendChild(barra);
+
+  const fecharEsc=(ev)=>{ if(ev.key==='Escape'){ ov.remove(); document.removeEventListener('keydown',fecharEsc); } };
+  document.addEventListener('keydown',fecharEsc);
+  document.body.appendChild(ov);
 }
 
 // Remove um print já anexado (conclusão ou atualização), liberando a
