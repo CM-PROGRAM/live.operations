@@ -1564,21 +1564,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <input type="text" id="cpftar-titulo" maxlength="120" placeholder="Ex: Contato com cliente">
           </div>
           <div class="input-group">
-            <label>Código</label>
-            <div style="display:flex;gap:8px;">
-              <select id="cpftar-codigo-tipo" onchange="codigoTipoChanged('cpftar')" style="flex:0 0 130px;">
-                <option value="SKU">SKU</option>
-                <option value="MLB">MLB</option>
-                <option value="ID Anúncio">ID Anúncio</option>
-                <option value="CPF">CPF</option>
-              </select>
-              <div style="flex:1;position:relative;">
-                <span id="cpftar-codigo-mlb-prefix" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:12px;color:var(--text-muted);pointer-events:none;">MLB</span>
-                <input type="text" id="cpftar-codigo-num" oninput="codigoNumInput('cpftar')" placeholder="Número" style="width:100%;box-sizing:border-box;">
-              </div>
-            </div>
-          </div>
-          <div class="input-group">
             <label style="display:flex;justify-content:space-between;"><span>Considerações</span></label>
             <div style="display:flex;gap:8px;">
               <textarea id="cpftar-cons-input" maxlength="250" rows="2" placeholder="Escreva um comentário..." style="flex:1;"></textarea>
@@ -2257,7 +2242,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <span style="font-size:11px;color:var(--text-muted);">Adicionar comentário</span>
           <span id="ate-ultima-desc-count" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">500 restantes</span>
         </label>
-        <textarea id="ate-ultima-desc" rows="4" maxlength="500" placeholder="Descreva o que aconteceu nesta atualização..." oninput="document.getElementById('ate-ultima-desc-count').textContent=(500-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
+        <textarea id="ate-ultima-desc" rows="4" maxlength="500" placeholder="Descreva o que aconteceu nesta atualização... (pode colar um print aqui com Ctrl+V)" onpaste="ateColarImagemComentario(event)" oninput="document.getElementById('ate-ultima-desc-count').textContent=(500-this.value.length)+' restantes'" style="width:100%;box-sizing:border-box;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;outline:none;resize:none;transition:border-color .15s;line-height:1.5;" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border-light)'"></textarea>
         <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">⚠ Ao incluir um novo comentário, é necessário informar uma nova "Data Retorno" e anexar ao menos uma imagem da tratativa feita hoje para salvar. Comentários já salvos não podem ser apagados.</div>
         <div style="margin-top:8px;">
           <input type="file" id="ate-foto" accept="image/*" multiple style="display:none;" onchange="previewAteFotos(this)">
@@ -10901,6 +10886,29 @@ function previewAteFotos(input){
     input.value='';
   });
 }
+// Ctrl+V de um print no comentário do atendimento: anexa junto às imagens
+// da tratativa. O texto continua digitável; colar texto segue o padrão.
+function ateColarImagemComentario(ev){
+  const itens=(ev.clipboardData&&ev.clipboardData.items)||[];
+  const arquivos=[];
+  for(let i=0;i<itens.length;i++){
+    if(itens[i].kind==='file' && String(itens[i].type||'').indexOf('image/')===0){
+      const f=itens[i].getAsFile(); if(f) arquivos.push(f);
+    }
+  }
+  if(!arquivos.length) return; // colagem de texto segue o comportamento padrão
+  ev.preventDefault();
+  const readers=arquivos.map(f=>new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=e=>res(e.target.result);
+    reader.readAsDataURL(f);
+  }));
+  Promise.all(readers).then(results=>{
+    _atePendingFotos.push(...results);
+    renderAteFotosPreview();
+    showToast('📎 Print anexado ao comentário','success');
+  });
+}
 function renderAteFotosPreview(){
   const prev=document.getElementById('ate-fotos-preview');
   if(!prev) return;
@@ -12652,14 +12660,10 @@ function closeIntegModal(){ document.getElementById('integ-modal-overlay').style
 document.getElementById('integ-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeIntegModal();};
 
 // ── Consulta CPF → Gerar Tarefa ────────────────────────────────────
-// Cria uma tarefa avulsa em Central de Tarefas, com os mesmos campos do
-// formulário de Integração (código, considerações, responsáveis, prazo e
-// prioridade), sem vínculo com marketplace.
+// Cria uma tarefa avulsa em Central de Tarefas com: Título, Considerações,
+// Colaborador(es) responsável(is), Data de vencimento e Prioridade.
 function limparCpfTarefa(){
   const t=document.getElementById('cpftar-titulo'); if(t) t.value='';
-  const num=document.getElementById('cpftar-codigo-num'); if(num) num.value='';
-  const tipo=document.getElementById('cpftar-codigo-tipo'); if(tipo) tipo.value='SKU';
-  try{ codigoTipoChanged('cpftar'); }catch(e){}
   const cons=document.getElementById('cpftar-cons-input'); if(cons) cons.value='';
   try{ considSet('cpftar',[]); }catch(e){}
   try{ respSetSel('cpftar',[]); }catch(e){}
@@ -12672,7 +12676,6 @@ function initCpfTarefaForm(){
   try{ respRenderGrid('cpftar'); }catch(e){}
   try{ considRenderList('cpftar'); }catch(e){}
   try{ vencSyncDisplay('cpftar'); }catch(e){}
-  try{ codigoTipoChanged('cpftar'); }catch(e){}
 }
 
 function salvarCpfTarefa(){
@@ -12684,9 +12687,6 @@ function salvarCpfTarefa(){
   const vencimento=(document.getElementById('cpftar-vencimento')||{}).value||'';
   if(!vencimento){ showToast('Informe a data de vencimento','warn'); return; }
 
-  const tipoCodigo=(document.getElementById('cpftar-codigo-tipo')||{}).value||'SKU';
-  // codigoGetValue devolve {tipo,valor,exibicao}; o card da tarefa espera texto
-  const codigo=(codigoGetValue('cpftar')||{}).exibicao||'';
   const consideracoes=considGet('cpftar');
   const prioridade=(document.getElementById('cpftar-prioridade')||{}).value||'normal';
 
@@ -12694,7 +12694,6 @@ function salvarCpfTarefa(){
   const id='atv_cpf_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
   appState.atividades.push({
     id, titulo,
-    sku:codigo, skuTipo:tipoCodigo,
     descricao:consideracoes.map(c=>(c&&c.texto)?c.texto:String(c||'')).join(' | ').slice(0,1000),
     responsaveis, responsavel:responsaveis[0],
     vencimento, prioridade, status:'aberta',
