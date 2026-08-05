@@ -10069,11 +10069,35 @@ function ateCalRender(fieldId){
   html+='</div>';
   pop.innerHTML=html;
 }
+// Guarda onde o clique COMEÇOU, na fase de captura — antes de qualquer
+// re-render. Sem isso, clicar nas setas de mês fecharia o calendário: o
+// popover reescreve o próprio innerHTML, o elemento clicado sai do DOM e
+// pop.contains(e.target) passa a devolver false.
+// Guardar só a referência do elemento não resolve (ele é justamente o que
+// some), por isso registramos também o ID do popover de origem.
+let _cliqueOrigem=null;
+let _cliqueCalId=null;
+document.addEventListener('click',function(e){
+  _cliqueOrigem=e.target;
+  _cliqueCalId=null;
+  let n=e.target;
+  while(n && n!==document){
+    if(n.id && /-cal-popover$/.test(n.id)){ _cliqueCalId=n.id; break; }
+    n=n.parentNode;
+  }
+},true);
+function _cliqueVeioDe(el){
+  if(!el) return false;
+  // Popover: compara por ID, resistente ao re-render do próprio conteúdo
+  if(el.id && _cliqueCalId===el.id) return true;
+  return !!(_cliqueOrigem && el.contains(_cliqueOrigem));
+}
+
 document.addEventListener('click',function(e){
   ['ate-data','ate-prazo'].forEach(fieldId=>{
     const pop=document.getElementById(fieldId+'-cal-popover');
     const inp=document.getElementById(fieldId);
-    if(pop&&pop.style.display==='block'&&!pop.contains(e.target)&&inp&&!inp.contains(e.target)) pop.style.display='none';
+    if(pop&&pop.style.display==='block'&&!_cliqueVeioDe(pop)&&inp&&!_cliqueVeioDe(inp)) pop.style.display='none';
   });
 });
 
@@ -10443,7 +10467,7 @@ function atvRenderCal(){
 document.addEventListener('click',function(e){
   const pop=document.getElementById('atv-cal-popover');
   const trig=document.getElementById('atv-venc-trigger');
-  if(pop&&pop.style.display==='block'&&!pop.contains(e.target)&&trig&&!trig.contains(e.target)){
+  if(pop&&pop.style.display==='block'&&!_cliqueVeioDe(pop)&&trig&&!_cliqueVeioDe(trig)){
     pop.style.display='none';
   }
 });
@@ -12457,10 +12481,10 @@ function vencRenderCal(prefix){
   pop.innerHTML=html;
 }
 document.addEventListener('click',function(e){
-  ['entrada','integ','img','venda'].forEach(prefix=>{
+  ['entrada','integ','img','venda','cpftar'].forEach(prefix=>{
     const pop=document.getElementById(prefix+'-cal-popover');
     const trig=document.getElementById(prefix+'-venc-trigger');
-    if(pop&&pop.style.display==='block'&&!pop.contains(e.target)&&trig&&!trig.contains(e.target)) pop.style.display='none';
+    if(pop&&pop.style.display==='block'&&!_cliqueVeioDe(pop)&&trig&&!_cliqueVeioDe(trig)) pop.style.display='none';
   });
 });
 
