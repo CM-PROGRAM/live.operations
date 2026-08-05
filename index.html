@@ -1988,7 +1988,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <span id="atv-comentario-novo-label" style="font-size:11px;color:var(--text-muted);">Adicionar comentário</span>
           <span id="atv-comentario-count" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">150 restantes</span>
         </label>
-        <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um novo comentário..." oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
+        <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um novo comentário... (pode colar um print aqui com Ctrl+V)" onpaste="atvColarImagemComentario(event)" oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
+        <div id="atv-comentario-img-wrap" style="display:none;align-items:center;gap:10px;margin-top:8px;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:8px 10px;">
+          <img id="atv-comentario-img-preview" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva(this.src,'print-comentario')">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;color:var(--text-primary);font-weight:600;">📎 Print anexado ao comentário</div>
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">Será salvo junto com o comentário</div>
+          </div>
+          <button type="button" class="btn-orb v-danger sm" title="Remover print" onclick="atvRemoverImagemComentario()" style="width:20px;height:20px;flex-shrink:0;"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+        </div>
       </div>
       <div class="input-group" id="atv-prova-wrap" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
@@ -2893,8 +2901,9 @@ function importExternalTask(key, item){
     const prioridade = ['urgente','alta','normal'].includes(item.prioridade) ? item.prioridade : 'normal';
     const vencimento = item.vencimento || '';
 
+    const novaTarefaId='atv_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
     appState.atividades.push({
-      id:'atv_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      id:novaTarefaId,
       titulo: (item.titulo||'Tarefa sem título').toString().slice(0,200),
       descricao: (item.descricao||'').toString().slice(0,1000),
       responsavel: responsavelKey,
@@ -2913,7 +2922,7 @@ function importExternalTask(key, item){
     const respUser=appState.users[responsavelKey];
     const notifMsg = `📌 Nova tarefa atribuída via automação: "${item.titulo||''}"`;
     db.ref('suplelive/notificacoes/'+responsavelKey).push({
-      msg: notifMsg, ts: Date.now(), lida:false, tipo:'tarefa', de:'n8n'
+      msg: notifMsg, ts: Date.now(), lida:false, tipo:'tarefa', de:'n8n', alvoTipo:'tarefa', alvoId:novaTarefaId
     });
 
     try{ renderAtividades(); }catch(e){}
@@ -6612,7 +6621,8 @@ function ateVerificarAlertaPrazo(d, vencido){
       msg:`⚠️ Atendimento de "${d.cliente||d.natend||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e continua em aberto.`,
       ts:Date.now(),
       lida:false,
-      tipo:'atendimento'
+      tipo:'atendimento',
+      alvoTipo:'atendimento', alvoId:d.id
     });
   }
 }
@@ -6646,7 +6656,8 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
       msg:`🚨 Atendimento de "${d.cliente||d.natend||'cliente'}" chegou na Data Retorno (${d.prazo||''}) e gerou uma tarefa em Central de Tarefas.`,
       ts:Date.now(),
       lida:false,
-      tipo:'atendimento'
+      tipo:'atendimento',
+      alvoTipo:'tarefa', alvoId:novaTarefa.id
     });
   }
 }
@@ -11737,7 +11748,8 @@ function notifyCriadorConcluida(item,tipoLabel,tipo){
   if(!item || !item.criadoPorKey || item.criadoPorKey===currentUser.key) return;
   const msg=`✅ ${tipoLabel} concluída por ${currentUser.name}: "${item.titulo}"`;
   if(db && fbConnected){
-    db.ref('suplelive/notificacoes/'+item.criadoPorKey).push({msg,ts:Date.now(),lida:false,tipo:tipo||'tarefa',de:currentUser.name});
+    db.ref('suplelive/notificacoes/'+item.criadoPorKey).push({msg,ts:Date.now(),lida:false,tipo:tipo||'tarefa',de:currentUser.name,
+      alvoTipo:(tipo||'tarefa'), alvoId:item.id});
   }
 }
 
@@ -12956,10 +12968,8 @@ function renderRelatorioAnuncios(){
 }
 
 function openAtvModal(id){
-  _atvPendingImagem='';
   const imgInp=document.getElementById('atv-imagem-input'); if(imgInp) imgInp.value='';
-  const imgNome=document.getElementById('atv-imagem-nome'); if(imgNome) imgNome.textContent='Selecionar imagem…';
-  const imgPrev=document.getElementById('atv-imagem-preview'); if(imgPrev){ imgPrev.style.display='none'; imgPrev.src=''; }
+  _atvSetPendingImagem('','');
   const isMasterUser = currentUser && currentUser.master;
   const isNovaTask = !id;
   const a = id ? (appState.atividades||[]).find(x=>x.id===id) : null;
@@ -13215,16 +13225,58 @@ function closeAtvModal(){
 // no momento de salvar) — fica pendente até a ação de Concluir/Pendente ser
 // clicada, quando é persistida junto com os demais campos.
 let _atvPendingImagem='';
+
+// Ponto único que registra a imagem pendente e sincroniza os dois previews
+// (o do botão "Anexar Imagem" e o do print colado no comentário)
+function _atvSetPendingImagem(dataUrl,nomeArquivo){
+  _atvPendingImagem=String(dataUrl||'');
+  const nameEl=document.getElementById('atv-imagem-nome');
+  if(nameEl) nameEl.textContent=_atvPendingImagem?(nomeArquivo||'Imagem anexada'):'Selecionar imagem…';
+  const prev=document.getElementById('atv-imagem-preview');
+  if(prev){
+    if(_atvPendingImagem){ prev.src=_atvPendingImagem; prev.style.display='block'; }
+    else { prev.src=''; prev.style.display='none'; }
+  }
+  const cWrap=document.getElementById('atv-comentario-img-wrap');
+  const cPrev=document.getElementById('atv-comentario-img-preview');
+  if(cWrap&&cPrev){
+    if(_atvPendingImagem){ cPrev.src=_atvPendingImagem; cWrap.style.display='flex'; }
+    else { cPrev.src=''; cWrap.style.display='none'; }
+  }
+}
+
 function onAtvImagemSelecionada(input){
   const f=input.files&&input.files[0];
   if(!f) return;
   const reader=new FileReader();
-  reader.onload=e=>{
-    _atvPendingImagem=String(e.target.result);
-    const nameEl=document.getElementById('atv-imagem-nome'); if(nameEl) nameEl.textContent=f.name;
-    const prev=document.getElementById('atv-imagem-preview'); if(prev){ prev.src=_atvPendingImagem; prev.style.display='block'; }
-  };
+  reader.onload=e=>_atvSetPendingImagem(e.target.result,f.name);
   reader.readAsDataURL(f);
+}
+
+// Ctrl+V de um print dentro do campo de comentário: anexa a imagem logo
+// abaixo e mantém o texto digitável normalmente
+function atvColarImagemComentario(ev){
+  const itens=(ev.clipboardData&&ev.clipboardData.items)||[];
+  let arquivo=null;
+  for(let i=0;i<itens.length;i++){
+    if(itens[i].kind==='file' && String(itens[i].type||'').indexOf('image/')===0){
+      arquivo=itens[i].getAsFile(); break;
+    }
+  }
+  if(!arquivo) return; // colagem de texto segue o comportamento padrão
+  ev.preventDefault();
+  const reader=new FileReader();
+  reader.onload=e=>{
+    _atvSetPendingImagem(e.target.result,'print-colado.png');
+    showToast('📎 Print anexado ao comentário','success');
+  };
+  reader.readAsDataURL(arquivo);
+}
+
+function atvRemoverImagemComentario(){
+  _atvSetPendingImagem('','');
+  const inp=document.getElementById('atv-imagem-input'); if(inp) inp.value='';
+  showToast('Print removido','');
 }
 
 // Abre o print de conclusão em uma nova aba, em tamanho ampliado
@@ -13429,7 +13481,8 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     : `✏ Tarefa atualizada por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`;
   (responsaveis.length?responsaveis:[responsavel]).filter(Boolean).forEach(respKey=>{
     if(db && fbConnected){
-      db.ref('suplelive/notificacoes/'+respKey).push({msg:notifMsg,ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name});
+      db.ref('suplelive/notificacoes/'+respKey).push({msg:notifMsg,ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,
+        alvoTipo:'tarefa', alvoId:editId});
     }
     if(respKey===currentUser.key){ pushNotify('Tarefa atribuída',notifMsg); }
   });
@@ -13464,7 +13517,7 @@ function atvConcluirModal(id){
   const temImagem = !!(_atvPendingImagem || a.provaConclusao || a.provaAtualizacao);
   if(!temImagem){showToast('Anexe uma imagem para concluir a tarefa','warn');return;}
   if(!_atvPersistirCampos('concluida')) return;
-  _atvPendingImagem='';
+  _atvSetPendingImagem('','');
   closeAtvModal();
   showToast('Tarefa → Concluída','success');
 }
@@ -13479,7 +13532,7 @@ function atvPendenteModal(id){
   const txt=window.prompt('Descreva a pendência (o que impede de concluir a tarefa):', a.pendencia||'');
   if(txt===null) return; // cancelou
   if(!_atvPersistirCampos('andamento',txt)) return;
-  _atvPendingImagem='';
+  _atvSetPendingImagem('','');
   closeAtvModal();
   showToast('Tarefa → Com Pendência','success');
 }
@@ -13522,7 +13575,8 @@ function renderNotifList(lista){
   }
   el.innerHTML = lista.map(n=>{
     const dt = n.ts ? new Date(n.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
-    return `<div onclick="marcarLida('${n.fbKey}')" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;background:${n.lida?'transparent':'rgba(143,168,216,0.08)'};" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${n.lida?'transparent':'rgba(143,168,216,0.08)'}'">
+    const alvo = (n.alvoTipo&&n.alvoId) ? `,'${String(n.alvoTipo).replace(/'/g,"")}','${String(n.alvoId).replace(/'/g,"")}'` : '';
+    return `<div onclick="abrirNotificacao('${n.fbKey}'${alvo})" style="padding:12px 16px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s;background:${n.lida?'transparent':'rgba(143,168,216,0.08)'};" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='${n.lida?'transparent':'rgba(143,168,216,0.08)'}'">
       <div style="display:flex;align-items:flex-start;gap:8px;">
         <span style="font-size:16px;flex-shrink:0;margin-top:1px;">${n.lida?'🔔':'🔴'}</span>
         <div style="flex:1;min-width:0;">
@@ -13537,6 +13591,37 @@ function renderNotifList(lista){
 function marcarLida(fbKey){
   if(!_notifRef||!fbKey) return;
   _notifRef.child(fbKey).update({lida:true});
+}
+
+// Clique na notificação: marca como lida e abre direto o registro citado
+function abrirNotificacao(fbKey,alvoTipo,alvoId){
+  marcarLida(fbKey);
+  if(!alvoTipo||!alvoId){ return; }
+  const painel=document.getElementById('notif-panel');
+  if(painel) painel.style.display='none';
+  try{
+    if(alvoTipo==='tarefa'){
+      const t=(appState.atividades||[]).find(x=>x.id===alvoId);
+      if(!t){ showToast('Esta tarefa não existe mais','warn'); return; }
+      switchTab('tarefas');
+      // Garante que a aba/coluna da tarefa esteja visível antes de abrir
+      if(typeof _atvStatusFilter!=='undefined' && _atvStatusFilter!=='all'){ atvSetStatusFilter('all'); }
+      else { renderAtividades(); }
+      setTimeout(()=>{ try{ openAtvModal(alvoId); }catch(e){} },60);
+    } else if(alvoTipo==='atendimento'){
+      const a=((appState.tasks&&appState.tasks.atendimentos)||[]).find(x=>x.id===alvoId);
+      if(!a){ showToast('Este atendimento não existe mais','warn'); return; }
+      switchTab('atendimentos');
+      try{ ateSetSubTab(a.workflow==='finalizado'?'concluidas':'ativos'); }catch(e){}
+      setTimeout(()=>{ try{ openAteModal(alvoId); }catch(e){} },60);
+    } else if(alvoTipo==='devolucao'){
+      const d=((appState.tasks&&appState.tasks.devolucoes)||[]).find(x=>x.id===alvoId);
+      if(!d){ showToast('Esta devolução não existe mais','warn'); return; }
+      switchTab('devolucoes');
+      try{ devSetSubTab((d.workflow==='concluida'||d.workflow==='finalizada')?'concluidas':'ativos'); }catch(e){}
+      setTimeout(()=>{ try{ openDevModal(alvoId); }catch(e){} },60);
+    }
+  }catch(e){ console.warn('abrirNotificacao:',e); }
 }
 
 function marcarTodasLidas(){
