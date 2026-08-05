@@ -1528,6 +1528,103 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
     </div>
 
+    <!-- CONSULTA CPF — CPF CLIENTE -->
+    <div class="tab-panel" id="tab-consultacpf">
+      <div class="section-header">
+        <span class="section-title">Consulta CPF — CPF Cliente</span>
+      </div>
+      <div style="max-width:560px;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:16px;box-shadow:0 4px 14px rgba(0,0,0,0.4);">
+          <div style="display:flex;gap:8px;align-items:flex-end;">
+            <div class="input-group" style="flex:1;margin:0;">
+              <label>CPF do Cliente</label>
+              <input type="text" id="cpfpg-input" placeholder="Somente números" maxlength="14" inputmode="numeric" onkeydown="if(event.key==='Enter')consultarCpfPagina()">
+            </div>
+            <button onclick="consultarCpfPagina()" id="cpfpg-btn" class="btn btn-sm" style="width:auto;white-space:nowrap;padding:10px 18px;">Consultar</button>
+          </div>
+          <div id="cpfpg-status" style="margin-top:12px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);text-align:center;"></div>
+          <div id="cpfpg-result" style="margin-top:12px;display:none;">
+            <div id="cpfpg-nome" style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:10px;"></div>
+            <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;">📞 Telefones encontrados</div>
+            <div id="cpfpg-fones" style="display:flex;flex-direction:column;gap:6px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONSULTA CPF — GERAR TAREFA -->
+    <div class="tab-panel" id="tab-cpftarefa">
+      <div class="section-header">
+        <span class="section-title">Consulta CPF — Gerar Tarefa</span>
+      </div>
+      <div style="max-width:600px;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:0 4px 14px rgba(0,0,0,0.4);display:grid;gap:12px;">
+          <div class="input-group">
+            <label>Título da tarefa</label>
+            <input type="text" id="cpftar-titulo" maxlength="120" placeholder="Ex: Contato com cliente">
+          </div>
+          <div class="input-group">
+            <label>Código</label>
+            <div style="display:flex;gap:8px;">
+              <select id="cpftar-codigo-tipo" onchange="codigoTipoChanged('cpftar')" style="flex:0 0 130px;">
+                <option value="SKU">SKU</option>
+                <option value="MLB">MLB</option>
+                <option value="ID Anúncio">ID Anúncio</option>
+                <option value="CPF">CPF</option>
+              </select>
+              <div style="flex:1;position:relative;">
+                <span id="cpftar-codigo-mlb-prefix" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:12px;color:var(--text-muted);pointer-events:none;">MLB</span>
+                <input type="text" id="cpftar-codigo-num" oninput="codigoNumInput('cpftar')" placeholder="Número" style="width:100%;box-sizing:border-box;">
+              </div>
+            </div>
+          </div>
+          <div class="input-group">
+            <label style="display:flex;justify-content:space-between;"><span>Considerações</span></label>
+            <div style="display:flex;gap:8px;">
+              <textarea id="cpftar-cons-input" maxlength="250" rows="2" placeholder="Escreva um comentário..." style="flex:1;"></textarea>
+              <button type="button" class="btn btn-sm" onclick="considAdd('cpftar')" style="flex:0 0 auto;align-self:flex-end;">Salvar</button>
+            </div>
+            <div id="cpftar-cons-list"></div>
+          </div>
+          <div class="input-group">
+            <label>Colaborador(es) responsável(is)</label>
+            <div id="cpftar-resp-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group" style="position:relative;">
+              <label>Data de vencimento</label>
+              <input type="hidden" id="cpftar-vencimento">
+              <button type="button" id="cpftar-venc-trigger" onclick="vencOpenCal('cpftar')" style="width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span id="cpftar-venc-label" style="color:var(--text-muted);">Selecionar data</span>
+                <span style="font-size:14px;">📅</span>
+              </button>
+              <div id="cpftar-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:linear-gradient(135deg,rgba(28,31,42,0.99),rgba(15,16,22,0.99));border:1px solid var(--glass-border);border-radius:14px;box-shadow:0 16px 48px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.06);padding:12px;backdrop-filter:blur(20px);"></div>
+            </div>
+            <div class="input-group">
+              <label>Prioridade</label>
+              <div class="atv-prior-select" id="cpftar-prioridade-wrap">
+                <button type="button" class="atv-prior-trigger" id="cpftar-prioridade-trigger" onclick="prioToggleMenu('cpftar')">
+                  <span class="atv-prior-dot gray" id="cpftar-prioridade-dot"></span>
+                  <span id="cpftar-prioridade-label">Normal</span>
+                  <span class="chev">▾</span>
+                </button>
+                <div class="atv-prior-menu" id="cpftar-prioridade-menu" style="display:none;">
+                  <div class="atv-prior-opt" onclick="prioSelect('cpftar','normal')"><span class="atv-prior-dot gray"></span>Normal</div>
+                  <div class="atv-prior-opt" onclick="prioSelect('cpftar','alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
+                  <div class="atv-prior-opt" onclick="prioSelect('cpftar','urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
+                </div>
+                <input type="hidden" id="cpftar-prioridade" value="normal">
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <button class="btn btn-ghost" onclick="limparCpfTarefa()" style="flex:1;">Limpar</button>
+            <button class="btn" onclick="salvarCpfTarefa()" style="flex:1;">Criar Tarefa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ADMIN -->
     <div class="tab-panel" id="tab-admin">
       <div class="section-header">
@@ -3702,7 +3799,10 @@ function buildTabs(){
       {type:'link', key:'finNFs',    label:'Pasta NFs Serviço', url:''},
       {type:'link', key:'finContab', label:'Contabilidade',     url:''}
     ]},
-    {type:'cpf', id:'consultacpf', label:'Consulta CPF'},
+    {type:'group', id:'grp-cpf', icon:'🪪', label:'Consulta CPF', perm:'consultacpf', children:[
+      {id:'consultacpf', label:'CPF Cliente'},
+      {id:'cpf-tarefa',  label:'Gerar Tarefa', panel:'cpftarefa'}
+    ]},
     {type:'group', id:'grp-base', icon:'🗄', label:'Base', perm:'base', children:[
       {type:'link', key:'baseCancelNF', label:'Canceladas com NF', url:'https://panel-u.baselinker.com/orders.php#status:330390'},
       {type:'link', key:'baseTickets',  label:'Tickets',            url:'https://panel-u.baselinker.com/other_help'}
@@ -3748,25 +3848,11 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='conferencias'){ try{renderConferenciasRealizadas();}catch(e){console.warn('renderConferenciasRealizadas:',e);} }
+    if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
     if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
-    if(tb.type==='cpf'){
-      // Consulta CPF como item de Atividades (abre o mesmo modal) — neon roxo, mesmo tamanho dos demais
-      if(!(currentUser.master || (currentUser.perms||[]).includes('consultacpf'))) return;
-      const btn=document.createElement('button');
-      btn.className='tab-btn';
-      btn.id='btn-consulta-cpf';
-      btn.title='Consulta CPF';
-      btn.style.cssText='border:1.5px solid rgba(143,168,216,0.55);border-radius:10px;box-shadow:0 0 14px rgba(143,168,216,0.3),inset 0 1px 0 rgba(255,255,255,0.06);box-sizing:border-box;';
-      btn.innerHTML=`<span class="tab-icon" style="display:inline-flex;align-items:center;justify-content:center;color:#b8ccee;filter:drop-shadow(0 0 5px rgba(143,168,216,0.7));"><svg viewBox="0 0 24 24" fill="currentColor" style="width:15px;height:15px;"><circle cx="6.3" cy="8.1" r="2.3" opacity="0.7"/><path d="M2.2 17c0-2.3 1.8-4.1 4.1-4.1s4.1 1.8 4.1 4.1v.4H2.2z" opacity="0.7"/><circle cx="17.7" cy="8.1" r="2.3" opacity="0.7"/><path d="M13.6 17c0-2.3 1.8-4.1 4.1-4.1s4.1 1.8 4.1 4.1v.4h-8.2z" opacity="0.7"/><circle cx="12" cy="7.3" r="2.9"/><path d="M7.3 17.6c0-2.7 2.1-4.8 4.7-4.8s4.7 2.1 4.7 4.8v.4H7.3z"/></svg></span><span class="tab-label">${tb.label}</span>`;
-      btn.onmouseover=()=>{btn.style.boxShadow='0 0 22px rgba(143,168,216,0.5),inset 0 1px 0 rgba(255,255,255,0.1)';btn.style.borderColor='rgba(143,168,216,0.85)';};
-      btn.onmouseout=()=>{btn.style.boxShadow='0 0 14px rgba(143,168,216,0.3),inset 0 1px 0 rgba(255,255,255,0.06)';btn.style.borderColor='rgba(143,168,216,0.55)';};
-      btn.onclick=()=>openCpfModal();
-      nav.appendChild(btn);
-      return;
-    }
     if(tb.type==='group'){
       const permOk = tb.permAny
         ? (currentUser.master || tb.permAny.some(p=>currentUser.perms.includes(p)))
@@ -7185,13 +7271,20 @@ function _fmtFone(ddd,fone){
   const vis='+55'+num;
   return JSON.stringify({num,vis});
 }
-async function consultarCpf(){
-  const inp=document.getElementById('cpf-consulta-input');
-  const statusEl=document.getElementById('cpf-consulta-status');
-  const resEl=document.getElementById('cpf-consulta-result');
-  const fonesEl=document.getElementById('cpf-consulta-fones');
-  const nomeEl=document.getElementById('cpf-consulta-nome');
-  const btn=document.getElementById('cpf-consulta-btn');
+// Consulta de CPF — os IDs vêm por prefixo para a mesma lógica servir
+// a aba "CPF Cliente" e o modal legado
+function consultarCpfPagina(){ return consultarCpf('cpfpg'); }
+async function consultarCpf(prefixo){
+  const ids = prefixo==='cpfpg'
+    ? {inp:'cpfpg-input',status:'cpfpg-status',res:'cpfpg-result',fones:'cpfpg-fones',nome:'cpfpg-nome',btn:'cpfpg-btn'}
+    : {inp:'cpf-consulta-input',status:'cpf-consulta-status',res:'cpf-consulta-result',fones:'cpf-consulta-fones',nome:'cpf-consulta-nome',btn:'cpf-consulta-btn'};
+  const inp=document.getElementById(ids.inp);
+  const statusEl=document.getElementById(ids.status);
+  const resEl=document.getElementById(ids.res);
+  const fonesEl=document.getElementById(ids.fones);
+  const nomeEl=document.getElementById(ids.nome);
+  const btn=document.getElementById(ids.btn);
+  if(!inp||!statusEl||!resEl||!fonesEl||!nomeEl) return;
   const cpf=(inp.value||'').replace(/\D/g,'');
   if(cpf.length!==11){ statusEl.style.color='var(--red)'; statusEl.textContent='❌ Digite um CPF válido (11 dígitos)'; return; }
   statusEl.style.color='var(--amber)'; statusEl.textContent='⏳ Consultando...';
@@ -12533,6 +12626,76 @@ function openIntegModal(mkt,id){
 }
 function closeIntegModal(){ document.getElementById('integ-modal-overlay').style.display='none'; }
 document.getElementById('integ-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeIntegModal();};
+
+// ── Consulta CPF → Gerar Tarefa ────────────────────────────────────
+// Cria uma tarefa avulsa em Central de Tarefas, com os mesmos campos do
+// formulário de Integração (código, considerações, responsáveis, prazo e
+// prioridade), sem vínculo com marketplace.
+function limparCpfTarefa(){
+  const t=document.getElementById('cpftar-titulo'); if(t) t.value='';
+  const num=document.getElementById('cpftar-codigo-num'); if(num) num.value='';
+  const tipo=document.getElementById('cpftar-codigo-tipo'); if(tipo) tipo.value='SKU';
+  try{ codigoTipoChanged('cpftar'); }catch(e){}
+  const cons=document.getElementById('cpftar-cons-input'); if(cons) cons.value='';
+  try{ considSet('cpftar',[]); }catch(e){}
+  try{ respSetSel('cpftar',[]); }catch(e){}
+  const venc=document.getElementById('cpftar-vencimento'); if(venc) venc.value='';
+  try{ vencSyncDisplay('cpftar'); }catch(e){}
+  try{ prioSelect('cpftar','normal'); }catch(e){}
+}
+
+function initCpfTarefaForm(){
+  try{ respRenderGrid('cpftar'); }catch(e){}
+  try{ considRenderList('cpftar'); }catch(e){}
+  try{ vencSyncDisplay('cpftar'); }catch(e){}
+  try{ codigoTipoChanged('cpftar'); }catch(e){}
+}
+
+function salvarCpfTarefa(){
+  if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
+  const titulo=((document.getElementById('cpftar-titulo')||{}).value||'').trim();
+  if(!titulo){ showToast('Informe o título da tarefa','warn'); return; }
+  const responsaveis=respGetSel('cpftar');
+  if(!responsaveis.length){ showToast('Selecione ao menos um colaborador responsável','warn'); return; }
+  const vencimento=(document.getElementById('cpftar-vencimento')||{}).value||'';
+  if(!vencimento){ showToast('Informe a data de vencimento','warn'); return; }
+
+  const tipoCodigo=(document.getElementById('cpftar-codigo-tipo')||{}).value||'SKU';
+  // codigoGetValue devolve {tipo,valor,exibicao}; o card da tarefa espera texto
+  const codigo=(codigoGetValue('cpftar')||{}).exibicao||'';
+  const consideracoes=considGet('cpftar');
+  const prioridade=(document.getElementById('cpftar-prioridade')||{}).value||'normal';
+
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const id='atv_cpf_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  appState.atividades.push({
+    id, titulo,
+    sku:codigo, skuTipo:tipoCodigo,
+    descricao:consideracoes.map(c=>(c&&c.texto)?c.texto:String(c||'')).join(' | ').slice(0,1000),
+    responsaveis, responsavel:responsaveis[0],
+    vencimento, prioridade, status:'aberta',
+    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoPor:currentUser.name, criadoPorKey:currentUser.key,
+    ordemManual:appState.atividades.length
+  });
+  saveState(appState);
+
+  // Notifica os responsáveis, com link direto para o card
+  responsaveis.forEach(respKey=>{
+    if(respKey===currentUser.key) return;
+    if(db && fbConnected){
+      db.ref('suplelive/notificacoes/'+respKey).push({
+        msg:`📌 Nova tarefa atribuída por ${currentUser.name}: "${titulo}"`,
+        ts:Date.now(), lida:false, tipo:'tarefa', de:currentUser.name,
+        alvoTipo:'tarefa', alvoId:id
+      });
+    }
+  });
+
+  limparCpfTarefa();
+  try{ renderAtividades(); }catch(e){}
+  showToast('✓ Tarefa criada em Central de Tarefas','success');
+}
 
 function saveIntegracao(){
   const editId=document.getElementById('integ-edit-id').value;
