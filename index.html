@@ -4090,9 +4090,8 @@ function renderWpp(){
       txt.style.textDecoration=tk.done?'line-through':'none';if(tk.done)txt.style.color='var(--text-muted)';
       txt.textContent=tk.text;txtw.appendChild(txt);
       if(tk.sub){const sub=document.createElement('div');sub.className='wpp-step-sub';sub.textContent=tk.sub;txtw.appendChild(sub);}
-      const actions=document.createElement('div');actions.className='task-actions';
-      actions.appendChild(makeCompleteBtnWpp(tk,()=>markWppDone(g.id,tk.id),()=>unmarkWppItem(g.id,tk.id)));
-      row.appendChild(txtw);row.appendChild(actions);card.appendChild(row);
+      // Botão "Concluir" removido desta aba (painel de atalhos, sem conclusão)
+      row.appendChild(txtw);card.appendChild(row);
     });
 
     // Itens como cards 3D em grid
@@ -4177,11 +4176,8 @@ function renderWpp(){
           a.style.cssText='display:inline-flex;align-items:center;gap:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.28);border-radius:50px;color:#e8eaf0;font-size:14px;font-weight:600;padding:6px 18px 6px 6px;text-decoration:none;margin-bottom:14px;font-family:var(--font-sans);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08);align-self:center;';
           a.innerHTML=`<span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.14);display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px;box-shadow:inset 0 1px 1px rgba(255,255,255,.2);">${linkIcon}</span>${tk.linkLabel||'Abrir'}`;c.appendChild(a);
         }
-        // Concluir button — preso na base do card (alinha alturas entre cards da linha)
-        const compBtn=makeCompleteBtnWpp(tk,()=>markWppDone(g.id,tk.id),()=>unmarkWppItem(g.id,tk.id));
-        compBtn.style.width='100%';compBtn.style.borderRadius='50px';compBtn.style.justifyContent='center';compBtn.style.marginTop='auto';compBtn.style.boxSizing='border-box';
-        compBtn.style.padding='10px 16px';compBtn.style.fontSize='13px';
-        c.appendChild(compBtn);
+        // Botão "Concluir" removido: esta aba é apenas um painel de atalhos
+        // (links/ações), sem fluxo de conclusão por card.
         grid.appendChild(c);
       });
       card.appendChild(grid);
