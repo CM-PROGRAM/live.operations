@@ -13287,7 +13287,10 @@ function openAtvModal(id){
     const provaUpdInfo=document.getElementById('atv-prova-upd-info');
     const provaUpdThumb=document.getElementById('atv-prova-upd-thumb');
     const provaUpdRemoveBtn=document.getElementById('atv-prova-upd-remove-btn');
-    if(a.provaAtualizacao && provaUpdWrap && provaUpdThumb){
+    // Se for exatamente a mesma imagem do print de conclusão, não repete o bloco
+    // (protege registros gravados antes da correção da duplicidade)
+    const provaUpdDuplicada = !!(a.provaAtualizacao && a.provaAtualizacao===a.provaConclusao);
+    if(a.provaAtualizacao && !provaUpdDuplicada && provaUpdWrap && provaUpdThumb){
       provaUpdWrap.style.display='block';
       if(provaUpdInfo) provaUpdInfo.textContent='Enviado por '+(a.provaAtualizacaoPor||'—')+(a.provaAtualizacaoEm?(' em '+a.provaAtualizacaoEm):'');
       provaUpdThumb.src=a.provaAtualizacao;
@@ -13584,14 +13587,23 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     // Colaborador responsável: só altera "Conferência Colaborador" (devolver/
     // transferir/atribuir para revisão) e comentários — demais campos ficam travados
     : {responsavel,responsaveis};
-  patch = {...patch, ...comentariosPatch(), ...(provaAtualizacaoNova?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
+  // A imagem anexada entra em UM único campo: ao concluir vira o print da
+  // conclusão; nas demais ações, o print da última atualização. Gravar nos
+  // dois fazia a mesma imagem aparecer duplicada no card.
+  const ehConclusao = statusFinal==='concluida';
+  patch = {...patch, ...comentariosPatch(),
+    ...((provaAtualizacaoNova && !ehConclusao)?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
 
   if(statusFinal){
     patch.status=statusFinal;
     if(statusFinal==='concluida'){
       patch.concluidoEm=new Date().toLocaleDateString('pt-BR');
       patch.concluidoPor=currentUser.name;
-      if(provaAtualizacaoNova){ patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora; }
+      if(provaAtualizacaoNova){
+        patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora;
+        // Evita manter uma cópia idêntica no print de atualização
+        if(anterior.provaAtualizacao===provaAtualizacaoNova){ patch.provaAtualizacao=''; patch.provaAtualizacaoPor=''; patch.provaAtualizacaoEm=''; }
+      }
     } else if(statusFinal==='andamento'){
       patch.pendencia=(pendenciaTexto||'').trim();
     } else if(statusFinal==='finalizada'){
