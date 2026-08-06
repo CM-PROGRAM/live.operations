@@ -1319,6 +1319,43 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
     </div>
 
+    <!-- EXCLUIR INT. BASE (comporta-se como Integração, com dados próprios) -->
+    <div class="tab-panel" id="tab-excluirintbase">
+      <div class="section-header">
+        <span class="section-title">Excluir Int. Base</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Selecione o marketplace para solicitar a exclusão do anúncio na Base.</div>
+      <div id="exint-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;"></div>
+      <div class="section-header" style="margin-top:8px;cursor:pointer;user-select:none;" onclick="toggleSolicPanel('exint')">
+        <span class="section-title" style="font-size:14px;">Solicitações</span>
+        <span id="exint-solic-chevron" style="margin-left:8px;font-size:12px;color:var(--text-muted);transition:transform .15s;transform:rotate(0deg);display:inline-block;">▾</span>
+      </div>
+      <div id="exint-solic-body">
+        <div style="margin:6px 0 14px;">
+          <input id="exint-search" type="text" placeholder="🔎 Buscar solicitação (plataforma, SKU, MLB, produto, solicitante)..." oninput="renderExcluirIntBase()"
+            style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+              <span id="exint-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="exint-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="exint-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+              <span id="exint-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="exint-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="exint-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- IMAGENS -->
     <div class="tab-panel" id="tab-imagens">
       <div class="section-header">
@@ -2433,6 +2470,7 @@ function defaultState(){
     atividades:[],
     projetos:[],
     integracoes:[],
+    excluirIntBase:[],
     imagensReq:[],
     entradas:[],
     extLinks:{},
@@ -2519,6 +2557,7 @@ function loadLocal(){
     if(!s.cnpjMkt || typeof s.cnpjMkt!=='object') s.cnpjMkt={};
     if(!Array.isArray(s.projetos)) s.projetos=[];
     if(!Array.isArray(s.integracoes)) s.integracoes=[];
+    if(!Array.isArray(s.excluirIntBase)) s.excluirIntBase=[];
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
@@ -2793,7 +2832,7 @@ const LOG_VALORES={
 };
 // Ruído interno — nunca entra no histórico
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','tarefaAutoCriada','alertaPrazoEnviado',
-  'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemImgId','origemAteId',
+  'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemImgId','origemAteId',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -3097,6 +3136,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.atividades)) data.atividades = [];
   if(!Array.isArray(data.projetos)) data.projetos = [];
   if(!Array.isArray(data.integracoes)) data.integracoes = [];
+  if(!Array.isArray(data.excluirIntBase)) data.excluirIntBase = [];
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
@@ -3795,6 +3835,7 @@ function buildTabs(){
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
       {id:'entrada',    label:'Entrada'},
       {id:'integracao', label:'Integração'},
+      {id:'excluirintbase', label:'Excluir Int. Base'},
       {id:'imagens',    label:'Imagens'},
       {id:'relatorio',  label:'Relatório'}
     ]},
@@ -3828,6 +3869,7 @@ function buildTabs(){
     if(id==='plataformas'){ try{renderMktLinks();}catch(e){console.warn('renderMktLinks:',e);} }
     if(id==='entrada'){ try{renderEntradas();}catch(e){console.warn('renderEntradas:',e);} }
     if(id==='integracao'){ try{renderIntegracoes();}catch(e){console.warn('renderIntegracoes:',e);} }
+    if(id==='excluirintbase'){ try{renderExcluirIntBase();}catch(e){console.warn('renderExcluirIntBase:',e);} }
     if(id==='imagens'){ try{renderImagens();}catch(e){console.warn('renderImagens:',e);} }
     if(id==='relatorio'){ try{renderRelatorioAnuncios();}catch(e){console.warn('renderRelatorioAnuncios:',e);} }
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
@@ -6734,13 +6776,15 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
 }
 
 // Cria automaticamente uma tarefa em Tarefas Diárias a partir de uma solicitação de Integração
-function criarTarefaAutoIntegracao(item){
+// (ou de Exclusão da Base — o contexto define o prefixo do id, o título e a chave de origem)
+function criarTarefaAutoIntegracao(item,ctx){
   if(!item) return;
+  ctx = ctx || INTEG_CTX.integracao;
   if(!appState.atividades) appState.atividades=[];
   appState.atividades.push({
-    id:'atv_integ_'+item.id,
-    titulo:'Integração',
-    origemIntegId:item.id,
+    id:ctx.autoPrefix+item.id,
+    titulo:ctx.tarefaTitulo,
+    [ctx.origemKey]:item.id,
     prioridade:item.prioridade||'normal',
     vencimento:new Date().toISOString().slice(0,10),
     responsavel:(item.responsaveis&&item.responsaveis[0])||'',
@@ -6769,10 +6813,12 @@ function _padronizarCoresUsuarios(state){
 function reconcileAutoTasks(state){
   if(!state || !Array.isArray(state.atividades)) return state;
   const integIds = new Set((state.integracoes||[]).map(x=>x&&x.id).filter(Boolean));
+  const exIntIds = new Set((state.excluirIntBase||[]).map(x=>x&&x.id).filter(Boolean));
   const imgIds   = new Set((state.imagensReq||[]).map(x=>x&&x.id).filter(Boolean));
   const ateIds   = new Set(((state.tasks&&state.tasks.atendimentos)||[]).map(x=>x&&x.id).filter(Boolean));
   state.atividades = state.atividades.filter(a=>{
     if(a && a.origemIntegId) return integIds.has(a.origemIntegId);
+    if(a && a.origemExIntId) return exIntIds.has(a.origemExIntId);
     if(a && a.origemImgId)   return imgIds.has(a.origemImgId);
     if(a && a.origemAteId)   return ateIds.has(a.origemAteId);
     return true; // tarefas manuais (sem origem) nunca são removidas aqui
@@ -11756,6 +11802,9 @@ function renderAtividades(){
     if(a.origemIntegId){
       const it=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId);
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
+    } else if(a.origemExIntId){
+      const it=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId);
+      if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
     } else if(a.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId);
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
@@ -11911,6 +11960,15 @@ function atvMoveStatus(id,novoStatus,provaBase64){
         try{ renderIntegracoes(); }catch(e){}
       } else if(it){ confRegistrarIntegracaoConcluida(it); }
     }
+    if(!eraConcluida && a.origemExIntId){
+      const it=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId);
+      if(it && it.status!=='concluida'){
+        it.status='concluida';
+        it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+        it.concluidoPor=currentUser.name;
+        try{ renderExcluirIntBase(); }catch(e){}
+      }
+    }
     if(!eraConcluida && a.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId);
       if(it && it.status!=='concluida'){
@@ -11952,6 +12010,7 @@ function deleteAtividade(id){
   // Se a tarefa veio de uma Integração/Imagem, remove também a solicitação de
   // origem para que a exclusão reflita em Integrações/Imagens para todos.
   if(a && a.origemIntegId) appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==a.origemIntegId);
+  if(a && a.origemExIntId) appState.excluirIntBase=(appState.excluirIntBase||[]).filter(x=>x.id!==a.origemExIntId);
   if(a && a.origemImgId)   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==a.origemImgId);
   saveState(appState);
   renderAtividades();
@@ -12633,16 +12692,43 @@ function _mktAbrirCamposComuns(prefix,item){
 }
 
 // ── Integração ───────────────────────────────────────────
-function openIntegModal(mkt,id){
-  if(!Array.isArray(appState.integracoes)) appState.integracoes=[];
-  const item = id ? appState.integracoes.find(x=>x.id===id) : null;
+// Contexto do modal de solicitação (compartilhado entre Integração e
+// Excluir Int. Base). Cada contexto tem seu próprio array de dados, mas o
+// modal, os campos e a lógica de salvar/excluir são os mesmos.
+const INTEG_CTX = {
+  integracao: {
+    getArr:()=>(Array.isArray(appState.integracoes)?appState.integracoes:(appState.integracoes=[])),
+    setArr:(a)=>{ appState.integracoes=a; },
+    idPrefix:'integ_', tituloNovo:'Solicitar Integração', toastNovo:'Integração solicitada',
+    render:()=>{try{renderIntegracoes();}catch(e){}},
+    origemKey:'origemIntegId', autoPrefix:'atv_integ_', tarefaTitulo:'Integração',
+    notifTipo:'integracao', notifLabel:'Integração', conf:true,
+    confirmDel:'Excluir esta solicitação de integração?'
+  },
+  excluirintbase: {
+    getArr:()=>(Array.isArray(appState.excluirIntBase)?appState.excluirIntBase:(appState.excluirIntBase=[])),
+    setArr:(a)=>{ appState.excluirIntBase=a; },
+    idPrefix:'exint_', tituloNovo:'Solicitar Exclusão da Base', toastNovo:'Exclusão solicitada',
+    render:()=>{try{renderExcluirIntBase();}catch(e){}},
+    origemKey:'origemExIntId', autoPrefix:'atv_exint_', tarefaTitulo:'Excluir Int. Base',
+    notifTipo:'excluirintbase', notifLabel:'Exclusão da Base', conf:false,
+    confirmDel:'Excluir esta solicitação de exclusão?'
+  }
+};
+let _integCtx='integracao';
+function _ictx(){ return INTEG_CTX[_integCtx]||INTEG_CTX.integracao; }
+
+function openIntegModal(mkt,id,ctx){
+  _integCtx = (ctx && INTEG_CTX[ctx]) ? ctx : 'integracao';
+  const arr=_ictx().getArr();
+  const item = id ? arr.find(x=>x.id===id) : null;
   const marketplace = item ? item.marketplace : mkt.name;
   document.getElementById('integ-edit-id').value = id||'';
   document.getElementById('integ-mkt-value').value = marketplace;
   document.getElementById('integ-mkt-tipo').value = item ? item.tipo : mkt.tipo;
   document.getElementById('integ-mkt-label').textContent = marketplace;
   _renderVariacaoField('integ-variacao-field','integ-variacao',marketplace, item?item.variacao:'');
-  document.getElementById('integ-modal-title').textContent = item ? 'Editar Solicitação' : 'Solicitar Integração';
+  document.getElementById('integ-modal-title').textContent = item ? 'Editar Solicitação' : _ictx().tituloNovo;
   _mktAbrirCamposComuns('integ',item);
   const statusField=document.getElementById('integ-status-field');
   const delWrap=document.getElementById('integ-delete-wrap');
@@ -12721,6 +12807,8 @@ function salvarCpfTarefa(){
 }
 
 function saveIntegracao(){
+  const ctx=_ictx();
+  const arr=ctx.getArr();
   const editId=document.getElementById('integ-edit-id').value;
   const marketplace=document.getElementById('integ-mkt-value').value;
   const variacao=(MKT_VARIACOES[marketplace]) ? (document.getElementById('integ-variacao').value||'') : '';
@@ -12729,10 +12817,9 @@ function saveIntegracao(){
   const responsaveis=respGetSel('integ');
   const vencimento=(document.getElementById('integ-vencimento')||{}).value||'';
   const prioridade=(document.getElementById('integ-prioridade')||{}).value||'normal';
-  if(!Array.isArray(appState.integracoes)) appState.integracoes=[];
 
   if(!editId){
-    const dup=_mktCheckDuplicado(appState.integracoes,marketplace,variacao,codigo);
+    const dup=_mktCheckDuplicado(arr,marketplace,variacao,codigo);
     if(dup){
       if(!confirm('Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
       if(consideracoes.length===0){ showToast('Inclua um comentário em Considerações para continuar','warn'); return; }
@@ -12741,39 +12828,45 @@ function saveIntegracao(){
   const derivados=_mktCodigoDerivados(codigo);
 
   if(editId){
-    const idx=appState.integracoes.findIndex(x=>x.id===editId);
+    const idx=arr.findIndex(x=>x.id===editId);
     if(idx>-1){
-      const anterior=appState.integracoes[idx];
+      const anterior=arr[idx];
       const novoStatus=document.getElementById('integ-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
-      appState.integracoes[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
+      arr[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
         ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
-      if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.integracoes[idx],'Integração','integracao'); confRegistrarIntegracaoConcluida(appState.integracoes[idx]); }
+      if(statusMudouParaConcluido){
+        notifyCriadorConcluida(arr[idx],ctx.notifLabel,ctx.notifTipo);
+        if(ctx.conf) confRegistrarIntegracaoConcluida(arr[idx]);
+      }
     }
     showToast('Solicitação atualizada','success');
   } else {
     const novoItem={
-      id:'integ_'+Date.now(),marketplace,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:'aberta',
+      id:ctx.idPrefix+Date.now(),marketplace,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:'aberta',
       criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
       ordemManual:Date.now()
     };
-    appState.integracoes.push(novoItem);
-    criarTarefaAutoIntegracao(novoItem);
-    showToast('Integração solicitada','success');
+    arr.push(novoItem);
+    criarTarefaAutoIntegracao(novoItem,ctx);
+    showToast(ctx.toastNovo,'success');
   }
   saveState(appState);
   closeIntegModal();
-  renderIntegracoes();
+  ctx.render();
+  try{ renderAtividades(); }catch(e){}
 }
 
 function deleteIntegracao(id){
-  const item=(appState.integracoes||[]).find(x=>x.id===id);
+  const ctx=_ictx();
+  const arr=ctx.getArr();
+  const item=arr.find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
-  if(!confirm('Excluir esta solicitação de integração?')) return;
-  appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==id);
-  saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_integ_<id>)
+  if(!confirm(ctx.confirmDel)) return;
+  ctx.setArr(arr.filter(x=>x.id!==id));
+  saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (autoPrefix+<id>)
   closeIntegModal();
-  renderIntegracoes();
+  ctx.render();
   try{ renderAtividades(); }catch(e){}
   showToast('Solicitação excluída','success');
 }
@@ -12832,6 +12925,44 @@ function renderIntegracoes(){
   const cntC=document.getElementById('integ-count-conc'); if(cntC) cntC.textContent=nC;
   const emA=document.getElementById('integ-empty-afazer'); if(emA) emA.style.display=nA===0?'block':'none';
   const emC=document.getElementById('integ-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
+}
+
+// ── Excluir Int. Base ─────────────────────────────────────
+// Espelha Integração, mas com dados próprios (appState.excluirIntBase) para que
+// as solicitações de exclusão não se misturem com as de integração.
+function renderExcluirIntBase(){
+  _renderMktGrid('exint-grid', m=>openIntegModal(m,null,'excluirintbase'), false, false);
+  if(!Array.isArray(appState.excluirIntBase)) appState.excluirIntBase=[];
+  const listA=document.getElementById('exint-list-afazer');
+  const listC=document.getElementById('exint-list-conc');
+  if(!listA||!listC) return;
+  listA.innerHTML=''; listC.innerHTML='';
+  const q=((document.getElementById('exint-search')||{}).value||'').toLowerCase().trim();
+  const items=appState.excluirIntBase.slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+  let nA=0,nC=0;
+  items.forEach(it=>{
+    if(q){
+      const hay=[it.variacao,it.marketplace,it.sku,it.mlb,it.codigoValor,it.criadoPor].map(x=>(x||'').toString().toLowerCase()).join(' ');
+      if(!hay.includes(q)) return;
+    }
+    const card=document.createElement('div');
+    card.style.cssText='background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
+    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
+    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onclick=()=>openIntegModal({name:it.marketplace,tipo:it.tipo},it.id,'excluirintbase');
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
+        <span style="font-size:13.5px;font-weight:800;color:#f1f3f9;">${it.variacao||it.marketplace}</span>
+        ${_statusBadgeHtml(it.status)}
+      </div>
+      <div style="font-size:11px;color:#9aa1b0;">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelLabel(it)}</div>
+      <div style="font-size:9.5px;color:#7d8494;margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
+    if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
+  });
+  const cntA=document.getElementById('exint-count-afazer'); if(cntA) cntA.textContent=nA;
+  const cntC=document.getElementById('exint-count-conc'); if(cntC) cntC.textContent=nC;
+  const emA=document.getElementById('exint-empty-afazer'); if(emA) emA.style.display=nA===0?'block':'none';
+  const emC=document.getElementById('exint-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
 }
 
 // ── Entrada ───────────────────────────────────────────────
@@ -13235,9 +13366,9 @@ function openAtvModal(id){
     let _idVal=a.sku||'';
     _atvMktpRestrict=null;
     let _atvMktSel=a.marketplace||'';
-    if(a.origemIntegId||a.origemImgId){
-      const _srcList=a.origemIntegId?(appState.integracoes||[]):(appState.imagensReq||[]);
-      const _src=_srcList.find(x=>x.id===(a.origemIntegId||a.origemImgId));
+    if(a.origemIntegId||a.origemExIntId||a.origemImgId){
+      const _srcList=a.origemIntegId?(appState.integracoes||[]):(a.origemExIntId?(appState.excluirIntBase||[]):(appState.imagensReq||[]));
+      const _src=_srcList.find(x=>x.id===(a.origemIntegId||a.origemExIntId||a.origemImgId));
       if(_src){
         const _k=integToAtvMkt(_src);
         if(_k){ _atvMktpRestrict=[_k]; if(!_atvMktSel) _atvMktSel=_k; }
@@ -13652,6 +13783,13 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
         confRegistrarIntegracaoConcluida(it);
         try{ renderIntegracoes(); }catch(e){}
       } else if(it){ confRegistrarIntegracaoConcluida(it); }
+    }
+    if(anterior.origemExIntId){
+      const it=(appState.excluirIntBase||[]).find(x=>x.id===anterior.origemExIntId);
+      if(it && it.status!=='concluida'){
+        it.status='concluida'; it.concluidoEm=new Date().toLocaleDateString('pt-BR'); it.concluidoPor=currentUser.name;
+        try{ renderExcluirIntBase(); }catch(e){}
+      }
     }
     if(anterior.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===anterior.origemImgId);
