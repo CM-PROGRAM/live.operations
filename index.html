@@ -1483,7 +1483,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div style="width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:13px;">🏢</div>
           <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">CNPJs &amp; CONTAS POR PLATAFORMA</span>
-          <span style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">6</span>
+          <span id="cnpj-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
         </div>
         <div style="overflow-x:auto;overflow-y:auto;max-height:70vh;">
           <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1620px;table-layout:fixed;">
@@ -5647,6 +5647,8 @@ const CNPJ_DATA = [
   {id:'r2', empresa:'4VITA SUPLEMENTOS', cnpj:'05.112.201/0002-85', conta:'FILIAL 01', local:'VIX'},
   {id:'r6', empresa:'4VITA SUPLEMENTOS', cnpj:'05.112.201/0003-66', conta:'FILIAL 02', local:'SP'},
   {id:'r7', empresa:'4VITA SUPLEMENTOS', cnpj:'05.112.201/0004-47', conta:'FILIAL 03', local:'VIX'},
+  {id:'r8', empresa:'SUPLEVIX',          cnpj:'08.662.083/0001-96', conta:'MATRIZ',    local:'VIX'},
+  {id:'r9', empresa:'SUPLEVIX',          cnpj:'08.662.083/0002-77', conta:'FILIAL',    local:'VIX'},
 ];
 
 function _cnpjHexA(hex,a){
@@ -5727,6 +5729,8 @@ function cnpjSetStatus(rowId, key, status){
 function renderCnpjTable(){
   const tbody = document.getElementById('cnpj-tbody');
   if(!tbody) return;
+  const badge=document.getElementById('cnpj-count-badge');
+  if(badge) badge.textContent=CNPJ_DATA.length;
   _ensureCnpjMkt();
   tbody.innerHTML = CNPJ_DATA.map(r=>`
     <tr style="border-bottom:1px solid var(--border);" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
