@@ -6762,7 +6762,7 @@ function criarTarefaAutoIntegracao(item,ctx){
   if(!item) return;
   ctx = ctx || INTEG_CTX.integracao;
   if(!appState.atividades) appState.atividades=[];
-  appState.atividades.push({
+  const novaTarefa={
     id:ctx.autoPrefix+item.id,
     titulo:ctx.tarefaTitulo,
     [ctx.origemKey]:item.id,
@@ -6774,7 +6774,10 @@ function criarTarefaAutoIntegracao(item,ctx){
     criadoPor:item.criadoPor||currentUser.name,
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
-  });
+  };
+  appState.atividades.push(novaTarefa);
+  // Avisa quem ficou responsável pela nova tarefa
+  notifyResponsaveisAtribuido({...novaTarefa,titulo:ctx.tarefaTitulo+' · '+_notifDescricaoItem(item)},'tarefa','tarefa');
 }
 
 // Cores padrão das letras dos avatares por usuário. O quadro/círculo do avatar
@@ -6811,7 +6814,7 @@ function reconcileAutoTasks(state){
 function criarTarefaAutoImagem(item){
   if(!item) return;
   if(!appState.atividades) appState.atividades=[];
-  appState.atividades.push({
+  const novaTarefa={
     id:'atv_img_'+item.id,
     titulo:'Imagem',
     origemImgId:item.id,
@@ -6823,7 +6826,10 @@ function criarTarefaAutoImagem(item){
     criadoPor:item.criadoPor||currentUser.name,
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
-  });
+  };
+  appState.atividades.push(novaTarefa);
+  // Avisa quem ficou responsável pela nova tarefa
+  notifyResponsaveisAtribuido({...novaTarefa,titulo:'Imagem · '+_notifDescricaoItem(item)},'tarefa','tarefa');
 }
 
 function openDevModal(id){
@@ -11897,14 +11903,59 @@ function renderAtividades(){
   if(empty) empty.style.display=total===0?'block':'none';
 }
 
-// Notifica o criador de uma tarefa/projeto quando ela é concluída por outro usuário
+// Descrição curta de um item para usar no texto da notificação. Tarefas/projetos
+// têm "titulo"; solicitações (Integração, Exclusão, Entrada, Imagens) não têm —
+// nesses casos monta "Marketplace · SKU/MLB: valor" para o texto fazer sentido.
+function _notifDescricaoItem(item){
+  if(!item) return '';
+  if(item.titulo) return item.titulo;
+  const partes=[];
+  if(item.variacao||item.marketplace) partes.push(item.variacao||item.marketplace);
+  const cod=item.codigoValor||item.mlb||item.sku||item.nome;
+  if(cod) partes.push((item.codigoTipo||(item.tipo==='ml'?'MLB':'SKU'))+': '+cod);
+  return partes.join(' · ')||'solicitação';
+}
+
+// Envia uma notificação para um usuário (sino + push), ignorando o próprio autor
+function _notifEnviar(destKey,msg,tipo,alvoTipo,alvoId){
+  if(!destKey || !currentUser || destKey===currentUser.key) return;
+  if(!(db && fbConnected)) return;
+  db.ref('suplelive/notificacoes/'+destKey).push({
+    msg, ts:Date.now(), lida:false, tipo:tipo||'tarefa', de:currentUser.name,
+    alvoTipo:alvoTipo||tipo||'tarefa', alvoId:alvoId||''
+  });
+}
+
+// Notifica os responsáveis de que algo foi atribuído a eles
+function notifyResponsaveisAtribuido(item,tipoLabel,tipo,alvoTipo){
+  if(!item || !currentUser) return;
+  let keys=getAtvResponsaveis(item);
+  if(!keys.length && item.responsavel) keys=[item.responsavel];
+  if(!keys.length) return;
+  const desc=_notifDescricaoItem(item);
+  const venc=item.vencimento
+    ? ' · Vence '+new Date(item.vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})
+    : '';
+  const prio={urgente:' · 🔴 Urgente',alta:' · 🟡 Alta'}[item.prioridade]||'';
+  const msg=`📌 Nova ${tipoLabel} atribuída a você por ${currentUser.name}: "${desc}"${venc}${prio}`;
+  [...new Set(keys)].forEach(k=>_notifEnviar(k,msg,tipo,alvoTipo||tipo,item.id));
+}
+
+// Ao editar, avisa apenas quem passou a ser responsável agora (evita re-notificar
+// quem já estava na solicitação)
+function notifyNovosResponsaveis(anterior,novo,tipoLabel,tipo){
+  if(!novo) return;
+  const antes=new Set(getAtvResponsaveis(anterior||{}));
+  const novos=getAtvResponsaveis(novo).filter(k=>!antes.has(k));
+  if(!novos.length) return;
+  notifyResponsaveisAtribuido({...novo,responsaveis:novos,responsavel:novos[0]},tipoLabel,tipo);
+}
+
+// Notifica o criador de uma tarefa/projeto/solicitação quando ela é concluída por outro usuário
 function notifyCriadorConcluida(item,tipoLabel,tipo){
-  if(!item || !item.criadoPorKey || item.criadoPorKey===currentUser.key) return;
-  const msg=`✅ ${tipoLabel} concluída por ${currentUser.name}: "${item.titulo}"`;
-  if(db && fbConnected){
-    db.ref('suplelive/notificacoes/'+item.criadoPorKey).push({msg,ts:Date.now(),lida:false,tipo:tipo||'tarefa',de:currentUser.name,
-      alvoTipo:(tipo||'tarefa'), alvoId:item.id});
-  }
+  if(!item || !item.criadoPorKey) return;
+  const msg=`✅ ${tipoLabel} concluída por ${currentUser.name}: "${_notifDescricaoItem(item)}"`;
+  _notifEnviar(item.criadoPorKey,msg,tipo||'tarefa',tipo||'tarefa',item.id);
 }
 
 function atvMoveStatus(id,novoStatus,provaBase64){
@@ -12819,6 +12870,7 @@ function saveIntegracao(){
         notifyCriadorConcluida(arr[idx],ctx.notifLabel,ctx.notifTipo);
         if(ctx.conf) confRegistrarIntegracaoConcluida(arr[idx]);
       }
+      notifyNovosResponsaveis(anterior,arr[idx],'solicitação de '+ctx.notifLabel,ctx.notifTipo);
     }
     showToast('Solicitação atualizada','success');
   } else {
@@ -13003,6 +13055,7 @@ function saveEntradaReq(){
       appState.entradas[idx]={...anterior,...derivados,produto,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
         ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.entradas[idx],'Entrada','entrada'); }
+      notifyNovosResponsaveis(anterior,appState.entradas[idx],'solicitação de Entrada','entrada');
     }
     showToast('Solicitação atualizada','success');
   } else {
@@ -13012,6 +13065,7 @@ function saveEntradaReq(){
       ordemManual:Date.now()
     };
     appState.entradas.push(novoItem);
+    notifyResponsaveisAtribuido(novoItem,'solicitação de Entrada','entrada');
     showToast('Entrada solicitada','success');
   }
   saveState(appState);
@@ -13120,6 +13174,7 @@ function saveImagemReq(){
       appState.imagensReq[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
         ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.imagensReq[idx],'Imagens','imagens'); confRegistrarImagemConcluida(appState.imagensReq[idx]); }
+      notifyNovosResponsaveis(anterior,appState.imagensReq[idx],'solicitação de Imagens','imagens');
     }
     showToast('Solicitação atualizada','success');
   } else {
@@ -13859,10 +13914,14 @@ document.getElementById('atv-modal-overlay').onclick=e=>{if(e.target===e.current
 // SISTEMA DE NOTIFICAÇÕES
 // ═══════════════════════════════════════════════════════
 let _notifRef = null;
+// Guarda as notificações já exibidas como push, para não repetir o mesmo alerta
+// a cada atualização do Firebase (o listener dispara em qualquer mudança)
+let _notifPushExibidas = null;
 
 function initNotifListener(){
   if(!db || !fbConnected || !currentUser) return;
   _notifRef = db.ref('suplelive/notificacoes/'+currentUser.key);
+  _notifPushExibidas = null;
   _notifRef.on('value', snap=>{
     const data = snap.val()||{};
     const todas = Object.entries(data).map(([k,v])=>({fbKey:k,...v})).sort((a,b)=>b.ts-a.ts);
@@ -13873,13 +13932,31 @@ function initNotifListener(){
       badge.style.display = naoLidas.length ? 'block' : 'none';
       badge.textContent = naoLidas.length > 9 ? '9+' : naoLidas.length;
     }
-    // Notificação push para novas mensagens não lidas
-    naoLidas.slice(0,1).forEach(n=>{
-      pushNotify('Nova tarefa atribuída', n.msg);
-    });
+    // Push das novas não lidas. Na 1ª carga apenas registra o que já existia,
+    // para não disparar um alerta de tudo que estava acumulado ao entrar.
+    if(_notifPushExibidas===null){
+      _notifPushExibidas=new Set(naoLidas.map(n=>n.fbKey));
+    } else {
+      naoLidas.filter(n=>!_notifPushExibidas.has(n.fbKey)).reverse().forEach(n=>{
+        _notifPushExibidas.add(n.fbKey);
+        pushNotify(_notifPushTitulo(n), n.msg);
+      });
+    }
     // Renderizar lista
     renderNotifList(todas);
   });
+}
+
+// Título do alerta push conforme o tipo de aviso
+function _notifPushTitulo(n){
+  const m=(n&&n.msg)||'';
+  if(m.startsWith('✅')) return 'Tarefa concluída';
+  if(m.startsWith('📌')) return 'Nova tarefa atribuída';
+  if(m.startsWith('💬')) return 'Novo comentário';
+  if(m.startsWith('🔁')) return 'Tarefa transferida';
+  if(m.startsWith('🏁')) return 'Tarefa finalizada';
+  if(m.startsWith('🚨')||m.startsWith('⚠️')) return 'Atenção';
+  return 'LiveOps';
 }
 
 function renderNotifList(lista){
