@@ -1319,12 +1319,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
     </div>
 
-    <!-- EXCLUIR INT. BASE (comporta-se como Integração, com dados próprios) -->
+    <!-- EXCLUSÃO INTEGRAÇÃO (comporta-se como Integração, com dados próprios) -->
     <div class="tab-panel" id="tab-excluirintbase">
       <div class="section-header">
-        <span class="section-title">Excluir Int. Base</span>
+        <span class="section-title">Exclusão Integração</span>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Selecione o marketplace para solicitar a exclusão do anúncio na Base.</div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Selecione o marketplace para solicitar a exclusão da integração do anúncio.</div>
       <div id="exint-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;"></div>
       <div class="section-header" style="margin-top:8px;cursor:pointer;user-select:none;" onclick="toggleSolicPanel('exint')">
         <span class="section-title" style="font-size:14px;">Solicitações</span>
@@ -3835,7 +3835,7 @@ function buildTabs(){
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
       {id:'entrada',    label:'Entrada'},
       {id:'integracao', label:'Integração'},
-      {id:'excluirintbase', label:'Excluir Int. Base'},
+      {id:'excluirintbase', label:'Exclusão Integração'},
       {id:'imagens',    label:'Imagens'},
       {id:'relatorio',  label:'Relatório'}
     ]},
@@ -6776,7 +6776,7 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
 }
 
 // Cria automaticamente uma tarefa em Tarefas Diárias a partir de uma solicitação de Integração
-// (ou de Exclusão da Base — o contexto define o prefixo do id, o título e a chave de origem)
+// (ou de Exclusão Integração — o contexto define o prefixo do id, o título e a chave de origem)
 function criarTarefaAutoIntegracao(item,ctx){
   if(!item) return;
   ctx = ctx || INTEG_CTX.integracao;
@@ -12693,7 +12693,7 @@ function _mktAbrirCamposComuns(prefix,item){
 
 // ── Integração ───────────────────────────────────────────
 // Contexto do modal de solicitação (compartilhado entre Integração e
-// Excluir Int. Base). Cada contexto tem seu próprio array de dados, mas o
+// Exclusão Integração). Cada contexto tem seu próprio array de dados, mas o
 // modal, os campos e a lógica de salvar/excluir são os mesmos.
 const INTEG_CTX = {
   integracao: {
@@ -12708,10 +12708,10 @@ const INTEG_CTX = {
   excluirintbase: {
     getArr:()=>(Array.isArray(appState.excluirIntBase)?appState.excluirIntBase:(appState.excluirIntBase=[])),
     setArr:(a)=>{ appState.excluirIntBase=a; },
-    idPrefix:'exint_', tituloNovo:'Solicitar Exclusão da Base', toastNovo:'Exclusão solicitada',
+    idPrefix:'exint_', tituloNovo:'Solicitar Exclusão', toastNovo:'Exclusão solicitada',
     render:()=>{try{renderExcluirIntBase();}catch(e){}},
-    origemKey:'origemExIntId', autoPrefix:'atv_exint_', tarefaTitulo:'Excluir Int. Base',
-    notifTipo:'excluirintbase', notifLabel:'Exclusão da Base', conf:false,
+    origemKey:'origemExIntId', autoPrefix:'atv_exint_', tarefaTitulo:'Exclusão Integração',
+    notifTipo:'excluirintbase', notifLabel:'Exclusão Integração', conf:false,
     confirmDel:'Excluir esta solicitação de exclusão?'
   }
 };
@@ -12927,7 +12927,7 @@ function renderIntegracoes(){
   const emC=document.getElementById('integ-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
 }
 
-// ── Excluir Int. Base ─────────────────────────────────────
+// ── Exclusão Integração ───────────────────────────────────
 // Espelha Integração, mas com dados próprios (appState.excluirIntBase) para que
 // as solicitações de exclusão não se misturem com as de integração.
 function renderExcluirIntBase(){
