@@ -1658,6 +1658,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="saude-resumo" style="margin-bottom:12px;"></div>
         <div id="saude-detalhe" style="margin-bottom:14px;"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="btn" id="btn-backup" onclick="baixarBackupCompleto()" style="width:auto;">
+            💾 Baixar backup (.zip)
+          </button>
           <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
             🛠 1. Desconectar todos
           </button>
@@ -2829,6 +2832,187 @@ function diagnosticarEstado(){
               '(' + (total?Math.round(totalImagens/total*100):0) + '% do total)');
   Object.entries(porGrupo).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log('  ',k,mb(v)));
   return {totalBytes:total, imagensBytes:totalImagens, qtdImagens:qtd, porGrupo};
+}
+
+// ── BACKUP (.zip) ────────────────────────────────────────────
+// Monta um .zip no próprio navegador, sem biblioteca externa. As imagens
+// já são JPEG, então entram sem recompactar (método "store").
+const _crcTabela=(()=>{ const t=new Uint32Array(256);
+  for(let i=0;i<256;i++){ let c=i; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[i]=c>>>0; }
+  return t; })();
+function _crc32(bytes){
+  let c=0xFFFFFFFF;
+  for(let i=0;i<bytes.length;i++) c=_crcTabela[(c^bytes[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+function _zipCriar(arquivos){
+  const enc=new TextEncoder();
+  const partes=[], centrais=[];
+  let offset=0, total=0;
+  arquivos.forEach(f=>{
+    const nome=enc.encode(f.nome), dados=f.bytes, crc=_crc32(dados), tam=dados.length;
+    const lh=new Uint8Array(30+nome.length), dv=new DataView(lh.buffer);
+    dv.setUint32(0,0x04034b50,true); dv.setUint16(4,20,true);
+    dv.setUint16(6,0x0800,true); // nomes em UTF-8
+    dv.setUint16(8,0,true); dv.setUint16(10,0,true); dv.setUint16(12,0,true);
+    dv.setUint32(14,crc,true); dv.setUint32(18,tam,true); dv.setUint32(22,tam,true);
+    dv.setUint16(26,nome.length,true); dv.setUint16(28,0,true);
+    lh.set(nome,30);
+    partes.push(lh,dados);
+
+    const ch=new Uint8Array(46+nome.length), dc=new DataView(ch.buffer);
+    dc.setUint32(0,0x02014b50,true); dc.setUint16(4,20,true); dc.setUint16(6,20,true);
+    dc.setUint16(8,0x0800,true); dc.setUint16(10,0,true);
+    dc.setUint16(12,0,true); dc.setUint16(14,0,true);
+    dc.setUint32(16,crc,true); dc.setUint32(20,tam,true); dc.setUint32(24,tam,true);
+    dc.setUint16(28,nome.length,true); dc.setUint16(30,0,true); dc.setUint16(32,0,true);
+    dc.setUint16(34,0,true); dc.setUint16(36,0,true); dc.setUint32(38,0,true);
+    dc.setUint32(42,offset,true);
+    ch.set(nome,46);
+    centrais.push(ch);
+    offset += lh.length+tam; total++;
+  });
+  const cdInicio=offset;
+  let cdTam=0; centrais.forEach(c=>cdTam+=c.length);
+  const fim=new Uint8Array(22), df=new DataView(fim.buffer);
+  df.setUint32(0,0x06054b50,true); df.setUint16(4,0,true); df.setUint16(6,0,true);
+  df.setUint16(8,total,true); df.setUint16(10,total,true);
+  df.setUint32(12,cdTam,true); df.setUint32(16,cdInicio,true); df.setUint16(20,0,true);
+  return new Blob([...partes,...centrais,fim],{type:'application/zip'});
+}
+
+// Converte "data:image/jpeg;base64,..." em bytes + extensão
+function _dataUrlParaBytes(dataUrl){
+  const m=/^data:([^;]+);base64,(.*)$/.exec(dataUrl||'');
+  if(!m) return null;
+  const bin=atob(m[2]), arr=new Uint8Array(bin.length);
+  for(let i=0;i<bin.length;i++) arr[i]=bin.charCodeAt(i);
+  const ext=(m[1].split('/')[1]||'jpg').replace('jpeg','jpg');
+  return {bytes:arr, ext};
+}
+
+// Deixa o texto seguro para nome de arquivo, sem acentos nem barras
+function _nomeSeguro(txt,max){
+  return String(txt||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/[^A-Za-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,max||40) || 'sem-info';
+}
+function _dataArquivo(txt){
+  const s=String(txt||'');
+  const br=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(s);      // 11/08/2026
+  if(br) return br[3]+'-'+br[2]+'-'+br[1];
+  const iso=/^(\d{4}-\d{2}-\d{2})/.exec(s);            // 2026-08-11
+  if(iso) return iso[1];
+  return 'sem-data';
+}
+
+// Percorre o estado e devolve as imagens já com nome legível e o índice
+function _coletarImagensParaBackup(){
+  const itens=[], usados={};
+  const nomeUnico=n=>{ usados[n]=(usados[n]||0)+1; return usados[n]>1 ? n.replace(/(\.\w+)$/,'-'+usados[n]+'$1') : n; };
+  const add=(pasta,partes,dataUrl,meta)=>{
+    const info=_dataUrlParaBytes(dataUrl); if(!info) return;
+    const nome=nomeUnico(pasta+'/'+partes.filter(Boolean).map(p=>_nomeSeguro(p)).join('__')+'.'+info.ext);
+    itens.push({nome, bytes:info.bytes, meta:{...meta, arquivo:nome, tamanhoKB:Math.round(info.bytes.length/1024)}});
+  };
+
+  (appState.atividades||[]).forEach(a=>{
+    const codigo=a.codigoValor||a.sku||a.mlb||'';
+    const base=[_dataArquivo(a.concluidoEm||a.criadoEm), a.titulo, codigo];
+    if(a.provaConclusao)  add('tarefas',[...base,'conclusao'],a.provaConclusao,
+      {area:'Tarefa', id:a.id, identificacao:[a.titulo,codigo].filter(Boolean).join(' · '), campo:'Print de conclusão',
+       data:a.concluidoEm||a.criadoEm||'', responsavel:_mktResponsavelLabel(a)});
+    if(a.provaAtualizacao) add('tarefas',[...base,'atualizacao'],a.provaAtualizacao,
+      {area:'Tarefa', id:a.id, identificacao:[a.titulo,codigo].filter(Boolean).join(' · '), campo:'Print de atualização',
+       data:a.concluidoEm||a.criadoEm||'', responsavel:_mktResponsavelLabel(a)});
+  });
+
+  ((appState.tasks||{}).devolucoes||[]).forEach(d=>{
+    (d.fotos||[]).forEach((src,i)=>add('devolucoes',
+      [_dataArquivo(d.data), d.plataforma, d.cliente, d.nped?('ped-'+d.nped):'', 'foto'+(i+1)], src,
+      {area:'Devolução', id:d.id, identificacao:[d.plataforma,d.cliente,d.nped].filter(Boolean).join(' · '),
+       campo:'Foto '+(i+1), data:d.data||'', responsavel:d.criadoPor||''}));
+  });
+
+  ((appState.tasks||{}).atendimentos||[]).forEach(t=>{
+    (t.fotos||[]).forEach((src,i)=>add('atendimentos',
+      [_dataArquivo(t.prazo), t.plataforma, t.cliente, 'foto'+(i+1)], src,
+      {area:'Atendimento', id:t.id, identificacao:[t.plataforma,t.cliente,t.natend].filter(Boolean).join(' · '),
+       campo:'Foto '+(i+1), data:t.prazo||'', responsavel:t.criadoPor||''}));
+    (t.comentarios||[]).forEach((c,ci)=>(c&&c.fotos||[]).forEach((src,i)=>add('atendimentos',
+      [_dataArquivo(c.em||t.prazo), t.plataforma, t.cliente, 'coment'+(ci+1)+'-foto'+(i+1)], src,
+      {area:'Atendimento', id:t.id, identificacao:[t.plataforma,t.cliente].filter(Boolean).join(' · '),
+       campo:'Comentário '+(ci+1)+' · foto '+(i+1), data:c.em||t.prazo||'', responsavel:c.autor||''})));
+  });
+
+  return itens;
+}
+
+function baixarBackupCompleto(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode baixar o backup','warn'); return; }
+  const btn=document.getElementById('btn-backup');
+  if(btn){ btn.disabled=true; btn.textContent='Preparando backup…'; }
+  setTimeout(()=>{
+    try{
+      const enc=new TextEncoder();
+      const imagens=_coletarImagensParaBackup();
+      const arquivos=imagens.map(i=>({nome:i.nome, bytes:i.bytes}));
+
+      // Índice em CSV — abre no Excel e diz de onde veio cada imagem
+      const esc=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+      const csv=['Arquivo;Area;Identificacao;Campo;Data;Responsavel;Registro;TamanhoKB']
+        .concat(imagens.map(i=>[i.meta.arquivo,i.meta.area,i.meta.identificacao,i.meta.campo,
+          i.meta.data,i.meta.responsavel,i.meta.id,i.meta.tamanhoKB].map(esc).join(';')));
+      arquivos.push({nome:'INDICE-DAS-IMAGENS.csv', bytes:enc.encode('﻿'+csv.join('\r\n'))});
+
+      // Dados completos, com as imagens trocadas pelo nome do arquivo no zip
+      const dados=JSON.parse(JSON.stringify(appState));
+      _percorrerImagensDoEstado(dados,(obj,chave)=>{ obj[chave]='[imagem no zip]'; });
+      arquivos.push({nome:'dados.json', bytes:enc.encode(JSON.stringify(dados,null,2))});
+      arquivos.push({nome:'dados-completo-com-imagens.json', bytes:enc.encode(JSON.stringify(appState))});
+
+      arquivos.push({nome:'LEIA-ME.txt', bytes:enc.encode(
+`BACKUP DO SISTEMA — ${new Date().toLocaleString('pt-BR')}
+Gerado por: ${currentUser.name}
+
+O QUE TEM AQUI
+  tarefas/       Prints de conclusão e de atualização das tarefas
+  devolucoes/    Fotos das devoluções
+  atendimentos/  Fotos dos atendimentos e dos comentários
+
+  INDICE-DAS-IMAGENS.csv   Planilha dizendo de qual registro veio cada imagem
+  dados.json               Todos os dados, sem as imagens (leitura fácil)
+  dados-completo-com-imagens.json   Cópia integral, para restaurar se precisar
+
+COMO O NOME DAS IMAGENS É FORMADO
+  data__identificacao__tipo.jpg
+
+  tarefas/2026-08-11__Integracao__MLB4056190643__conclusao.jpg
+    = print de conclusão da tarefa de Integração do MLB4056190643, em 11/08/2026
+
+  devolucoes/2026-08-11__SHOPEE__MARIA-SILVA__ped-12345__foto1.jpg
+    = 1ª foto da devolução da Maria Silva, pedido 12345, Shopee, em 11/08/2026
+
+Para achar uma imagem específica, abra o INDICE-DAS-IMAGENS.csv e filtre
+pela data, pelo cliente ou pelo código do anúncio.
+
+Total de imagens neste backup: ${imagens.length}
+`)});
+
+      const blob=_zipCriar(arquivos);
+      const url=URL.createObjectURL(blob);
+      const hoje=new Date().toISOString().slice(0,10);
+      const a=document.createElement('a');
+      a.href=url; a.download=`backup-liveops-${hoje}.zip`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+      showToast(`✓ Backup gerado: ${imagens.length} imagem(ns) · ${(blob.size/1048576).toFixed(1)} MB`,'success');
+    }catch(e){
+      console.error('[backup]',e);
+      showToast('Falha ao gerar o backup: '+e.message,'error');
+    }finally{
+      if(btn){ btn.disabled=false; btn.textContent='💾 Baixar backup (.zip)'; }
+    }
+  },50);
 }
 
 // Mostra o peso dos dados no painel de Adm. Master, sem precisar de console
