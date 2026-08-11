@@ -1645,6 +1645,26 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="master-badge">MASTER ONLY</span>
       </div>
 
+      <!-- MANUTENÇÃO — peso dos dados enviados à nuvem -->
+      <div class="admin-panel" id="manutencao-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">🩺 Saúde dos Dados</div>
+          <button class="btn btn-sm" onclick="renderSaudeDados()" style="width:auto;">↻ Verificar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
+          Os prints anexados são enviados junto com os dados a cada alteração. Se o total ficar muito alto,
+          a nuvem passa a recusar as gravações e aparece o aviso "Conexão perdida".
+        </div>
+        <div id="saude-resumo" style="margin-bottom:12px;"></div>
+        <div id="saude-detalhe" style="margin-bottom:14px;"></div>
+        <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
+          🗜 Compactar imagens agora
+        </button>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;">
+          Peça para os outros usuários fecharem o sistema antes de compactar, e reabrirem depois.
+        </div>
+      </div>
+
       <!-- AUDITORIA — histórico geral de alterações -->
       <div class="admin-panel" id="auditoria-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -2805,6 +2825,38 @@ function diagnosticarEstado(){
   return {totalBytes:total, imagensBytes:totalImagens, qtdImagens:qtd, porGrupo};
 }
 
+// Mostra o peso dos dados no painel de Adm. Master, sem precisar de console
+function renderSaudeDados(){
+  const resumo=document.getElementById('saude-resumo');
+  const detalhe=document.getElementById('saude-detalhe');
+  if(!resumo) return;
+  let d;
+  try{ d=diagnosticarEstado(); }catch(e){ resumo.innerHTML='<span style="color:var(--red);">Não foi possível medir.</span>'; return; }
+  const mb=d.totalBytes/1048576;
+  const limite=16; // limite de gravação do Firebase Realtime Database
+  const pct=Math.min(100,Math.round(mb/limite*100));
+  const estado = mb>=limite ? {cor:'#ef4444',txt:'CRÍTICO — a nuvem já está recusando gravações'}
+               : mb>=5      ? {cor:'#f59e0b',txt:'ATENÇÃO — perto do limite'}
+                            : {cor:'#22c55e',txt:'OK'};
+  resumo.innerHTML=`
+    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+      <span style="font-size:26px;font-weight:800;color:${estado.cor};font-family:var(--font-mono);">${mb.toFixed(2)} MB</span>
+      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">por gravação · limite ${limite} MB</span>
+    </div>
+    <div style="height:8px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:8px;">
+      <div style="height:100%;width:${pct}%;background:${estado.cor};transition:width .3s;"></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:${estado.cor};font-family:var(--font-mono);">${estado.txt}</div>`;
+  const linhas=Object.entries(d.porGrupo).sort((a,b)=>b[1]-a[1])
+    .map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border-light);">
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">${k}</span>
+        <span style="font-size:11px;color:#e6e9f0;font-family:var(--font-mono);">${(v/1048576).toFixed(2)} MB</span></div>`).join('');
+  detalhe.innerHTML = d.qtdImagens
+    ? `<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">
+         ${d.qtdImagens} imagem(ns) · ${(d.imagensBytes/1048576).toFixed(2)} MB (${d.totalBytes?Math.round(d.imagensBytes/d.totalBytes*100):0}% do total)</div>${linhas}`
+    : '<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma imagem embutida.</div>';
+}
+
 // Recomprime as imagens já gravadas. Uso pontual (apenas master), para
 // encolher um estado que já cresceu demais antes da compressão existir.
 function compactarImagensDoEstado(){
@@ -2822,9 +2874,14 @@ function compactarImagensDoEstado(){
       saveState(appState);
       const msg=`✓ Compactado: ${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`;
       console.log(msg); showToast(msg,'success');
+      try{ renderSaudeDados(); }catch(e){}
+      const btn=document.getElementById('btn-compactar');
+      if(btn){ btn.disabled=false; btn.textContent='🗜 Compactar imagens agora'; }
       return;
     }
     const {obj,chave}=alvos[feitos++];
+    const btn=document.getElementById('btn-compactar');
+    if(btn){ btn.disabled=true; btn.textContent=`Compactando ${feitos}/${alvos.length}…`; }
     comprimirImagemDataUrl(obj[chave], out=>{ obj[chave]=out; setTimeout(proximo,0); });
   };
   proximo();
@@ -3998,7 +4055,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
-    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); }catch(e){ console.warn('admin render:',e); } }
+    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
