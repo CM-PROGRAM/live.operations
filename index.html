@@ -2712,6 +2712,124 @@ function loadLocal(){
   }catch(e){ return defaultState(); }
 }
 
+// ── COMPRESSÃO DE IMAGENS ────────────────────────────────────
+// Todo print anexado vai para dentro do estado, e o estado inteiro é
+// reenviado ao Firebase a cada alteração. Um print de tela cru passa de
+// 3 MB em base64 — poucos deles já deixam cada gravação pesada o bastante
+// para derrubar a conexão ("Conexão perdida — reconectando..."). Aqui a
+// imagem é redimensionada e recodificada em JPEG antes de ser guardada,
+// o que costuma reduzir o tamanho em 10x ou mais sem prejudicar a leitura.
+const IMG_MAX_LADO = 1600;   // maior dimensão, em pixels
+const IMG_QUALIDADE = 0.72;  // qualidade JPEG
+
+function comprimirImagemDataUrl(dataUrl, cb){
+  if(!dataUrl || typeof dataUrl!=='string'){ cb(dataUrl||''); return; }
+  try{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        if(!w || !h){ cb(dataUrl); return; }
+        const escala=Math.min(1, IMG_MAX_LADO/Math.max(w,h));
+        w=Math.max(1,Math.round(w*escala)); h=Math.max(1,Math.round(h*escala));
+        const canvas=document.createElement('canvas');
+        canvas.width=w; canvas.height=h;
+        const ctx=canvas.getContext('2d');
+        // JPEG não tem transparência: pinta o fundo para não sair preto
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        const saida=canvas.toDataURL('image/jpeg',IMG_QUALIDADE);
+        // Só troca se realmente ficou menor (imagens pequenas podem crescer)
+        cb(saida && saida.length < dataUrl.length ? saida : dataUrl);
+      }catch(e){ cb(dataUrl); }
+    };
+    img.onerror=()=>cb(dataUrl);
+    img.src=dataUrl;
+  }catch(e){ cb(dataUrl); }
+}
+
+// Lê um arquivo de imagem já comprimido
+function lerImagemComprimida(arquivo, cb){
+  const reader=new FileReader();
+  reader.onload=e=>comprimirImagemDataUrl(e.target.result, cb);
+  reader.onerror=()=>cb('');
+  reader.readAsDataURL(arquivo);
+}
+
+// Versão em Promise, para os pontos que anexam várias imagens de uma vez
+function lerImagemComprimidaAsync(arquivo){
+  return new Promise(res=>lerImagemComprimida(arquivo,res));
+}
+
+// ── DIAGNÓSTICO / MANUTENÇÃO DO ESTADO ───────────────────────
+// Percorre o estado somando o peso de cada campo de imagem, para saber o
+// que está inflando o blob enviado ao Firebase.
+function _percorrerImagensDoEstado(s, visitar){
+  const campos=['provaConclusao','provaAtualizacao','ultimaFoto'];
+  const emItem=(item,rotulo)=>{
+    if(!item || typeof item!=='object') return;
+    campos.forEach(c=>{ if(typeof item[c]==='string' && item[c].startsWith('data:image')) visitar(item,c,rotulo); });
+    if(Array.isArray(item.fotos)) item.fotos.forEach((f,i)=>{
+      if(typeof f==='string' && f.startsWith('data:image')) visitar(item.fotos,i,rotulo+'.fotos');
+    });
+    if(Array.isArray(item.comentarios)) item.comentarios.forEach(c=>{
+      if(c && Array.isArray(c.fotos)) c.fotos.forEach((f,i)=>{
+        if(typeof f==='string' && f.startsWith('data:image')) visitar(c.fotos,i,rotulo+'.comentarios.fotos');
+      });
+    });
+  };
+  (s.atividades||[]).forEach(a=>emItem(a,'atividades'));
+  (s.projetos||[]).forEach(a=>emItem(a,'projetos'));
+  Object.keys(s.tasks||{}).forEach(k=>{
+    const lista=s.tasks[k];
+    if(Array.isArray(lista)) lista.forEach(a=>emItem(a,'tasks.'+k));
+  });
+}
+
+function diagnosticarEstado(){
+  const s=appState;
+  const total=JSON.stringify(s).length;
+  const porGrupo={};
+  let totalImagens=0, qtd=0;
+  _percorrerImagensDoEstado(s,(obj,chave,rotulo)=>{
+    const tam=String(obj[chave]).length;
+    porGrupo[rotulo]=(porGrupo[rotulo]||0)+tam;
+    totalImagens+=tam; qtd++;
+  });
+  const mb=n=>(n/1048576).toFixed(2)+' MB';
+  console.log('%c[DIAGNÓSTICO DO ESTADO]','font-weight:bold');
+  console.log('Tamanho total enviado ao Firebase a cada alteração:', mb(total));
+  console.log('Imagens embutidas:', qtd, '·', mb(totalImagens),
+              '(' + (total?Math.round(totalImagens/total*100):0) + '% do total)');
+  Object.entries(porGrupo).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log('  ',k,mb(v)));
+  return {totalBytes:total, imagensBytes:totalImagens, qtdImagens:qtd, porGrupo};
+}
+
+// Recomprime as imagens já gravadas. Uso pontual (apenas master), para
+// encolher um estado que já cresceu demais antes da compressão existir.
+function compactarImagensDoEstado(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode compactar','warn'); return; }
+  const alvos=[];
+  _percorrerImagensDoEstado(appState,(obj,chave)=>alvos.push({obj,chave}));
+  if(!alvos.length){ showToast('Nenhuma imagem para compactar','success'); return; }
+  const antes=JSON.stringify(appState).length;
+  if(!confirm(`Compactar ${alvos.length} imagem(ns) já gravada(s)?\n\nO estado hoje ocupa ${(antes/1048576).toFixed(2)} MB e é reenviado inteiro a cada alteração.`)) return;
+  showToast('Compactando imagens… aguarde','warn');
+  let feitos=0;
+  const proximo=()=>{
+    if(feitos>=alvos.length){
+      const depois=JSON.stringify(appState).length;
+      saveState(appState);
+      const msg=`✓ Compactado: ${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`;
+      console.log(msg); showToast(msg,'success');
+      return;
+    }
+    const {obj,chave}=alvos[feitos++];
+    comprimirImagemDataUrl(obj[chave], out=>{ obj[chave]=out; setTimeout(proximo,0); });
+  };
+  proximo();
+}
+
 // Remove campos pesados (fotos em base64) antes de salvar no localStorage.
 // O localStorage tem limite de ~5-10MB por site — fotos em base64 estouram
 // essa cota rapidamente. Essas fotos já são persistidas no Firebase (fonte
@@ -2944,6 +3062,9 @@ function auditarMudancas(novo){
   });
 }
 
+const _FB_ALERTA_BYTES = 3 * 1048576; // 3 MB por gravação já é sinal de alerta
+let _fbAvisoPesoTs = 0;
+
 function saveState(s){
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
@@ -2965,6 +3086,18 @@ function saveState(s){
     }
     payload._version = _localVersion;
     payload._savedBy = _sessionId;
+    // O estado inteiro sobe a cada alteração: se crescer demais (imagens
+    // embutidas), a gravação passa a derrubar a conexão. Avisa antes disso.
+    try{
+      const bytes=JSON.stringify(payload).length;
+      if(bytes>_FB_ALERTA_BYTES && Date.now()-_fbAvisoPesoTs>300000){
+        _fbAvisoPesoTs=Date.now();
+        console.warn('[Firebase] estado grande:',(bytes/1048576).toFixed(2),'MB por gravação — rode diagnosticarEstado()');
+        if(currentUser && currentUser.master){
+          showToast(`⚠ Dados em ${(bytes/1048576).toFixed(1)} MB por gravação — risco de queda de conexão`,'warn');
+        }
+      }
+    }catch(e){}
     db.ref(FB_PATH).set(payload).catch(err => {
       console.error('[Firebase] ERRO AO SALVAR:', err.message);
       showToast('Erro ao sincronizar com a nuvem: '+err.message,'error');
@@ -6652,11 +6785,7 @@ function removeDevFoto(idx){
 function previewDevFotos(input){
   const files=Array.from(input.files||[]);
   if(!files.length) return;
-  const readers=files.map(f=>new Promise(res=>{
-    const reader=new FileReader();
-    reader.onload=e=>res(e.target.result);
-    reader.readAsDataURL(f);
-  }));
+  const readers=files.map(f=>lerImagemComprimidaAsync(f));
   Promise.all(readers).then(results=>{
     _devModalFotos.push(...results);
     renderDevFotosPreview();
@@ -10906,11 +11035,7 @@ let _atePendingFotos=[];
 function previewAteFotos(input){
   const files=Array.from(input.files||[]);
   if(!files.length) return;
-  const readers=files.map(f=>new Promise(res=>{
-    const reader=new FileReader();
-    reader.onload=e=>res(e.target.result);
-    reader.readAsDataURL(f);
-  }));
+  const readers=files.map(f=>lerImagemComprimidaAsync(f));
   Promise.all(readers).then(results=>{
     _atePendingFotos.push(...results);
     renderAteFotosPreview();
@@ -10930,11 +11055,7 @@ function ateColarImagemComentario(ev){
   }
   if(!arquivos.length) return; // colagem de texto segue o comportamento padrão
   ev.preventDefault();
-  const readers=arquivos.map(f=>new Promise(res=>{
-    const reader=new FileReader();
-    reader.onload=e=>res(e.target.result);
-    reader.readAsDataURL(f);
-  }));
+  const readers=arquivos.map(f=>lerImagemComprimidaAsync(f));
   Promise.all(readers).then(results=>{
     _atePendingFotos.push(...results);
     renderAteFotosPreview();
@@ -13603,9 +13724,7 @@ function _atvSetPendingImagem(dataUrl,nomeArquivo){
 function onAtvImagemSelecionada(input){
   const f=input.files&&input.files[0];
   if(!f) return;
-  const reader=new FileReader();
-  reader.onload=e=>_atvSetPendingImagem(e.target.result,f.name);
-  reader.readAsDataURL(f);
+  lerImagemComprimida(f, dataUrl=>_atvSetPendingImagem(dataUrl,f.name));
 }
 
 // Ctrl+V de um print dentro do campo de comentário: anexa a imagem logo
@@ -13620,12 +13739,10 @@ function atvColarImagemComentario(ev){
   }
   if(!arquivo) return; // colagem de texto segue o comportamento padrão
   ev.preventDefault();
-  const reader=new FileReader();
-  reader.onload=e=>{
-    _atvSetPendingImagem(e.target.result,'print-colado.png');
+  lerImagemComprimida(arquivo, dataUrl=>{
+    _atvSetPendingImagem(dataUrl,'print-colado.png');
     showToast('📎 Print anexado ao comentário','success');
-  };
-  reader.readAsDataURL(arquivo);
+  });
 }
 
 function atvRemoverImagemComentario(){
