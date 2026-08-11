@@ -1657,11 +1657,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="saude-resumo" style="margin-bottom:12px;"></div>
         <div id="saude-detalhe" style="margin-bottom:14px;"></div>
-        <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
-          🗜 Compactar imagens agora
-        </button>
-        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;">
-          Peça para os outros usuários fecharem o sistema antes de compactar, e reabrirem depois.
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
+            🛠 1. Desconectar todos
+          </button>
+          <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
+            🗜 2. Compactar imagens agora
+          </button>
+        </div>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
+          Desconecte todos antes de compactar: sessões abertas ainda têm os dados antigos em memória
+          e podem regravá-los por cima. Você continua conectado; os demais entram de novo em seguida.
         </div>
       </div>
 
@@ -2857,6 +2863,27 @@ function renderSaudeDados(){
     : '<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma imagem embutida.</div>';
 }
 
+// Desconecta todos os outros usuários de uma vez. Serve para esvaziar o
+// sistema antes de uma manutenção — sessões abertas continuam com o estado
+// antigo em memória e podem regravá-lo por cima do que foi corrigido.
+function derrubarTodosUsuarios(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode derrubar sessões','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const alvos=Object.keys(appState.users||{}).filter(k=>k!==currentUser.key);
+  if(!alvos.length){ showToast('Não há outros usuários cadastrados','warn'); return; }
+  if(!confirm(`Desconectar ${alvos.length} usuário(s) agora?\n\nCada um verá um aviso e será deslogado em alguns segundos. Você continua conectado.`)) return;
+  const ts=Date.now();
+  let enviados=0;
+  alvos.forEach(k=>{
+    db.ref('suplelive/forceLogout/'+k)
+      .set({ts, reason:'manutencao', por:currentUser.name,
+            msg:'Manutenção do sistema. Aguarde alguns instantes e entre novamente.'})
+      .then(()=>{ enviados++; })
+      .catch(err=>console.warn('[forceLogout]',k,err.message));
+  });
+  showToast(`🛠 Sinal enviado para ${alvos.length} usuário(s)`,'success');
+}
+
 // Recomprime as imagens já gravadas. Uso pontual (apenas master), para
 // encolher um estado que já cresceu demais antes da compressão existir.
 function compactarImagensDoEstado(){
@@ -3499,15 +3526,24 @@ function startFirebaseSync(){
     if(!online) showToast('Conexão perdida — reconectando...','warn');
   });
 
-  // Listener de forceLogout — desconecta este usuário se master alterou suas permissões
-  if(currentUser && !currentUser.master){
+  // Listener de forceLogout — desconecta este usuário quando o master altera
+  // suas permissões ou quando é acionada uma derrubada geral para manutenção
+  if(currentUser){
     db.ref('suplelive/forceLogout/'+currentUser.key).on('value', snap => {
       const data = snap.val();
       if(!data || !currentUser) return;
       // Só reage a sinais mais recentes que o login desta sessão
-      if(data.ts && data.ts > _actLoginTs){
-        // Remove o sinal para não disparar novamente
-        db.ref('suplelive/forceLogout/'+currentUser.key).remove();
+      if(!(data.ts && data.ts > _actLoginTs)) return;
+      const manutencao = data.reason==='manutencao';
+      // Mudança de permissão não derruba master (comportamento de sempre);
+      // já a manutenção derruba todo mundo, menos quem acionou
+      if(!manutencao && currentUser.master) return;
+      // Remove o sinal para não disparar novamente
+      db.ref('suplelive/forceLogout/'+currentUser.key).remove();
+      if(manutencao){
+        showToast('🛠 '+(data.msg||'Manutenção do sistema — você será desconectado.'),'warn');
+        setTimeout(()=>doLogout(), 4000);
+      } else {
         showToast('⚠ Suas permissões foram atualizadas. Reconectando...','warn');
         setTimeout(()=>doLogout(), 2000);
       }
@@ -3904,7 +3940,7 @@ function doLogin(){
 
 function doLogout(){
   // Desanexa listener de forceLogout antes de limpar currentUser
-  if(db && fbConnected && currentUser && !currentUser.master){
+  if(db && fbConnected && currentUser){
     db.ref('suplelive/forceLogout/'+currentUser.key).off('value');
   }
   if(db && currentUser && currentUser.master){
