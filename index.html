@@ -1665,7 +1665,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             🛠 1. Desconectar todos
           </button>
           <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
-            🗜 2. Compactar imagens agora
+            🗜 2. Compactar imagens
+          </button>
+          <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
+            📤 3. Tirar imagens do pacote
           </button>
         </div>
         <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
@@ -2143,7 +2146,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button type="button" id="atv-prova-remove-btn" class="btn-orb v-danger sm" title="Remover print" onclick="atvRemoverProva('conclusao')" style="display:none;width:20px;height:20px;"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
         </label>
         <div id="atv-prova-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;"></div>
-        <img id="atv-prova-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src)">
+        <img id="atv-prova-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src,'print-conclusao',this.dataset.ref)">
       </div>
       <div class="input-group" id="atv-prova-upd-wrap" style="display:none;">
         <label style="display:flex;align-items:center;justify-content:space-between;">
@@ -2151,7 +2154,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button type="button" id="atv-prova-upd-remove-btn" class="btn-orb v-danger sm" title="Remover print" onclick="atvRemoverProva('atualizacao')" style="display:none;width:20px;height:20px;"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
         </label>
         <div id="atv-prova-upd-info" style="font-size:11px;color:var(--text-muted);margin-bottom:6px;"></div>
-        <img id="atv-prova-upd-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src)">
+        <img id="atv-prova-upd-thumb" style="max-width:160px;border-radius:8px;border:1px solid var(--border-light);cursor:pointer;display:none;" onclick="atvVerProva(this.src,'print-atualizacao',this.dataset.ref)">
       </div>
       <div class="input-group" id="atv-imagem-wrap" style="display:none;">
         <label>📎 Anexar Imagem</label>
@@ -2790,20 +2793,114 @@ function lerImagemComprimidaAsync(arquivo){
   return new Promise(res=>lerImagemComprimida(arquivo,res));
 }
 
+// ── ARMAZENAMENTO DE IMAGENS FORA DO PACOTE PRINCIPAL ────────
+// O estado inteiro é reenviado a cada alteração, então imagens grandes
+// dentro dele derrubam a gravação. Aqui a imagem é dividida em duas:
+//   · miniatura  — fica no próprio registro, aparece na hora nos cards
+//   · original   — vai para suplelive/imagens/<chave>, buscada só ao ampliar
+// O campo original (ex.: provaConclusao) passa a guardar a miniatura, de
+// modo que todo o código que já exibia imagem continua funcionando.
+const FB_IMG_PATH='suplelive/imagens';
+const IMG_THUMB_LADO=240;
+const IMG_THUMB_QUALIDADE=0.5;
+const _imgCache={};       // chave -> dataUrl original já baixado
+const _imgCarregando={};  // chave -> Promise em andamento
+
+function imgChave(registroId,campo,indice){
+  return String(registroId||'x').replace(/[.#$/\[\]]/g,'_')
+    + '__' + String(campo||'img').replace(/[.#$/\[\]]/g,'_')
+    + (indice==null?'':('__'+indice));
+}
+
+// Gera a miniatura que fica embutida no registro
+function imgGerarThumb(dataUrl,cb){
+  if(!dataUrl || !dataUrl.startsWith('data:image')){ cb(dataUrl||''); return; }
+  try{
+    const img=new Image();
+    img.onload=()=>{
+      try{
+        let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        if(!w||!h){ cb(dataUrl); return; }
+        const escala=Math.min(1, IMG_THUMB_LADO/Math.max(w,h));
+        w=Math.max(1,Math.round(w*escala)); h=Math.max(1,Math.round(h*escala));
+        const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+        const ctx=cv.getContext('2d');
+        ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        const out=cv.toDataURL('image/jpeg',IMG_THUMB_QUALIDADE);
+        cb(out && out.length<dataUrl.length ? out : dataUrl);
+      }catch(e){ cb(dataUrl); }
+    };
+    img.onerror=()=>cb(dataUrl);
+    img.src=dataUrl;
+  }catch(e){ cb(dataUrl); }
+}
+
+// Grava a imagem original fora do pacote. Devolve a chave, ou '' se não
+// houver conexão — nesse caso o chamador mantém a imagem embutida, para
+// não perder nada enquanto está offline.
+function imgGuardarOriginal(chave,dataUrl){
+  if(!(db && fbConnected) || !dataUrl) return Promise.resolve('');
+  return db.ref(FB_IMG_PATH+'/'+chave).set({d:dataUrl, ts:Date.now()})
+    .then(()=>{ _imgCache[chave]=dataUrl; return chave; })
+    .catch(err=>{ console.warn('[img] falha ao guardar',chave,err.message); return ''; });
+}
+
+// Busca a imagem original (com cache em memória por sessão)
+function imgCarregarOriginal(chave){
+  if(!chave) return Promise.resolve('');
+  if(_imgCache[chave]) return Promise.resolve(_imgCache[chave]);
+  if(_imgCarregando[chave]) return _imgCarregando[chave];
+  if(!(db && fbConnected)) return Promise.resolve('');
+  _imgCarregando[chave]=db.ref(FB_IMG_PATH+'/'+chave).once('value')
+    .then(snap=>{
+      const v=snap.val();
+      const d=(v && (v.d||v))||'';
+      if(d) _imgCache[chave]=d;
+      delete _imgCarregando[chave];
+      return d;
+    })
+    .catch(err=>{ console.warn('[img] falha ao ler',chave,err.message); delete _imgCarregando[chave]; return ''; });
+  return _imgCarregando[chave];
+}
+
+// Remove a original quando o registro é apagado
+function imgApagarOriginal(chave){
+  if(!chave || !(db && fbConnected)) return;
+  delete _imgCache[chave];
+  db.ref(FB_IMG_PATH+'/'+chave).remove().catch(()=>{});
+}
+
+// Prepara uma imagem para gravação: devolve {thumb, chave}. A original vai
+// para fora do pacote; se não der, a própria imagem volta como "thumb"
+// (comportamento antigo), garantindo que nada se perca.
+function imgPreparar(registroId,campo,indice,dataUrl){
+  return new Promise(resolve=>{
+    if(!dataUrl || !dataUrl.startsWith('data:image')){ resolve({thumb:dataUrl||'',chave:''}); return; }
+    const chave=imgChave(registroId,campo,indice);
+    imgGuardarOriginal(chave,dataUrl).then(chaveOk=>{
+      if(!chaveOk){ resolve({thumb:dataUrl,chave:''}); return; } // offline: mantém inteira
+      imgGerarThumb(dataUrl,thumb=>resolve({thumb,chave:chaveOk}));
+    });
+  });
+}
+
 // ── DIAGNÓSTICO / MANUTENÇÃO DO ESTADO ───────────────────────
 // Percorre o estado somando o peso de cada campo de imagem, para saber o
 // que está inflando o blob enviado ao Firebase.
 function _percorrerImagensDoEstado(s, visitar){
   const campos=['provaConclusao','provaAtualizacao','ultimaFoto'];
+  // visitar(recipiente, chave, rotulo, dono, campo, indice) — o "dono" é o
+  // registro que guarda a referência da imagem original
   const emItem=(item,rotulo)=>{
     if(!item || typeof item!=='object') return;
-    campos.forEach(c=>{ if(typeof item[c]==='string' && item[c].startsWith('data:image')) visitar(item,c,rotulo); });
+    campos.forEach(c=>{ if(typeof item[c]==='string' && item[c].startsWith('data:image')) visitar(item,c,rotulo,item,c,null); });
     if(Array.isArray(item.fotos)) item.fotos.forEach((f,i)=>{
-      if(typeof f==='string' && f.startsWith('data:image')) visitar(item.fotos,i,rotulo+'.fotos');
+      if(typeof f==='string' && f.startsWith('data:image')) visitar(item.fotos,i,rotulo+'.fotos',item,'fotos',i);
     });
     if(Array.isArray(item.comentarios)) item.comentarios.forEach(c=>{
       if(c && Array.isArray(c.fotos)) c.fotos.forEach((f,i)=>{
-        if(typeof f==='string' && f.startsWith('data:image')) visitar(c.fotos,i,rotulo+'.comentarios.fotos');
+        if(typeof f==='string' && f.startsWith('data:image')) visitar(c.fotos,i,rotulo+'.comentarios.fotos',c,'fotos',i);
       });
     });
   };
@@ -2909,10 +3006,10 @@ function _dataArquivo(txt){
 function _coletarImagensParaBackup(){
   const itens=[], usados={};
   const nomeUnico=n=>{ usados[n]=(usados[n]||0)+1; return usados[n]>1 ? n.replace(/(\.\w+)$/,'-'+usados[n]+'$1') : n; };
-  const add=(pasta,partes,dataUrl,meta)=>{
+  const add=(pasta,partes,dataUrl,meta,refOriginal)=>{
     const info=_dataUrlParaBytes(dataUrl); if(!info) return;
     const nome=nomeUnico(pasta+'/'+partes.filter(Boolean).map(p=>_nomeSeguro(p)).join('__')+'.'+info.ext);
-    itens.push({nome, bytes:info.bytes, meta:{...meta, arquivo:nome, tamanhoKB:Math.round(info.bytes.length/1024)}});
+    itens.push({nome, bytes:info.bytes, ref:refOriginal||'', meta:{...meta, arquivo:nome, tamanhoKB:Math.round(info.bytes.length/1024)}});
   };
 
   (appState.atividades||[]).forEach(a=>{
@@ -2920,28 +3017,28 @@ function _coletarImagensParaBackup(){
     const base=[_dataArquivo(a.concluidoEm||a.criadoEm), a.titulo, codigo];
     if(a.provaConclusao)  add('tarefas',[...base,'conclusao'],a.provaConclusao,
       {area:'Tarefa', id:a.id, identificacao:[a.titulo,codigo].filter(Boolean).join(' · '), campo:'Print de conclusão',
-       data:a.concluidoEm||a.criadoEm||'', responsavel:_mktResponsavelLabel(a)});
+       data:a.concluidoEm||a.criadoEm||'', responsavel:_mktResponsavelLabel(a)}, a.provaConclusaoRef);
     if(a.provaAtualizacao) add('tarefas',[...base,'atualizacao'],a.provaAtualizacao,
       {area:'Tarefa', id:a.id, identificacao:[a.titulo,codigo].filter(Boolean).join(' · '), campo:'Print de atualização',
-       data:a.concluidoEm||a.criadoEm||'', responsavel:_mktResponsavelLabel(a)});
+       data:a.concluidoEm||a.criadoEm||'', responsavel:_mktResponsavelLabel(a)}, a.provaAtualizacaoRef);
   });
 
   ((appState.tasks||{}).devolucoes||[]).forEach(d=>{
     (d.fotos||[]).forEach((src,i)=>add('devolucoes',
       [_dataArquivo(d.data), d.plataforma, d.cliente, d.nped?('ped-'+d.nped):'', 'foto'+(i+1)], src,
       {area:'Devolução', id:d.id, identificacao:[d.plataforma,d.cliente,d.nped].filter(Boolean).join(' · '),
-       campo:'Foto '+(i+1), data:d.data||'', responsavel:d.criadoPor||''}));
+       campo:'Foto '+(i+1), data:d.data||'', responsavel:d.criadoPor||''}, (d.fotosRef||[])[i]));
   });
 
   ((appState.tasks||{}).atendimentos||[]).forEach(t=>{
     (t.fotos||[]).forEach((src,i)=>add('atendimentos',
       [_dataArquivo(t.prazo), t.plataforma, t.cliente, 'foto'+(i+1)], src,
       {area:'Atendimento', id:t.id, identificacao:[t.plataforma,t.cliente,t.natend].filter(Boolean).join(' · '),
-       campo:'Foto '+(i+1), data:t.prazo||'', responsavel:t.criadoPor||''}));
+       campo:'Foto '+(i+1), data:t.prazo||'', responsavel:t.criadoPor||''}, (t.fotosRef||[])[i]));
     (t.comentarios||[]).forEach((c,ci)=>(c&&c.fotos||[]).forEach((src,i)=>add('atendimentos',
       [_dataArquivo(c.em||t.prazo), t.plataforma, t.cliente, 'coment'+(ci+1)+'-foto'+(i+1)], src,
       {area:'Atendimento', id:t.id, identificacao:[t.plataforma,t.cliente].filter(Boolean).join(' · '),
-       campo:'Comentário '+(ci+1)+' · foto '+(i+1), data:c.em||t.prazo||'', responsavel:c.autor||''})));
+       campo:'Comentário '+(ci+1)+' · foto '+(i+1), data:c.em||t.prazo||'', responsavel:c.autor||''}, (c.fotosRef||[])[i])));
   });
 
   return itens;
@@ -2951,10 +3048,28 @@ function baixarBackupCompleto(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode baixar o backup','warn'); return; }
   const btn=document.getElementById('btn-backup');
   if(btn){ btn.disabled=true; btn.textContent='Preparando backup…'; }
-  setTimeout(()=>{
+  const enc=new TextEncoder();
+  const imagens=_coletarImagensParaBackup();
+
+  // Busca as originais guardadas fora do pacote, para o backup levar a
+  // imagem em tamanho real e não a miniatura
+  const comRef=imagens.filter(i=>i.ref);
+  let baixadas=0;
+  const buscarOriginais=comRef.reduce((fila,item)=>fila.then(()=>{
+    if(btn) btn.textContent=`Buscando imagens ${++baixadas}/${comRef.length}…`;
+    return imgCarregarOriginal(item.ref).then(full=>{
+      const info=full?_dataUrlParaBytes(full):null;
+      if(info){
+        item.bytes=info.bytes;
+        item.meta.tamanhoKB=Math.round(info.bytes.length/1024);
+        if(!item.nome.endsWith('.'+info.ext)) item.nome=item.nome.replace(/\.\w+$/,'.'+info.ext);
+        item.meta.arquivo=item.nome;
+      }
+    });
+  }), Promise.resolve());
+
+  buscarOriginais.then(()=>{
     try{
-      const enc=new TextEncoder();
-      const imagens=_coletarImagensParaBackup();
       const arquivos=imagens.map(i=>({nome:i.nome, bytes:i.bytes}));
 
       // Índice em CSV — abre no Excel e diz de onde veio cada imagem
@@ -3012,7 +3127,7 @@ Total de imagens neste backup: ${imagens.length}
     }finally{
       if(btn){ btn.disabled=false; btn.textContent='💾 Baixar backup (.zip)'; }
     }
-  },50);
+  });
 }
 
 // Mostra o peso dos dados no painel de Adm. Master, sem precisar de console
@@ -3066,6 +3181,59 @@ function derrubarTodosUsuarios(){
       .catch(err=>console.warn('[forceLogout]',k,err.message));
   });
   showToast(`🛠 Sinal enviado para ${alvos.length} usuário(s)`,'success');
+}
+
+// Move as imagens que ainda estão embutidas no pacote para fora dele,
+// deixando no registro apenas a miniatura. É segura de repetir: copia,
+// confere que chegou, e só então substitui pela miniatura.
+function migrarImagensParaFora(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode migrar','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const alvos=[];
+  _percorrerImagensDoEstado(appState,(obj,chave,rotulo,dono,campo,indice)=>{
+    // Já migrada? (tem referência e a imagem é pequena) — pula
+    const refCampo = (indice==null) ? campo+'Ref' : null;
+    if(refCampo && dono && dono[refCampo]) return;
+    if(indice!=null && dono && Array.isArray(dono[campo+'Ref']) && dono[campo+'Ref'][indice]) return;
+    alvos.push({obj,chave,dono,campo,indice});
+  });
+  if(!alvos.length){ showToast('Nenhuma imagem para migrar','success'); return; }
+  const antes=JSON.stringify(appState).length;
+  if(!confirm(`Migrar ${alvos.length} imagem(ns) para fora do pacote?\n\nHoje o sistema envia ${(antes/1048576).toFixed(2)} MB a cada alteração. As imagens continuam disponíveis — apenas deixam de viajar junto o tempo todo.`)) return;
+
+  const btn=document.getElementById('btn-migrar');
+  let feito=0, falhas=0;
+  const proximo=()=>{
+    if(feito>=alvos.length){
+      const depois=JSON.stringify(appState).length;
+      saveState(appState);
+      const msg=falhas
+        ? `Migrado com ${falhas} pendência(s): ${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`
+        : `✓ Migrado: ${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`;
+      console.log(msg); showToast(msg, falhas?'warn':'success');
+      try{ renderSaudeDados(); }catch(e){}
+      if(btn){ btn.disabled=false; btn.textContent='📤 Tirar imagens do pacote'; }
+      return;
+    }
+    const alvo=alvos[feito++];
+    if(btn){ btn.disabled=true; btn.textContent=`Migrando ${feito}/${alvos.length}…`; }
+    const original=alvo.obj[alvo.chave];
+    const idDono=(alvo.dono&&alvo.dono.id)||'reg';
+    const nomeCampo=alvo.campo+(alvo.indice==null?'':('_'+alvo.indice));
+    imgPreparar(idDono,nomeCampo,null,original).then(({thumb,chave})=>{
+      if(chave){
+        // Só troca pela miniatura depois que a original está guardada
+        alvo.obj[alvo.chave]=thumb;
+        if(alvo.indice==null){ alvo.dono[alvo.campo+'Ref']=chave; }
+        else {
+          if(!Array.isArray(alvo.dono[alvo.campo+'Ref'])) alvo.dono[alvo.campo+'Ref']=[];
+          alvo.dono[alvo.campo+'Ref'][alvo.indice]=chave;
+        }
+      } else { falhas++; } // sem conexão: mantém como está, nada se perde
+      setTimeout(proximo,0);
+    });
+  };
+  proximo();
 }
 
 // Recomprime as imagens já gravadas. Uso pontual (apenas master), para
@@ -7019,7 +7187,8 @@ const DEV_MOTIVOS=['Arrependimento','Diferente do anunciado','Danificado','Ender
 
 // Estado das fotos do modal de devolução (permite adicionar E remover
 // fotos individualmente antes de salvar, em vez de só substituir tudo).
-let _devModalFotos=[];
+let _devModalFotos=[];      // miniaturas
+let _devModalFotosRef=[];   // chaves das originais, mesmo índice
 
 function renderDevFotosPreview(){
   const prev=document.getElementById('dev-fotos-preview');
@@ -7033,7 +7202,7 @@ function renderDevFotosPreview(){
     img.title='Clique para ampliar e baixar';
     img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;';
     const nomeBase='devolucao-'+((document.getElementById('dev-cliente')||{}).value||'imagem')+'-'+(i+1);
-    img.onclick=()=>atvVerProva(src,nomeBase);
+    img.onclick=()=>atvVerProva(src,nomeBase,_devModalFotosRef[i]);
     const rm=document.createElement('button');
     rm.type='button';
     rm.textContent='×';
@@ -7044,7 +7213,10 @@ function renderDevFotosPreview(){
     dl.type='button';
     dl.textContent='⬇';
     dl.title='Baixar imagem';
-    dl.onclick=(e)=>{ e.stopPropagation(); baixarImagem(src,nomeBase); };
+    dl.onclick=(e)=>{ e.stopPropagation();
+      const ref=_devModalFotosRef[i];
+      if(ref){ imgCarregarOriginal(ref).then(full=>baixarImagem(full||src,nomeBase)); }
+      else baixarImagem(src,nomeBase); };
     dl.style.cssText='position:absolute;bottom:2px;right:2px;width:19px;height:19px;border-radius:5px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.7);color:#fff;font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
     wrap.appendChild(img);
     wrap.appendChild(rm);
@@ -7054,7 +7226,9 @@ function renderDevFotosPreview(){
 }
 
 function removeDevFoto(idx){
+  imgApagarOriginal(_devModalFotosRef[idx]);
   _devModalFotos.splice(idx,1);
+  _devModalFotosRef.splice(idx,1);
   renderDevFotosPreview();
   showToast('Foto removida','success');
 }
@@ -7062,9 +7236,12 @@ function removeDevFoto(idx){
 function previewDevFotos(input){
   const files=Array.from(input.files||[]);
   if(!files.length) return;
+  const idDev=(document.getElementById('dev-edit-id')||{}).value||'dev_tmp';
   const readers=files.map(f=>lerImagemComprimidaAsync(f));
-  Promise.all(readers).then(results=>{
-    _devModalFotos.push(...results);
+  Promise.all(readers).then(results=>Promise.all(
+      results.map((d,n)=>imgPreparar(idDev,'foto_'+Date.now()+'_'+n,null,d))
+    )).then(preps=>{
+    preps.forEach(pz=>{ _devModalFotos.push(pz.thumb); _devModalFotosRef.push(pz.chave); });
     renderDevFotosPreview();
     showToast(files.length+' imagem(ns) anexada(s)','success');
     input.value=''; // permite re-selecionar o mesmo arquivo depois, se necessário
@@ -7260,14 +7437,15 @@ function openDevModal(id){
       document.getElementById('dev-link-base').value=d.linkBase||'';
       document.getElementById('dev-link-plat').value=d.linkPlat||'';
       _devModalFotos = (d.fotos && d.fotos.length) ? [...d.fotos] : [];
+      _devModalFotosRef = Array.isArray(d.fotosRef) ? [...d.fotosRef] : [];
       renderDevFotosPreview();
     } else {
-      _devModalFotos=[];
+      _devModalFotos=[]; _devModalFotosRef=[];
     }
   } else {
     ['dev-plataforma','dev-motivo','dev-status'].forEach(id=>document.getElementById(id).value='');
     ['dev-cliente','dev-nped','dev-data','dev-link-base','dev-link-plat'].forEach(id=>document.getElementById(id).value='');
-    _devModalFotos=[];
+    _devModalFotos=[]; _devModalFotosRef=[];
   }
 }
 function closeDevModal(){ document.getElementById('dev-modal-overlay').style.display='none'; }
@@ -7305,6 +7483,7 @@ function saveDev(){
       linkBase,
       linkPlat,
       fotos,
+      fotosRef:[..._devModalFotosRef],
       criadoEm:editId?undefined:nowTimeStr(),
       criadoPor:editId?undefined:currentUser.name,
       ordemManual:editId?undefined:Date.now()
@@ -7589,7 +7768,8 @@ function buildDevCardFull(d, isConcluida){
       img.loading='lazy';
       img.title='Clique para ampliar';
       img.style.cssText='width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--glass-border);cursor:pointer;transition:transform .15s;';
-      img.onclick=(e)=>{ e.stopPropagation(); atvVerProva(src,nomeBase+'-'+(i+1)); };
+      const refFoto=(d.fotosRef||[])[i]||'';
+      img.onclick=(e)=>{ e.stopPropagation(); atvVerProva(src,nomeBase+'-'+(i+1),refFoto); };
       const dl=document.createElement('button');
       dl.type='button';
       dl.title='Baixar imagem';
@@ -11273,7 +11453,10 @@ function renderAteComentarioHistorico(lista){
   if(!lista.length){ wrap.style.display='none'; wrap.innerHTML=''; return; }
   wrap.style.display='flex';
   wrap.innerHTML=lista.map(c=>{
-    const fotosHtml=(c.fotos||[]).map(src=>`<img src="${src}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${src.replace(/'/g,"\\'")}')">`).join('');
+    const fotosHtml=(c.fotos||[]).map((src,fi)=>{
+      const ref=String((c.fotosRef||[])[fi]||'').replace(/'/g,"\\'");
+      return `<img src="${src}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${src.replace(/'/g,"\\'")}','print-atendimento','${ref}')">`;
+    }).join('');
     return `<div>
       <div style="font-size:13px;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;">${String(c.texto||'').replace(/</g,'&lt;')}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:3px;">${c.autor||'—'}${c.em?(' · '+c.em):''}</div>
@@ -11300,7 +11483,7 @@ function ateResetComentario(){
   if(btn) btn.style.display='block';
   const ta=document.getElementById('ate-ultima-desc'); if(ta) ta.value='';
   const cnt=document.getElementById('ate-ultima-desc-count'); if(cnt) cnt.textContent='500 restantes';
-  _atePendingFotos=[];
+  _atePendingFotos=[]; _atePendingFotosRef=[];
   const fotoInp=document.getElementById('ate-foto'); if(fotoInp) fotoInp.value='';
   renderAteFotosPreview();
 }
@@ -11308,13 +11491,17 @@ function ateResetComentario(){
 // Imagens anexadas à tratativa de hoje — permite mais de uma (vários
 // retornos no mesmo dia). Só podem ser removidas ANTES de salvar; uma vez
 // salvas no histórico, ficam definitivas.
-let _atePendingFotos=[];
+function _ateIdAtual(){ return (document.getElementById('ate-edit-id')||{}).value||'ate_tmp'; }
+let _atePendingFotos=[];      // miniaturas
+let _atePendingFotosRef=[];   // chaves das originais, mesmo índice
 function previewAteFotos(input){
   const files=Array.from(input.files||[]);
   if(!files.length) return;
   const readers=files.map(f=>lerImagemComprimidaAsync(f));
-  Promise.all(readers).then(results=>{
-    _atePendingFotos.push(...results);
+  Promise.all(readers).then(results=>Promise.all(
+      results.map((d,n)=>imgPreparar(_ateIdAtual(),'foto_'+Date.now()+'_'+n,null,d))
+    )).then(preps=>{
+    preps.forEach(pz=>{ _atePendingFotos.push(pz.thumb); _atePendingFotosRef.push(pz.chave); });
     renderAteFotosPreview();
     showToast(files.length+' imagem(ns) anexada(s)','success');
     input.value='';
@@ -11333,8 +11520,10 @@ function ateColarImagemComentario(ev){
   if(!arquivos.length) return; // colagem de texto segue o comportamento padrão
   ev.preventDefault();
   const readers=arquivos.map(f=>lerImagemComprimidaAsync(f));
-  Promise.all(readers).then(results=>{
-    _atePendingFotos.push(...results);
+  Promise.all(readers).then(results=>Promise.all(
+      results.map((d,n)=>imgPreparar(_ateIdAtual(),'foto_'+Date.now()+'_'+n,null,d))
+    )).then(preps=>{
+    preps.forEach(pz=>{ _atePendingFotos.push(pz.thumb); _atePendingFotosRef.push(pz.chave); });
     renderAteFotosPreview();
     showToast('📎 Print anexado ao comentário','success');
   });
@@ -11349,7 +11538,7 @@ function renderAteFotosPreview(){
     const img=document.createElement('img');
     img.src=src;
     img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;';
-    img.onclick=()=>atvVerProva(src);
+    img.onclick=()=>atvVerProva(src,'print-atendimento',_atePendingFotosRef[i]);
     const rm=document.createElement('button');
     rm.type='button';
     rm.textContent='×';
@@ -11362,7 +11551,9 @@ function renderAteFotosPreview(){
   });
 }
 function removeAteFoto(idx){
+  imgApagarOriginal(_atePendingFotosRef[idx]);
   _atePendingFotos.splice(idx,1);
+  _atePendingFotosRef.splice(idx,1);
   renderAteFotosPreview();
   showToast('Imagem removida','success');
 }
@@ -11403,7 +11594,7 @@ function saveAte(){
     showToast('Anexe ao menos uma imagem da tratativa feita hoje para salvar','error');return;
   }
   const comentarios = descMudou
-    ? [{texto:novoComentarioTexto,autor:currentUser.name,em:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),fotos:[..._atePendingFotos]}, ...comentariosAnteriores]
+    ? [{texto:novoComentarioTexto,autor:currentUser.name,em:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),fotos:[..._atePendingFotos],fotosRef:[..._atePendingFotosRef]}, ...comentariosAnteriores]
     : comentariosAnteriores;
   const rec={
     id:editId||('ate_'+Date.now()),
@@ -11444,7 +11635,7 @@ function saveAte(){
   } else {
     appState.tasks.atendimentos.push(rec);
   }
-  _atePendingFotos=[];
+  _atePendingFotos=[]; _atePendingFotosRef=[];
   saveState(appState);closeAteModal();
   try{renderAte();}catch(e){console.warn('renderAte error:',e);}
   setTimeout(()=>{try{renderAteStats();}catch(e){}},80);
@@ -13865,6 +14056,7 @@ function openAtvModal(id){
       provaWrap.style.display='block';
       if(provaInfo) provaInfo.textContent='Enviado por '+(a.provaConclusaoPor||a.concluidoPor||'—')+(a.provaConclusaoEm?(' em '+a.provaConclusaoEm):'');
       provaThumb.src=a.provaConclusao;
+      provaThumb.dataset.ref=a.provaConclusaoRef||'';
       provaThumb.style.display='block';
       if(provaRemoveBtn) provaRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
     } else if(provaWrap){ provaWrap.style.display='none'; if(provaThumb) provaThumb.style.display='none'; }
@@ -13881,6 +14073,7 @@ function openAtvModal(id){
       provaUpdWrap.style.display='block';
       if(provaUpdInfo) provaUpdInfo.textContent='Enviado por '+(a.provaAtualizacaoPor||'—')+(a.provaAtualizacaoEm?(' em '+a.provaAtualizacaoEm):'');
       provaUpdThumb.src=a.provaAtualizacao;
+      provaUpdThumb.dataset.ref=a.provaAtualizacaoRef||'';
       provaUpdThumb.style.display='block';
       if(provaUpdRemoveBtn) provaUpdRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
     } else if(provaUpdWrap){ provaUpdWrap.style.display='none'; if(provaUpdThumb) provaUpdThumb.style.display='none'; }
@@ -13977,12 +14170,23 @@ function closeAtvModal(){
 // Imagem anexada inline no card (não é mais uma tela separada obrigatória
 // no momento de salvar) — fica pendente até a ação de Concluir/Pendente ser
 // clicada, quando é persistida junto com os demais campos.
-let _atvPendingImagem='';
+let _atvPendingImagem='';       // miniatura — é o que fica no registro
+let _atvPendingImagemChave='';  // chave da imagem original, fora do pacote
+
+// Anexa uma imagem: a original sobe na hora para fora do pacote e só a
+// miniatura fica pendente, para que a gravação da tarefa continue leve
+function _atvAnexarImagem(dataUrl,nomeArquivo){
+  const idTarefa=(document.getElementById('atv-edit-id')||{}).value||'atv_tmp';
+  imgPreparar(idTarefa,'prova_'+Date.now(),null,dataUrl).then(({thumb,chave})=>{
+    _atvSetPendingImagem(thumb,nomeArquivo,chave);
+  });
+}
 
 // Ponto único que registra a imagem pendente e sincroniza os dois previews
 // (o do botão "Anexar Imagem" e o do print colado no comentário)
-function _atvSetPendingImagem(dataUrl,nomeArquivo){
+function _atvSetPendingImagem(dataUrl,nomeArquivo,chave){
   _atvPendingImagem=String(dataUrl||'');
+  _atvPendingImagemChave=chave||'';
   const nameEl=document.getElementById('atv-imagem-nome');
   if(nameEl) nameEl.textContent=_atvPendingImagem?(nomeArquivo||'Imagem anexada'):'Selecionar imagem…';
   const prev=document.getElementById('atv-imagem-preview');
@@ -14001,7 +14205,7 @@ function _atvSetPendingImagem(dataUrl,nomeArquivo){
 function onAtvImagemSelecionada(input){
   const f=input.files&&input.files[0];
   if(!f) return;
-  lerImagemComprimida(f, dataUrl=>_atvSetPendingImagem(dataUrl,f.name));
+  lerImagemComprimida(f, dataUrl=>_atvAnexarImagem(dataUrl,f.name));
 }
 
 // Ctrl+V de um print dentro do campo de comentário: anexa a imagem logo
@@ -14017,7 +14221,7 @@ function atvColarImagemComentario(ev){
   if(!arquivo) return; // colagem de texto segue o comportamento padrão
   ev.preventDefault();
   lerImagemComprimida(arquivo, dataUrl=>{
-    _atvSetPendingImagem(dataUrl,'print-colado.png');
+    _atvAnexarImagem(dataUrl,'print-colado.png');
     showToast('📎 Print anexado ao comentário','success');
   });
 }
@@ -14046,9 +14250,11 @@ function baixarImagem(src,nomeBase){
   }catch(e){ window.open(src,'_blank','noopener'); }
 }
 
-// Visualizador de imagem em tela cheia, com opção de baixar
-function atvVerProva(src,nomeBase){
-  if(!src) return;
+// Visualizador de imagem em tela cheia, com opção de baixar.
+// "chaveOriginal" aponta para a imagem em tamanho real guardada fora do
+// pacote; enquanto ela chega, a miniatura é exibida no lugar.
+function atvVerProva(src,nomeBase,chaveOriginal){
+  if(!src && !chaveOriginal) return;
   const antigo=document.getElementById('img-viewer-overlay');
   if(antigo) antigo.remove();
   const ov=document.createElement('div');
@@ -14057,9 +14263,24 @@ function atvVerProva(src,nomeBase){
   ov.onclick=(e)=>{ if(e.target===ov) ov.remove(); };
 
   const img=document.createElement('img');
-  img.src=src;
+  img.src=src||'';
   img.style.cssText='max-width:92vw;max-height:78vh;object-fit:contain;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.6);';
   ov.appendChild(img);
+
+  // Enquanto a original não chega, mostra a miniatura com um aviso discreto
+  let srcAtual=src||'';
+  const aviso=document.createElement('div');
+  aviso.style.cssText='font-size:11px;color:#c7cde0;font-family:var(--font-mono);';
+  if(chaveOriginal && !_imgCache[chaveOriginal]){
+    aviso.textContent='Carregando imagem em tamanho real…';
+    ov.appendChild(aviso);
+  }
+  if(chaveOriginal){
+    imgCarregarOriginal(chaveOriginal).then(full=>{
+      if(full && document.body.contains(ov)){ img.src=full; srcAtual=full; }
+      aviso.remove();
+    });
+  }
 
   const barra=document.createElement('div');
   barra.style.cssText='display:flex;gap:10px;align-items:center;';
@@ -14067,7 +14288,7 @@ function atvVerProva(src,nomeBase){
   btnBaixar.className='btn btn-sm';
   btnBaixar.style.width='auto';
   btnBaixar.textContent='⬇ Baixar imagem';
-  btnBaixar.onclick=(e)=>{ e.stopPropagation(); baixarImagem(src,nomeBase); };
+  btnBaixar.onclick=(e)=>{ e.stopPropagation(); baixarImagem(srcAtual,nomeBase); };
   const btnFechar=document.createElement('button');
   btnFechar.className='btn btn-ghost btn-sm';
   btnFechar.style.width='auto';
@@ -14090,8 +14311,13 @@ function atvRemoverProva(tipo){
   const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
   if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
   if(!confirm('Remover este print? Será necessário anexar uma nova imagem para concluir novamente.')) return;
-  if(tipo==='conclusao'){ a.provaConclusao=''; a.provaConclusaoPor=''; a.provaConclusaoEm=''; }
-  else { a.provaAtualizacao=''; a.provaAtualizacaoPor=''; a.provaAtualizacaoEm=''; }
+  if(tipo==='conclusao'){
+    imgApagarOriginal(a.provaConclusaoRef);
+    a.provaConclusao=''; a.provaConclusaoRef=''; a.provaConclusaoPor=''; a.provaConclusaoEm='';
+  } else {
+    imgApagarOriginal(a.provaAtualizacaoRef);
+    a.provaAtualizacao=''; a.provaAtualizacaoRef=''; a.provaAtualizacaoPor=''; a.provaAtualizacaoEm='';
+  }
   saveState(appState);
   showToast('Print removido','success');
   openAtvModal(id);
@@ -14157,6 +14383,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   // Imagem anexada inline (obrigatória apenas para Concluir — verificado
   // antes de chamar esta função)
   const provaAtualizacaoNova = _atvPendingImagem || '';
+  const provaNovaChave = _atvPendingImagemChave || '';
   const agora=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const provaAtualizacaoPor = provaAtualizacaoNova ? currentUser.name : '';
   const provaAtualizacaoEm = provaAtualizacaoNova ? agora : '';
@@ -14175,7 +14402,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   // dois fazia a mesma imagem aparecer duplicada no card.
   const ehConclusao = statusFinal==='concluida';
   patch = {...patch, ...comentariosPatch(),
-    ...((provaAtualizacaoNova && !ehConclusao)?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
+    ...((provaAtualizacaoNova && !ehConclusao)?{provaAtualizacao:provaAtualizacaoNova,provaAtualizacaoRef:provaNovaChave,provaAtualizacaoPor,provaAtualizacaoEm}:{})};
 
   if(statusFinal){
     patch.status=statusFinal;
@@ -14183,9 +14410,10 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
       patch.concluidoEm=new Date().toLocaleDateString('pt-BR');
       patch.concluidoPor=currentUser.name;
       if(provaAtualizacaoNova){
-        patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora;
+        patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoRef=provaNovaChave;
+        patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora;
         // Evita manter uma cópia idêntica no print de atualização
-        if(anterior.provaAtualizacao===provaAtualizacaoNova){ patch.provaAtualizacao=''; patch.provaAtualizacaoPor=''; patch.provaAtualizacaoEm=''; }
+        if(anterior.provaAtualizacao===provaAtualizacaoNova){ patch.provaAtualizacao=''; patch.provaAtualizacaoRef=''; patch.provaAtualizacaoPor=''; patch.provaAtualizacaoEm=''; }
       }
     } else if(statusFinal==='andamento'){
       patch.pendencia=(pendenciaTexto||'').trim();
