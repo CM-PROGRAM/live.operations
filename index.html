@@ -5720,15 +5720,15 @@ function buildTabs(){
       {id:'consultacpf', label:'CPF Cliente'},
       {id:'cpf-tarefa',  label:'Gerar Tarefa', panel:'cpftarefa'}
     ]},
-    {type:'group', id:'grp-base', icon:'🗄', label:'Base', perm:'base', children:[
-      {type:'link', key:'baseCancelNF', label:'Canceladas com NF', url:'https://panel-u.baselinker.com/orders.php#status:330390'},
-      {type:'link', key:'baseTickets',  label:'Tickets',            url:'https://panel-u.baselinker.com/other_help'}
-    ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
       {id:'atribuir',  label:'Atribuir Tarefa'},
       {id:'relatorio', label:'Relatório Entrega'}
     ]},
-    {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
+    {type:'group', id:'grp-plataformas', icon:'🛒', label:'Marketplaces', permAny:['plataformas','base'], children:[
+      {id:'plataformas', label:'Marketplaces', perm:'plataformas'},
+      {type:'link', key:'baseCancelNF', label:'Canceladas com NF', url:'https://panel-u.baselinker.com/orders.php#status:330390', perm:'base'},
+      {type:'link', key:'baseTickets',  label:'Tickets',            url:'https://panel-u.baselinker.com/other_help',            perm:'base'}
+    ]},
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
       {id:'devolucoes',     label:'Em Devolução'},
       {id:'dev-concluidas', label:'Concluídas', panel:'devolucoes'}
@@ -5773,7 +5773,12 @@ function buildTabs(){
         ? (currentUser.master || tb.permAny.some(p=>currentUser.perms.includes(p)))
         : (tb.perm===null||currentUser.master||currentUser.perms.includes(tb.perm));
       if(!permOk) return;
-      const visibleChildren=(tb.children||[]).filter(c=>!c.masterOnly||currentUser.master);
+      const visibleChildren=(tb.children||[]).filter(c=>{
+        if(c.masterOnly && !currentUser.master) return false;
+        // Item com permissão própria: só aparece para quem a tem
+        if(c.perm && !currentUser.master && !currentUser.perms.includes(c.perm)) return false;
+        return true;
+      });
       if(visibleChildren.length===0) return;
 
       const groupWrap=document.createElement('div');groupWrap.className='tab-group';
@@ -10552,7 +10557,7 @@ function renderUsersGrid(){
     {id:'envios',label:'🛍 Vendas · Rastreios'},
     {id:'financeiro',label:'💰 Financeiro'},
     {id:'consultacpf',label:'🔎 Consulta CPF'},
-    {id:'base',label:'🗄 Base'},
+    {id:'base',label:'🗄 Base (links dentro de Marketplaces)'},
     {id:'integracoes',label:'🔗 Anúncios'},
     {id:'plataformas',label:'🛒 Marketplaces'},
     {id:'devolucoes',label:'↩ Devoluções'},
