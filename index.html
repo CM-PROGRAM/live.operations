@@ -701,8 +701,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Acesso ao Sistema</h2>
     <div class="input-group">
-      <label>Usuário</label>
-      <input type="text" id="login-user" name="username" placeholder="seu usuário" autocomplete="username">
+      <label>E-mail ou usuário</label>
+      <input type="text" id="login-user" name="username" placeholder="seu@email.com.br" autocomplete="username">
     </div>
     <div class="input-group">
       <label>Senha</label>
@@ -1770,7 +1770,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div class="users-grid" id="users-grid"></div>
         <div class="new-user-form">
           <div class="input-group"><label>Nome completo</label><input type="text" id="new-user-name" placeholder="Ex: João Silva"></div>
-          <div class="input-group"><label>Senha inicial</label><input type="password" id="new-user-pass" placeholder="senha123"></div>
+          <div class="input-group"><label>E-mail</label><input type="email" id="new-user-email" placeholder="joao@empresa.com.br"></div>
+          <div class="input-group"><label>Senha inicial</label><input type="password" id="new-user-pass" placeholder="mínimo 6 caracteres"></div>
           <button class="btn btn-sm" style="white-space:nowrap" onclick="addUser()">+ Adicionar</button>
         </div>
       </div>
@@ -3175,9 +3176,15 @@ function renderSeguranca(){
       </div>
     </div>`;
 
+  const semEmail=users.filter(([,u])=>!(u&&_emailValido(u.email)));
   const pendentes=legiveis.map(([k,u])=>u.name||k).join(', ');
+  const pendentesEmail=semEmail.map(([k,u])=>(u&&u.name)||k).join(', ');
   alvo.innerHTML=
-    linha(legiveis.length===0,
+    linha(semEmail.length===0,
+      semEmail.length===0?'Todos com e-mail de login':`${semEmail.length} usuário(s) sem e-mail cadastrado`,
+      semEmail.length===0?'Cada colaborador entra pelo próprio e-mail.'
+        :`Sem e-mail: ${pendentesEmail}. Defina em "Usuários" abaixo — é o e-mail que autentica na nuvem.`)
+    + linha(legiveis.length===0,
       legiveis.length===0?'Senhas protegidas':`${legiveis.length} senha(s) ainda legível(is) no banco`,
       legiveis.length===0?'Nenhuma senha fica legível — só a impressão digital delas.'
         :`Pendente: ${pendentes}. Some quando cada um entrar no sistema uma vez (ou use Redefinir).`)
@@ -4353,6 +4360,15 @@ async function _hashSenha(senha){
 // Autentica no Firebase para que as regras do banco possam exigir login.
 // É "melhor esforço": se falhar, o acesso ao sistema continua, para não
 // trancar ninguém para fora enquanto as regras ainda estão abertas.
+function _emailValido(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e||'')); }
+
+// E-mail usado na nuvem: o do colaborador. Enquanto alguém não tiver
+// e-mail cadastrado, cai no endereço interno antigo para não travar.
+function _emailDoUsuario(chave){
+  const u=(appState.users||{})[chave]||{};
+  return _emailValido(u.email) ? u.email.toLowerCase() : (chave+'@liveops.local');
+}
+
 let _ultimoErroAuth='';
 function _autenticarNoFirebase(chave,senha){
   _ultimoErroAuth='';
@@ -4361,7 +4377,7 @@ function _autenticarNoFirebase(chave,senha){
       _ultimoErroAuth='sdk-ausente';
       return Promise.resolve(false);
     }
-    const email=chave+'@liveops.local';
+    const email=_emailDoUsuario(chave);
     const registrar=err=>{ _ultimoErroAuth=(err&&err.code)||(err&&err.message)||'desconhecido';
       console.warn('[auth]',_ultimoErroAuth); return false; };
     return firebase.auth().signInWithEmailAndPassword(email,senha)
@@ -4426,7 +4442,8 @@ function testarAutenticacao(){
 }
 
 function doLogin(){
-  const u=document.getElementById('login-user').value.trim().toLowerCase().replace(/\s+/g,'');
+  const uOriginal=document.getElementById('login-user').value.trim().toLowerCase();
+  const u=uOriginal.replace(/\s+/g,'');
   const p=document.getElementById('login-pass').value;
 
   function recusar(){
@@ -4439,7 +4456,9 @@ function doLogin(){
     const entradas=Object.entries(users||{});
     const achou=entradas.find(([k,v])=>{
       if(!v) return false;
-      const bateUsuario = (k===u) || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u;
+      const bateUsuario = (k===u)
+        || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u
+        || (v.email && String(v.email).toLowerCase()===uOriginal);
       if(!bateUsuario) return false;
       if(v.passHash) return !!hashDigitado && v.passHash===hashDigitado;
       return v.pass===p; // formato antigo, ainda aceito
@@ -9416,8 +9435,13 @@ function renderUsersGrid(){
       </div>
       <div style="background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin:10px 0;display:flex;flex-direction:column;gap:5px;">
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
-          <span style="color:var(--text-muted);min-width:42px;">Login:</span>
-          <span style="color:var(--text-primary);font-weight:600;">${key}</span>
+          <span style="color:var(--text-muted);min-width:42px;">E-mail:</span>
+          <span style="color:${user.email?'var(--text-primary)':'#f59e0b'};font-weight:600;word-break:break-all;">${user.email||'não cadastrado'}</span>
+          <button class="btn-link btn-sm" style="margin-left:4px;flex-shrink:0;" onclick="definirEmail('${key}')" title="Definir o e-mail de login">${user.email?'Alterar':'Definir'}</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
+          <span style="color:var(--text-muted);min-width:42px;">Usuário:</span>
+          <span style="color:var(--text-muted);font-weight:600;">${key}</span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
           <span style="color:var(--text-muted);min-width:42px;">Senha:</span>
@@ -9572,18 +9596,39 @@ function togglePerm(k,perm,granted){
 
 async function addUser(){
   const name=document.getElementById('new-user-name').value.trim();
+  const email=(document.getElementById('new-user-email')||{}).value.trim().toLowerCase();
   const pass=document.getElementById('new-user-pass').value.trim();
   if(!name||!pass){showToast('Preencha nome e senha','error');return;}
+  if(!email||!_emailValido(email)){showToast('Informe um e-mail válido — é por ele que o login é feito','error');return;}
+  if(Object.values(appState.users||{}).some(u=>u&&u.email===email)){showToast('Já existe um usuário com esse e-mail','error');return;}
+  if(pass.length<6){showToast('A senha precisa ter ao menos 6 caracteres','error');return;}
   const key=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
   if(appState.users[key]){showToast('Usuário já existe','error');return;}
   const colors=['#9db8e8','#7d9bd8','#5876b8','#b8ccee','#42588c'];
   const color=colors[Object.keys(appState.users).length%colors.length];
   const passHash=await _hashSenha(pass);
   // Sem suporte a hash no navegador, mantém o formato antigo para não travar
-  appState.users[key]=passHash?{name,passHash,master:false,color,perms:[]}
-                              :{name,pass,master:false,color,perms:[]};
-  saveState(appState);document.getElementById('new-user-name').value='';document.getElementById('new-user-pass').value='';
+  appState.users[key]=passHash?{name,email,passHash,master:false,color,perms:[]}
+                              :{name,email,pass,master:false,color,perms:[]};
+  saveState(appState);
+  ['new-user-name','new-user-email','new-user-pass'].forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   showToast(`Usuário "${name}" criado`,'success');renderUsersGrid();
+}
+
+// Define o e-mail de login do colaborador
+function definirEmail(key){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode alterar o e-mail','warn'); return; }
+  const user=appState.users[key]; if(!user) return;
+  const novo=window.prompt(`E-mail de login de ${user.name}:`, user.email||'');
+  if(novo===null) return;
+  const email=String(novo).trim().toLowerCase();
+  if(!_emailValido(email)){ showToast('E-mail inválido','warn'); return; }
+  const jaUsado=Object.entries(appState.users||{}).some(([k,u])=>k!==key && u && u.email===email);
+  if(jaUsado){ showToast('Esse e-mail já está em uso por outro usuário','warn'); return; }
+  user.email=email;
+  saveState(appState);
+  showToast(`E-mail de ${user.name} definido — ele(a) passa a entrar por ele`,'success');
+  renderUsersGrid(); try{ renderSeguranca(); }catch(e){}
 }
 
 // O master não vê mais a senha (ela não fica legível em lugar nenhum) —
