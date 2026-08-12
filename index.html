@@ -645,33 +645,37 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   filter:drop-shadow(0 0 5px rgba(248,113,113,.55));
   pointer-events:none;
 }
-/* Neon na etiqueta do nome do marketplace: o mesmo brilho que percorre o
-   separador da caixa de entrada, agora atravessando o próprio nome, com um
-   halo respirando em volta. A cor vem do card (--mkt-neon) e cada card entra
-   com um atraso diferente, para os seis não pulsarem em bloco. */
-/* Só uma linha embaixo do nome, do tamanho do nome — o mesmo brilho que
-   percorre o separador da caixa de entrada. Nada dentro da etiqueta. */
+/* Neon dando a volta na etiqueta do nome: um arco de luz gira pela borda
+   do quadrinho. A cor vem do card (--mkt-neon) e cada card entra com um
+   atraso diferente, para os seis não girarem em bloco.
+   O truque: um cone de luz girando, recortado só na faixa da borda pela
+   máscara — o miolo fica de fora e o texto continua limpo. */
+@property --mkt-ang{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
 .mkt-nome{
   --mkt-neon:143,168,216;
   position:relative;
 }
-/* A luz corre na própria base do quadro, rente à borda de baixo */
 .mkt-nome::after{
-  content:'';position:absolute;left:-1.5px;right:-1.5px;bottom:-1.5px;height:2px;
-  border-radius:0 0 10px 10px;
+  content:'';position:absolute;inset:-1.5px;border-radius:12px;
   pointer-events:none;
-  background-image:
-    linear-gradient(90deg,rgba(var(--mkt-neon),0) 0%,rgba(var(--mkt-neon),.95) 50%,rgba(var(--mkt-neon),0) 100%),
-    linear-gradient(90deg,transparent,rgba(var(--mkt-neon),.22),transparent);
-  background-size:55% 100%, 100% 100%;
-  background-repeat:no-repeat, no-repeat;
-  background-position:-30% 0, 0 0;
-  animation:sbNeonVaiVem 3.4s ease-in-out infinite alternate;
+  padding:1.5px;
+  background:conic-gradient(from var(--mkt-ang),
+    rgba(var(--mkt-neon),0) 0deg,
+    rgba(var(--mkt-neon),0) 250deg,
+    rgba(var(--mkt-neon),.85) 320deg,
+    rgba(var(--mkt-neon),1) 350deg,
+    rgba(var(--mkt-neon),0) 360deg);
+  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite:exclude;
+  animation:mktNeonGira 3.4s linear infinite;
   animation-delay:inherit;
-  filter:drop-shadow(0 0 5px rgba(var(--mkt-neon),.55));
+  filter:drop-shadow(0 0 4px rgba(var(--mkt-neon),.65));
 }
+@keyframes mktNeonGira{ to{ --mkt-ang:360deg; } }
 @media (prefers-reduced-motion:reduce){
-  .mkt-nome::after{animation:none;background-position:50% 0, 0 0;}
+  .mkt-nome::after{animation:none;}
 }
 /* A cor do nome vem daqui (e não do estilo em linha) para o tema claro poder
    escurecê-la — o azul-aço do escuro some sobre o branco. */
