@@ -3181,10 +3181,14 @@ function renderSeguranca(){
       legiveis.length===0?'Senhas protegidas':`${legiveis.length} senha(s) ainda legível(is) no banco`,
       legiveis.length===0?'Nenhuma senha fica legível — só a impressão digital delas.'
         :`Pendente: ${pendentes}. Some quando cada um entrar no sistema uma vez (ou use Redefinir).`)
-    + linha(autenticado,
-      autenticado?'Sessão autenticada na nuvem':'Sessão ainda não autenticada na nuvem',
-      autenticado?'Este acesso já usa conta de autenticação — as regras podem ser fechadas.'
-        :'Saia e entre novamente para criar/usar sua conta de autenticação.');
+    + (autenticado
+        ? linha(true,'Sessão autenticada na nuvem',
+            'Este acesso já usa conta de autenticação — as regras podem ser fechadas.')
+        : (()=>{ const [titulo,comoResolver]=_explicarErroAuth(_ultimoErroAuth);
+                 return linha(false,titulo,comoResolver); })())
+    + (autenticado?'':`<div style="margin-top:8px;">
+        <button class="btn btn-sm" onclick="testarAutenticacao()" style="width:auto;">🔑 Testar autenticação agora</button>
+      </div>`);
 }
 
 function copiarRegrasFirebase(){
@@ -4349,21 +4353,76 @@ async function _hashSenha(senha){
 // Autentica no Firebase para que as regras do banco possam exigir login.
 // É "melhor esforço": se falhar, o acesso ao sistema continua, para não
 // trancar ninguém para fora enquanto as regras ainda estão abertas.
+let _ultimoErroAuth='';
 function _autenticarNoFirebase(chave,senha){
+  _ultimoErroAuth='';
   try{
-    if(!(typeof firebase!=='undefined' && firebase.auth)) return Promise.resolve(false);
+    if(typeof firebase==='undefined' || !firebase.auth){
+      _ultimoErroAuth='sdk-ausente';
+      return Promise.resolve(false);
+    }
     const email=chave+'@liveops.local';
+    const registrar=err=>{ _ultimoErroAuth=(err&&err.code)||(err&&err.message)||'desconhecido';
+      console.warn('[auth]',_ultimoErroAuth); return false; };
     return firebase.auth().signInWithEmailAndPassword(email,senha)
-      .then(()=>true)
+      .then(()=>{ _ultimoErroAuth=''; return true; })
       .catch(err=>{
-        if(err && (err.code==='auth/user-not-found' || err.code==='auth/invalid-login-credentials')){
+        const c=(err&&err.code)||'';
+        if(c==='auth/user-not-found' || c==='auth/invalid-login-credentials' || c==='auth/invalid-credential'){
           return firebase.auth().createUserWithEmailAndPassword(email,senha)
-            .then(()=>true).catch(e2=>{ console.warn('[auth] criar conta:',e2.code||e2.message); return false; });
+            .then(()=>{ _ultimoErroAuth=''; return true; }).catch(registrar);
         }
-        console.warn('[auth] entrar:',err.code||err.message);
-        return false;
+        return registrar(err);
       });
-  }catch(e){ return Promise.resolve(false); }
+  }catch(e){ _ultimoErroAuth=e.message||'erro'; return Promise.resolve(false); }
+}
+
+// Traduz o código do Firebase para o que precisa ser feito
+function _explicarErroAuth(codigo){
+  const M={
+    'auth/operation-not-allowed':
+      ['Falta ativar o login por e-mail/senha no Firebase',
+       'Console do Firebase → Authentication → Sign-in method → Email/Password → Ativar. É o passo que falta na maioria dos casos.'],
+    'sdk-ausente':
+      ['A biblioteca de autenticação não carregou',
+       'Atualize a página com Ctrl+Shift+R. Se persistir, pode ser bloqueio de rede/extensão.'],
+    'auth/network-request-failed':
+      ['Sem conexão com o serviço de autenticação',
+       'Verifique a internet e tente de novo.'],
+    'auth/weak-password':
+      ['A senha é curta demais para a nuvem',
+       'Use Redefinir e escolha uma senha com 6 caracteres ou mais.'],
+    'auth/email-already-in-use':
+      ['Já existe conta, mas a senha não confere',
+       'A senha do sistema mudou depois que a conta foi criada. Use Redefinir para igualar as duas.'],
+    'auth/wrong-password':
+      ['A senha não confere com a conta da nuvem',
+       'Use Redefinir para igualar as duas.'],
+    'auth/configuration-not-found':
+      ['Autenticação não configurada neste projeto',
+       'Console do Firebase → Authentication → Começar, e ative Email/Password.']
+  };
+  return M[codigo]||['Não foi possível autenticar ('+(codigo||'motivo desconhecido')+')',
+    'Abra o console do navegador (F12) e me envie a linha que começa com [auth].'];
+}
+
+// Testa a autenticação sem precisar sair e entrar de novo
+function testarAutenticacao(){
+  if(!currentUser){ showToast('Entre no sistema primeiro','warn'); return; }
+  const senha=window.prompt('Confirme sua senha para criar/validar o acesso na nuvem:','');
+  if(senha===null) return;
+  if(!String(senha).trim()){ showToast('Informe a senha','warn'); return; }
+  showToast('Testando autenticação…','');
+  _hashSenha(senha).then(h=>{
+    const u=appState.users[currentUser.key]||{};
+    const confere = u.passHash ? (u.passHash===h) : (u.pass===senha);
+    if(!confere){ showToast('Senha incorreta','error'); return; }
+    _autenticarNoFirebase(currentUser.key,senha).then(ok=>{
+      renderSeguranca();
+      if(ok) showToast('✓ Sessão autenticada na nuvem','success');
+      else { const [t]=_explicarErroAuth(_ultimoErroAuth); showToast(t,'warn'); }
+    });
+  });
 }
 
 function doLogin(){
