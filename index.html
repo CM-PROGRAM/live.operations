@@ -1354,6 +1354,49 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
     </div>
 
+    <!-- ATRIBUIR TAREFA — reúne Entrada, Integração, Imagens e Exclusão -->
+    <div class="tab-panel" id="tab-atribuir">
+      <div class="section-header">
+        <span class="section-title">Atribuir Tarefa</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Selecione o marketplace para atribuir a tarefa ao colaborador.</div>
+      <div id="atrib-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;margin-bottom:22px;"></div>
+      <div class="section-header" style="margin-top:8px;cursor:pointer;user-select:none;" onclick="toggleSolicPanel('atrib')">
+        <span class="section-title" style="font-size:14px;">Solicitações</span>
+        <span id="atrib-solic-chevron" style="margin-left:8px;font-size:12px;color:var(--text-muted);transition:transform .15s;transform:rotate(0deg);display:inline-block;">▾</span>
+      </div>
+      <div id="atrib-solic-body">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 14px;">
+          <select id="atrib-filtro-tipo" onchange="renderAtribuir()" style="width:auto;min-width:170px;">
+            <option value="">Todos os tipos</option>
+            <option value="entrada">Entrada</option>
+            <option value="integracao">Integração</option>
+            <option value="imagens">Imagens</option>
+            <option value="excluirintbase">Exclusão Integração</option>
+          </select>
+          <input id="atrib-search" type="text" placeholder="🔎 Buscar (plataforma, SKU, MLB, produto, solicitante)..." oninput="renderAtribuir()" style="flex:1;min-width:220px;width:auto;">
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+              <span id="atrib-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="atrib-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="atrib-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+          <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+              <span id="atrib-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            </div>
+            <div id="atrib-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <div id="atrib-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- INTEGRAÇÃO -->
     <div class="tab-panel" id="tab-integracao">
       <div class="section-header">
@@ -2076,6 +2119,94 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <input type="hidden" id="entrada-edit-id" value="">
       <input type="hidden" id="entrada-mkt-value" value="">
       <input type="hidden" id="entrada-mkt-tipo" value="">
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ATRIBUIR TAREFA -->
+<div id="atrib-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
+  <div style="background:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:0 16px 64px rgba(0,0,0,0.7),inset 0 1px 0 rgba(255,255,255,0.07);width:620px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+    <div style="position:relative;margin-bottom:20px;">
+      <div style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Atribuir Tarefa</div>
+      <button onclick="closeAtribModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+    </div>
+    <input type="hidden" id="atrib-mkt-value"><input type="hidden" id="atrib-mkt-tipo">
+    <div style="display:grid;gap:12px;">
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Marketplace: <span id="atrib-mkt-label" style="color:var(--text-primary);font-weight:700;"></span></div>
+
+      <div class="input-group" id="atrib-variacao-field" style="display:none;">
+        <label>Variação</label>
+        <select id="atrib-variacao"></select>
+      </div>
+
+      <div class="input-group">
+        <label>Tipo de tarefa <span style="color:var(--text-muted);font-weight:400;">(pode marcar mais de um)</span></label>
+        <div id="atrib-tipos" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
+      </div>
+
+      <div class="input-group" id="atrib-resp-bloco" style="display:none;">
+        <label style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+          <span>Colaborador(es) responsável(is)</span>
+          <span id="atrib-mesmo-wrap" style="display:none;font-weight:400;font-size:10.5px;color:var(--text-muted);">
+            <label style="display:inline-flex;align-items:center;gap:5px;cursor:pointer;">
+              <input type="checkbox" id="atrib-mesmo-resp" onchange="atribAlternarMesmoResp()" style="width:auto;margin:0;">
+              mesmo colaborador para todos
+            </label>
+          </span>
+        </label>
+        <div id="atrib-resp-por-tipo" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <div class="input-group">
+        <label>SKU</label>
+        <div style="display:flex;gap:8px;">
+          <select id="atrib-codigo-tipo" onchange="codigoTipoChanged('atrib')" style="flex:0 0 130px;">
+            <option value="SKU">SKU</option>
+            <option value="MLB">MLB</option>
+            <option value="ID Anúncio">ID Anúncio</option>
+          </select>
+          <div style="flex:1;position:relative;">
+            <span id="atrib-codigo-mlb-prefix" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:12px;color:var(--text-muted);pointer-events:none;">MLB</span>
+            <input type="text" id="atrib-codigo-num" oninput="codigoNumInput('atrib')" placeholder="Número" style="width:100%;box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label>Observações</label>
+        <div style="display:flex;gap:8px;">
+          <textarea id="atrib-cons-input" maxlength="250" rows="2" placeholder="Escreva uma observação..." style="flex:1;"></textarea>
+          <button type="button" class="btn btn-sm" onclick="considAdd('atrib')" style="flex:0 0 auto;align-self:flex-end;">Salvar</button>
+        </div>
+        <div id="atrib-cons-list"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="input-group" style="position:relative;">
+          <label>Prazo conclusão</label>
+          <input type="hidden" id="atrib-vencimento">
+          <div id="atrib-venc-trigger" onclick="vencOpenCal('atrib')" style="cursor:pointer;">
+            <input type="text" id="atrib-venc-display" placeholder="Selecionar data" readonly style="cursor:pointer;width:100%;box-sizing:border-box;">
+          </div>
+          <div id="atrib-cal-popover" style="display:none;position:absolute;top:100%;left:0;z-index:60;"></div>
+        </div>
+        <div class="input-group">
+          <label>Prioridade</label>
+          <input type="hidden" id="atrib-prioridade" value="normal">
+          <div class="atv-prior-select">
+            <div class="atv-prior-trigger" id="atrib-prio-trigger" onclick="prioToggleMenu('atrib')">
+              <span class="atv-prior-dot gray" id="atrib-prio-dot"></span>
+              <span id="atrib-prio-label">Normal</span><span class="chev">▾</span>
+            </div>
+            <div class="atv-prior-menu" id="atrib-prio-menu" style="display:none;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+        <button class="btn" onclick="closeAtribModal()">Cancelar</button>
+        <button class="btn" onclick="salvarAtribuicao()">Atribuir</button>
+      </div>
     </div>
   </div>
 </div>
@@ -3963,7 +4094,7 @@ const LOG_VALORES={
 };
 // Ruído interno — nunca entra no histórico
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
-  'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemImgId','origemAteId',
+  'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -5558,11 +5689,8 @@ function buildTabs(){
       {type:'link', key:'baseTickets',  label:'Tickets',            url:'https://panel-u.baselinker.com/other_help'}
     ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
-      {id:'entrada',    label:'Entrada'},
-      {id:'integracao', label:'Integração'},
-      {id:'excluirintbase', label:'Exclusão Integração'},
-      {id:'imagens',    label:'Imagens'},
-      {id:'relatorio',  label:'Relatório'}
+      {id:'atribuir',  label:'Atribuir Tarefa'},
+      {id:'relatorio', label:'Relatório Entrega'}
     ]},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
@@ -5594,6 +5722,7 @@ function buildTabs(){
     if(id==='entrada'){ try{renderEntradas();}catch(e){console.warn('renderEntradas:',e);} }
     if(id==='integracao'){ try{renderIntegracoes();}catch(e){console.warn('renderIntegracoes:',e);} }
     if(id==='excluirintbase'){ try{renderExcluirIntBase();}catch(e){console.warn('renderExcluirIntBase:',e);} }
+    if(id==='atribuir'){ try{renderAtribuir();}catch(e){console.warn('renderAtribuir:',e);} }
     if(id==='imagens'){ try{renderImagens();}catch(e){console.warn('renderImagens:',e);} }
     if(id==='relatorio'){ try{renderRelatorioAnuncios();}catch(e){console.warn('renderRelatorioAnuncios:',e);} }
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
@@ -8537,16 +8666,41 @@ function reconcileAutoTasks(state){
   if(!state || !Array.isArray(state.atividades)) return state;
   const integIds = new Set((state.integracoes||[]).map(x=>x&&x.id).filter(Boolean));
   const exIntIds = new Set((state.excluirIntBase||[]).map(x=>x&&x.id).filter(Boolean));
+  const entIds   = new Set((state.entradas||[]).map(x=>x&&x.id).filter(Boolean));
   const imgIds   = new Set((state.imagensReq||[]).map(x=>x&&x.id).filter(Boolean));
   const ateIds   = new Set(((state.tasks&&state.tasks.atendimentos)||[]).map(x=>x&&x.id).filter(Boolean));
   state.atividades = state.atividades.filter(a=>{
     if(a && a.origemIntegId) return integIds.has(a.origemIntegId);
     if(a && a.origemExIntId) return exIntIds.has(a.origemExIntId);
+    if(a && a.origemEntradaId) return entIds.has(a.origemEntradaId);
     if(a && a.origemImgId)   return imgIds.has(a.origemImgId);
     if(a && a.origemAteId)   return ateIds.has(a.origemAteId);
     return true; // tarefas manuais (sem origem) nunca são removidas aqui
   });
   return state;
+}
+
+// Cria automaticamente uma tarefa em Tarefas Diárias a partir de uma
+// solicitação de Entrada. Antes a Entrada não gerava tarefa; com "Atribuir
+// Tarefa" todos os tipos passam a aparecer para o responsável.
+function criarTarefaAutoEntrada(item){
+  if(!item) return;
+  if(!appState.atividades) appState.atividades=[];
+  const novaTarefa={
+    id:'atv_entrada_'+item.id,
+    titulo:'Entrada Produto',
+    origemEntradaId:item.id,
+    prioridade:item.prioridade||'normal',
+    vencimento:new Date().toISOString().slice(0,10),
+    responsavel:(item.responsaveis&&item.responsaveis[0])||'',
+    responsaveis:item.responsaveis||[],
+    status:'aberta',
+    criadoPor:item.criadoPor||currentUser.name,
+    criadoPorKey:item.criadoPorKey||currentUser.key,
+    ordemManual:appState.atividades.length
+  };
+  appState.atividades.push(novaTarefa);
+  notifyResponsaveisAtribuido({...novaTarefa,titulo:'Entrada · '+_notifDescricaoItem(item)},'tarefa','tarefa');
 }
 
 // Cria automaticamente uma tarefa em Tarefas Diárias a partir de uma solicitação de Imagens
@@ -13609,6 +13763,9 @@ function renderAtividades(){
     } else if(a.origemExIntId){
       const it=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId);
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
+    } else if(a.origemEntradaId){
+      const it=(appState.entradas||[]).find(x=>x.id===a.origemEntradaId);
+      if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
     } else if(a.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId);
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
@@ -13809,6 +13966,16 @@ function atvMoveStatus(id,novoStatus,provaBase64){
         try{ renderIntegracoes(); }catch(e){}
       } else if(it){ confRegistrarIntegracaoConcluida(it); }
     }
+    if(!eraConcluida && a.origemEntradaId){
+      const it=(appState.entradas||[]).find(x=>x.id===a.origemEntradaId);
+      if(it && it.status!=='concluida'){
+        it.status='concluida';
+        it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+        it.concluidoPor=currentUser.name;
+        try{ renderEntradas(); }catch(e){}
+        try{ renderAtribuir(); }catch(e){}
+      }
+    }
     if(!eraConcluida && a.origemExIntId){
       const it=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId);
       if(it && it.status!=='concluida'){
@@ -13865,6 +14032,7 @@ function deleteAtividade(id){
   if(a && a.origemImgId){ const o=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId); if(o) arquivarRegistro('imagens',o); }
   if(a && a.origemIntegId) appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==a.origemIntegId);
   if(a && a.origemExIntId) appState.excluirIntBase=(appState.excluirIntBase||[]).filter(x=>x.id!==a.origemExIntId);
+  if(a && a.origemEntradaId){ const o=(appState.entradas||[]).find(x=>x.id===a.origemEntradaId); if(o) arquivarRegistro('entrada',o); appState.entradas=(appState.entradas||[]).filter(x=>x.id!==a.origemEntradaId); }
   if(a && a.origemImgId)   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==a.origemImgId);
   saveState(appState);
   renderAtividades();
@@ -14782,6 +14950,210 @@ function renderIntegracoes(){
   const cntC=document.getElementById('integ-count-conc'); if(cntC) cntC.textContent=nC;
   const emA=document.getElementById('integ-empty-afazer'); if(emA) emA.style.display=nA===0?'block':'none';
   const emC=document.getElementById('integ-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
+}
+
+// ── ATRIBUIR TAREFA ───────────────────────────────────────
+// Um único card cria as solicitações dos tipos escolhidos. Cada tipo vai
+// para a sua lista de sempre (Entrada/Integração/Imagens/Exclusão), então
+// relatórios, conclusões e tarefas continuam funcionando como antes.
+const ATRIB_TIPOS=[
+  {id:'entrada',        label:'Entrada',            arr:()=>appState.entradas||(appState.entradas=[]),          prefixo:'entrada_'},
+  {id:'integracao',     label:'Integração',         arr:()=>appState.integracoes||(appState.integracoes=[]),    prefixo:'integ_'},
+  {id:'imagens',        label:'Imagens',            arr:()=>appState.imagensReq||(appState.imagensReq=[]),      prefixo:'img_'},
+  {id:'excluirintbase', label:'Exclusão Integração',arr:()=>appState.excluirIntBase||(appState.excluirIntBase=[]),prefixo:'exint_'}
+];
+function _atribTipo(id){ return ATRIB_TIPOS.find(t=>t.id===id); }
+let _atribSel=[];              // tipos marcados
+let _atribResp={};             // tipo -> [chaves de colaborador]
+
+function openAtribModal(mkt){
+  const marketplace=mkt.name;
+  document.getElementById('atrib-mkt-value').value=marketplace;
+  document.getElementById('atrib-mkt-tipo').value=mkt.tipo||'';
+  document.getElementById('atrib-mkt-label').textContent=marketplace;
+  _renderVariacaoField('atrib-variacao-field','atrib-variacao',marketplace,'');
+  _atribSel=[]; _atribResp={};
+  const mesmo=document.getElementById('atrib-mesmo-resp'); if(mesmo) mesmo.checked=false;
+  atribRenderTipos();
+  atribRenderResponsaveis();
+  // Campos comuns (código, considerações, vencimento, prioridade)
+  try{ codigoSetValue('atrib',''); }catch(e){}
+  try{ considSet('atrib',[]); considRenderList('atrib'); }catch(e){}
+  const v=document.getElementById('atrib-vencimento'); if(v) v.value='';
+  try{ vencSyncDisplay('atrib'); }catch(e){}
+  try{ prioSelect('atrib','normal'); }catch(e){}
+  document.getElementById('atrib-modal-overlay').style.display='flex';
+}
+function closeAtribModal(){ document.getElementById('atrib-modal-overlay').style.display='none'; }
+
+function atribRenderTipos(){
+  const box=document.getElementById('atrib-tipos'); if(!box) return;
+  box.innerHTML='';
+  ATRIB_TIPOS.forEach(t=>{
+    const sel=_atribSel.includes(t.id);
+    const chip=document.createElement('button');
+    chip.type='button';
+    chip.textContent=t.label;
+    chip.style.cssText=`border-radius:50px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;
+      background:${sel?'rgba(99,102,241,.35)':'rgba(255,255,255,.05)'};
+      border:1px solid ${sel?'rgba(99,102,241,.7)':'var(--glass-border)'};
+      color:${sel?'#fff':'var(--text-muted)'};`;
+    chip.onclick=()=>{
+      if(sel) _atribSel=_atribSel.filter(x=>x!==t.id);
+      else _atribSel.push(t.id);
+      atribRenderTipos(); atribRenderResponsaveis();
+    };
+    box.appendChild(chip);
+  });
+}
+
+// Um seletor de colaborador por tipo escolhido; com "mesmo para todos",
+// mostra um seletor só e replica a escolha
+function atribRenderResponsaveis(){
+  const bloco=document.getElementById('atrib-resp-bloco');
+  const alvo=document.getElementById('atrib-resp-por-tipo');
+  const mesmoWrap=document.getElementById('atrib-mesmo-wrap');
+  if(!bloco||!alvo) return;
+  if(!_atribSel.length){ bloco.style.display='none'; alvo.innerHTML=''; return; }
+  bloco.style.display='block';
+  if(mesmoWrap) mesmoWrap.style.display=_atribSel.length>1?'inline-block':'none';
+  const mesmo=_atribSel.length>1 && (document.getElementById('atrib-mesmo-resp')||{}).checked;
+  alvo.innerHTML='';
+  const grupos = mesmo ? [{id:'__todos',label:'Para todos os tipos'}]
+                       : _atribSel.map(id=>({id,label:_atribTipo(id).label}));
+  grupos.forEach(g=>{
+    const wrap=document.createElement('div');
+    const cab=document.createElement('div');
+    cab.style.cssText='font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:5px;';
+    cab.textContent=g.label;
+    const grid=document.createElement('div');
+    grid.style.cssText='display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);';
+    Object.entries(appState.users||{}).forEach(([k,u])=>{
+      if(!u) return;
+      const marcado=(_atribResp[g.id]||[]).includes(k);
+      const chip=document.createElement('button');
+      chip.type='button';
+      chip.textContent=u.name||k;
+      chip.style.cssText=`border-radius:50px;padding:5px 12px;font-size:11.5px;font-weight:600;cursor:pointer;transition:all .15s;
+        background:${marcado?'rgba(99,102,241,.35)':'rgba(255,255,255,.05)'};
+        border:1px solid ${marcado?'rgba(99,102,241,.7)':'var(--glass-border)'};
+        color:${marcado?'#fff':'var(--text-muted)'};`;
+      chip.onclick=()=>{
+        const atual=_atribResp[g.id]||[];
+        _atribResp[g.id]= marcado ? atual.filter(x=>x!==k) : [...atual,k];
+        atribRenderResponsaveis();
+      };
+      grid.appendChild(chip);
+    });
+    wrap.appendChild(cab); wrap.appendChild(grid);
+    alvo.appendChild(wrap);
+  });
+}
+function atribAlternarMesmoResp(){ atribRenderResponsaveis(); }
+
+function _atribRespDoTipo(tipoId){
+  const mesmo=_atribSel.length>1 && (document.getElementById('atrib-mesmo-resp')||{}).checked;
+  return (mesmo ? _atribResp['__todos'] : _atribResp[tipoId]) || [];
+}
+
+function salvarAtribuicao(){
+  if(!currentUser){ showToast('Faça login para atribuir','warn'); return; }
+  if(!_atribSel.length){ showToast('Escolha ao menos um tipo de tarefa','warn'); return; }
+  const semResp=_atribSel.filter(t=>!_atribRespDoTipo(t).length);
+  if(semResp.length){
+    showToast('Escolha o colaborador de: '+semResp.map(t=>_atribTipo(t).label).join(', '),'warn'); return;
+  }
+  const vencimento=(document.getElementById('atrib-vencimento')||{}).value||'';
+  if(!vencimento){ showToast('Informe o prazo de conclusão','warn'); return; }
+
+  const marketplace=document.getElementById('atrib-mkt-value').value;
+  const tipoMkt=document.getElementById('atrib-mkt-tipo').value;
+  const variacao=(MKT_VARIACOES[marketplace]) ? ((document.getElementById('atrib-variacao')||{}).value||'') : '';
+  const codigo=codigoGetValue('atrib');
+  const consideracoes=considGet('atrib');
+  const prioridade=(document.getElementById('atrib-prioridade')||{}).value||'normal';
+  const derivados=_mktCodigoDerivados(codigo);
+  const agora=Date.now();
+
+  const criados=[];
+  _atribSel.forEach((tipoId,i)=>{
+    const t=_atribTipo(tipoId);
+    const responsaveis=_atribRespDoTipo(tipoId);
+    const item={
+      id:t.prefixo+(agora+i), marketplace, tipo:tipoMkt, ...derivados,
+      responsaveis, vencimento, prioridade, consideracoes, variacao, status:'aberta',
+      criadoEm:new Date().toLocaleDateString('pt-BR'),
+      criadoPor:currentUser.name, criadoPorKey:currentUser.key,
+      ordemManual:agora+i
+    };
+    t.arr().push(item);
+    // Gera a tarefa em Tarefas Diárias para quem ficou responsável
+    if(tipoId==='integracao')            criarTarefaAutoIntegracao(item, INTEG_CTX.integracao);
+    else if(tipoId==='excluirintbase')   criarTarefaAutoIntegracao(item, INTEG_CTX.excluirintbase);
+    else if(tipoId==='imagens')          criarTarefaAutoImagem(item);
+    else if(tipoId==='entrada')          criarTarefaAutoEntrada(item);
+    criados.push(t.label);
+  });
+
+  saveState(appState);
+  closeAtribModal();
+  try{ renderAtribuir(); }catch(e){}
+  try{ renderAtividades(); }catch(e){}
+  showToast('✓ '+criados.length+' tarefa(s) atribuída(s): '+criados.join(', '),'success');
+}
+
+function renderAtribuir(){
+  _renderMktGrid('atrib-grid', m=>openAtribModal(m), false, false);
+  const listA=document.getElementById('atrib-list-afazer');
+  const listC=document.getElementById('atrib-list-conc');
+  if(!listA||!listC) return;
+  listA.innerHTML=''; listC.innerHTML='';
+  const q=((document.getElementById('atrib-search')||{}).value||'').toLowerCase().trim();
+  const filtro=(document.getElementById('atrib-filtro-tipo')||{}).value||'';
+  // Junta as quatro listas, marcando de onde veio cada uma
+  let itens=[];
+  ATRIB_TIPOS.forEach(t=>{
+    if(filtro && filtro!==t.id) return;
+    (t.arr()||[]).forEach(it=>{ if(it) itens.push({...it,_tipoTarefa:t.id,_tipoLabel:t.label}); });
+  });
+  itens.sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+  let nA=0,nC=0;
+  itens.forEach(it=>{
+    if(q){
+      const hay=[it.variacao,it.marketplace,it.sku,it.mlb,it.codigoValor,it.produto,it.criadoPor,it._tipoLabel]
+        .map(x=>(x||'').toString().toLowerCase()).join(' ');
+      if(!hay.includes(q)) return;
+    }
+    const card=document.createElement('div');
+    card.style.cssText='background:var(--bg-card);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
+    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
+    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onclick=()=>abrirSolicitacaoPorTipo(it._tipoTarefa,it);
+    card.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
+        <span style="font-size:13.5px;font-weight:800;color:#f1f3f9;">${it.variacao||it.marketplace}</span>
+        ${_statusBadgeHtml(it.status)}
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+        <span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:#a5b4fc;background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:999px;padding:2px 8px;">${it._tipoLabel}</span>
+      </div>
+      <div style="font-size:11px;color:#9aa1b0;">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelLabel(it)}</div>
+      <div style="font-size:9.5px;color:#7d8494;margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
+    if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
+  });
+  const cntA=document.getElementById('atrib-count-afazer'); if(cntA) cntA.textContent=nA;
+  const cntC=document.getElementById('atrib-count-conc'); if(cntC) cntC.textContent=nC;
+  const emA=document.getElementById('atrib-empty-afazer'); if(emA) emA.style.display=nA===0?'block':'none';
+  const emC=document.getElementById('atrib-empty-conc'); if(emC) emC.style.display=nC===0?'block':'none';
+}
+
+// Abre a solicitação no formulário correspondente ao seu tipo
+function abrirSolicitacaoPorTipo(tipoId,it){
+  const mkt={name:it.marketplace,tipo:it.tipo};
+  if(tipoId==='entrada')            openEntradaModal(mkt,it.id);
+  else if(tipoId==='integracao')    openIntegModal(mkt,it.id,'integracao');
+  else if(tipoId==='excluirintbase')openIntegModal(mkt,it.id,'excluirintbase');
+  else if(tipoId==='imagens')       openImgModal(mkt,it.id);
 }
 
 // ── Exclusão Integração ───────────────────────────────────
