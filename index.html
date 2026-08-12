@@ -1153,6 +1153,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="section-title" id="dev-section-title">Devoluções</span>
         <button class="btn btn-sm" onclick="openDevModal()" id="btn-new-dev" style="display:none">+ Nova Devolução</button>
       </div>
+      <!-- Em Devolução / Concluídas na própria página, sem duas sub-abas -->
+      <div id="dev-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
+        <button class="atv-stab2 active" data-c="afazer" data-sub="ativos" onclick="devSetSubTab('ativos')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10h11a4 4 0 0 1 0 8h-3"/><path d="M7 6l-4 4 4 4"/></svg></span>Em Devolução
+          <span id="dev-cnt-ativos" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
+        </button>
+        <button class="atv-stab2" data-c="concluida" data-sub="concluidas" onclick="devSetSubTab('concluidas')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Concluídas
+          <span id="dev-cnt-conc" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
+        </button>
+      </div>
       <div style="margin-bottom:14px;">
         <input id="dev-search" type="text" placeholder="🔎 Buscar por nome, pedido base ou motivo..." oninput="renderDev()"
           style="width:100%;box-sizing:border-box;background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:10px 18px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);"
@@ -5839,8 +5850,7 @@ function buildTabs(){
     ]},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
-      {id:'devolucoes',     label:'Em Devolução'},
-      {id:'dev-concluidas', label:'Concluídas', panel:'devolucoes'}
+      {id:'devolucoes', label:'Lançamentos'}
     ]},
     {id:'cnpjs',      icon:'🏢', label:'CNPJs Suplelive', perm:'cnpjs'},
     {id:'admin',      icon:'⚙', label:'Adm. Master',           perm:'admin'}
@@ -5858,7 +5868,6 @@ function buildTabs(){
   function fireTabHooks(id){
     if(id==='registrovendas'){ try{renderHistoricoWpp();}catch(e){console.warn('renderHistoricoWpp:',e);} }
     if(id==='devolucoes'){ try{devSetSubTab('ativos');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
-    if(id==='dev-concluidas'){ try{devSetSubTab('concluidas');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
     if(id==='projetos'){ try{renderProjetos();}catch(e){console.warn('renderProjetos:',e);} }
@@ -9025,6 +9034,10 @@ function renderDev(){
     .filter(_devPltOk)
     .filter(_devMatch);
 
+  // Contadores no seletor, para ver os dois volumes de uma vez
+  const _dA=document.getElementById('dev-cnt-ativos'); if(_dA) _dA.textContent='· '+active.length;
+  const _dC=document.getElementById('dev-cnt-conc');   if(_dC) _dC.textContent='· '+concluidas.length;
+
   const naAba=(_devSubTab==='concluidas')?'concluidas':'ativos';
   const btnNew=document.getElementById('btn-new-dev');
   if(btnNew) btnNew.style.display=(canCreate && naAba==='ativos')?'inline-block':'none';
@@ -12059,6 +12072,9 @@ let _devSubTab='ativos';
 function _devAbaAtual(){ return _devSubTab==='concluidas' ? 'concluidas' : 'ativos'; }
 function devSetSubTab(tab){
   _devSubTab=tab;
+  document.querySelectorAll('#dev-subtabs button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub===tab);
+  });
   // Restaura o filtro de plataforma guardado desta sub-aba (independente da outra)
   devFiltroPlataforma=_devFiltroPorAba[_devAbaAtual()]||'';
   const titulo=document.getElementById('dev-section-title');
