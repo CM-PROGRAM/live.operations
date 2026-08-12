@@ -710,6 +710,61 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
     <div class="login-error" id="login-error">Usuário ou senha incorretos</div>
     <button class="btn" type="submit">Entrar</button>
+    <div style="text-align:center;margin-top:12px;">
+      <a href="#" onclick="abrirRedefinicao();return false;"
+         style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);">
+        Esqueci minha senha
+      </a>
+    </div>
+  </form>
+
+  <!-- REDEFINIÇÃO DE SENHA — código enviado por e-mail -->
+  <form class="login-box" id="reset-box" style="display:none;" onsubmit="return false;">
+    <h2>Redefinir Senha</h2>
+
+    <!-- Passo 1: pedir o código -->
+    <div id="reset-passo1">
+      <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:14px;">
+        Informe seu e-mail. Enviaremos um código para você criar uma senha nova.
+      </div>
+      <div class="input-group">
+        <label>E-mail</label>
+        <input type="email" id="reset-email" placeholder="seu@email.com.br" autocomplete="username">
+      </div>
+      <button class="btn" type="button" onclick="enviarCodigoRedefinicao()">Enviar código</button>
+    </div>
+
+    <!-- Passo 2: código + nova senha -->
+    <div id="reset-passo2" style="display:none;">
+      <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:14px;">
+        Abra o e-mail que enviamos, copie o código e cole abaixo. Depois escolha a senha que quiser.
+      </div>
+      <div class="input-group">
+        <label>Código do e-mail</label>
+        <input type="text" id="reset-codigo" placeholder="cole aqui o código" autocomplete="one-time-code">
+      </div>
+      <div class="input-group">
+        <label>Nova senha</label>
+        <input type="password" id="reset-senha1" placeholder="mínimo 6 caracteres" autocomplete="new-password">
+      </div>
+      <div class="input-group">
+        <label>Repita a nova senha</label>
+        <input type="password" id="reset-senha2" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <button class="btn" type="button" onclick="confirmarNovaSenha()">Salvar nova senha</button>
+      <div style="text-align:center;margin-top:10px;">
+        <a href="#" onclick="document.getElementById('reset-passo1').style.display='block';document.getElementById('reset-passo2').style.display='none';return false;"
+           style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;">Não recebi o código</a>
+      </div>
+    </div>
+
+    <div class="login-error" id="reset-erro" style="display:none;"></div>
+    <div style="text-align:center;margin-top:12px;">
+      <a href="#" onclick="fecharRedefinicao();return false;"
+         style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);">
+        ← Voltar ao login
+      </a>
+    </div>
   </form>
 </div>
 
@@ -4751,6 +4806,122 @@ function testarAutenticacao(){
     });
   });
 }
+
+// ── REDEFINIÇÃO DE SENHA PELO PRÓPRIO SISTEMA ────────────────
+// O Firebase envia um e-mail com um código; a pessoa cola o código aqui
+// e escolhe a senha. Nem o master precisa saber qual é.
+function abrirRedefinicao(email){
+  document.getElementById('login-form').style.display='none';
+  document.getElementById('reset-box').style.display='block';
+  document.getElementById('reset-passo1').style.display='block';
+  document.getElementById('reset-passo2').style.display='none';
+  _resetErro('');
+  const campo=document.getElementById('reset-email');
+  if(campo) campo.value = email || (document.getElementById('login-user')||{}).value || '';
+}
+function fecharRedefinicao(){
+  document.getElementById('reset-box').style.display='none';
+  document.getElementById('login-form').style.display='block';
+  _resetErro('');
+}
+// Mesma caixa serve para erro (vermelho) e para aviso/sucesso — sem a
+// cor de erro quando a mensagem é positiva
+function _resetErro(msg,cor){
+  const el=document.getElementById('reset-erro');
+  if(!el) return;
+  el.textContent=msg||'';
+  el.style.display=msg?'block':'none';
+  if(cor){
+    el.style.color=cor;
+    el.style.background='transparent';
+    el.style.borderColor=cor;
+  } else {
+    el.style.color=''; el.style.background=''; el.style.borderColor='';
+  }
+}
+
+function enviarCodigoRedefinicao(){
+  const email=String((document.getElementById('reset-email')||{}).value||'').trim().toLowerCase();
+  if(!_emailValido(email)){ _resetErro('Informe um e-mail válido'); return; }
+  if(typeof firebase==='undefined' || !firebase.auth){ _resetErro('Sem conexão com o serviço de acesso'); return; }
+  _resetErro('Enviando…','#8fa8d8');
+  // O link do e-mail volta para o próprio sistema, já com o código
+  const cfg={ url:location.origin+location.pathname, handleCodeInApp:false };
+  firebase.auth().sendPasswordResetEmail(email,cfg)
+    .then(()=>{
+      document.getElementById('reset-passo1').style.display='none';
+      document.getElementById('reset-passo2').style.display='block';
+      _resetErro('Código enviado para '+email+'. Confira também o spam.','#22c55e');
+    })
+    .catch(err=>{
+      const c=(err&&err.code)||'';
+      if(c==='auth/user-not-found') _resetErro('Esse e-mail ainda não entrou no sistema nenhuma vez. Entre uma vez com a senha atual e tente de novo.');
+      else if(c==='auth/invalid-email') _resetErro('E-mail inválido');
+      else if(c==='auth/too-many-requests') _resetErro('Muitas tentativas. Aguarde alguns minutos.');
+      else _resetErro('Não foi possível enviar: '+(c||err.message));
+    });
+}
+
+// Aceita o código puro ou o link inteiro colado do e-mail
+function _extrairCodigo(txt){
+  const t=String(txt||'').trim();
+  const m=/[?&]oobCode=([^&\s]+)/.exec(t);
+  return m ? decodeURIComponent(m[1]) : t;
+}
+
+function confirmarNovaSenha(){
+  const codigo=_extrairCodigo((document.getElementById('reset-codigo')||{}).value);
+  const s1=String((document.getElementById('reset-senha1')||{}).value||'');
+  const s2=String((document.getElementById('reset-senha2')||{}).value||'');
+  if(!codigo){ _resetErro('Cole o código recebido por e-mail'); return; }
+  if(s1.length<6){ _resetErro('A senha precisa ter ao menos 6 caracteres'); return; }
+  if(s1!==s2){ _resetErro('As duas senhas não são iguais'); return; }
+  if(typeof firebase==='undefined' || !firebase.auth){ _resetErro('Sem conexão com o serviço de acesso'); return; }
+  _resetErro('Salvando…','#8fa8d8');
+
+  let emailDono='';
+  firebase.auth().verifyPasswordResetCode(codigo)
+    .then(mail=>{ emailDono=String(mail||'').toLowerCase();
+      return firebase.auth().confirmPasswordReset(codigo,s1); })
+    .then(()=>_hashSenha(s1))
+    .then(hash=>{
+      // Mantém a cópia local em dia, para o login funcionar mesmo sem internet
+      try{
+        const par=Object.entries(appState.users||{}).find(([,v])=>v && String(v.email||'').toLowerCase()===emailDono);
+        if(par && hash){ par[1].passHash=hash; delete par[1].pass; saveState(appState); }
+      }catch(e){}
+      _resetErro('✓ Senha alterada. Faça login com a nova senha.','#22c55e');
+      setTimeout(()=>{
+        fecharRedefinicao();
+        const cu=document.getElementById('login-user'); if(cu && emailDono) cu.value=emailDono;
+        const cp=document.getElementById('login-pass'); if(cp) cp.value='';
+      },1800);
+    })
+    .catch(err=>{
+      const c=(err&&err.code)||'';
+      if(c==='auth/invalid-action-code') _resetErro('Código inválido ou já usado. Peça um novo.');
+      else if(c==='auth/expired-action-code') _resetErro('Código expirado. Peça um novo.');
+      else if(c==='auth/weak-password') _resetErro('Senha muito fraca — use ao menos 6 caracteres.');
+      else _resetErro('Não foi possível salvar: '+(c||err.message));
+    });
+}
+
+// Se a pessoa clicou no link do e-mail, já abre a tela com o código pronto
+function _verificarCodigoNaUrl(){
+  try{
+    const par=new URLSearchParams(location.search);
+    const codigo=par.get('oobCode');
+    const modo=par.get('mode');
+    if(!codigo || (modo && modo!=='resetPassword')) return;
+    abrirRedefinicao();
+    document.getElementById('reset-passo1').style.display='none';
+    document.getElementById('reset-passo2').style.display='block';
+    document.getElementById('reset-codigo').value=codigo;
+    _resetErro('Código reconhecido — escolha sua nova senha.','#22c55e');
+    history.replaceState({},'',location.pathname);
+  }catch(e){}
+}
+document.addEventListener('DOMContentLoaded',()=>setTimeout(_verificarCodigoNaUrl,300));
 
 function doLogin(){
   const uOriginal=document.getElementById('login-user').value.trim().toLowerCase();
