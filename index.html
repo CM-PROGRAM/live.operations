@@ -382,6 +382,21 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sidebar::-webkit-scrollbar{width:4px;}
 .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 .sidebar-section-label{padding:20px 8px 10px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;}
+/* Caixa de entrada no alto da barra lateral */
+.sidebar-inbox{display:flex;align-items:center;gap:9px;width:100%;margin:14px 0 10px;padding:10px 12px;position:relative;
+  background:linear-gradient(135deg,rgba(143,168,216,.14),rgba(88,118,184,.06));
+  border:1px solid rgba(143,168,216,.32);border-radius:12px;cursor:pointer;
+  color:#b8ccee;font-family:var(--font-sans);font-size:13px;font-weight:700;letter-spacing:-0.01em;
+  transition:all .18s ease;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
+.sidebar-inbox:hover{border-color:rgba(143,168,216,.6);color:#dbe6fb;transform:translateY(-1px);
+  box-shadow:0 6px 18px rgba(88,118,184,.25),inset 0 1px 0 rgba(255,255,255,.08);}
+.sb-inbox-ic{width:19px;height:19px;flex-shrink:0;display:inline-flex;
+  filter:drop-shadow(0 0 5px rgba(143,168,216,.6));}
+.sb-inbox-ic svg{width:100%;height:100%;}
+.sb-inbox-txt{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sb-inbox-badge{flex-shrink:0;min-width:19px;height:19px;line-height:19px;padding:0 5px;border-radius:999px;
+  background:var(--accent,#8fa8d8);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;text-align:center;}
+@media(max-width:500px){.sb-inbox-txt{display:none;}.sidebar-inbox{justify-content:center;}}
 .tab-btn{background:#0d1220;border:1px solid rgba(255,255,255,0.18);width:calc(100% - 16px);margin:4px 8px;text-align:left;display:flex;align-items:center;gap:11px;padding:10px 16px;border-radius:999px;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--text-muted);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:42px;box-shadow:0 8px 20px -6px rgba(255,255,255,0.12),0 0 10px rgba(255,255,255,0.08),inset 0 1px 0 rgba(255,255,255,0.08);}
 .tab-group{display:flex;flex-direction:column;}
 .tab-group-head{justify-content:flex-start;}
@@ -5862,7 +5877,23 @@ function buildTabs(){
   if(searchEl) nav.appendChild(searchEl);
 
   // section label
-  const lbl=document.createElement('div');lbl.className='sidebar-section-label';lbl.textContent='Atividades';
+  // No lugar de um rótulo solto, a caixa de entrada — o envelope do topo
+  // passava despercebido, e é por ele que chegam as notificações
+  const lbl=document.createElement('button');
+  lbl.type='button';
+  lbl.className='sidebar-inbox';
+  lbl.title='Caixa de entrada — notificações';
+  lbl.onclick=()=>{ try{ toggleNotifPanel(); }catch(e){} };
+  lbl.innerHTML=`
+    <span class="sb-inbox-ic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2.5" y="4.5" width="19" height="15" rx="3.6"/>
+        <path d="M4 6.8l6.7 5.6a2 2 0 0 0 2.6 0L20 6.8"/>
+        <path d="M4.2 17.6l5.6-5.1M19.8 17.6l-5.6-5.1" opacity="0.75"/>
+      </svg>
+    </span>
+    <span class="sb-inbox-txt">Caixa de entrada</span>
+    <span class="sb-inbox-badge" id="notif-badge-side" style="display:none;">0</span>`;
   nav.appendChild(lbl);
 
   function fireTabHooks(id){
@@ -16341,6 +16372,12 @@ function initNotifListener(){
       badge.style.display = naoLidas.length ? 'block' : 'none';
       badge.textContent = naoLidas.length > 9 ? '9+' : naoLidas.length;
     }
+    // Mesmo contador na caixa de entrada da barra lateral
+    const badgeSide = document.getElementById('notif-badge-side');
+    if(badgeSide){
+      badgeSide.style.display = naoLidas.length ? 'inline-block' : 'none';
+      badgeSide.textContent = naoLidas.length > 9 ? '9+' : naoLidas.length;
+    }
     // Push das novas não lidas. Na 1ª carga apenas registra o que já existia,
     // para não disparar um alerta de tudo que estava acumulado ao entrar.
     if(_notifPushExibidas===null){
@@ -16447,7 +16484,11 @@ function toggleNotifPanel(){
 document.addEventListener('click', e=>{
   const panel = document.getElementById('notif-panel');
   const btn   = document.getElementById('notif-btn');
-  if(panel && btn && !panel.contains(e.target) && !btn.contains(e.target)){
+  // A caixa de entrada da barra lateral também abre este painel — sem
+  // constar aqui, ela abriria e fecharia no mesmo clique
+  const lateral = document.querySelector('.sidebar-inbox');
+  if(panel && btn && !panel.contains(e.target) && !btn.contains(e.target)
+     && !(lateral && lateral.contains(e.target))){
     panel.style.display='none';
   }
 });
