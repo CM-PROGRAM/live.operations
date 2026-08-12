@@ -37,7 +37,7 @@
   --glass-glow-purple: rgba(143,168,216,0.35);
   --glass-glow-accent: rgba(143,168,216,0.35);
   /* Superfícies e sombras que trocam junto com o tema */
-  --grad-painel:var(--grad-painel);
+  --grad-painel:linear-gradient(135deg,rgba(21,26,40,0.97),rgba(10,13,21,0.99));
   --grad-vidro:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
   --grad-avatar:radial-gradient(circle at 35% 30%,#26314b,#131826);
   --realce-topo:inset 0 1px 0 rgba(255,255,255,0.07);
@@ -12741,9 +12741,9 @@ function ateCalRender(fieldId){
   const diasNoMes=new Date(y,mo+1,0).getDate();
   const hoje=new Date();
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <button type="button" onclick="ateCalNav('${fieldId}',-1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
+    <button type="button" onclick="ateCalNav('${fieldId}',-1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
     <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
-    <button type="button" onclick="ateCalNav('${fieldId}',1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
+    <button type="button" onclick="ateCalNav('${fieldId}',1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
   ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
@@ -12753,7 +12753,7 @@ function ateCalRender(fieldId){
     const key=y+'-'+mo+'-'+dia;
     const isSel=key===selKey;
     const isHoje=dia===hoje.getDate()&&mo===hoje.getMonth()&&y===hoje.getFullYear();
-    html+=`<button type="button" onclick="ateCalPick('${fieldId}',${y},${mo},${dia})" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+    html+=`<button type="button" onclick="ateCalPick('${fieldId}',${y},${mo},${dia})" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='var(--veu-medio)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
   }
   html+='</div>';
   pop.innerHTML=html;
@@ -13137,9 +13137,9 @@ function atvRenderCal(){
   const diasNoMes=new Date(y,mo+1,0).getDate();
   const _hd=new Date(); const hojeIso=_hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <button type="button" onclick="atvCalNav(-1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
+    <button type="button" onclick="atvCalNav(-1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
     <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
-    <button type="button" onclick="atvCalNav(1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
+    <button type="button" onclick="atvCalNav(1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
   ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
@@ -13148,7 +13148,7 @@ function atvRenderCal(){
   for(let dia=1;dia<=diasNoMes;dia++){
     const iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
     const isSel=iso===selIso, isHoje=iso===hojeIso;
-    html+=`<button type="button" onclick="atvCalPick('${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+    html+=`<button type="button" onclick="atvCalPick('${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='var(--veu-medio)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
   }
   html+='</div>';
   pop.innerHTML=html;
@@ -15282,9 +15282,9 @@ function vencRenderCal(prefix){
   const diasNoMes=new Date(y,mo+1,0).getDate();
   const _hd=new Date(); const hojeIso=_hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
   let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <button type="button" onclick="vencCalNav('${prefix}',-1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
+    <button type="button" onclick="vencCalNav('${prefix}',-1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
     <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
-    <button type="button" onclick="vencCalNav('${prefix}',1)" style="background:rgba(255,255,255,.06);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
+    <button type="button" onclick="vencCalNav('${prefix}',1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
   </div>
   <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
   ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
@@ -15293,7 +15293,7 @@ function vencRenderCal(prefix){
   for(let dia=1;dia<=diasNoMes;dia++){
     const iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
     const isSel=iso===selIso, isHoje=iso===hojeIso;
-    html+=`<button type="button" onclick="vencCalPick('${prefix}','${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='rgba(255,255,255,.08)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
+    html+=`<button type="button" onclick="vencCalPick('${prefix}','${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='var(--veu-medio)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
   }
   html+='</div>';
   pop.innerHTML=html;
