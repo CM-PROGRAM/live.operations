@@ -4797,7 +4797,7 @@ function forcarResetSenhaTodos(){
   if(!alvos.length){ showToast('Ninguém selecionado','warn'); return; }
 
   const ts=Date.now();
-  let enviados=0, pendentes=[];
+  let enviados=0, pendentes=[], falhas=[];
   const temAuth=(typeof firebase!=='undefined' && firebase.auth);
   const cfg={ url:location.origin+location.pathname, handleCodeInApp:false };
 
@@ -4807,9 +4807,11 @@ function forcarResetSenhaTodos(){
     return firebase.auth().sendPasswordResetEmail(u.email,cfg)
       .then(()=>{ enviados++; })
       .catch(err=>{
+        const c=(err&&err.code)||err.message||'erro';
         // Ainda sem conta na nuvem: o e-mail sai quando essa pessoa entrar
-        if((err&&err.code)==='auth/user-not-found') pendentes.push(u.name);
-        else { pendentes.push(u.name); console.warn('[reset]',u.email,err.code||err.message); }
+        if(c==='auth/user-not-found') pendentes.push(u.name);
+        else falhas.push((u.name||u.email)+': '+c);
+        console.warn('[reset]',u.email,c);
       });
   }), Promise.resolve());
 
@@ -4822,7 +4824,9 @@ function forcarResetSenhaTodos(){
     });
     let msg=`📧 E-mail enviado para ${enviados} pessoa(s)`;
     if(pendentes.length) msg+=` · Pendente até entrarem uma vez: ${pendentes.join(', ')}`;
-    showToast(msg, pendentes.length?'warn':'success');
+    if(falhas.length) msg+=` · FALHOU — ${falhas.join(' | ')}`;
+    showToast(msg, (falhas.length||pendentes.length)?'warn':'success');
+    if(falhas.length) console.error('[reset] falhas:',falhas);
     try{ renderUsersGrid(); }catch(e){}
     // Se o master se incluiu, encerra também a própria sessão
     if(incluiMim) setTimeout(()=>{ showToast('Você também precisa redefinir — saindo…','warn'); setTimeout(doLogout,1800); },700);
