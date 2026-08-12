@@ -14573,21 +14573,18 @@ function renderAtividades(){
       }
     }
     // Clique em qualquer parte do card (fora dos botões de ação) abre a tela da tarefa
-    // — exceto quando a tarefa veio de um Atendimento vencido: nesse caso, vai direto pro atendimento
-    const isMine2 = getAtvResponsaveis(a).includes(currentUser.key);
-    const isCriador2 = a.criadoPorKey === currentUser.key;
-    const podeEditar2 = currentUser.master || isCriador2;
-    if(podeEditar2 || isMine2 || _atvPodeRevisar()){
-      card.style.cursor='pointer';
-      if(a.origemAteId){
-        card.addEventListener('click',()=>{
-          switchTab('atendimentos');
-          try{ateSetSubTab('ativos');}catch(e){}
-          setTimeout(()=>openAteModal(a.origemAteId),50);
-        });
-      } else {
-        card.addEventListener('click',()=>openAtvModal(a.id));
-      }
+    // — exceto quando a tarefa veio de um Atendimento vencido: nesse caso, vai direto pro atendimento.
+    // Todo colaborador abre: quem não pode agir entra em modo conferência
+    // (somente leitura), o que é justamente o caso de quem só vai ver o print.
+    card.style.cursor='pointer';
+    if(a.origemAteId){
+      card.addEventListener('click',()=>{
+        switchTab('atendimentos');
+        try{ateSetSubTab('ativos');}catch(e){}
+        setTimeout(()=>openAteModal(a.origemAteId),50);
+      });
+    } else {
+      card.addEventListener('click',()=>openAtvModal(a.id));
     }
     col.appendChild(card);
   });
