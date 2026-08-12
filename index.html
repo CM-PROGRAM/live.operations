@@ -655,8 +655,10 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   --mkt-neon:143,168,216;
   position:relative;
 }
+/* A luz corre na própria base do quadro, rente à borda de baixo */
 .mkt-nome::after{
-  content:'';position:absolute;left:0;right:0;bottom:-7px;height:2px;border-radius:2px;
+  content:'';position:absolute;left:-1.5px;right:-1.5px;bottom:-1.5px;height:2px;
+  border-radius:0 0 10px 10px;
   pointer-events:none;
   background-image:
     linear-gradient(90deg,rgba(var(--mkt-neon),0) 0%,rgba(var(--mkt-neon),.95) 50%,rgba(var(--mkt-neon),0) 100%),
@@ -15476,8 +15478,7 @@ function renderMktLinks(){
     pctBadge.title=_done+' de '+_tot+' tarefas concluídas';
     pctBadge.textContent=pct+'%';
     const headRow=document.createElement('div');
-    // Espaço extra embaixo: é onde corre o neon do nome
-    headRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px;';
+    headRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;';
     headRow.appendChild(head);
     headRow.appendChild(pctBadge);
     card.appendChild(headRow);
