@@ -4868,29 +4868,66 @@ const _regEnviado={};              // lista -> {chaveRegistro: json} do que já 
 function _regChave(id){ return String(id).replace(/[.#$/\[\]]/g,'_'); }
 
 // Grava apenas os registros que mudaram, em uma única operação
+// Traduz o erro do Firebase para algo que o usuário possa resolver
+function _mensagemDeErroDaNuvem(err){
+  const t=String((err&&err.message)||err||'');
+  if(/PERMISSION_DENIED|Permission denied/i.test(t)){
+    return 'Sem permissão para gravar na nuvem. Peça ao master para liberar seu acesso '
+         + '(Adm. Master → Segurança). Suas alterações continuam salvas neste navegador '
+         + 'e sobem sozinhas assim que o acesso for liberado.';
+  }
+  if(/network|offline|unavailable|disconnect/i.test(t)){
+    return 'Sem conexão com a nuvem. Suas alterações ficam neste navegador e sobem quando a conexão voltar.';
+  }
+  return 'Erro ao sincronizar com a nuvem: '+t;
+}
+
 function _gravarRegistrosAlterados(s){
   const updates={};
+  // Guarda o que foi enviado nesta rodada. Se a gravação falhar, a marca de
+  // "já enviado" é desfeita — senão a próxima gravação acha que está tudo
+  // sincronizado e a alteração nunca mais sobe.
+  const enviadosAgora={};
   let alterados=0, removidos=0;
   Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
     const lista=acc.get(s);
     if(!Array.isArray(lista)) return;
     const antes=_regEnviado[nome]||{};
     const agora={};
+    const marcar=(k,valorAnterior)=>{ (enviadosAgora[nome]=enviadosAgora[nome]||{})[k]=valorAnterior; };
     lista.forEach(r=>{
       if(!r || !r.id) return;
       const k=_regChave(r.id);
       const json=JSON.stringify(r);
       agora[k]=json;
-      if(antes[k]!==json){ updates[FB_REG+'/'+nome+'/'+k]={...r,_by:_sessionId}; alterados++; }
+      if(antes[k]!==json){ updates[FB_REG+'/'+nome+'/'+k]={...r,_by:_sessionId}; marcar(k,antes[k]); alterados++; }
     });
-    Object.keys(antes).forEach(k=>{ if(agora[k]===undefined){ updates[FB_REG+'/'+nome+'/'+k]=null; removidos++; } });
+    Object.keys(antes).forEach(k=>{
+      if(agora[k]===undefined){ updates[FB_REG+'/'+nome+'/'+k]=null; marcar(k,antes[k]); removidos++; }
+    });
     _regEnviado[nome]=agora;
   });
   if(!alterados && !removidos) return;
   db.ref().update(updates).catch(err=>{
     console.error('[reg] falha ao gravar:',err.message);
-    showToast('Erro ao sincronizar: '+err.message,'error');
+    // Desfaz a marca, para que a próxima gravação tente de novo
+    Object.entries(enviadosAgora).forEach(([nome,chaves])=>{
+      _regEnviado[nome]=_regEnviado[nome]||{};
+      Object.entries(chaves).forEach(([k,valorAnterior])=>{
+        if(valorAnterior===undefined) delete _regEnviado[nome][k];
+        else _regEnviado[nome][k]=valorAnterior;
+      });
+    });
+    _avisarFalhaDeGravacao(err);
   });
+}
+
+// Um aviso por vez, em vez de um toast por gravação que falha
+let _ultimoAvisoFalhaTs=0;
+function _avisarFalhaDeGravacao(err){
+  if(Date.now()-_ultimoAvisoFalhaTs < 20000) return;
+  _ultimoAvisoFalhaTs=Date.now();
+  showToast(_mensagemDeErroDaNuvem(err),'error');
 }
 
 // O que sobra do estado, sem as listas que agora vivem separadas
@@ -5055,7 +5092,7 @@ function saveState(s){
     }catch(e){}
     db.ref(FB_PATH).set(payload).catch(err => {
       console.error('[Firebase] ERRO AO SALVAR:', err.message);
-      showToast('Erro ao sincronizar com a nuvem: '+err.message,'error');
+      _avisarFalhaDeGravacao(err);
     });
   }
 }
