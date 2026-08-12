@@ -397,7 +397,7 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sidebar-section-label{padding:20px 8px 10px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;}
 /* Caixa de entrada no alto da barra lateral */
 /* Alternador de tema, logo acima do relógio */
-.sb-tema{display:flex;align-items:center;gap:9px;width:100%;margin:0 0 8px;padding:9px 12px;
+.sb-tema{display:flex;align-items:center;gap:9px;flex:1;min-width:0;margin:0;padding:10px 12px;
   background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));
   border:1px solid var(--glass-border);border-radius:12px;cursor:pointer;
   color:var(--text-secondary);font-family:var(--font-sans);font-size:12.5px;font-weight:600;
@@ -407,18 +407,11 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sb-tema-ic svg{width:100%;height:100%;}
 .sb-tema-txt{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 @media(max-width:500px){.sb-tema-txt{display:none;}.sb-tema{justify-content:center;}}
+.sb-sair{flex-shrink:0;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));
+  border:1px solid var(--glass-border);border-radius:12px;color:var(--text-muted);cursor:pointer;
+  font-size:12.5px;font-weight:600;font-family:var(--font-sans);padding:10px 16px;transition:all .18s ease;white-space:nowrap;width:auto;}
+.sb-sair:hover{border-color:rgba(239,68,68,0.5);color:#fca5a5;background:rgba(239,68,68,0.06);}
 
-/* Relógio do rodapé: hora em destaque, segundos discretos e a data logo abaixo */
-.sb-relogio{display:flex;align-items:center;gap:9px;min-width:0;}
-.sb-relogio-ic{width:17px;height:17px;flex-shrink:0;color:#4ade80;display:inline-flex;
-  filter:drop-shadow(0 0 5px rgba(74,222,128,.5));animation:pulse 2.4s infinite;}
-.sb-relogio-ic svg{width:100%;height:100%;}
-.sb-relogio-hora{font-family:var(--font-mono);font-size:16px;font-weight:700;letter-spacing:.5px;
-  color:var(--text-primary);line-height:1.05;display:flex;align-items:baseline;gap:2px;}
-.sb-relogio-seg{font-size:10.5px;font-weight:600;color:#4ade80;opacity:.9;}
-.sb-relogio-data{font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);
-  letter-spacing:.4px;margin-top:2px;white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;}
 .sidebar-user{display:flex;align-items:center;gap:10px;width:calc(100% - 16px);margin:14px 8px 4px;padding:2px 2px;}
 .sb-user-av{flex-shrink:0;line-height:0;}
 .sb-user-info{min-width:0;flex:1;}
@@ -6068,23 +6061,12 @@ function buildTabs(){
   // footer: user + clock + logout
   const footer=document.createElement('div');footer.className='sidebar-footer';
   footer.innerHTML=`
-    <button id="theme-toggle" class="sb-tema" onclick="toggleTheme()" title="Alternar entre modo escuro e claro">
-      <span class="sb-tema-ic" id="theme-toggle-ic"></span>
-      <span class="sb-tema-txt" id="theme-toggle-label">Modo Escuro</span>
-    </button>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px 12px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);">
-      <div class="sb-relogio">
-        <span class="sb-relogio-ic">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/><path d="M12 7v5.2l3.2 1.9"/>
-          </svg>
-        </span>
-        <div style="min-width:0;">
-          <div class="sb-relogio-hora"><span id="live-time">--:--</span><span class="sb-relogio-seg" id="live-seg">--</span></div>
-          <div class="sb-relogio-data" id="live-data">—</div>
-        </div>
-      </div>
-      <button onclick="doLogout()" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-sans);padding:5px 12px;transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(239,68,68,0.5)';this.style.color='#fca5a5';" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text-muted)';">Sair</button>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button id="theme-toggle" class="sb-tema" onclick="toggleTheme()" title="Alternar entre modo escuro e claro">
+        <span class="sb-tema-ic" id="theme-toggle-ic"></span>
+        <span class="sb-tema-txt" id="theme-toggle-label">Modo Escuro</span>
+      </button>
+      <button onclick="doLogout()" class="sb-sair" title="Encerrar a sessão">Sair</button>
     </div>`;
   nav.appendChild(footer);
   try{ _loThemeIcon(); }catch(e){}
@@ -11198,19 +11180,7 @@ function resetTimers(){
 
 /* ===== CLOCK ===== */
 function startClock(){
-  const tick=()=>{
-    const d=new Date();
-    const hm=document.getElementById('live-time');
-    const sg=document.getElementById('live-seg');
-    const dt=document.getElementById('live-data');
-    if(hm) hm.textContent=d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    if(sg) sg.textContent=':'+String(d.getSeconds()).padStart(2,'0');
-    if(dt){
-      const txt=d.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'}).replace(/\./g,'');
-      dt.textContent=txt.charAt(0).toUpperCase()+txt.slice(1);
-    }
-  };
-  tick();setInterval(tick,1000);
+
   setInterval(()=>{
     const h=new Date().getHours();
     const groups=appState.tasks.whatsapp;
