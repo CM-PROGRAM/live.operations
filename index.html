@@ -1721,8 +1721,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </button>
           <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:6px;line-height:1.6;">
             Desconecta os colaboradores, dispara o e-mail de redefinição e bloqueia a entrada até
-            cada um definir a própria senha. Você não é afetado — use "Esqueci minha senha" na tela
-            de login para trocar a sua.
+            cada um definir a própria senha. Uma segunda pergunta permite incluir você também,
+            caso queira passar pelo mesmo fluxo.
           </div>
         </div>
         <div id="seg-acessos" style="margin-bottom:14px;"></div>
@@ -4775,17 +4775,26 @@ function revogarAcesso(uid,nome){
 function forcarResetSenhaTodos(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode fazer isso','warn'); return; }
   if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
-  const alvos=Object.entries(appState.users||{}).filter(([k])=>k!==currentUser.key);
-  if(!alvos.length){ showToast('Não há outros usuários','warn'); return; }
-  const semEmail=alvos.filter(([,u])=>!_emailValido(u&&u.email)).map(([,u])=>(u&&u.name)||'—');
+  const outros=Object.entries(appState.users||{}).filter(([k])=>k!==currentUser.key);
+  const semEmail=outros.filter(([,u])=>!_emailValido(u&&u.email)).map(([,u])=>(u&&u.name)||'—');
   if(semEmail.length){ showToast('Cadastre o e-mail de: '+semEmail.join(', '),'warn'); return; }
   if(!confirm(
-    `Forçar ${alvos.length} colaborador(es) a criar uma senha nova?\n\n`+
+    `Forçar ${outros.length} colaborador(es) a criar uma senha nova?\n\n`+
     `· Todos serão desconectados agora\n`+
     `· Cada um recebe um e-mail para definir a própria senha\n`+
-    `· A senha atual deixa de valer\n\n`+
-    `Você (${currentUser.name}) NÃO é afetado — redefina a sua por "Esqueci minha senha" quando quiser.`
+    `· A senha atual deixa de valer`
   )) return;
+
+  // Opcionalmente inclui o próprio master — útil para testar o fluxo
+  const alvos=outros.slice();
+  const meuRegistro=(appState.users||{})[currentUser.key];
+  let incluiMim=false;
+  if(_emailValido(meuRegistro&&meuRegistro.email) && confirm(
+    `Incluir você também (${meuRegistro.email})?\n\n`+
+    `Você será desconectado e vai redefinir sua senha pelo e-mail, como os demais.\n\n`+
+    `Se o e-mail não chegar, use "Esqueci minha senha" na tela de login para pedir outro.`
+  )){ alvos.push([currentUser.key,meuRegistro]); incluiMim=true; }
+  if(!alvos.length){ showToast('Ninguém selecionado','warn'); return; }
 
   const ts=Date.now();
   let enviados=0, pendentes=[];
@@ -4811,10 +4820,12 @@ function forcarResetSenhaTodos(){
       db.ref('suplelive/forceLogout/'+k).set({ts, reason:'manutencao', por:currentUser.name,
         msg:'Sua senha precisa ser redefinida. Entre e siga as instruções na tela.'}).catch(()=>{});
     });
-    let msg=`📧 E-mail enviado para ${enviados} colaborador(es)`;
+    let msg=`📧 E-mail enviado para ${enviados} pessoa(s)`;
     if(pendentes.length) msg+=` · Pendente até entrarem uma vez: ${pendentes.join(', ')}`;
     showToast(msg, pendentes.length?'warn':'success');
     try{ renderUsersGrid(); }catch(e){}
+    // Se o master se incluiu, encerra também a própria sessão
+    if(incluiMim) setTimeout(()=>{ showToast('Você também precisa redefinir — saindo…','warn'); setTimeout(doLogout,1800); },700);
   });
 }
 
