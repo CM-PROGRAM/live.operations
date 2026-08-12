@@ -415,9 +415,28 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   filter:drop-shadow(0 0 5px rgba(143,168,216,.6));}
 .sb-inbox-ic svg{width:100%;height:100%;}
 .sb-inbox-txt{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.sidebar-inbox::after{content:'';position:absolute;left:6px;right:6px;bottom:-11px;height:1px;
-  background:linear-gradient(90deg,transparent,var(--glass-border),transparent);}
-.sidebar-inbox{margin-bottom:22px;}
+/* Separador com um brilho vermelho suave que percorre a linha de um lado
+   ao outro, para marcar a divisão sem pesar */
+.sidebar-inbox::after{
+  content:'';position:absolute;left:8px;right:8px;bottom:-17px;height:2px;border-radius:2px;
+  background-image:
+    linear-gradient(90deg,rgba(248,113,113,0) 0%,rgba(252,165,165,.95) 50%,rgba(248,113,113,0) 100%),
+    linear-gradient(90deg,transparent,rgba(248,113,113,.22),transparent);
+  background-size:55% 100%, 100% 100%;
+  background-repeat:no-repeat, no-repeat;
+  background-position:-30% 0, 0 0;
+  animation:sbNeonVaiVem 3.4s ease-in-out infinite alternate;
+  filter:drop-shadow(0 0 5px rgba(248,113,113,.55));
+  pointer-events:none;
+}
+@keyframes sbNeonVaiVem{
+  from{background-position:-30% 0, 0 0;}
+  to{background-position:130% 0, 0 0;}
+}
+@media(prefers-reduced-motion:reduce){
+  .sidebar-inbox::after{animation:none;background-position:50% 0, 0 0;}
+}
+.sidebar-inbox{margin-bottom:34px;}
 .sb-inbox-badge{flex-shrink:0;min-width:19px;height:19px;line-height:19px;padding:0 5px;border-radius:999px;
   background:var(--accent,#8fa8d8);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;text-align:center;}
 @media(max-width:500px){.sb-inbox-txt{display:none;}.sidebar-inbox{justify-content:center;}}
