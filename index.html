@@ -1715,6 +1715,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
         </div>
         <div id="seg-status" style="margin-bottom:14px;"></div>
+        <div style="margin-bottom:14px;">
+          <button class="btn btn-danger btn-sm" onclick="forcarResetSenhaTodos()" style="width:auto;">
+            🔑 Forçar todos a criar senha nova
+          </button>
+          <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:6px;line-height:1.6;">
+            Desconecta os colaboradores, dispara o e-mail de redefinição e bloqueia a entrada até
+            cada um definir a própria senha. Você não é afetado — use "Esqueci minha senha" na tela
+            de login para trocar a sua.
+          </div>
+        </div>
         <div id="seg-acessos" style="margin-bottom:14px;"></div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;line-height:1.6;">
           Regras finais — liberam apenas quem está na <b>lista de aprovados</b>. Estar autenticado
@@ -4759,6 +4769,55 @@ function revogarAcesso(uid,nome){
     .catch(err=>showToast('Falha ao revogar: '+err.message,'error'));
 }
 
+// Obriga todos os colaboradores a criar uma senha nova: marca cada um,
+// dispara o e-mail de redefinição e derruba as sessões. Quem ainda não
+// tem conta na nuvem recebe o e-mail assim que entrar uma vez.
+function forcarResetSenhaTodos(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode fazer isso','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const alvos=Object.entries(appState.users||{}).filter(([k])=>k!==currentUser.key);
+  if(!alvos.length){ showToast('Não há outros usuários','warn'); return; }
+  const semEmail=alvos.filter(([,u])=>!_emailValido(u&&u.email)).map(([,u])=>(u&&u.name)||'—');
+  if(semEmail.length){ showToast('Cadastre o e-mail de: '+semEmail.join(', '),'warn'); return; }
+  if(!confirm(
+    `Forçar ${alvos.length} colaborador(es) a criar uma senha nova?\n\n`+
+    `· Todos serão desconectados agora\n`+
+    `· Cada um recebe um e-mail para definir a própria senha\n`+
+    `· A senha atual deixa de valer\n\n`+
+    `Você (${currentUser.name}) NÃO é afetado — redefina a sua por "Esqueci minha senha" quando quiser.`
+  )) return;
+
+  const ts=Date.now();
+  let enviados=0, pendentes=[];
+  const temAuth=(typeof firebase!=='undefined' && firebase.auth);
+  const cfg={ url:location.origin+location.pathname, handleCodeInApp:false };
+
+  const fila=alvos.reduce((p,[k,u])=>p.then(()=>{
+    u.precisaRedefinir=true;
+    if(!temAuth){ pendentes.push(u.name); return; }
+    return firebase.auth().sendPasswordResetEmail(u.email,cfg)
+      .then(()=>{ enviados++; })
+      .catch(err=>{
+        // Ainda sem conta na nuvem: o e-mail sai quando essa pessoa entrar
+        if((err&&err.code)==='auth/user-not-found') pendentes.push(u.name);
+        else { pendentes.push(u.name); console.warn('[reset]',u.email,err.code||err.message); }
+      });
+  }), Promise.resolve());
+
+  fila.then(()=>{
+    saveState(appState);
+    // Derruba as sessões para que ninguém siga usando a senha antiga
+    alvos.forEach(([k])=>{
+      db.ref('suplelive/forceLogout/'+k).set({ts, reason:'manutencao', por:currentUser.name,
+        msg:'Sua senha precisa ser redefinida. Entre e siga as instruções na tela.'}).catch(()=>{});
+    });
+    let msg=`📧 E-mail enviado para ${enviados} colaborador(es)`;
+    if(pendentes.length) msg+=` · Pendente até entrarem uma vez: ${pendentes.join(', ')}`;
+    showToast(msg, pendentes.length?'warn':'success');
+    try{ renderUsersGrid(); }catch(e){}
+  });
+}
+
 // Traduz o código do Firebase para o que precisa ser feito
 function _explicarErroAuth(codigo){
   const M={
@@ -4888,7 +4947,11 @@ function confirmarNovaSenha(){
       // Mantém a cópia local em dia, para o login funcionar mesmo sem internet
       try{
         const par=Object.entries(appState.users||{}).find(([,v])=>v && String(v.email||'').toLowerCase()===emailDono);
-        if(par && hash){ par[1].passHash=hash; delete par[1].pass; saveState(appState); }
+        if(par && hash){
+          par[1].passHash=hash; delete par[1].pass;
+          delete par[1].precisaRedefinir; // exigência cumprida
+          saveState(appState);
+        }
       }catch(e){}
       _resetErro('✓ Senha alterada. Faça login com a nova senha.','#22c55e');
       setTimeout(()=>{
@@ -4967,6 +5030,16 @@ function doLogin(){
 
     // Primeira entrada após a mudança: troca a senha legível pela impressão
     if(!dados.passHash && hashDigitado){ dados.passHash=hashDigitado; delete dados.pass; }
+
+    // Master exigiu senha nova: não entra, vai direto para a redefinição.
+    // A conta na nuvem já existe neste ponto, então o e-mail sai agora.
+    if(dados.precisaRedefinir){
+      try{ saveState(appState); }catch(e){}
+      abrirRedefinicao(dados.email||'');
+      _resetErro('Sua senha precisa ser redefinida antes de entrar. Enviando o e-mail…','#f59e0b');
+      setTimeout(()=>enviarCodigoRedefinicao(),400);
+      return;
+    }
 
     currentUser={key:chave,...dados};
     try{ saveState(appState); }catch(e){}
