@@ -1775,6 +1775,20 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <!-- BACKUP — cópias automáticas diárias -->
+      <div class="admin-panel" id="backup-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">💾 Backup Automático</div>
+          <button class="btn btn-sm" onclick="carregarBackups()" style="width:auto;">↻ Atualizar</button>
+        </div>
+        <div id="bkp-aviso" style="margin-bottom:12px;"></div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
+          Uma cópia por dia é guardada na nuvem automaticamente (últimos 30 dias). Serve para voltar
+          atrás de uma exclusão em massa. Para uma cópia fora da nuvem, use o botão de backup .zip abaixo.
+        </div>
+        <div id="bkp-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:300px;overflow-y:auto;"></div>
+      </div>
+
       <!-- ARQUIVO — tudo que foi excluído, nunca some de verdade -->
       <div class="admin-panel" id="arquivo-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -3193,6 +3207,149 @@ function restaurarDoArquivo(area,chave){
     .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
 }
 
+// ── BACKUP AUTOMÁTICO ────────────────────────────────────────
+// Uma cópia por dia do estado, guardada fora do pacote de trabalho. Serve
+// para voltar atrás de uma exclusão em massa ou de um erro — protege o
+// dia a dia. Não substitui o backup .zip, que é a cópia fora da nuvem.
+const FB_BACKUPS='suplelive/backups';
+const BACKUP_MANTER_DIAS=30;
+const BACKUP_LEMBRETE_DIAS=15;
+
+function _hojeISO(){ return new Date().toISOString().slice(0,10); }
+
+// Só o master gera, para não haver várias sessões gravando o mesmo
+function verificarBackupAutomatico(){
+  if(!currentUser || !currentUser.master) return;
+  if(!(db && fbConnected)) return;
+  const hoje=_hojeISO();
+  db.ref(FB_BACKUPS+'/'+hoje+'/ts').once('value').then(snap=>{
+    if(snap.exists()) return;            // já existe a cópia de hoje
+    return _gravarBackupAutomatico(hoje);
+  }).then(()=>_limparBackupsAntigos()).catch(err=>console.warn('[backup]',err.message));
+}
+
+function _gravarBackupAutomatico(dia){
+  // As imagens já vivem fora do pacote; aqui vai só o conteúdo dos registros
+  const copia=JSON.parse(JSON.stringify(appState));
+  try{ _percorrerImagensDoEstado(copia,(obj,chave)=>{ obj[chave]=''; }); }catch(e){}
+  const payload={
+    ts:Date.now(), dia,
+    porQuem:(currentUser&&currentUser.name)||'—',
+    tamanho:JSON.stringify(copia).length,
+    contagem:{
+      tarefas:(copia.atividades||[]).length,
+      devolucoes:((copia.tasks||{}).devolucoes||[]).length,
+      atendimentos:((copia.tasks||{}).atendimentos||[]).length,
+      integracoes:(copia.integracoes||[]).length,
+      exclusoes:(copia.excluirIntBase||[]).length
+    },
+    estado:copia
+  };
+  return db.ref(FB_BACKUPS+'/'+dia).set(payload)
+    .then(()=>console.log('[backup] cópia de',dia,'gravada'));
+}
+
+function _limparBackupsAntigos(){
+  return db.ref(FB_BACKUPS).once('value').then(snap=>{
+    const dados=snap.val()||{};
+    const limite=new Date(); limite.setDate(limite.getDate()-BACKUP_MANTER_DIAS);
+    const corte=limite.toISOString().slice(0,10);
+    const apagar=Object.keys(dados).filter(d=>d<corte);
+    return Promise.all(apagar.map(d=>db.ref(FB_BACKUPS+'/'+d).remove()));
+  });
+}
+
+let _backupsCache=null;
+function carregarBackups(){
+  const alvo=document.getElementById('bkp-lista');
+  if(!alvo) return;
+  if(!(db && fbConnected)){ alvo.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão.</div>'; return; }
+  alvo.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Carregando…</div>';
+  // Traz só o cabeçalho de cada cópia, sem baixar os estados inteiros
+  db.ref(FB_BACKUPS).once('value').then(snap=>{
+    const dados=snap.val()||{};
+    _backupsCache=Object.entries(dados).map(([dia,v])=>({
+      dia, ts:(v&&v.ts)||0, porQuem:(v&&v.porQuem)||'—',
+      tamanho:(v&&v.tamanho)||0, contagem:(v&&v.contagem)||{}
+    })).sort((a,b)=>b.dia.localeCompare(a.dia));
+    renderBackups();
+  }).catch(err=>{ alvo.innerHTML='<div style="padding:14px;color:var(--red);font-size:12px;font-family:var(--font-mono);">Falha: '+err.message+'</div>'; });
+}
+
+function renderBackups(){
+  const alvo=document.getElementById('bkp-lista');
+  if(!alvo || !_backupsCache) return;
+  if(!_backupsCache.length){
+    alvo.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhuma cópia ainda — a primeira é criada automaticamente ao abrir o sistema.</div>';
+    return;
+  }
+  const fmt=d=>{ const [a,m,dd]=d.split('-'); return dd+'/'+m+'/'+a; };
+  alvo.innerHTML=_backupsCache.map(b=>{
+    const c=b.contagem||{};
+    const resumo=[c.tarefas!=null?c.tarefas+' tarefas':'',c.devolucoes!=null?c.devolucoes+' devoluções':'',
+                  c.atendimentos!=null?c.atendimentos+' atendimentos':''].filter(Boolean).join(' · ');
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border-light);">
+      <div style="min-width:0;">
+        <div style="font-size:12px;color:var(--text-primary);font-weight:700;font-family:var(--font-mono);">${fmt(b.dia)}</div>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">
+          ${resumo||'—'} · ${(b.tamanho/1024).toFixed(0)} KB
+        </div>
+      </div>
+      <button class="btn btn-sm" style="width:auto;flex-shrink:0;" onclick="restaurarBackup('${b.dia}')">↩ Restaurar</button>
+    </div>`;
+  }).join('');
+}
+
+function restaurarBackup(dia){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode restaurar','warn'); return; }
+  if(!confirm(
+    `Restaurar a cópia de ${dia.split('-').reverse().join('/')}?\n\n`+
+    `ATENÇÃO: o conteúdo atual das abas será substituído pelo desta data.\n`+
+    `As imagens não são afetadas. Recomendo baixar o backup .zip antes.`
+  )) return;
+  showToast('Restaurando…','warn');
+  db.ref(FB_BACKUPS+'/'+dia+'/estado').once('value').then(snap=>{
+    const est=snap.val();
+    if(!est){ showToast('Cópia não encontrada','error'); return; }
+    // Preserva usuários e acessos atuais — restaurar dados não pode
+    // devolver senhas antigas nem tirar o acesso de ninguém
+    const usuariosAtuais=appState.users;
+    Object.keys(est).forEach(k=>{ if(k!=='users') appState[k]=est[k]; });
+    appState.users=usuariosAtuais;
+    saveState(appState);
+    showToast('✓ Cópia de '+dia.split('-').reverse().join('/')+' restaurada','success');
+    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderAll']
+      .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+  }).catch(err=>showToast('Falha ao restaurar: '+err.message,'error'));
+}
+
+// Lembrete de baixar a cópia externa (o .zip), que é a que sobrevive a
+// um problema na própria conta do Firebase
+function _marcarBackupBaixado(){ try{ localStorage.setItem('liveops_ultimo_zip', _hojeISO()); }catch(e){} }
+function _diasDesdeUltimoZip(){
+  try{
+    const d=localStorage.getItem('liveops_ultimo_zip');
+    if(!d) return null;
+    return Math.floor((Date.now()-new Date(d+'T00:00:00').getTime())/86400000);
+  }catch(e){ return null; }
+}
+
+function renderAvisoBackupZip(){
+  const alvo=document.getElementById('bkp-aviso'); if(!alvo) return;
+  const dias=_diasDesdeUltimoZip();
+  if(dias===null){
+    alvo.innerHTML=`<div style="font-size:11.5px;color:#f59e0b;font-family:var(--font-mono);border-left:2px solid #f59e0b;padding-left:8px;line-height:1.6;">
+      Você ainda não baixou nenhum backup .zip neste computador. Ele é a única cópia que sobrevive a
+      um problema na conta do Firebase — vale baixar hoje.</div>`;
+  } else if(dias>=BACKUP_LEMBRETE_DIAS){
+    alvo.innerHTML=`<div style="font-size:11.5px;color:#f59e0b;font-family:var(--font-mono);border-left:2px solid #f59e0b;padding-left:8px;line-height:1.6;">
+      Último backup .zip baixado há ${dias} dias. Vale baixar uma cópia nova.</div>`;
+  } else {
+    alvo.innerHTML=`<div style="font-size:11.5px;color:#22c55e;font-family:var(--font-mono);border-left:2px solid #22c55e;padding-left:8px;line-height:1.6;">
+      Backup .zip baixado ${dias===0?'hoje':'há '+dias+' dia(s)'}.</div>`;
+  }
+}
+
 // ── DIAGNÓSTICO / MANUTENÇÃO DO ESTADO ───────────────────────
 // Percorre o estado somando o peso de cada campo de imagem, para saber o
 // que está inflando o blob enviado ao Firebase.
@@ -3431,6 +3588,8 @@ Total de imagens neste backup: ${imagens.length}
       a.href=url; a.download=`backup-liveops-${hoje}.zip`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(()=>URL.revokeObjectURL(url),30000);
+      _marcarBackupBaixado();
+      try{ renderAvisoBackupZip(); }catch(e){}
       showToast(`✓ Backup gerado: ${imagens.length} imagem(ns) · ${(blob.size/1048576).toFixed(1)} MB`,'success');
     }catch(e){
       console.error('[backup]',e);
@@ -5104,7 +5263,9 @@ function initApp(){
   // buildTabs() cria o footer com avatar/nome/relógio/sair dinamicamente
   buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
   initNotifListener();
-
+  // Cópia diária automática — roda um pouco depois, para não competir com
+  // o carregamento inicial dos dados
+  setTimeout(()=>{ try{ verificarBackupAutomatico(); }catch(e){ console.warn('[backup]',e); } }, 6000);
 }
 
 /* ===== BLOCO DE NOTAS ===== */
@@ -5228,7 +5389,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
-    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); renderSeguranca(); carregarArquivo(); }catch(e){ console.warn('admin render:',e); } }
+    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); renderSeguranca(); carregarArquivo(); carregarBackups(); renderAvisoBackupZip(); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
