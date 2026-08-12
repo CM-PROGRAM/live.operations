@@ -4708,7 +4708,7 @@ const LOG_VALORES={
 // Ruído interno — nunca entra no histórico
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
-  'origemCancId','origemCancNfId','prazoLimite',
+  'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -4917,11 +4917,17 @@ let _regRenderTimer=null;
 function _agendarRenderRegistros(){
   clearTimeout(_regRenderTimer);
   _regRenderTimer=setTimeout(()=>{
+    // Solicitações de Canceladas podem ter chegado do n8n, sem tarefa; o
+    // sistema completa aqui e devolve as tarefas novas para a nuvem
+    let novasTarefas=false;
+    try{ novasTarefas=cancGarantirTarefas(); }catch(e){ console.warn('[canceladas]',e); }
     try{ saveLocal(appState); }catch(e){}
     try{ logSincronizarSnapshot(appState); }catch(e){}
     try{ renderAll(); }catch(e){}
     ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
       .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+    ['canc','cancnf'].forEach(p=>{ try{ renderCanceladas(p); }catch(e){} });
+    if(novasTarefas){ try{ saveState(appState); }catch(e){} }
   },250);
 }
 
@@ -15626,6 +15632,8 @@ function initCanceladaForm(p){
       return `<span class="canc-chip">${userAvatarHTML({...u,initials:ini},18)}${nome}</span>`;
     }).join('');
   }
+  // Cobre o caso de o registro do n8n ter chegado com a aba fechada
+  try{ if(cancGarantirTarefas()) saveState(appState); }catch(e){}
   renderCanceladas(p);
 }
 
@@ -15662,6 +15670,7 @@ function salvarCancelada(p){
   };
   _cancLista(p).push(item);
   criarTarefaAutoCancelada(item,c);
+  item.tarefaGerada=true;
   saveState(appState);
   limparCancelada(p);
   renderCanceladas(p);
@@ -15675,22 +15684,9 @@ function salvarCancelada(p){
 function criarTarefaAutoCancelada(item,c){
   if(!item) return;
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
-  const novaTarefa={
-    id:c.autoPrefix+item.id,
-    titulo:c.tarefaTitulo,
-    [c.origemKey]:item.id,
-    descricao:CANC_CONSIDERACAO,
-    prioridade:'normal',
-    vencimento:new Date().toISOString().slice(0,10),
-    prazoLimite:item.prazoLimite,
-    responsavel:item.responsaveis[0],
-    responsaveis:item.responsaveis.slice(),
-    status:'aberta',
-    criadoPor:item.criadoPor, criadoPorKey:item.criadoPorKey,
-    ordemManual:appState.atividades.length
-  };
-  appState.atividades.push(novaTarefa);
-  notifyResponsaveisAtribuido({...novaTarefa,titulo:c.tarefaTitulo+' · '+item.cliente},'tarefa','tarefa');
+  if(appState.atividades.some(a=>a && a.id===c.autoPrefix+item.id)) return;
+  appState.atividades.push(_cancMontarTarefa(item,c));
+  _cancNotificar(item,c);
 }
 
 function excluirCancelada(p,id){
@@ -15718,7 +15714,7 @@ function renderCanceladas(p){
   let nA=0,nC=0;
 
   _cancLista(p).slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0)).forEach(item=>{
-    if(q && ![item.cliente,item.cpf,item.telefone,item.plataforma,item.criadoPor]
+    if(q && ![item.cliente,item.cpf,item.telefone,item.plataforma,item.criadoPor,item.pedidoBase]
              .some(v=>String(v||'').toLowerCase().includes(q))) return;
     const concluida=item.status==='concluida';
     const card=document.createElement('div');
@@ -15731,6 +15727,7 @@ function renderCanceladas(p){
           ${linha('CPF',item.cpf)}
           ${linha('Telefone',item.telefone)}
           ${linha('Plataforma',item.plataforma)}
+          ${linha('Pedido Base',item.pedidoBase)}
         </div>
         <div id="${p}-acoes-${item.id}" style="display:flex;gap:4px;flex-shrink:0;"></div>
       </div>
@@ -15753,6 +15750,56 @@ function renderCanceladas(p){
   set(p+'-count-afazer',nA); set(p+'-count-conc',nC);
   const vazio=(id,mostrar)=>{ const el=document.getElementById(id); if(el) el.style.display=mostrar?'block':'none'; };
   vazio(p+'-empty-afazer',nA===0); vazio(p+'-empty-conc',nC===0);
+}
+
+// ── Solicitações que chegam de fora (n8n) ──────────────────────────
+// Quando o n8n grava direto em suplelive/reg/canceladas, ninguém clicou em
+// "Criar Solicitação" — então a tarefa diária não existe. Aqui o próprio
+// sistema completa: toda solicitação em aberto sem tarefa ganha a sua.
+// O id da tarefa é derivado do id da solicitação, então dois navegadores
+// abertos ao mesmo tempo geram exatamente o mesmo registro, sem duplicar.
+function cancGarantirTarefas(){
+  if(!currentUser) return false;
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  let criou=false;
+  Object.keys(CANC_CTX).forEach(p=>{
+    const c=_cancCtx(p);
+    _cancLista(p).forEach(item=>{
+      if(!item || !item.id || item.status==='concluida' || item.tarefaGerada) return;
+      if(appState.atividades.some(a=>a && a.id===c.autoPrefix+item.id)) { item.tarefaGerada=true; return; }
+      appState.atividades.push(_cancMontarTarefa(item,c));
+      item.tarefaGerada=true;
+      _cancNotificar(item,c);
+      criou=true;
+    });
+  });
+  return criou;
+}
+
+function _cancMontarTarefa(item,c){
+  return {
+    id:c.autoPrefix+item.id,
+    titulo:c.tarefaTitulo,
+    [c.origemKey]:item.id,
+    descricao:item.consideracoes||CANC_CONSIDERACAO,
+    prioridade:'normal',
+    vencimento:new Date().toISOString().slice(0,10),
+    prazoLimite:item.prazoLimite||null,
+    responsavel:(item.responsaveis||CANC_RESPONSAVEIS)[0],
+    responsaveis:(item.responsaveis||CANC_RESPONSAVEIS).slice(),
+    status:'aberta',
+    criadoPor:item.criadoPor||'—', criadoPorKey:item.criadoPorKey||'',
+    ordemManual:appState.atividades.length
+  };
+}
+
+// Avisa os responsáveis usando quem consta na solicitação — e não quem estava
+// com o navegador aberto na hora em que a tarefa foi completada
+function _cancNotificar(item,c){
+  const desc=c.tarefaTitulo+' · '+(item.cliente||'');
+  const msg=`📌 Nova tarefa atribuída a você por ${item.criadoPor||'—'}: "${desc}"`;
+  [...new Set(item.responsaveis||CANC_RESPONSAVEIS)]
+    .forEach(k=>_notifEnviar(k,msg,'tarefa','tarefa',c.autoPrefix+item.id));
 }
 
 // Concluir a tarefa também fecha a solicitação que a originou
