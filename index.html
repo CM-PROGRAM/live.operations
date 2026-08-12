@@ -2881,6 +2881,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <button onclick="closeAtvModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
+      <div id="atv-somente-leitura" style="display:none;align-items:center;gap:8px;background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:var(--radius);padding:9px 12px;font-size:11.5px;color:var(--text-secondary);">
+        <span style="font-size:13px;">👁</span>
+        <span>Modo conferência — você pode ver a tarefa e o print, mas não alterar.</span>
+      </div>
       <div class="input-group">
         <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span id="atv-titulo-admin-btns" style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
         <select id="atv-titulo" onchange="atvTituloChanged()"></select>
@@ -16521,9 +16525,10 @@ function openAtvModal(id){
   // Somente o master cria e edita tarefas; colaboradores têm acesso somente leitura
   const podeEditarTarefa = isMasterUser;
 
-  // Colaborador (responsável ou criador) pode abrir a tarefa apenas para visualizar.
-  // CM Andrade e Matheus também podem abrir qualquer tarefa concluída para revisão/finalização.
-  if(!isMasterUser && !isResponsavel && !isCriador && !_atvPodeRevisar() && id){showToast('Apenas o master, o criador ou o responsável podem visualizar esta tarefa','warn');return;}
+  // Qualquer colaborador abre a tarefa para ver — é assim que a equipe confere
+  // o print da conclusão antes de finalizar. Quem não é master, responsável,
+  // criador ou revisor entra em modo somente leitura: vê tudo, não mexe em nada.
+  const somenteLeitura = !!(id && !isMasterUser && !isResponsavel && !isCriador && !_atvPodeRevisar());
   // Criação de novas tarefas é exclusiva do master
   if(isNovaTask && !isMasterUser){showToast('Apenas o master pode criar tarefas','warn');return;}
 
@@ -16764,7 +16769,33 @@ function openAtvModal(id){
     const imagemWrapNew=document.getElementById('atv-imagem-wrap'); if(imagemWrapNew) imagemWrapNew.style.display='none';
     const acoesElNew=document.getElementById('atv-modal-acoes'); if(acoesElNew) acoesElNew.innerHTML='';
   }
+  _atvAplicarSomenteLeitura(somenteLeitura);
   overlay.style.display='flex';
+}
+
+// Modo conferência: a tarefa abre inteira, com o print à vista, mas nenhum
+// campo aceita alteração. Sem isso o colaborador poderia mexer nos campos e
+// achar que salvou algo — não há botão de salvar para ele.
+function _atvAplicarSomenteLeitura(ativo){
+  const modal=document.getElementById('atv-modal-overlay');
+  if(!modal) return;
+  const aviso=document.getElementById('atv-somente-leitura');
+  if(aviso) aviso.style.display=ativo?'flex':'none';
+  // Estes dois já têm regra própria (podeEditarResp) mais acima — não mexer,
+  // senão reabrir a tarefa como responsável desfaria a trava deles
+  const comRegraPropria=new Set(['atv-comentario','atv-responsavel']);
+  modal.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.type==='hidden' || comRegraPropria.has(el.id)) return;
+    el.disabled=!!ativo;
+  });
+  // Gatilhos que não são <input>: data, prioridade, responsáveis, marketplace
+  ['atv-venc-trigger','atv-prioridade-wrap','atv-responsavel-grid','atv-marketplace-grid']
+    .forEach(idEl=>{
+      const el=document.getElementById(idEl);
+      if(!el) return;
+      el.style.pointerEvents=ativo?'none':'';
+      el.style.opacity=ativo?'.65':'';
+    });
 }
 
 function closeAtvModal(){
