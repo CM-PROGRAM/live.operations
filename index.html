@@ -2675,20 +2675,26 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div class="input-group" style="position:relative;">
           <label>Prazo conclusão</label>
           <input type="hidden" id="atrib-vencimento">
-          <div id="atrib-venc-trigger" onclick="vencOpenCal('atrib')" style="cursor:pointer;">
-            <input type="text" id="atrib-venc-display" placeholder="Selecionar data" readonly style="cursor:pointer;width:100%;box-sizing:border-box;">
-          </div>
-          <div id="atrib-cal-popover" style="display:none;position:absolute;top:100%;left:0;z-index:60;"></div>
+          <button type="button" id="atrib-venc-trigger" onclick="vencOpenCal('atrib')" style="width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span id="atrib-venc-label" style="color:var(--text-muted);">Selecionar data</span>
+            <span style="font-size:14px;">📅</span>
+          </button>
+          <div id="atrib-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
         </div>
         <div class="input-group">
           <label>Prioridade</label>
-          <input type="hidden" id="atrib-prioridade" value="normal">
-          <div class="atv-prior-select">
-            <div class="atv-prior-trigger" id="atrib-prio-trigger" onclick="prioToggleMenu('atrib')">
-              <span class="atv-prior-dot gray" id="atrib-prio-dot"></span>
-              <span id="atrib-prio-label">Normal</span><span class="chev">▾</span>
+          <div class="atv-prior-select" id="atrib-prioridade-wrap">
+            <button type="button" class="atv-prior-trigger" id="atrib-prioridade-trigger" onclick="prioToggleMenu('atrib')">
+              <span class="atv-prior-dot gray" id="atrib-prioridade-dot"></span>
+              <span id="atrib-prioridade-label">Normal</span>
+              <span class="chev">▾</span>
+            </button>
+            <div class="atv-prior-menu" id="atrib-prioridade-menu" style="display:none;">
+              <div class="atv-prior-opt" onclick="prioSelect('atrib','normal')"><span class="atv-prior-dot gray"></span>Normal</div>
+              <div class="atv-prior-opt" onclick="prioSelect('atrib','alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
+              <div class="atv-prior-opt" onclick="prioSelect('atrib','urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
             </div>
-            <div class="atv-prior-menu" id="atrib-prio-menu" style="display:none;"></div>
+            <input type="hidden" id="atrib-prioridade" value="normal">
           </div>
         </div>
       </div>
@@ -15300,7 +15306,7 @@ function vencRenderCal(prefix){
   pop.innerHTML=html;
 }
 document.addEventListener('click',function(e){
-  ['entrada','integ','img','venda','criatar'].forEach(prefix=>{
+  ['entrada','integ','img','venda','criatar','atrib'].forEach(prefix=>{
     const pop=document.getElementById(prefix+'-cal-popover');
     const trig=document.getElementById(prefix+'-venc-trigger');
     if(pop&&pop.style.display==='block'&&!_cliqueVeioDe(pop)&&trig&&!_cliqueVeioDe(trig)) pop.style.display='none';
