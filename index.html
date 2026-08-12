@@ -1681,7 +1681,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           ".write": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())"
         }
       }
-    }
+    },
+
+    // Caminhos usados por integrações externas (n8n etc.), fora deste
+    // sistema. Ficam como estavam para não interromper nada — reveja
+    // depois de confirmar o que grava neles.
+    "produtos": { ".read": true, ".write": true },
+    "historico_produtos": { ".read": true, ".write": true }
   }
 }</pre>
         <button class="btn btn-sm" onclick="copiarRegrasFirebase()" style="width:auto;">📋 Copiar regras</button>
