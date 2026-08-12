@@ -2411,6 +2411,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--linha-sutil);">
           <div class="admin-title" style="margin-bottom:8px;">🩹 Reparos</div>
           <div id="reparo-diagnostico" style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);line-height:1.7;margin-bottom:10px;"></div>
+          <!-- Confirmação dentro da própria tela: o confirm() do navegador para
+               de aparecer depois que o usuário marca "impedir caixas de diálogo",
+               e aí o botão não fazia nada, sem dizer por quê -->
+          <div id="reparo-confirmacao" style="display:none;background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
+            <div id="reparo-confirma-texto" style="font-size:11.5px;color:var(--text-primary);line-height:1.6;margin-bottom:10px;white-space:pre-line;"></div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn" id="reparo-confirma-ok" style="width:auto;">Confirmar</button>
+              <button class="btn btn-ghost" onclick="cancelarReparo()" style="width:auto;">Cancelar</button>
+            </div>
+          </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn" id="btn-diagnosticar-reparos" onclick="diagnosticarReparos()" style="width:auto;">
               🔎 Verificar
@@ -4132,15 +4142,34 @@ function diagnosticarReparos(){
       semResp.length?listar(semResp,x=>`· ${x.nome} · ${_mktCodigoLabel(x.item)} — por ${x.item.criadoPor||'—'} em ${x.item.criadoEm||'?'}`):'');
 }
 
+// Pergunta dentro da tela, sem depender do confirm() do navegador
+function _pedirConfirmacaoReparo(texto,aoConfirmar){
+  const box=document.getElementById('reparo-confirmacao');
+  const txt=document.getElementById('reparo-confirma-texto');
+  const ok=document.getElementById('reparo-confirma-ok');
+  if(!box||!txt||!ok){ aoConfirmar(); return; }   // sem a caixa, executa direto
+  txt.textContent=texto;
+  ok.onclick=()=>{ cancelarReparo(); aoConfirmar(); };
+  box.style.display='block';
+  try{ box.scrollIntoView({block:'nearest',behavior:'smooth'}); }catch(e){}
+}
+function cancelarReparo(){
+  const box=document.getElementById('reparo-confirmacao');
+  if(box) box.style.display='none';
+}
+
 function restaurarConclusoesPerdidas(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode reparar','warn'); return; }
   const perdidas=_conclusoesPerdidas();
   if(!perdidas.length){ showToast('Nenhuma tarefa para devolver','success'); diagnosticarReparos(); return; }
-  if(!confirm(
+  _pedirConfirmacaoReparo(
     `Devolver ${perdidas.length} tarefa(s) para Concluídas?\n\n`+
-    `São tarefas que guardam prova de conclusão (print, data ou quem concluiu) mas estão como abertas.\n\n`+
-    `A solicitação de origem também volta a ficar concluída.`
-  )) return;
+    `São tarefas que guardam prova de conclusão (print, data ou quem concluiu) mas estão como abertas. `+
+    `A solicitação de origem também volta a ficar concluída.`,
+    ()=>_aplicarRestaurarConclusoes(perdidas));
+}
+
+function _aplicarRestaurarConclusoes(perdidas){
   perdidas.forEach(a=>{
     a.status='concluida';
     if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm ? String(a.provaConclusaoEm).split(',')[0] : new Date().toLocaleDateString('pt-BR');
@@ -4169,12 +4198,15 @@ function excluirSolicitacoesSemResponsavel(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode excluir','warn'); return; }
   const achados=_solicitacoesSemResponsavel();
   if(!achados.length){ showToast('Nenhuma solicitação sem colaborador','success'); diagnosticarReparos(); return; }
-  if(!confirm(
+  _pedirConfirmacaoReparo(
     `Excluir ${achados.length} solicitação(ões) que ficaram sem colaborador?\n\n`+
     achados.slice(0,10).map(x=>`· ${x.nome} · ${_mktCodigoLabel(x.item)}`).join('\n')+
     (achados.length>10?`\n… e mais ${achados.length-10}`:'')+
-    `\n\nAs tarefas geradas por elas saem junto. Tudo vai para o arquivo e o master pode restaurar.`
-  )) return;
+    `\n\nAs tarefas geradas por elas saem junto. Tudo vai para o arquivo e o master pode restaurar.`,
+    ()=>_aplicarExclusaoSemResponsavel(achados));
+}
+
+function _aplicarExclusaoSemResponsavel(achados){
   achados.forEach(x=>{
     try{ arquivarRegistro(x.area,x.item); }catch(e){}
     const atual=x.lista()||[];
