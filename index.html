@@ -79,7 +79,9 @@
   --glass-shadow:0 8px 32px rgba(30,45,80,0.10), inset 0 1px 0 rgba(255,255,255,0.7);
   --grad-painel:linear-gradient(135deg,#ffffff,#f6f8fd);
   --grad-vidro:linear-gradient(135deg,#ffffff,#f7f9fd);
-  --grad-avatar:radial-gradient(circle at 35% 30%,#eef2fa,#d4ddee);
+  /* O avatar segue escuro no tema claro: a inicial é colorida (e a do Gustavo
+     é branca), então o disco precisa continuar sendo o fundo escuro de sempre */
+  --grad-avatar:radial-gradient(circle at 35% 30%,#26314b,#131826);
   --realce-topo:inset 0 1px 0 rgba(255,255,255,0.9);
   --linha-sutil:rgba(20,30,55,0.12);
   --veu-suave:rgba(20,30,55,0.035);
@@ -535,6 +537,17 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 }
 .btn-link:hover{border-color:rgba(var(--bc),0.65);color:#fff;background:linear-gradient(135deg, rgba(var(--bc),0.35) 0%, rgba(var(--bc),0.14) 100%);}
 .btn-link.btn-danger{--bc: var(--rgb-rosa);}
+/* Campo de valor fixo (Canceladas): parece um campo, mas não se digita nele */
+.canc-fixo{
+  background:var(--veu-suave);border:1px dashed var(--border-light);border-radius:var(--radius);
+  color:var(--text-secondary);font-family:var(--font-sans);font-size:12.5px;line-height:1.45;
+  padding:10px 12px;min-height:41px;box-sizing:border-box;display:flex;align-items:center;
+}
+.canc-chip{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;
+  padding:4px 11px;border-radius:999px;border:1px solid var(--border-light);
+  background:var(--veu-medio);color:var(--text-primary);
+}
 .login-error{background:var(--red-dim);border:1px solid var(--red);border-radius:var(--radius);color:var(--red);font-size:12px;padding:7px 11px;text-align:center;display:none;}
 
 /* HEADER */
@@ -1994,7 +2007,153 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
     </div>
 
-    <!-- CONSULTA CPF — GERAR TAREFA -->
+    <!-- VENDAS — CANCELADAS -->
+    <div class="tab-panel" id="tab-canceladas">
+      <div class="section-header">
+        <span class="section-title">Canceladas</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
+      <div style="max-width:620px;margin-bottom:24px;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
+          <div class="input-group">
+            <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <input type="text" id="canc-cliente" maxlength="120" placeholder="Nome do cliente">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>CPF <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="canc-cpf" maxlength="14" inputmode="numeric" placeholder="Somente números" oninput="cancFormatarCpf(this)">
+            </div>
+            <div class="input-group">
+              <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="canc-telefone" maxlength="16" inputmode="tel" placeholder="(00) 00000-0000" oninput="cancFormatarTelefone(this)">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Plataforma Vendas <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <select id="canc-plataforma"></select>
+          </div>
+          <div class="input-group">
+            <label>Considerações</label>
+            <div class="canc-fixo" id="canc-consideracoes"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>Colaborador responsável</label>
+              <div class="canc-fixo" id="canc-responsaveis" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div class="input-group">
+              <label>Prazo conclusão</label>
+              <div class="canc-fixo" id="canc-prazo"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <button class="btn btn-ghost" onclick="limparCancelada('canc')" style="flex:1;">Limpar</button>
+            <button class="btn" onclick="salvarCancelada('canc')" style="flex:1;">Criar Solicitação</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:8px;">
+        <span class="section-title" style="font-size:14px;">Solicitações</span>
+      </div>
+      <div style="margin:6px 0 14px;">
+        <input id="canc-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('canc')"
+          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+            <span id="canc-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="canc-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="canc-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+            <span id="canc-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="canc-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="canc-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VENDAS — CANCELADAS COM NF -->
+    <div class="tab-panel" id="tab-canceladasnf">
+      <div class="section-header">
+        <span class="section-title">Canceladas com NF</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
+      <div style="max-width:620px;margin-bottom:24px;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
+          <div class="input-group">
+            <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <input type="text" id="cancnf-cliente" maxlength="120" placeholder="Nome do cliente">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>CPF <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="cancnf-cpf" maxlength="14" inputmode="numeric" placeholder="Somente números" oninput="cancFormatarCpf(this)">
+            </div>
+            <div class="input-group">
+              <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="cancnf-telefone" maxlength="16" inputmode="tel" placeholder="(00) 00000-0000" oninput="cancFormatarTelefone(this)">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Plataforma Vendas <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <select id="cancnf-plataforma"></select>
+          </div>
+          <div class="input-group">
+            <label>Considerações</label>
+            <div class="canc-fixo" id="cancnf-consideracoes"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>Colaborador responsável</label>
+              <div class="canc-fixo" id="cancnf-responsaveis" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div class="input-group">
+              <label>Prazo conclusão</label>
+              <div class="canc-fixo" id="cancnf-prazo"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <button class="btn btn-ghost" onclick="limparCancelada('cancnf')" style="flex:1;">Limpar</button>
+            <button class="btn" onclick="salvarCancelada('cancnf')" style="flex:1;">Criar Solicitação</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:8px;">
+        <span class="section-title" style="font-size:14px;">Solicitações</span>
+      </div>
+      <div style="margin:6px 0 14px;">
+        <input id="cancnf-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('cancnf')"
+          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+            <span id="cancnf-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="cancnf-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="cancnf-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+            <span id="cancnf-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="cancnf-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="cancnf-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTRAL DE TAREFAS — CRIAR TAREFA -->
     <div class="tab-panel" id="tab-criartarefa">
       <div class="section-header">
         <span class="section-title">Criar Tarefa</span>
@@ -4549,6 +4708,7 @@ const LOG_VALORES={
 // Ruído interno — nunca entra no histórico
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
+  'origemCancId','origemCancNfId','prazoLimite',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -4685,6 +4845,8 @@ const COLECOES_REG={
   excluirIntBase:{get:s=>s.excluirIntBase,             set:(s,v)=>{s.excluirIntBase=v;}},
   entradas:      {get:s=>s.entradas,                   set:(s,v)=>{s.entradas=v;}},
   imagensReq:    {get:s=>s.imagensReq,                 set:(s,v)=>{s.imagensReq=v;}},
+  canceladas:    {get:s=>s.canceladas,                 set:(s,v)=>{s.canceladas=v;}},
+  canceladasNF:  {get:s=>s.canceladasNF,               set:(s,v)=>{s.canceladasNF=v;}},
   projetos:      {get:s=>s.projetos,                   set:(s,v)=>{s.projetos=v;}},
   devolucoes:    {get:s=>(s.tasks||{}).devolucoes,     set:(s,v)=>{(s.tasks=s.tasks||{}).devolucoes=v;}},
   atendimentos:  {get:s=>(s.tasks||{}).atendimentos,   set:(s,v)=>{(s.tasks=s.tasks||{}).atendimentos=v;}}
@@ -6131,7 +6293,9 @@ function buildTabs(){
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       {id:'registrovendas', label:'Registro de Vendas', perm:'whatsapp'},
       {id:'envios',    label:'Rastreios', perm:'envios'},
-      {id:'consultacpf', label:'CPF Cliente', perm:'consultacpf'}
+      {id:'consultacpf', label:'CPF Cliente', perm:'consultacpf'},
+      {id:'canceladas', label:'Canceladas'},
+      {id:'canceladasnf', label:'Canceladas com NF'}
     ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
       {id:'atribuir',  label:'Atribuir Tarefa'},
@@ -6197,6 +6361,8 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='criar-tarefa'){ try{initCriarTarefaForm();}catch(e){console.warn('initCriarTarefaForm:',e);} }
+    if(id==='canceladas'){ try{initCanceladaForm('canc');}catch(e){console.warn('initCanceladaForm:',e);} }
+    if(id==='canceladasnf'){ try{initCanceladaForm('cancnf');}catch(e){console.warn('initCanceladaForm:',e);} }
     if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
     if(id==='notificacoes'){ try{ renderNotifPagina(); }catch(e){ console.warn('renderNotifPagina:',e); } }
   }
@@ -9141,12 +9307,16 @@ function reconcileAutoTasks(state){
   const entIds   = new Set((state.entradas||[]).map(x=>x&&x.id).filter(Boolean));
   const imgIds   = new Set((state.imagensReq||[]).map(x=>x&&x.id).filter(Boolean));
   const ateIds   = new Set(((state.tasks&&state.tasks.atendimentos)||[]).map(x=>x&&x.id).filter(Boolean));
+  const cancIds  = new Set((state.canceladas||[]).map(x=>x&&x.id).filter(Boolean));
+  const cancNfIds= new Set((state.canceladasNF||[]).map(x=>x&&x.id).filter(Boolean));
   state.atividades = state.atividades.filter(a=>{
     if(a && a.origemIntegId) return integIds.has(a.origemIntegId);
     if(a && a.origemExIntId) return exIntIds.has(a.origemExIntId);
     if(a && a.origemEntradaId) return entIds.has(a.origemEntradaId);
     if(a && a.origemImgId)   return imgIds.has(a.origemImgId);
     if(a && a.origemAteId)   return ateIds.has(a.origemAteId);
+    if(a && a.origemCancId)  return cancIds.has(a.origemCancId);
+    if(a && a.origemCancNfId)return cancNfIds.has(a.origemCancNfId);
     return true; // tarefas manuais (sem origem) nunca são removidas aqui
   });
   return state;
@@ -14309,6 +14479,10 @@ function renderAtividades(){
     } else if(a.origemAteId){
       const it=(appState.tasks && appState.tasks.atendimentos ? appState.tasks.atendimentos : []).find(x=>x.id===a.origemAteId);
       if(it){ codigoLabel=(it.plataforma||it.cliente||it.nped||''); solicitadoPor=it.criadoPor||'—'; }
+    } else if(a.origemCancId || a.origemCancNfId){
+      const lista=a.origemCancId?(appState.canceladas||[]):(appState.canceladasNF||[]);
+      const it=lista.find(x=>x.id===(a.origemCancId||a.origemCancNfId));
+      if(it){ codigoLabel=[it.cliente,it.plataforma].filter(Boolean).join(' · '); solicitadoPor=it.criadoPor||'—'; }
     } else {
       codigoLabel = a.sku ? ((a.skuTipo||'SKU')+': '+a.sku) : '';
       solicitadoPor = a.criadoPor||'—';
@@ -14532,6 +14706,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
         try{ renderImagens(); }catch(e){}
       } else if(it){ confRegistrarImagemConcluida(it); }
     }
+    if(!eraConcluida) cancConcluirOrigem(a);
   }
   if(novoStatus==='finalizada'){
     a.finalizadoEm=new Date().toLocaleDateString('pt-BR');a.finalizadoPor=currentUser.name;
@@ -14571,6 +14746,14 @@ function deleteAtividade(id){
   if(a && a.origemExIntId) appState.excluirIntBase=(appState.excluirIntBase||[]).filter(x=>x.id!==a.origemExIntId);
   if(a && a.origemEntradaId){ const o=(appState.entradas||[]).find(x=>x.id===a.origemEntradaId); if(o) arquivarRegistro('entrada',o); appState.entradas=(appState.entradas||[]).filter(x=>x.id!==a.origemEntradaId); }
   if(a && a.origemImgId)   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==a.origemImgId);
+  if(a && (a.origemCancId || a.origemCancNfId)){
+    const p=a.origemCancId?'canc':'cancnf';
+    const c=_cancCtx(p), alvo=a.origemCancId||a.origemCancNfId;
+    const o=_cancLista(p).find(x=>x.id===alvo);
+    if(o) arquivarRegistro(c.areaArquivo,o);
+    appState[c.chave]=_cancLista(p).filter(x=>x.id!==alvo);
+    try{ renderCanceladas(p); }catch(e){}
+  }
   saveState(appState);
   renderAtividades();
   try{ renderIntegracoes(); }catch(e){}
@@ -15370,6 +15553,225 @@ function salvarCriarTarefa(){
   limparCriarTarefa();
   try{ renderAtividades(); }catch(e){}
   showToast('✓ Tarefa criada em Tarefas Diárias','success');
+}
+
+// ══════════════════════════════════════════════════════════════════
+// VENDAS — CANCELADAS / CANCELADAS COM NF
+// Cliente, CPF, Telefone e Plataforma vêm da Base (hoje digitados à mão).
+// Considerações, responsáveis e prazo são fixos, por decisão de processo.
+// Ao salvar, a solicitação gera sozinha a tarefa em Tarefas Diárias.
+// ══════════════════════════════════════════════════════════════════
+const CANC_CONSIDERACAO='Entrar em contato com o cliente e fazer o estorno da NF caso necessário';
+const CANC_RESPONSAVEIS=['gustavo','cmandrade'];
+const CANC_PRAZO_HORAS=24;
+const CANC_CTX={
+  canc:{
+    chave:'canceladas', titulo:'Canceladas', tarefaTitulo:'Cancelada',
+    origemKey:'origemCancId', autoPrefix:'atv_canc_', prefixoId:'canc_',
+    areaArquivo:'cancelada', aba:'canceladas'
+  },
+  cancnf:{
+    chave:'canceladasNF', titulo:'Canceladas com NF', tarefaTitulo:'Cancelada com NF',
+    origemKey:'origemCancNfId', autoPrefix:'atv_cancnf_', prefixoId:'cancnf_',
+    areaArquivo:'cancelada_nf', aba:'canceladasnf'
+  }
+};
+function _cancCtx(p){ return CANC_CTX[p]||CANC_CTX.canc; }
+function _cancLista(p){
+  const c=_cancCtx(p);
+  if(!Array.isArray(appState[c.chave])) appState[c.chave]=[];
+  return appState[c.chave];
+}
+
+function cancFormatarCpf(inp){
+  let v=(inp.value||'').replace(/\D/g,'').slice(0,11);
+  if(v.length>9)      v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');
+  else if(v.length>6) v=v.replace(/(\d{3})(\d{3})(\d{1,3})/,'$1.$2.$3');
+  else if(v.length>3) v=v.replace(/(\d{3})(\d{1,3})/,'$1.$2');
+  inp.value=v;
+}
+function cancFormatarTelefone(inp){
+  let v=(inp.value||'').replace(/\D/g,'').slice(0,11);
+  if(v.length>10)     v=v.replace(/(\d{2})(\d{5})(\d{1,4})/,'($1) $2-$3');
+  else if(v.length>6) v=v.replace(/(\d{2})(\d{4})(\d{1,4})/,'($1) $2-$3');
+  else if(v.length>2) v=v.replace(/(\d{2})(\d{1,5})/,'($1) $2');
+  else if(v.length)   v=v.replace(/(\d{1,2})/,'($1');
+  inp.value=v;
+}
+
+// Canais de venda: os mesmos de Devoluções, mais a loja própria. Deixa o dado
+// padronizado com o resto do sistema (e é a lista que o n8n vai ter de mapear).
+function cancPlataformas(){
+  const base=(typeof DEV_PLATAFORMAS!=='undefined')?DEV_PLATAFORMAS:[];
+  return ['LOJA INTEGRADA',...base];
+}
+
+function initCanceladaForm(p){
+  const c=_cancCtx(p);
+  const sel=document.getElementById(p+'-plataforma');
+  if(sel && !sel.options.length){
+    sel.innerHTML='<option value="">— Selecionar —</option>'+
+      cancPlataformas().map(x=>`<option value="${x}">${x}</option>`).join('');
+  }
+  const cons=document.getElementById(p+'-consideracoes');
+  if(cons) cons.textContent=CANC_CONSIDERACAO;
+  const prazo=document.getElementById(p+'-prazo');
+  if(prazo) prazo.textContent=CANC_PRAZO_HORAS+'h após a criação';
+  const resp=document.getElementById(p+'-responsaveis');
+  if(resp){
+    resp.innerHTML=CANC_RESPONSAVEIS.map(k=>{
+      const u=(appState.users||{})[k]||{};
+      const nome=u.name||k;
+      const ini=u.initials||nome.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
+      return `<span class="canc-chip">${userAvatarHTML({...u,initials:ini},18)}${nome}</span>`;
+    }).join('');
+  }
+  renderCanceladas(p);
+}
+
+function limparCancelada(p){
+  ['cliente','cpf','telefone'].forEach(campo=>{
+    const el=document.getElementById(p+'-'+campo); if(el) el.value='';
+  });
+  const sel=document.getElementById(p+'-plataforma'); if(sel) sel.value='';
+}
+
+function salvarCancelada(p){
+  const c=_cancCtx(p);
+  if(!currentUser){ showToast('Faça login para criar solicitações','warn'); return; }
+  const cliente=((document.getElementById(p+'-cliente')||{}).value||'').trim();
+  if(!cliente){ showToast('Informe o cliente','warn'); return; }
+  const plataforma=((document.getElementById(p+'-plataforma')||{}).value||'').trim();
+  if(!plataforma){ showToast('Selecione a plataforma de vendas','warn'); return; }
+
+  const agora=Date.now();
+  const item={
+    id:c.prefixoId+agora+'_'+Math.random().toString(36).slice(2,7),
+    cliente,
+    cpf:((document.getElementById(p+'-cpf')||{}).value||'').trim(),
+    telefone:((document.getElementById(p+'-telefone')||{}).value||'').trim(),
+    plataforma,
+    consideracoes:CANC_CONSIDERACAO,
+    responsaveis:CANC_RESPONSAVEIS.slice(),
+    prazoHoras:CANC_PRAZO_HORAS,
+    prazoLimite:agora+CANC_PRAZO_HORAS*3600*1000,
+    status:'aberta',
+    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoPor:currentUser.name, criadoPorKey:currentUser.key,
+    ordemManual:agora
+  };
+  _cancLista(p).push(item);
+  criarTarefaAutoCancelada(item,c);
+  saveState(appState);
+  limparCancelada(p);
+  renderCanceladas(p);
+  try{ renderAtividades(); }catch(e){}
+  showToast('✓ Solicitação criada e tarefa gerada','success');
+}
+
+// Gera a tarefa em Tarefas Diárias. O vencimento é hoje: o quadro trabalha em
+// dias e esconde tarefa com data futura, então "24h" vira "vence hoje" — a
+// tarefa aparece na hora e passa para Atrasadas no dia seguinte.
+function criarTarefaAutoCancelada(item,c){
+  if(!item) return;
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const novaTarefa={
+    id:c.autoPrefix+item.id,
+    titulo:c.tarefaTitulo,
+    [c.origemKey]:item.id,
+    descricao:CANC_CONSIDERACAO,
+    prioridade:'normal',
+    vencimento:new Date().toISOString().slice(0,10),
+    prazoLimite:item.prazoLimite,
+    responsavel:item.responsaveis[0],
+    responsaveis:item.responsaveis.slice(),
+    status:'aberta',
+    criadoPor:item.criadoPor, criadoPorKey:item.criadoPorKey,
+    ordemManual:appState.atividades.length
+  };
+  appState.atividades.push(novaTarefa);
+  notifyResponsaveisAtribuido({...novaTarefa,titulo:c.tarefaTitulo+' · '+item.cliente},'tarefa','tarefa');
+}
+
+function excluirCancelada(p,id){
+  if(!confirm('Excluir esta solicitação? A tarefa gerada por ela também sai.')) return;
+  const c=_cancCtx(p);
+  const item=_cancLista(p).find(x=>x.id===id);
+  if(item) arquivarRegistro(c.areaArquivo,item);
+  appState[c.chave]=_cancLista(p).filter(x=>x.id!==id);
+  if(Array.isArray(appState.atividades)){
+    appState.atividades=appState.atividades.filter(a=>a[c.origemKey]!==id);
+  }
+  saveState(appState);
+  renderCanceladas(p);
+  try{ renderAtividades(); }catch(e){}
+  showToast('Solicitação excluída','success');
+}
+
+function renderCanceladas(p){
+  const c=_cancCtx(p);
+  const listaA=document.getElementById(p+'-list-afazer');
+  const listaC=document.getElementById(p+'-list-conc');
+  if(!listaA||!listaC) return;
+  const q=((document.getElementById(p+'-search')||{}).value||'').toLowerCase().trim();
+  listaA.innerHTML=''; listaC.innerHTML='';
+  let nA=0,nC=0;
+
+  _cancLista(p).slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0)).forEach(item=>{
+    if(q && ![item.cliente,item.cpf,item.telefone,item.plataforma,item.criadoPor]
+             .some(v=>String(v||'').toLowerCase().includes(q))) return;
+    const concluida=item.status==='concluida';
+    const card=document.createElement('div');
+    card.style.cssText=`background:var(--grad-vidro);border:1px solid var(--glass-border);border-left:3px solid ${concluida?'var(--green)':'var(--amber)'};border-radius:10px;padding:10px 12px;box-shadow:var(--sombra-card);`;
+    const linha=(rot,val)=>val?`<div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">${rot}: <span style="color:var(--text-secondary);font-weight:600;">${String(val).replace(/</g,'&lt;')}</span></div>`:'';
+    card.innerHTML=`
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">${String(item.cliente||'—').replace(/</g,'&lt;')}</div>
+          ${linha('CPF',item.cpf)}
+          ${linha('Telefone',item.telefone)}
+          ${linha('Plataforma',item.plataforma)}
+        </div>
+        <div id="${p}-acoes-${item.id}" style="display:flex;gap:4px;flex-shrink:0;"></div>
+      </div>
+      <div style="margin-top:8px;padding-top:7px;border-top:1px solid var(--linha-sutil);display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">
+        <span>Por ${String(item.criadoPor||'—').replace(/</g,'&lt;')} · ${item.criadoEm||''}</span>
+        <span>${concluida?('Concluída '+(item.concluidoEm||'')):('Prazo '+_cancPrazoLabel(item))}</span>
+      </div>`;
+    const acoes=card.querySelector(`#${p}-acoes-${item.id}`);
+    if(acoes && (currentUser.master || item.criadoPorKey===currentUser.key)){
+      const btn=document.createElement('button');
+      btn.className='btn-orb v-danger sm'; btn.title='Excluir';
+      btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+      btn.onclick=()=>excluirCancelada(p,item.id);
+      acoes.appendChild(btn);
+    }
+    if(concluida){ listaC.appendChild(card); nC++; } else { listaA.appendChild(card); nA++; }
+  });
+
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set(p+'-count-afazer',nA); set(p+'-count-conc',nC);
+  const vazio=(id,mostrar)=>{ const el=document.getElementById(id); if(el) el.style.display=mostrar?'block':'none'; };
+  vazio(p+'-empty-afazer',nA===0); vazio(p+'-empty-conc',nC===0);
+}
+
+// Concluir a tarefa também fecha a solicitação que a originou
+function cancConcluirOrigem(a){
+  if(!a || !(a.origemCancId||a.origemCancNfId)) return;
+  const p=a.origemCancId?'canc':'cancnf';
+  const it=_cancLista(p).find(x=>x.id===(a.origemCancId||a.origemCancNfId));
+  if(it && it.status!=='concluida'){
+    it.status='concluida';
+    it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+    it.concluidoPor=currentUser.name;
+    try{ renderCanceladas(p); }catch(e){}
+  }
+}
+
+function _cancPrazoLabel(item){
+  if(!item.prazoLimite) return (item.prazoHoras||CANC_PRAZO_HORAS)+'h';
+  const d=new Date(item.prazoLimite);
+  return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 }
 
 function saveIntegracao(){
@@ -16611,6 +17013,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
         try{ renderImagens(); }catch(e){}
       } else if(it){ confRegistrarImagemConcluida(it); }
     }
+    cancConcluirOrigem(anterior);
   }
 
   saveState(appState);
