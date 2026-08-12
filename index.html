@@ -2279,9 +2279,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         }
       },
 
-      // Caixa de entrada do n8n: aceita gravação sem login para a automação
-      // não parar. A leitura continua restrita a quem está aprovado.
-      "atividadesExternas": { ".write": true },
+      // atividadesExternas ficou sem regra própria de propósito: herda a de
+      // "suplelive" acima. O n8n grava com conta de serviço, que não passa
+      // pelas regras — antes esse caminho aceitava gravação de qualquer um,
+      // sem login.
 
       // Presença: cada um grava a própria sessão; a lista é lida por quem
       // já está aprovado, pelas regras gerais acima
@@ -2291,8 +2292,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     },
 
     // Caminhos de integrações que ainda gravam sem autenticação. Quando o
-    // n8n passar a usar conta de serviço, troque os "true" abaixo pela
-    // mesma expressão usada em "suplelive" (veja o botão da versão estrita).
+    // fluxo que usa esses caminhos passar a gravar com a conta de serviço,
+    // troque os "true" abaixo por false — a conta de serviço continua
+    // escrevendo, porque ela não passa pelas regras.
     "produtos": { ".read": true, ".write": true },
     "historico_produtos": { ".read": true, ".write": true }
   }
