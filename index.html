@@ -2407,6 +2407,28 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           Desconecte todos antes de compactar: sessões abertas ainda têm os dados antigos em memória
           e podem regravá-los por cima. Você continua conectado; os demais entram de novo em seguida.
         </div>
+
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--linha-sutil);">
+          <div class="admin-title" style="margin-bottom:8px;">🩹 Reparos</div>
+          <div id="reparo-diagnostico" style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);line-height:1.7;margin-bottom:10px;"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" id="btn-diagnosticar-reparos" onclick="diagnosticarReparos()" style="width:auto;">
+              🔎 Verificar
+            </button>
+            <button class="btn" id="btn-restaurar-conclusoes" onclick="restaurarConclusoesPerdidas()" style="width:auto;">
+              ↩ Devolver às Concluídas
+            </button>
+            <button class="btn btn-danger" id="btn-limpar-sem-resp" onclick="excluirSolicitacoesSemResponsavel()" style="width:auto;">
+              🗑 Excluir solicitações sem responsável
+            </button>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
+            <b>Devolver às Concluídas</b> procura tarefas que têm prova de conclusão (print, data ou
+            quem concluiu) mas voltaram para aberto, e recoloca cada uma em Concluídas.
+            <b>Excluir sem responsável</b> apaga as solicitações que ficaram sem colaborador — elas
+            nunca notificaram ninguém. Tudo vai para o arquivo e pode ser recuperado.
+          </div>
+        </div>
       </div>
 
       <!-- AUDITORIA — histórico geral de alterações -->
@@ -4059,6 +4081,117 @@ function _campoDeDestino(sufixo){
   return null;
 }
 
+// ══════════════════════════════════════════════════════════════════
+// REPAROS — desfaz os estragos de dois problemas já corrigidos
+//   1. tarefas concluídas que voltaram para aberto quando uma sessão
+//      antiga publicou a lista inteira por cima;
+//   2. solicitações salvas sem colaborador, que nunca notificaram ninguém.
+// ══════════════════════════════════════════════════════════════════
+
+// A prova de que a tarefa foi concluída: print, data ou quem concluiu.
+// Nada disso é gravado sem alguém ter clicado em Concluir.
+function _temProvaDeConclusao(a){
+  return !!(a && (a.provaConclusao || a.provaConclusaoEm || a.concluidoEm || a.concluidoPor));
+}
+function _conclusoesPerdidas(){
+  return (appState.atividades||[]).filter(a=>
+    a && _temProvaDeConclusao(a) && a.status!=='concluida' && a.status!=='finalizada');
+}
+// Todas as listas de solicitação seguem o mesmo formato
+const REPARO_LISTAS=[
+  {nome:'Integração',        area:'integracao',     lista:()=>appState.integracoes,   origem:'origemIntegId'},
+  {nome:'Exclusão Integração',area:'excluirintbase', lista:()=>appState.excluirIntBase,origem:'origemExIntId'},
+  {nome:'Entrada',           area:'entrada',        lista:()=>appState.entradas,      origem:'origemEntradaId'},
+  {nome:'Imagens',           area:'imagens',        lista:()=>appState.imagensReq,    origem:'origemImgId'}
+];
+function _solicitacoesSemResponsavel(){
+  const achados=[];
+  REPARO_LISTAS.forEach(l=>{
+    (l.lista()||[]).forEach(it=>{ if(it && _mktSemResponsavel(it)) achados.push({...l,item:it}); });
+  });
+  return achados;
+}
+
+function diagnosticarReparos(){
+  const alvo=document.getElementById('reparo-diagnostico');
+  if(!alvo) return;
+  const perdidas=_conclusoesPerdidas();
+  const semResp=_solicitacoesSemResponsavel();
+  const linha=(n,texto,detalhe)=>
+    `<div style="color:${n?'var(--tom-vermelho)':'var(--tom-verde)'};">${n?'⚠':'✓'} ${texto}</div>`
+    + (detalhe?`<div style="padding-left:16px;color:var(--text-muted);">${detalhe}</div>`:'');
+  const listar=(arr,f)=>arr.slice(0,8).map(f).join('<br>')+(arr.length>8?`<br>… e mais ${arr.length-8}`:'');
+  alvo.innerHTML=
+    linha(perdidas.length,
+      perdidas.length?`${perdidas.length} tarefa(s) com prova de conclusão fora de Concluídas`
+                     :'Nenhuma tarefa concluída fora do lugar',
+      perdidas.length?listar(perdidas,a=>`· ${a.titulo||'—'}${a.sku?(' · '+a.sku):''} — concluída em ${a.concluidoEm||'?'}${a.provaConclusao?' (com print)':''}`):'')
+    + linha(semResp.length,
+      semResp.length?`${semResp.length} solicitação(ões) sem colaborador`
+                    :'Todas as solicitações têm colaborador',
+      semResp.length?listar(semResp,x=>`· ${x.nome} · ${_mktCodigoLabel(x.item)} — por ${x.item.criadoPor||'—'} em ${x.item.criadoEm||'?'}`):'');
+}
+
+function restaurarConclusoesPerdidas(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode reparar','warn'); return; }
+  const perdidas=_conclusoesPerdidas();
+  if(!perdidas.length){ showToast('Nenhuma tarefa para devolver','success'); diagnosticarReparos(); return; }
+  if(!confirm(
+    `Devolver ${perdidas.length} tarefa(s) para Concluídas?\n\n`+
+    `São tarefas que guardam prova de conclusão (print, data ou quem concluiu) mas estão como abertas.\n\n`+
+    `A solicitação de origem também volta a ficar concluída.`
+  )) return;
+  perdidas.forEach(a=>{
+    a.status='concluida';
+    if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm ? String(a.provaConclusaoEm).split(',')[0] : new Date().toLocaleDateString('pt-BR');
+    if(!a.concluidoPor) a.concluidoPor=a.provaConclusaoPor||'—';
+    // Fecha de novo a solicitação que originou a tarefa
+    REPARO_LISTAS.forEach(l=>{
+      const id=a[l.origem];
+      if(!id) return;
+      const it=(l.lista()||[]).find(x=>x && x.id===id);
+      if(it && it.status!=='concluida'){
+        it.status='concluida';
+        it.concluidoEm=it.concluidoEm||a.concluidoEm;
+        it.concluidoPor=it.concluidoPor||a.concluidoPor;
+      }
+    });
+    try{ cancConcluirOrigem(a); }catch(e){}
+  });
+  saveState(appState);
+  try{ renderAtividades(); }catch(e){}
+  ['renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens'].forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+  diagnosticarReparos();
+  showToast(`✓ ${perdidas.length} tarefa(s) de volta em Concluídas`,'success');
+}
+
+function excluirSolicitacoesSemResponsavel(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode excluir','warn'); return; }
+  const achados=_solicitacoesSemResponsavel();
+  if(!achados.length){ showToast('Nenhuma solicitação sem colaborador','success'); diagnosticarReparos(); return; }
+  if(!confirm(
+    `Excluir ${achados.length} solicitação(ões) que ficaram sem colaborador?\n\n`+
+    achados.slice(0,10).map(x=>`· ${x.nome} · ${_mktCodigoLabel(x.item)}`).join('\n')+
+    (achados.length>10?`\n… e mais ${achados.length-10}`:'')+
+    `\n\nAs tarefas geradas por elas saem junto. Tudo vai para o arquivo e o master pode restaurar.`
+  )) return;
+  achados.forEach(x=>{
+    try{ arquivarRegistro(x.area,x.item); }catch(e){}
+    const atual=x.lista()||[];
+    const restante=atual.filter(i=>i && i.id!==x.item.id);
+    // Mantém a mesma referência de array que o resto do sistema já usa
+    atual.length=0; restante.forEach(i=>atual.push(i));
+    if(Array.isArray(appState.atividades)){
+      appState.atividades=appState.atividades.filter(a=>!(a && a[x.origem]===x.item.id));
+    }
+  });
+  saveState(appState);
+  try{ renderAtividades(); }catch(e){}
+  ['renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderAtribuir'].forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+  diagnosticarReparos();
+  showToast(`✓ ${achados.length} solicitação(ões) excluída(s)`,'success');
+}
+
 function recuperarImagensPerdidas(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
   if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
@@ -4398,7 +4531,8 @@ function admAbrirSecao(sec){
     equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} },
     dados:()=>{ try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
-                try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){} }
+                try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){}
+                try{diagnosticarReparos();}catch(e){} }
   }[_admSecao];
   if(carregar) carregar();
 }
