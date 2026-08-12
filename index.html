@@ -655,7 +655,15 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
     fbApp.onload = function(){
       var fbDb = document.createElement('script');
       fbDb.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js';
-      fbDb.onload = cb;
+      // Autenticação: necessária para que as regras do banco possam exigir
+      // login. Se falhar, o app segue funcionando (sem exigir autenticação).
+      fbDb.onload = function(){
+        var fbAuth = document.createElement('script');
+        fbAuth.src = 'https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js';
+        fbAuth.onload = cb;
+        fbAuth.onerror = cb;
+        document.head.appendChild(fbAuth);
+      };
       fbDb.onerror = cb; // Continua mesmo sem Firebase (localStorage fallback)
       document.head.appendChild(fbDb);
     };
@@ -1645,6 +1653,26 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="master-badge">MASTER ONLY</span>
       </div>
 
+      <!-- SEGURANÇA — estado do acesso ao banco -->
+      <div class="admin-panel" id="seguranca-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">🔒 Segurança do Acesso</div>
+          <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
+        </div>
+        <div id="seg-status" style="margin-bottom:14px;"></div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;line-height:1.6;">
+          Depois que <b>todos</b> tiverem entrado ao menos uma vez (coluna acima), cole as regras
+          abaixo no Firebase em <b>Realtime Database → Regras</b> para fechar o banco:
+        </div>
+        <pre id="seg-regras" style="background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:var(--font-mono);color:var(--text-primary);overflow-x:auto;margin:0 0 8px;">{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null"
+  }
+}</pre>
+        <button class="btn btn-sm" onclick="copiarRegrasFirebase()" style="width:auto;">📋 Copiar regras</button>
+      </div>
+
       <!-- MANUTENÇÃO — peso dos dados enviados à nuvem -->
       <div class="admin-panel" id="manutencao-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -2470,10 +2498,10 @@ function addBusinessDays(date, n){
 function defaultState(){
   return {
     users:{
-      cmandrade:{name:'CM Andrade',pass:'suple2024',master:true,color:'#e8c25a',initials:'CM',perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','atividades','admin']},
-      gustavo:{name:'Gustavo',pass:'gusta123',master:false,color:'#ffffff',initials:'G',perms:['plataformas','envios']},
-      matheusm:{name:'Matheus M',pass:'matheus123',master:false,color:'#3b82f6',initials:'MM',perms:['whatsapp']},
-      carlosred:{name:'Carlos Red',pass:'carlos123',master:false,color:'#ef4444',initials:'CR',perms:['whatsapp','devolucoes']}
+      cmandrade:{name:'CM Andrade',passHash:'f99edfa3e89c6484e259883824abaec06adab1e03f7c01801ee27fdbf6f062a0',master:true,color:'#e8c25a',initials:'CM',perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','atividades','admin']},
+      gustavo:{name:'Gustavo',passHash:'c11902059f79efd7377b40598161b8694c7d17c42f19d738b995ebbbc563d851',master:false,color:'#ffffff',initials:'G',perms:['plataformas','envios']},
+      matheusm:{name:'Matheus M',passHash:'26b481965e2463fc30abfef9bd63dddd496d126c1eeb0e1032dbb94ae25c34b3',master:false,color:'#3b82f6',initials:'MM',perms:['whatsapp']},
+      carlosred:{name:'Carlos Red',passHash:'8cf2eb6a883484baf2ead0f4bbb032cfbf5f50e105e413d514c7ddfc73bb083c',master:false,color:'#ef4444',initials:'CR',perms:['whatsapp','devolucoes']}
     },
     tasks:{
       whatsapp:initWpp(),
@@ -2506,10 +2534,10 @@ function defaultState(){
 function patchUsers(s){
   if(!s.users) s.users={};
   const CORE={
-    cmandrade:{name:'CM Andrade', pass:'suple2024', master:true,  color:'#e8c25a', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
-    gustavo:  {name:'Gustavo',    pass:'gusta123',  master:false, color:'#ffffff', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
-    matheusm: {name:'Matheus M',  pass:'matheus123',master:false, color:'#3b82f6', initials:'MM', perms:['whatsapp','tarefas','cnpjs','integracoes']},
-    carlosred:{name:'Carlos Red', pass:'carlos123', master:false, color:'#ef4444', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
+    cmandrade:{name:'CM Andrade', passHash:'f99edfa3e89c6484e259883824abaec06adab1e03f7c01801ee27fdbf6f062a0', master:true,  color:'#e8c25a', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
+    gustavo:  {name:'Gustavo',    passHash:'c11902059f79efd7377b40598161b8694c7d17c42f19d738b995ebbbc563d851',  master:false, color:'#ffffff', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
+    matheusm: {name:'Matheus M',  passHash:'26b481965e2463fc30abfef9bd63dddd496d126c1eeb0e1032dbb94ae25c34b3',master:false, color:'#3b82f6', initials:'MM', perms:['whatsapp','tarefas','cnpjs','integracoes']},
+    carlosred:{name:'Carlos Red', passHash:'8cf2eb6a883484baf2ead0f4bbb032cfbf5f50e105e413d514c7ddfc73bb083c', master:false, color:'#ef4444', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
   };
   Object.entries(CORE).forEach(([key,def])=>{
     if(!s.users[key]) s.users[key]={...def};
@@ -3128,6 +3156,43 @@ Total de imagens neste backup: ${imagens.length}
       if(btn){ btn.disabled=false; btn.textContent='💾 Baixar backup (.zip)'; }
     }
   });
+}
+
+// Estado da proteção: senhas protegidas e quem já tem conta de acesso
+function renderSeguranca(){
+  const alvo=document.getElementById('seg-status');
+  if(!alvo) return;
+  const users=Object.entries(appState.users||{});
+  const legiveis=users.filter(([,u])=>u && u.pass!==undefined);
+  const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
+
+  const linha=(ok,txt,detalhe)=>`
+    <div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;">
+      <span style="font-size:13px;line-height:1.3;">${ok?'✅':'⚠️'}</span>
+      <div>
+        <div style="font-size:12px;color:${ok?'#22c55e':'#f59e0b'};font-weight:700;font-family:var(--font-mono);">${txt}</div>
+        ${detalhe?`<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${detalhe}</div>`:''}
+      </div>
+    </div>`;
+
+  const pendentes=legiveis.map(([k,u])=>u.name||k).join(', ');
+  alvo.innerHTML=
+    linha(legiveis.length===0,
+      legiveis.length===0?'Senhas protegidas':`${legiveis.length} senha(s) ainda legível(is) no banco`,
+      legiveis.length===0?'Nenhuma senha fica legível — só a impressão digital delas.'
+        :`Pendente: ${pendentes}. Some quando cada um entrar no sistema uma vez (ou use Redefinir).`)
+    + linha(autenticado,
+      autenticado?'Sessão autenticada na nuvem':'Sessão ainda não autenticada na nuvem',
+      autenticado?'Este acesso já usa conta de autenticação — as regras podem ser fechadas.'
+        :'Saia e entre novamente para criar/usar sua conta de autenticação.');
+}
+
+function copiarRegrasFirebase(){
+  const txt=(document.getElementById('seg-regras')||{}).textContent||'';
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>showToast('Regras copiadas','success'))
+      .catch(()=>showToast('Não foi possível copiar — selecione e copie manualmente','warn'));
+  } else showToast('Selecione o texto e copie manualmente','warn');
 }
 
 // Mostra o peso dos dados no painel de Adm. Master, sem precisar de console
@@ -4265,15 +4330,73 @@ function initAnu(){return[
 ];}
 
 /* ===== AUTH ===== */
+// As senhas não ficam mais legíveis no banco: guardamos só a "impressão
+// digital" (SHA-256) delas. Quem tiver acesso ao banco não consegue voltar
+// da impressão para a senha original.
+const _SENHA_TEMPERO='liveops::v1::';
+async function _hashSenha(senha){
+  try{
+    const dados=new TextEncoder().encode(_SENHA_TEMPERO+String(senha||''));
+    const buf=await crypto.subtle.digest('SHA-256',dados);
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){
+    // Navegador sem suporte (ou origem insegura): mantém o formato antigo
+    console.warn('[auth] hash indisponível, mantendo formato anterior');
+    return '';
+  }
+}
+
+// Autentica no Firebase para que as regras do banco possam exigir login.
+// É "melhor esforço": se falhar, o acesso ao sistema continua, para não
+// trancar ninguém para fora enquanto as regras ainda estão abertas.
+function _autenticarNoFirebase(chave,senha){
+  try{
+    if(!(typeof firebase!=='undefined' && firebase.auth)) return Promise.resolve(false);
+    const email=chave+'@liveops.local';
+    return firebase.auth().signInWithEmailAndPassword(email,senha)
+      .then(()=>true)
+      .catch(err=>{
+        if(err && (err.code==='auth/user-not-found' || err.code==='auth/invalid-login-credentials')){
+          return firebase.auth().createUserWithEmailAndPassword(email,senha)
+            .then(()=>true).catch(e2=>{ console.warn('[auth] criar conta:',e2.code||e2.message); return false; });
+        }
+        console.warn('[auth] entrar:',err.code||err.message);
+        return false;
+      });
+  }catch(e){ return Promise.resolve(false); }
+}
+
 function doLogin(){
   const u=document.getElementById('login-user').value.trim().toLowerCase().replace(/\s+/g,'');
   const p=document.getElementById('login-pass').value;
 
-  // Tenta autenticar primeiro com dados da nuvem se disponível
-  function authenticate(users){
-    const match=Object.entries(users).find(([k,v])=>(k===u||v.name.toLowerCase().replace(/\s+/g,'')=== u)&&v.pass===p);
-    if(!match){const e=document.getElementById('login-error');e.style.display='block';setTimeout(()=>e.style.display='none',3000);return;}
-    currentUser={key:match[0],...match[1]};
+  function recusar(){
+    const e=document.getElementById('login-error');
+    e.style.display='block'; setTimeout(()=>e.style.display='none',3000);
+  }
+
+  async function authenticate(users){
+    const hashDigitado=await _hashSenha(p);
+    const entradas=Object.entries(users||{});
+    const achou=entradas.find(([k,v])=>{
+      if(!v) return false;
+      const bateUsuario = (k===u) || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u;
+      if(!bateUsuario) return false;
+      if(v.passHash) return !!hashDigitado && v.passHash===hashDigitado;
+      return v.pass===p; // formato antigo, ainda aceito
+    });
+    if(!achou){ recusar(); return; }
+
+    // Primeira entrada após a mudança: troca a senha legível pela impressão
+    const [chave,dados]=achou;
+    if(!dados.passHash && hashDigitado){
+      dados.passHash=hashDigitado;
+      delete dados.pass;
+      try{ saveState(appState); }catch(e){}
+    }
+
+    currentUser={key:chave,...dados};
+    _autenticarNoFirebase(chave,p); // segue em paralelo, sem travar a entrada
     document.getElementById('splash').style.display='none';
     document.getElementById('app').style.display='block';
     initApp();
@@ -4443,7 +4566,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
-    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); }catch(e){ console.warn('admin render:',e); } }
+    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); renderSeguranca(); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -9239,7 +9362,8 @@ function renderUsersGrid(){
         </div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
           <span style="color:var(--text-muted);min-width:42px;">Senha:</span>
-          <span class="pw-mask" data-pw="${user.pass}" style="color:var(--text-primary);font-weight:600;cursor:pointer;user-select:none;" title="Clique para mostrar/ocultar" onclick="this.textContent=this.textContent==='••••••••'?this.dataset.pw:'••••••••'">••••••••</span>
+          <span style="color:var(--text-muted);font-weight:600;user-select:none;" title="A senha não fica legível no banco — use Redefinir">••••••••</span>
+          <button class="btn-link btn-sm" style="margin-left:6px;" onclick="redefinirSenha('${key}')" title="Definir uma nova senha para este usuário">Redefinir</button>
         </div>
       </div>
       <div class="permissions-list" id="perms-${key}"></div>
@@ -9387,7 +9511,7 @@ function togglePerm(k,perm,granted){
   }
 }
 
-function addUser(){
+async function addUser(){
   const name=document.getElementById('new-user-name').value.trim();
   const pass=document.getElementById('new-user-pass').value.trim();
   if(!name||!pass){showToast('Preencha nome e senha','error');return;}
@@ -9395,9 +9519,29 @@ function addUser(){
   if(appState.users[key]){showToast('Usuário já existe','error');return;}
   const colors=['#9db8e8','#7d9bd8','#5876b8','#b8ccee','#42588c'];
   const color=colors[Object.keys(appState.users).length%colors.length];
-  appState.users[key]={name,pass,master:false,color,perms:[]};
+  const passHash=await _hashSenha(pass);
+  // Sem suporte a hash no navegador, mantém o formato antigo para não travar
+  appState.users[key]=passHash?{name,passHash,master:false,color,perms:[]}
+                              :{name,pass,master:false,color,perms:[]};
   saveState(appState);document.getElementById('new-user-name').value='';document.getElementById('new-user-pass').value='';
   showToast(`Usuário "${name}" criado`,'success');renderUsersGrid();
+}
+
+// O master não vê mais a senha (ela não fica legível em lugar nenhum) —
+// no lugar disso, pode definir uma nova para o colaborador
+async function redefinirSenha(key){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode redefinir senhas','warn'); return; }
+  const user=appState.users[key]; if(!user) return;
+  const nova=window.prompt(`Nova senha para ${user.name}:`,'');
+  if(nova===null) return;
+  const limpa=String(nova).trim();
+  if(limpa.length<6){ showToast('A senha precisa ter ao menos 6 caracteres','warn'); return; }
+  const hash=await _hashSenha(limpa);
+  if(hash){ user.passHash=hash; delete user.pass; } else { user.pass=limpa; }
+  saveState(appState);
+  if(db && fbConnected){ db.ref('suplelive/forceLogout/'+key).set({ts:Date.now(),reason:'perm_change'}); }
+  showToast(`Senha de ${user.name} redefinida — informe a nova senha a ele(a)`,'success');
+  renderUsersGrid();
 }
 
 function removeUser(key){
