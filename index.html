@@ -5724,11 +5724,7 @@ function buildTabs(){
       {id:'atribuir',  label:'Atribuir Tarefa'},
       {id:'relatorio', label:'Relatório Entrega'}
     ]},
-    {type:'group', id:'grp-plataformas', icon:'🛒', label:'Marketplaces', permAny:['plataformas','base'], children:[
-      {id:'plataformas', label:'Marketplaces', perm:'plataformas'},
-      {type:'link', key:'baseCancelNF', label:'Canceladas com NF', url:'https://panel-u.baselinker.com/orders.php#status:330390', perm:'base'},
-      {type:'link', key:'baseTickets',  label:'Tickets',            url:'https://panel-u.baselinker.com/other_help',            perm:'base'}
-    ]},
+    {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
       {id:'devolucoes',     label:'Em Devolução'},
       {id:'dev-concluidas', label:'Concluídas', panel:'devolucoes'}
@@ -14231,6 +14227,12 @@ function renderProjetos(){
 // sistema de tarefas já existente, que permanece intacto abaixo)
 // ═══════════════════════════════════════════════════════
 const MKT_LINKS=[
+  {platform:'Base', stores:[
+    {store:'Suplelive', links:[
+      {label:'Canceladas com NF', url:'https://panel-u.baselinker.com/orders.php#status:330390'},
+      {label:'Tickets',           url:'https://panel-u.baselinker.com/other_help'}
+    ]}
+  ]},
   {platform:'Loja Integrada', stores:[
     {store:'Site Suplelive', links:[
       {label:'Métricas', url:'https://app.lojaintegrada.com.br/painel'},
