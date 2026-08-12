@@ -2676,6 +2676,7 @@ function loadLocal(){
     if(!Array.isArray(s.projetos)) s.projetos=[];
     if(!Array.isArray(s.integracoes)) s.integracoes=[];
     if(!Array.isArray(s.excluirIntBase)) s.excluirIntBase=[];
+    _semearEmails(s);
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
@@ -2978,6 +2979,23 @@ function imgPreparar(registroId,campo,indice,dataUrl){
       imgGerarThumb(dataUrl,thumb=>resolve({thumb,chave:chaveOk}));
     });
   });
+}
+
+// E-mails de login dos colaboradores. Preenche quem ainda não tem, sem
+// sobrescrever um e-mail já cadastrado pelo master.
+const EMAILS_PADRAO={
+  cmandrade:'cmandrade@suplelive.com.br',
+  matheusm:'contato@suplelive.com.br',
+  gustavo:'gustavo@suplelive.com.br',
+  carlosred:'carlos@suplelive.com.br'
+};
+function _semearEmails(s){
+  try{
+    const users=(s&&s.users)||{};
+    Object.entries(EMAILS_PADRAO).forEach(([k,mail])=>{
+      if(users[k] && !users[k].email) users[k].email=mail;
+    });
+  }catch(e){}
 }
 
 // ── ARQUIVO PERMANENTE ───────────────────────────────────────
@@ -4012,6 +4030,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.projetos)) data.projetos = [];
   if(!Array.isArray(data.integracoes)) data.integracoes = [];
   if(!Array.isArray(data.excluirIntBase)) data.excluirIntBase = [];
+  _semearEmails(data);
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
@@ -4746,28 +4765,41 @@ function doLogin(){
   async function authenticate(users){
     const hashDigitado=await _hashSenha(p);
     const entradas=Object.entries(users||{});
+    // Localiza o usuário por e-mail, chave ou nome — a senha é conferida depois
     const achou=entradas.find(([k,v])=>{
       if(!v) return false;
-      const bateUsuario = (k===u)
+      return (k===u)
         || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u
         || (v.email && String(v.email).toLowerCase()===uOriginal);
-      if(!bateUsuario) return false;
-      if(v.passHash) return !!hashDigitado && v.passHash===hashDigitado;
-      return v.pass===p; // formato antigo, ainda aceito
     });
     if(!achou){ recusar(); return; }
+    const [chave,dados]=achou;
+    const senhaLocalConfere = dados.passHash
+      ? (!!hashDigitado && dados.passHash===hashDigitado)
+      : (dados.pass===p);
+
+    // Com internet, quem decide é a nuvem — é o que faz a redefinição por
+    // e-mail valer de verdade. Sem internet, vale a senha guardada aqui.
+    let liberado=senhaLocalConfere;
+    const temNuvem = (typeof firebase!=='undefined' && firebase.auth && navigator.onLine!==false);
+    if(temNuvem){
+      const entrou=await _autenticarNoFirebase(chave,p);
+      if(entrou){
+        liberado=true;
+        // Senha pode ter sido trocada por e-mail: sincroniza a cópia local
+        if(hashDigitado && dados.passHash!==hashDigitado){ dados.passHash=hashDigitado; delete dados.pass; }
+      } else if(_ultimoErroAuth==='auth/wrong-password' || _ultimoErroAuth==='auth/invalid-login-credentials'){
+        liberado=false; // a nuvem tem outra senha — prevalece
+      }
+    }
+    if(!liberado){ recusar(); return; }
 
     // Primeira entrada após a mudança: troca a senha legível pela impressão
-    const [chave,dados]=achou;
-    if(!dados.passHash && hashDigitado){
-      dados.passHash=hashDigitado;
-      delete dados.pass;
-      try{ saveState(appState); }catch(e){}
-    }
+    if(!dados.passHash && hashDigitado){ dados.passHash=hashDigitado; delete dados.pass; }
 
     currentUser={key:chave,...dados};
-    // Autentica e, em seguida, confere se este acesso já foi aprovado
-    _autenticarNoFirebase(chave,p).then(ok=>{ if(ok) verificarAutorizacao(); });
+    try{ saveState(appState); }catch(e){}
+    verificarAutorizacao();
     document.getElementById('splash').style.display='none';
     document.getElementById('app').style.display='block';
     initApp();
@@ -9740,8 +9772,8 @@ function renderUsersGrid(){
         </div>
         <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
           <span style="color:var(--text-muted);min-width:42px;">Senha:</span>
-          <span style="color:var(--text-muted);font-weight:600;user-select:none;" title="A senha não fica legível no banco — use Redefinir">••••••••</span>
-          <button class="btn-link btn-sm" style="margin-left:6px;" onclick="redefinirSenha('${key}')" title="Definir uma nova senha para este usuário">Redefinir</button>
+          <span style="color:var(--text-muted);font-weight:600;user-select:none;" title="Nem o master vê a senha — o colaborador define a dele pelo e-mail">••••••••</span>
+          <button class="btn-link btn-sm" style="margin-left:6px;" onclick="enviarRedefinicaoSenha('${key}')" title="Envia um e-mail para o colaborador definir a própria senha">📧 Redefinir por e-mail</button>
         </div>
       </div>
       <div class="permissions-list" id="perms-${key}"></div>
@@ -9926,8 +9958,30 @@ function definirEmail(key){
   renderUsersGrid(); try{ renderSeguranca(); }catch(e){}
 }
 
-// O master não vê mais a senha (ela não fica legível em lugar nenhum) —
-// no lugar disso, pode definir uma nova para o colaborador
+// Dispara o e-mail de redefinição para o colaborador. Quem define a nova
+// senha é ele — nem o master vê a senha de ninguém, por segurança.
+function enviarRedefinicaoSenha(key){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode enviar','warn'); return; }
+  const user=(appState.users||{})[key]; if(!user) return;
+  if(!_emailValido(user.email)){ showToast('Cadastre o e-mail deste usuário primeiro','warn'); return; }
+  if(typeof firebase==='undefined' || !firebase.auth){ showToast('Autenticação indisponível — atualize a página','error'); return; }
+  if(!confirm(`Enviar e-mail de redefinição de senha para ${user.email}?`)) return;
+  firebase.auth().sendPasswordResetEmail(user.email)
+    .then(()=>showToast(`📧 E-mail enviado para ${user.email}`,'success'))
+    .catch(err=>{
+      const c=(err&&err.code)||'';
+      if(c==='auth/user-not-found'){
+        showToast(`${user.name} ainda não entrou nenhuma vez — peça para entrar com a senha atual, depois reenvie`,'warn');
+      } else if(c==='auth/invalid-email'){
+        showToast('E-mail inválido','error');
+      } else {
+        showToast('Não foi possível enviar: '+(c||err.message),'error');
+      }
+    });
+}
+
+// Define uma senha localmente. Usar só quando não há e-mail configurado —
+// o caminho normal é o e-mail de redefinição acima.
 async function redefinirSenha(key){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode redefinir senhas','warn'); return; }
   const user=appState.users[key]; if(!user) return;
