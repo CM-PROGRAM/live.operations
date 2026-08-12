@@ -169,6 +169,16 @@
   border-color:rgba(var(--pc),0.42);
   box-shadow:0 2px 10px rgba(var(--pc),0.14), var(--realce-topo);
 }
+/* A "lâmpada" de prioridade é uma esfera escura; no claro ela vira clara,
+   com o ponto da cor mais fechado para continuar aparecendo. */
+:root[data-theme="light"] .atv-prior-dot{
+  background:radial-gradient(circle at 35% 30%,#ffffff,#dbe1ec);
+  box-shadow:0 0 0 1px rgba(20,30,55,.14),inset 0 1px 1px rgba(255,255,255,.9);
+}
+:root[data-theme="light"] .atv-prior-dot.gray{--dc:#6b7280;}
+:root[data-theme="light"] .atv-prior-dot.yellow{--dc:#4f6183;}
+:root[data-theme="light"] .atv-prior-dot.red{--dc:#d63636;}
+
 /* Botões com texto: no claro o preenchimento vira sólido, senão o texto
    branco fica lavado sobre o fundo da página. */
 :root[data-theme="light"] .btn{
@@ -1985,58 +1995,72 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <!-- CONSULTA CPF — GERAR TAREFA -->
-    <div class="tab-panel" id="tab-cpftarefa">
+    <div class="tab-panel" id="tab-criartarefa">
       <div class="section-header">
-        <span class="section-title">Consulta CPF — Gerar Tarefa</span>
+        <span class="section-title">Criar Tarefa</span>
       </div>
-      <div style="max-width:600px;">
+      <div style="max-width:620px;">
         <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
           <div class="input-group">
             <label>Título da tarefa</label>
-            <input type="text" id="cpftar-titulo" maxlength="120" placeholder="Ex: Contato com cliente">
+            <input type="text" id="criatar-titulo" maxlength="120" placeholder="Ex: Contato com cliente">
+          </div>
+          <div class="input-group">
+            <label>Colaborador(es) responsável(is)</label>
+            <div id="criatar-resp-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
+          </div>
+          <div class="input-group">
+            <label>SKU</label>
+            <div style="display:flex;gap:8px;">
+              <select id="criatar-codigo-tipo" onchange="codigoTipoChanged('criatar')" style="flex:0 0 130px;">
+                <option value="SKU">SKU</option>
+                <option value="MLB">MLB</option>
+                <option value="ID Anúncio">ID Anúncio</option>
+              </select>
+              <div style="flex:1;position:relative;">
+                <span id="criatar-codigo-mlb-prefix" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:12px;color:var(--text-muted);pointer-events:none;">MLB</span>
+                <input type="text" id="criatar-codigo-num" oninput="codigoNumInput('criatar')" placeholder="Número" style="width:100%;box-sizing:border-box;">
+              </div>
+            </div>
           </div>
           <div class="input-group">
             <label style="display:flex;justify-content:space-between;"><span>Considerações</span></label>
             <div style="display:flex;gap:8px;">
-              <textarea id="cpftar-cons-input" maxlength="250" rows="2" placeholder="Escreva um comentário..." style="flex:1;"></textarea>
-              <button type="button" class="btn btn-sm" onclick="considAdd('cpftar')" style="flex:0 0 auto;align-self:flex-end;">Salvar</button>
+              <textarea id="criatar-cons-input" maxlength="250" rows="2" placeholder="Escreva uma consideração..." style="flex:1;"></textarea>
+              <button type="button" class="btn btn-sm" onclick="considAdd('criatar')" style="flex:0 0 auto;align-self:flex-end;">Salvar</button>
             </div>
-            <div id="cpftar-cons-list"></div>
-          </div>
-          <div class="input-group">
-            <label>Colaborador(es) responsável(is)</label>
-            <div id="cpftar-resp-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
+            <div id="criatar-cons-list"></div>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
             <div class="input-group" style="position:relative;">
-              <label>Data de vencimento</label>
-              <input type="hidden" id="cpftar-vencimento">
-              <button type="button" id="cpftar-venc-trigger" onclick="vencOpenCal('cpftar')" style="width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                <span id="cpftar-venc-label" style="color:var(--text-muted);">Selecionar data</span>
+              <label>Prazo conclusão</label>
+              <input type="hidden" id="criatar-vencimento">
+              <button type="button" id="criatar-venc-trigger" onclick="vencOpenCal('criatar')" style="width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+                <span id="criatar-venc-label" style="color:var(--text-muted);">Selecionar data</span>
                 <span style="font-size:14px;">📅</span>
               </button>
-              <div id="cpftar-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
+              <div id="criatar-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
             </div>
             <div class="input-group">
               <label>Prioridade</label>
-              <div class="atv-prior-select" id="cpftar-prioridade-wrap">
-                <button type="button" class="atv-prior-trigger" id="cpftar-prioridade-trigger" onclick="prioToggleMenu('cpftar')">
-                  <span class="atv-prior-dot gray" id="cpftar-prioridade-dot"></span>
-                  <span id="cpftar-prioridade-label">Normal</span>
+              <div class="atv-prior-select" id="criatar-prioridade-wrap">
+                <button type="button" class="atv-prior-trigger" id="criatar-prioridade-trigger" onclick="prioToggleMenu('criatar')">
+                  <span class="atv-prior-dot gray" id="criatar-prioridade-dot"></span>
+                  <span id="criatar-prioridade-label">Normal</span>
                   <span class="chev">▾</span>
                 </button>
-                <div class="atv-prior-menu" id="cpftar-prioridade-menu" style="display:none;">
-                  <div class="atv-prior-opt" onclick="prioSelect('cpftar','normal')"><span class="atv-prior-dot gray"></span>Normal</div>
-                  <div class="atv-prior-opt" onclick="prioSelect('cpftar','alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
-                  <div class="atv-prior-opt" onclick="prioSelect('cpftar','urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
+                <div class="atv-prior-menu" id="criatar-prioridade-menu" style="display:none;">
+                  <div class="atv-prior-opt" onclick="prioSelect('criatar','normal')"><span class="atv-prior-dot gray"></span>Normal</div>
+                  <div class="atv-prior-opt" onclick="prioSelect('criatar','alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
+                  <div class="atv-prior-opt" onclick="prioSelect('criatar','urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
                 </div>
-                <input type="hidden" id="cpftar-prioridade" value="normal">
+                <input type="hidden" id="criatar-prioridade" value="normal">
               </div>
             </div>
           </div>
           <div style="display:flex;gap:10px;margin-top:6px;">
-            <button class="btn btn-ghost" onclick="limparCpfTarefa()" style="flex:1;">Limpar</button>
-            <button class="btn" onclick="salvarCpfTarefa()" style="flex:1;">Criar Tarefa</button>
+            <button class="btn btn-ghost" onclick="limparCriarTarefa()" style="flex:1;">Limpar</button>
+            <button class="btn" onclick="salvarCriarTarefa()" style="flex:1;">Criar Tarefa</button>
           </div>
         </div>
       </div>
@@ -6097,7 +6121,8 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
 function buildTabs(){
   const tabs=[
     {type:'group', id:'grp-tarefas', icon:'📌', label:'Central de Tarefas', perm:'tarefas', children:[
-      {id:'tarefas',   label:'Tarefas Diárias'}
+      {id:'tarefas',   label:'Tarefas Diárias'},
+      {id:'criar-tarefa', label:'Criar Tarefa', panel:'criartarefa'}
     ]},
     {type:'group', id:'grp-atendimentos', icon:'📞', label:'Atendimentos', perm:'atendimentos', children:[
       {id:'atendimentos', label:'Lançamentos'}
@@ -6106,8 +6131,7 @@ function buildTabs(){
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       {id:'registrovendas', label:'Registro de Vendas', perm:'whatsapp'},
       {id:'envios',    label:'Rastreios', perm:'envios'},
-      {id:'consultacpf', label:'CPF Cliente', perm:'consultacpf'},
-      {id:'cpf-tarefa',  label:'Gerar Tarefa', panel:'cpftarefa', perm:'consultacpf'}
+      {id:'consultacpf', label:'CPF Cliente', perm:'consultacpf'}
     ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
       {id:'atribuir',  label:'Atribuir Tarefa'},
@@ -6172,7 +6196,7 @@ function buildTabs(){
     if(id==='relatorio'){ try{renderRelatorioAnuncios();}catch(e){console.warn('renderRelatorioAnuncios:',e);} }
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
-    if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
+    if(id==='criar-tarefa'){ try{initCriarTarefaForm();}catch(e){console.warn('initCriarTarefaForm:',e);} }
     if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
     if(id==='notificacoes'){ try{ renderNotifPagina(); }catch(e){ console.warn('renderNotifPagina:',e); } }
   }
@@ -15011,7 +15035,9 @@ function respRenderGrid(prefix){
     const chip=document.createElement('button');
     chip.type='button';
     chip.textContent=u.name;
-    chip.style.cssText=`display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .15s;border:1px solid ${active?col+'88':'var(--border)'};background:${active?col+'22':'transparent'};color:${active?'#fff':'var(--text-muted)'};`;
+    // O contorno extra garante que o chip marcado apareça mesmo quando a cor
+    // do colaborador é quase igual ao fundo (branco no tema claro, por ex.)
+    chip.style.cssText=`display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .15s;border:1px solid ${active?col+'88':'var(--border)'};background:${active?col+'22':'transparent'};color:${active?'var(--text-primary)':'var(--text-muted)'};${active?'outline:1px solid var(--glass-border);outline-offset:-1px;':''}`;
     chip.onclick=()=>{
       const idx=sel.indexOf(k);
       if(idx>-1) sel.splice(idx,1); else sel.push(k);
@@ -15090,7 +15116,7 @@ function vencRenderCal(prefix){
   pop.innerHTML=html;
 }
 document.addEventListener('click',function(e){
-  ['entrada','integ','img','venda','cpftar'].forEach(prefix=>{
+  ['entrada','integ','img','venda','criatar'].forEach(prefix=>{
     const pop=document.getElementById(prefix+'-cal-popover');
     const trig=document.getElementById(prefix+'-venc-trigger');
     if(pop&&pop.style.display==='block'&&!_cliqueVeioDe(pop)&&trig&&!_cliqueVeioDe(trig)) pop.style.display='none';
@@ -15287,41 +15313,45 @@ function openIntegModal(mkt,id,ctx){
 function closeIntegModal(){ document.getElementById('integ-modal-overlay').style.display='none'; }
 document.getElementById('integ-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeIntegModal();};
 
-// ── Consulta CPF → Gerar Tarefa ────────────────────────────────────
-// Cria uma tarefa avulsa em Central de Tarefas com: Título, Considerações,
-// Colaborador(es) responsável(is), Data de vencimento e Prioridade.
-function limparCpfTarefa(){
-  const t=document.getElementById('cpftar-titulo'); if(t) t.value='';
-  const cons=document.getElementById('cpftar-cons-input'); if(cons) cons.value='';
-  try{ considSet('cpftar',[]); }catch(e){}
-  try{ respSetSel('cpftar',[]); }catch(e){}
-  const venc=document.getElementById('cpftar-vencimento'); if(venc) venc.value='';
-  try{ vencSyncDisplay('cpftar'); }catch(e){}
-  try{ prioSelect('cpftar','normal'); }catch(e){}
+// ── Central de Tarefas → Criar Tarefa ──────────────────────────────
+// Cria uma tarefa avulsa em Tarefas Diárias com: Título, Colaborador(es)
+// responsável(is), SKU, Considerações, Prazo de conclusão e Prioridade.
+function limparCriarTarefa(){
+  const t=document.getElementById('criatar-titulo'); if(t) t.value='';
+  const cons=document.getElementById('criatar-cons-input'); if(cons) cons.value='';
+  try{ considSet('criatar',[]); }catch(e){}
+  try{ respSetSel('criatar',[]); }catch(e){}
+  try{ codigoSetValue('criatar','SKU',''); }catch(e){}
+  const venc=document.getElementById('criatar-vencimento'); if(venc) venc.value='';
+  try{ vencSyncDisplay('criatar'); }catch(e){}
+  try{ prioSelect('criatar','normal'); }catch(e){}
 }
 
-function initCpfTarefaForm(){
-  try{ respRenderGrid('cpftar'); }catch(e){}
-  try{ considRenderList('cpftar'); }catch(e){}
-  try{ vencSyncDisplay('cpftar'); }catch(e){}
+function initCriarTarefaForm(){
+  try{ respRenderGrid('criatar'); }catch(e){}
+  try{ considRenderList('criatar'); }catch(e){}
+  try{ vencSyncDisplay('criatar'); }catch(e){}
+  try{ codigoTipoChanged('criatar'); }catch(e){}
 }
 
-function salvarCpfTarefa(){
+function salvarCriarTarefa(){
   if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
-  const titulo=((document.getElementById('cpftar-titulo')||{}).value||'').trim();
+  const titulo=((document.getElementById('criatar-titulo')||{}).value||'').trim();
   if(!titulo){ showToast('Informe o título da tarefa','warn'); return; }
-  const responsaveis=respGetSel('cpftar');
+  const responsaveis=respGetSel('criatar');
   if(!responsaveis.length){ showToast('Selecione ao menos um colaborador responsável','warn'); return; }
-  const vencimento=(document.getElementById('cpftar-vencimento')||{}).value||'';
-  if(!vencimento){ showToast('Informe a data de vencimento','warn'); return; }
+  const vencimento=(document.getElementById('criatar-vencimento')||{}).value||'';
+  if(!vencimento){ showToast('Informe o prazo de conclusão','warn'); return; }
 
-  const consideracoes=considGet('cpftar');
-  const prioridade=(document.getElementById('cpftar-prioridade')||{}).value||'normal';
+  const codigo=codigoGetValue('criatar');
+  const consideracoes=considGet('criatar');
+  const prioridade=(document.getElementById('criatar-prioridade')||{}).value||'normal';
 
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
-  const id='atv_cpf_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  const id='atv_nova_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
   appState.atividades.push({
     id, titulo,
+    sku:codigo.exibicao, skuTipo:codigo.tipo,
     descricao:consideracoes.map(c=>(c&&c.texto)?c.texto:String(c||'')).join(' | ').slice(0,1000),
     responsaveis, responsavel:responsaveis[0],
     vencimento, prioridade, status:'aberta',
@@ -15343,9 +15373,9 @@ function salvarCpfTarefa(){
     }
   });
 
-  limparCpfTarefa();
+  limparCriarTarefa();
   try{ renderAtividades(); }catch(e){}
-  showToast('✓ Tarefa criada em Central de Tarefas','success');
+  showToast('✓ Tarefa criada em Tarefas Diárias','success');
 }
 
 function saveIntegracao(){
@@ -16066,7 +16096,9 @@ function openAtvModal(id){
       const chip=document.createElement('button');
       chip.type='button';
       chip.textContent=u.name;
-      chip.style.cssText=`display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .15s;border:1px solid ${active?col+'88':'var(--border)'};background:${active?col+'22':'transparent'};color:${active?'#fff':'var(--text-muted)'};`;
+      // O contorno extra garante que o chip marcado apareça mesmo quando a cor
+    // do colaborador é quase igual ao fundo (branco no tema claro, por ex.)
+    chip.style.cssText=`display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .15s;border:1px solid ${active?col+'88':'var(--border)'};background:${active?col+'22':'transparent'};color:${active?'var(--text-primary)':'var(--text-muted)'};${active?'outline:1px solid var(--glass-border);outline-offset:-1px;':''}`;
       chip.onclick=()=>{
         const idx=_atvRespSelecionados.indexOf(k);
         if(idx>-1) _atvRespSelecionados.splice(idx,1); else _atvRespSelecionados.push(k);
