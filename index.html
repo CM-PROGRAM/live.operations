@@ -1710,6 +1710,35 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <!-- ARQUIVO — tudo que foi excluído, nunca some de verdade -->
+      <div class="admin-panel" id="arquivo-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">🗄 Arquivo — Registros Excluídos
+            <span id="arq-count" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;margin-left:6px;">0</span>
+          </div>
+          <button class="btn btn-sm" onclick="carregarArquivo()" style="width:auto;">↻ Atualizar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
+          Nada é apagado de verdade: ao excluir, o registro inteiro vem para cá com quem excluiu e quando.
+          Fica fora do pacote do dia a dia, então não pesa no sistema — e pode ser restaurado.
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+          <select id="arq-area" onchange="renderArquivo()" style="width:auto;min-width:170px;">
+            <option value="">Todas as áreas</option>
+            <option value="tarefa">Tarefas</option>
+            <option value="devolucao">Devoluções</option>
+            <option value="atendimento">Atendimentos</option>
+            <option value="integracao">Integração</option>
+            <option value="excluirintbase">Exclusão Integração</option>
+            <option value="entrada">Entrada</option>
+            <option value="imagens">Imagens</option>
+            <option value="projeto">Projetos</option>
+          </select>
+          <input type="text" id="arq-busca" oninput="renderArquivo()" placeholder="🔎 Buscar por conteúdo, quem excluiu..." style="flex:1;min-width:200px;width:auto;">
+        </div>
+        <div id="arq-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:420px;overflow-y:auto;"></div>
+      </div>
+
       <!-- MANUTENÇÃO — peso dos dados enviados à nuvem -->
       <div class="admin-panel" id="manutencao-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -2951,6 +2980,136 @@ function imgPreparar(registroId,campo,indice,dataUrl){
   });
 }
 
+// ── ARQUIVO PERMANENTE ───────────────────────────────────────
+// Nada é apagado de verdade: antes de sair do sistema, o registro inteiro
+// é copiado para suplelive/arquivo/<área>/<id>. Fica fora do pacote que
+// trafega a cada alteração (não pesa no dia a dia) e nunca é removido —
+// dá para consultar e restaurar quando precisar.
+const FB_ARQUIVO='suplelive/arquivo';
+const ARQ_AREAS={
+  tarefa:'Tarefas', devolucao:'Devoluções', atendimento:'Atendimentos',
+  integracao:'Integração', excluirintbase:'Exclusão Integração',
+  entrada:'Entrada', imagens:'Imagens', projeto:'Projetos', usuario:'Usuários'
+};
+
+function arquivarRegistro(area,registro,extras){
+  if(!registro) return Promise.resolve(false);
+  if(!(db && fbConnected)){
+    console.warn('[arquivo] sem conexão — registro não arquivado:',area,registro.id);
+    return Promise.resolve(false);
+  }
+  const id=registro.id||('sem_id_'+Date.now());
+  const pacote={
+    area, registroId:id,
+    excluidoPor:(currentUser&&currentUser.name)||'—',
+    excluidoPorKey:(currentUser&&currentUser.key)||'',
+    excluidoEm:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    ts:Date.now(),
+    resumo:_arqResumo(area,registro),
+    dados:JSON.parse(JSON.stringify(registro)),
+    ...(extras||{})
+  };
+  return db.ref(FB_ARQUIVO+'/'+area+'/'+String(id).replace(/[.#$/\[\]]/g,'_')).set(pacote)
+    .then(()=>true)
+    .catch(err=>{ console.warn('[arquivo] falha:',err.message); return false; });
+}
+
+// Texto curto que identifica o registro na listagem do arquivo
+function _arqResumo(area,r){
+  try{
+    if(area==='tarefa'||area==='projeto') return [r.titulo,r.sku||r.codigoValor].filter(Boolean).join(' · ')||'—';
+    if(area==='devolucao') return [r.plataforma,r.cliente,r.nped?('ped '+r.nped):''].filter(Boolean).join(' · ')||'—';
+    if(area==='atendimento') return [r.plataforma,r.cliente,r.natend].filter(Boolean).join(' · ')||'—';
+    if(area==='usuario') return [r.name,r.email].filter(Boolean).join(' · ')||'—';
+    return [r.variacao||r.marketplace,_mktCodigoLabel?_mktCodigoLabel(r):''].filter(Boolean).join(' · ')||'—';
+  }catch(e){ return '—'; }
+}
+
+// Arquiva e só então executa a remoção, para nunca perder o conteúdo
+function excluirComArquivo(area,registro,remover,extras){
+  return arquivarRegistro(area,registro,extras).then(ok=>{
+    if(!ok && (db && fbConnected)){
+      showToast('Não foi possível arquivar — exclusão cancelada','error');
+      return false;
+    }
+    remover();
+    return true;
+  });
+}
+
+let _arqCache=null;
+function carregarArquivo(){
+  const alvo=document.getElementById('arq-lista');
+  if(!alvo) return;
+  if(!(db && fbConnected)){ alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão com a nuvem.</div>'; return; }
+  alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Carregando…</div>';
+  db.ref(FB_ARQUIVO).once('value').then(snap=>{
+    const dados=snap.val()||{};
+    _arqCache=[];
+    Object.entries(dados).forEach(([area,itens])=>{
+      Object.entries(itens||{}).forEach(([k,v])=>{ if(v) _arqCache.push({...v, area:v.area||area, _k:k}); });
+    });
+    _arqCache.sort((a,b)=>(b.ts||0)-(a.ts||0));
+    renderArquivo();
+  }).catch(err=>{
+    alvo.innerHTML='<div style="padding:16px;color:var(--red);font-size:12px;font-family:var(--font-mono);">Falha ao carregar: '+err.message+'</div>';
+  });
+}
+
+function renderArquivo(){
+  const alvo=document.getElementById('arq-lista');
+  if(!alvo || !_arqCache) return;
+  const q=((document.getElementById('arq-busca')||{}).value||'').toLowerCase().trim();
+  const areaF=(document.getElementById('arq-area')||{}).value||'';
+  const itens=_arqCache.filter(i=>{
+    if(areaF && i.area!==areaF) return false;
+    if(!q) return true;
+    return [i.resumo,i.excluidoPor,i.registroId,ARQ_AREAS[i.area]].join(' ').toLowerCase().includes(q);
+  });
+  const cnt=document.getElementById('arq-count'); if(cnt) cnt.textContent=_arqCache.length;
+  if(!itens.length){
+    alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">'+(_arqCache.length?'Nenhum registro para este filtro.':'Nada foi excluído até agora.')+'</div>';
+    return;
+  }
+  alvo.innerHTML=itens.slice(0,200).map(i=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border-light);">
+      <div style="min-width:0;">
+        <div style="font-size:12px;color:var(--text-primary);font-weight:600;">${(i.resumo||'—').replace(/</g,'&lt;')}</div>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">
+          ${ARQ_AREAS[i.area]||i.area} · excluído por ${i.excluidoPor||'—'} em ${i.excluidoEm||'—'}
+        </div>
+      </div>
+      <button class="btn btn-sm" style="width:auto;flex-shrink:0;" onclick="restaurarDoArquivo('${i.area}','${i._k}')">↩ Restaurar</button>
+    </div>`).join('')
+    + (itens.length>200?`<div style="padding:8px 10px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">Mostrando 200 de ${itens.length} — refine a busca.</div>`:'');
+}
+
+// Devolve o registro para a área de origem, sem removê-lo do arquivo
+function restaurarDoArquivo(area,chave){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode restaurar','warn'); return; }
+  const item=(_arqCache||[]).find(i=>i.area===area && i._k===chave);
+  if(!item || !item.dados){ showToast('Registro não encontrado no arquivo','error'); return; }
+  const destino={
+    tarefa:()=>appState.atividades||(appState.atividades=[]),
+    projeto:()=>appState.projetos||(appState.projetos=[]),
+    devolucao:()=>((appState.tasks=appState.tasks||{}).devolucoes||(appState.tasks.devolucoes=[])),
+    atendimento:()=>((appState.tasks=appState.tasks||{}).atendimentos||(appState.tasks.atendimentos=[])),
+    integracao:()=>appState.integracoes||(appState.integracoes=[]),
+    excluirintbase:()=>appState.excluirIntBase||(appState.excluirIntBase=[]),
+    entrada:()=>appState.entradas||(appState.entradas=[]),
+    imagens:()=>appState.imagensReq||(appState.imagensReq=[])
+  }[area];
+  if(!destino){ showToast('Esta área não pode ser restaurada automaticamente','warn'); return; }
+  const lista=destino();
+  if(lista.some(x=>x&&x.id===item.dados.id)){ showToast('Esse registro já está ativo no sistema','warn'); return; }
+  if(!confirm(`Restaurar "${item.resumo}" para ${ARQ_AREAS[area]||area}?`)) return;
+  lista.push(JSON.parse(JSON.stringify(item.dados)));
+  saveState(appState);
+  showToast('✓ Registro restaurado','success');
+  ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
+    .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+}
+
 // ── DIAGNÓSTICO / MANUTENÇÃO DO ESTADO ───────────────────────
 // Percorre o estado somando o peso de cada campo de imagem, para saber o
 // que está inflando o blob enviado ao Firebase.
@@ -3150,6 +3309,9 @@ function baixarBackupCompleto(){
       _percorrerImagensDoEstado(dados,(obj,chave)=>{ obj[chave]='[imagem no zip]'; });
       arquivos.push({nome:'dados.json', bytes:enc.encode(JSON.stringify(dados,null,2))});
       arquivos.push({nome:'dados-completo-com-imagens.json', bytes:enc.encode(JSON.stringify(appState))});
+      if(_arqCache && _arqCache.length){
+        arquivos.push({nome:'arquivo-registros-excluidos.json', bytes:enc.encode(JSON.stringify(_arqCache,null,2))});
+      }
 
       arquivos.push({nome:'LEIA-ME.txt', bytes:enc.encode(
 `BACKUP DO SISTEMA — ${new Date().toLocaleString('pt-BR')}
@@ -4775,7 +4937,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
-    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); renderSeguranca(); }catch(e){ console.warn('admin render:',e); } }
+    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); renderSeguranca(); carregarArquivo(); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -7856,6 +8018,8 @@ function deleteDev(idx){
   }
 }
 function deleteDevById(id){
+  const d=(appState.tasks.devolucoes||[]).find(x=>x.id===id);
+  if(d) arquivarRegistro('devolucao',d);
   appState.tasks.devolucoes=(appState.tasks.devolucoes||[]).filter(x=>x.id!==id);
   saveState(appState);
   renderDev();
@@ -12022,6 +12186,8 @@ function saveAte(){
 }
 
 function deleteAteById(id){
+  const t=(appState.tasks.atendimentos||[]).find(x=>x.id===id);
+  if(t) arquivarRegistro('atendimento',t);
   appState.tasks.atendimentos=(appState.tasks.atendimentos||[]).filter(x=>x.id!==id);
   saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_ate_<id>)
   renderAte();
@@ -13003,11 +13169,16 @@ function atvSetPendente(id){
 
 function deleteAtividade(id){
   if(!currentUser.master){showToast('Apenas o master pode excluir','warn');return;}
-  if(!confirm('Deseja excluir esta tarefa? Essa ação não pode ser desfeita.')) return;
+  if(!confirm('Excluir esta tarefa? Ela vai para o arquivo e pode ser restaurada pelo master.')) return;
   const a=(appState.atividades||[]).find(x=>x.id===id);
+  if(a) arquivarRegistro('tarefa',a);
   appState.atividades=(appState.atividades||[]).filter(x=>x.id!==id);
   // Se a tarefa veio de uma Integração/Imagem, remove também a solicitação de
   // origem para que a exclusão reflita em Integrações/Imagens para todos.
+  // A solicitação de origem também vai para o arquivo.
+  if(a && a.origemIntegId){ const o=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId); if(o) arquivarRegistro('integracao',o); }
+  if(a && a.origemExIntId){ const o=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId); if(o) arquivarRegistro('excluirintbase',o); }
+  if(a && a.origemImgId){ const o=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId); if(o) arquivarRegistro('imagens',o); }
   if(a && a.origemIntegId) appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==a.origemIntegId);
   if(a && a.origemExIntId) appState.excluirIntBase=(appState.excluirIntBase||[]).filter(x=>x.id!==a.origemExIntId);
   if(a && a.origemImgId)   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==a.origemImgId);
@@ -13093,7 +13264,8 @@ function projMoveStatus(id,novoStatus){
 
 function deleteProjeto(id){
   if(!currentUser.master){showToast('Apenas o master pode excluir','warn');return;}
-  if(!confirm('Deseja excluir este projeto? Essa ação não pode ser desfeita.')) return;
+  if(!confirm('Deseja excluir este projeto?')) return;
+  { const pr=(appState.projetos||[]).find(x=>x.id===id); if(pr) arquivarRegistro('projeto',pr); }
   appState.projetos=(appState.projetos||[]).filter(x=>x.id!==id);
   saveState(appState);
   closeProjModal();
@@ -13863,6 +14035,7 @@ function deleteIntegracao(id){
   const item=arr.find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
   if(!confirm(ctx.confirmDel)) return;
+  arquivarRegistro(_integCtx,item);
   ctx.setArr(arr.filter(x=>x.id!==id));
   saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (autoPrefix+<id>)
   closeIntegModal();
@@ -14045,6 +14218,7 @@ function deleteEntradaReq(id){
   const item=(appState.entradas||[]).find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
   if(!confirm('Excluir esta solicitação de entrada?')) return;
+  arquivarRegistro('entrada',item);
   appState.entradas=(appState.entradas||[]).filter(x=>x.id!==id);
   saveState(appState);
   closeEntradaModal();
@@ -14164,6 +14338,7 @@ function deleteImagemReq(id){
   const item=(appState.imagensReq||[]).find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
   if(!confirm('Excluir esta solicitação de imagens?')) return;
+  arquivarRegistro('imagens',item);
   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==id);
   saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_img_<id>)
   closeImgModal();
