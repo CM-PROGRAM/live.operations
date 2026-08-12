@@ -737,11 +737,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- Passo 2: código + nova senha -->
     <div id="reset-passo2" style="display:none;">
       <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:14px;">
-        Abra o e-mail que enviamos, copie o código e cole abaixo. Depois escolha a senha que quiser.
+        Abra o e-mail que enviamos e copie o link que aparece nele. Cole abaixo e escolha a senha que quiser.
       </div>
       <div class="input-group">
-        <label>Código do e-mail</label>
-        <input type="text" id="reset-codigo" placeholder="cole aqui o código" autocomplete="one-time-code">
+        <label>Link ou código do e-mail</label>
+        <input type="text" id="reset-codigo" placeholder="cole aqui o link do e-mail" autocomplete="one-time-code">
       </div>
       <div class="input-group">
         <label>Nova senha</label>
@@ -754,7 +754,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <button class="btn" type="button" onclick="confirmarNovaSenha()">Salvar nova senha</button>
       <div style="text-align:center;margin-top:10px;">
         <a href="#" onclick="document.getElementById('reset-passo1').style.display='block';document.getElementById('reset-passo2').style.display='none';return false;"
-           style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;">Não recebi o código</a>
+           style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;">Não recebi o e-mail</a>
       </div>
     </div>
 
@@ -4851,7 +4851,7 @@ function enviarCodigoRedefinicao(){
     .then(()=>{
       document.getElementById('reset-passo1').style.display='none';
       document.getElementById('reset-passo2').style.display='block';
-      _resetErro('Código enviado para '+email+'. Confira também o spam.','#22c55e');
+      _resetErro('E-mail enviado para '+email+'. Confira também o spam.','#22c55e');
     })
     .catch(err=>{
       const c=(err&&err.code)||'';
@@ -4873,7 +4873,7 @@ function confirmarNovaSenha(){
   const codigo=_extrairCodigo((document.getElementById('reset-codigo')||{}).value);
   const s1=String((document.getElementById('reset-senha1')||{}).value||'');
   const s2=String((document.getElementById('reset-senha2')||{}).value||'');
-  if(!codigo){ _resetErro('Cole o código recebido por e-mail'); return; }
+  if(!codigo){ _resetErro('Cole o link (ou o código) recebido por e-mail'); return; }
   if(s1.length<6){ _resetErro('A senha precisa ter ao menos 6 caracteres'); return; }
   if(s1!==s2){ _resetErro('As duas senhas não são iguais'); return; }
   if(typeof firebase==='undefined' || !firebase.auth){ _resetErro('Sem conexão com o serviço de acesso'); return; }
