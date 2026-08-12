@@ -677,6 +677,8 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .mkt-loja{color:var(--mkt-cor,#8fa8d8);}
 :root[data-theme="light"] .mkt-nome,
 :root[data-theme="light"] .mkt-loja{color:#3d5a94;}
+/* No tema claro o neon branco do Web Continental sumiria no fundo claro */
+:root[data-theme="light"] .mkt-nome[data-mkt="webcontinental"]{--mkt-neon:100,116,139;}
 @keyframes sbNeonVaiVem{
   from{background-position:-30% 0, 0 0;}
   to{background-position:130% 0, 0 0;}
@@ -15458,7 +15460,8 @@ function renderMktLinks(){
     head.className='mkt-nome';
     head.style.cssText=`display:inline-block;background:linear-gradient(135deg,${_hexA(hc,0.12)},${_hexA(hc,0.02)});border:1.5px solid ${_hexA(hc,0.5)};border-radius:10px;padding:6px 14px;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;`;
     head.style.setProperty('--mkt-cor', hc);
-    head.style.setProperty('--mkt-neon', _hexRGB(hc));
+    head.dataset.mkt=_mktSlug(pf.platform);
+    head.style.setProperty('--mkt-neon', MKT_NEON[pf.platform] || _hexRGB(hc));
     head.style.animationDelay=(_mktIdx*0.45).toFixed(2)+'s';
     head.textContent=pf.platform;
     // Contador de % de conclusão das tarefas do card
@@ -15473,14 +15476,11 @@ function renderMktLinks(){
     pctBadge.title=_done+' de '+_tot+' tarefas concluídas';
     pctBadge.textContent=pct+'%';
     const headRow=document.createElement('div');
-    headRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;';
+    // Espaço extra embaixo: é onde corre o neon do nome
+    headRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px;';
     headRow.appendChild(head);
     headRow.appendChild(pctBadge);
     card.appendChild(headRow);
-    // Linha separadora na cor do marketplace
-    const sep=document.createElement('div');
-    sep.style.cssText=`height:1.5px;background:linear-gradient(90deg,transparent,${_hexA(hc,0.75)},transparent);border-radius:2px;margin:0 0 12px;box-shadow:0 0 8px ${_hexA(hc,0.4)};`;
-    card.appendChild(sep);
     const body=document.createElement('div');
     body.style.cssText='display:flex;flex-direction:column;gap:8px;';
     pf.stores.forEach(st=>{
@@ -15603,6 +15603,18 @@ const MKT_TILE_COLORS={
 };
 
 // "#8fa8d8" -> "143,168,216", para usar dentro de rgba() no CSS
+// Cor do neon que corre embaixo do nome de cada marketplace
+const MKT_NEON={
+  'RD Marketplace': '34,197,94',    // verde
+  'Web Continental':'255,255,255',  // branco
+  'Magalu':         '59,130,246',   // azul
+  'Mercado Livre':  '234,179,8',    // amarelo
+  'Shopee':         '249,115,22',   // laranja
+  'DPSP':           '239,68,68'     // vermelho
+};
+function _mktSlug(nome){
+  return String(nome).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'');
+}
 function _hexRGB(hex){
   const h=String(hex).replace('#','');
   return [0,2,4].map(i=>parseInt(h.substring(i,i+2),16)).join(',');
