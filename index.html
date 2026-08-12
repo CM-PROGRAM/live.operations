@@ -649,37 +649,27 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
    separador da caixa de entrada, agora atravessando o próprio nome, com um
    halo respirando em volta. A cor vem do card (--mkt-neon) e cada card entra
    com um atraso diferente, para os seis não pulsarem em bloco. */
+/* Só uma linha embaixo do nome, do tamanho do nome — o mesmo brilho que
+   percorre o separador da caixa de entrada. Nada dentro da etiqueta. */
 .mkt-nome{
   --mkt-neon:143,168,216;
-  position:relative;overflow:hidden;
-  animation:mktNeonHalo 3.4s ease-in-out infinite alternate;
+  position:relative;
 }
 .mkt-nome::after{
-  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
-  background-image:linear-gradient(100deg,
-    rgba(var(--mkt-neon),0) 0%,
-    rgba(var(--mkt-neon),.28) 35%,
-    rgba(var(--mkt-neon),.55) 50%,
-    rgba(var(--mkt-neon),.28) 65%,
-    rgba(var(--mkt-neon),0) 100%);
-  background-size:85% 100%;background-repeat:no-repeat;
-  background-position:-85% 0;
-  filter:blur(1px);
-  animation:mktNeonVaiVem 3.4s ease-in-out infinite alternate;
+  content:'';position:absolute;left:0;right:0;bottom:-7px;height:2px;border-radius:2px;
+  pointer-events:none;
+  background-image:
+    linear-gradient(90deg,rgba(var(--mkt-neon),0) 0%,rgba(var(--mkt-neon),.95) 50%,rgba(var(--mkt-neon),0) 100%),
+    linear-gradient(90deg,transparent,rgba(var(--mkt-neon),.22),transparent);
+  background-size:55% 100%, 100% 100%;
+  background-repeat:no-repeat, no-repeat;
+  background-position:-30% 0, 0 0;
+  animation:sbNeonVaiVem 3.4s ease-in-out infinite alternate;
   animation-delay:inherit;
-  mix-blend-mode:screen;
-}
-@keyframes mktNeonVaiVem{
-  from{background-position:-85% 0;}
-  to{background-position:185% 0;}
-}
-@keyframes mktNeonHalo{
-  from{box-shadow:0 0 6px rgba(var(--mkt-neon),.25), inset 0 0 6px rgba(var(--mkt-neon),.10);}
-  to{box-shadow:0 0 16px rgba(var(--mkt-neon),.70), inset 0 0 10px rgba(var(--mkt-neon),.22);}
+  filter:drop-shadow(0 0 5px rgba(var(--mkt-neon),.55));
 }
 @media (prefers-reduced-motion:reduce){
-  .mkt-nome,.mkt-nome::after{animation:none;}
-  .mkt-nome{box-shadow:0 0 10px rgba(var(--mkt-neon),.45);}
+  .mkt-nome::after{animation:none;background-position:50% 0, 0 0;}
 }
 /* A cor do nome vem daqui (e não do estilo em linha) para o tema claro poder
    escurecê-la — o azul-aço do escuro some sobre o branco. */
@@ -687,23 +677,6 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .mkt-loja{color:var(--mkt-cor,#8fa8d8);}
 :root[data-theme="light"] .mkt-nome,
 :root[data-theme="light"] .mkt-loja{color:#3d5a94;}
-/* No claro o brilho não pode clarear o que já é claro: sai o modo screen */
-:root[data-theme="light"] .mkt-nome::after{
-  mix-blend-mode:normal;
-  background-image:linear-gradient(100deg,
-    rgba(var(--mkt-neon),0) 0%,
-    rgba(var(--mkt-neon),.12) 35%,
-    rgba(var(--mkt-neon),.26) 50%,
-    rgba(var(--mkt-neon),.12) 65%,
-    rgba(var(--mkt-neon),0) 100%);
-}
-:root[data-theme="light"] .mkt-nome{
-  animation-name:mktNeonHaloClaro;
-}
-@keyframes mktNeonHaloClaro{
-  from{box-shadow:0 0 5px rgba(var(--mkt-neon),.20);}
-  to{box-shadow:0 0 13px rgba(var(--mkt-neon),.50);}
-}
 @keyframes sbNeonVaiVem{
   from{background-position:-30% 0, 0 0;}
   to{background-position:130% 0, 0 0;}
