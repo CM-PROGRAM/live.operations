@@ -645,6 +645,65 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   filter:drop-shadow(0 0 5px rgba(248,113,113,.55));
   pointer-events:none;
 }
+/* Neon na etiqueta do nome do marketplace: o mesmo brilho que percorre o
+   separador da caixa de entrada, agora atravessando o próprio nome, com um
+   halo respirando em volta. A cor vem do card (--mkt-neon) e cada card entra
+   com um atraso diferente, para os seis não pulsarem em bloco. */
+.mkt-nome{
+  --mkt-neon:143,168,216;
+  position:relative;overflow:hidden;
+  animation:mktNeonHalo 3.4s ease-in-out infinite alternate;
+}
+.mkt-nome::after{
+  content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background-image:linear-gradient(100deg,
+    rgba(var(--mkt-neon),0) 0%,
+    rgba(var(--mkt-neon),.28) 35%,
+    rgba(var(--mkt-neon),.55) 50%,
+    rgba(var(--mkt-neon),.28) 65%,
+    rgba(var(--mkt-neon),0) 100%);
+  background-size:85% 100%;background-repeat:no-repeat;
+  background-position:-85% 0;
+  filter:blur(1px);
+  animation:mktNeonVaiVem 3.4s ease-in-out infinite alternate;
+  animation-delay:inherit;
+  mix-blend-mode:screen;
+}
+@keyframes mktNeonVaiVem{
+  from{background-position:-85% 0;}
+  to{background-position:185% 0;}
+}
+@keyframes mktNeonHalo{
+  from{box-shadow:0 0 6px rgba(var(--mkt-neon),.25), inset 0 0 6px rgba(var(--mkt-neon),.10);}
+  to{box-shadow:0 0 16px rgba(var(--mkt-neon),.70), inset 0 0 10px rgba(var(--mkt-neon),.22);}
+}
+@media (prefers-reduced-motion:reduce){
+  .mkt-nome,.mkt-nome::after{animation:none;}
+  .mkt-nome{box-shadow:0 0 10px rgba(var(--mkt-neon),.45);}
+}
+/* A cor do nome vem daqui (e não do estilo em linha) para o tema claro poder
+   escurecê-la — o azul-aço do escuro some sobre o branco. */
+.mkt-nome{color:var(--mkt-cor,#8fa8d8);}
+.mkt-loja{color:var(--mkt-cor,#8fa8d8);}
+:root[data-theme="light"] .mkt-nome,
+:root[data-theme="light"] .mkt-loja{color:#3d5a94;}
+/* No claro o brilho não pode clarear o que já é claro: sai o modo screen */
+:root[data-theme="light"] .mkt-nome::after{
+  mix-blend-mode:normal;
+  background-image:linear-gradient(100deg,
+    rgba(var(--mkt-neon),0) 0%,
+    rgba(var(--mkt-neon),.12) 35%,
+    rgba(var(--mkt-neon),.26) 50%,
+    rgba(var(--mkt-neon),.12) 65%,
+    rgba(var(--mkt-neon),0) 100%);
+}
+:root[data-theme="light"] .mkt-nome{
+  animation-name:mktNeonHaloClaro;
+}
+@keyframes mktNeonHaloClaro{
+  from{box-shadow:0 0 5px rgba(var(--mkt-neon),.20);}
+  to{box-shadow:0 0 13px rgba(var(--mkt-neon),.50);}
+}
 @keyframes sbNeonVaiVem{
   from{background-position:-30% 0, 0 0;}
   to{background-position:130% 0, 0 0;}
@@ -15416,14 +15475,18 @@ function renderMktLinks(){
   panel.innerHTML='';
   if(!appState.mktStoreDone) appState.mktStoreDone={};
   const canMkt = currentUser && (currentUser.master || (currentUser.perms||[]).includes('plataformas'));
-  MKT_LINKS.forEach(pf=>{
+  MKT_LINKS.forEach((pf,_mktIdx)=>{
     const card=document.createElement('div');
     card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;box-shadow:var(--sombra-card);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;`;
     card.onmouseover=()=>{card.style.transform='translateY(-2px)';card.style.boxShadow='var(--sombra-card-alta)';};
     card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='var(--sombra-card)';};
     const hc='#8fa8d8';
     const head=document.createElement('div');
-    head.style.cssText=`display:inline-block;background:linear-gradient(135deg,${_hexA(hc,0.12)},${_hexA(hc,0.02)});border:1.5px solid ${_hexA(hc,0.5)};border-radius:10px;padding:6px 14px;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:${hc};`;
+    head.className='mkt-nome';
+    head.style.cssText=`display:inline-block;background:linear-gradient(135deg,${_hexA(hc,0.12)},${_hexA(hc,0.02)});border:1.5px solid ${_hexA(hc,0.5)};border-radius:10px;padding:6px 14px;font-size:11.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;`;
+    head.style.setProperty('--mkt-cor', hc);
+    head.style.setProperty('--mkt-neon', _hexRGB(hc));
+    head.style.animationDelay=(_mktIdx*0.45).toFixed(2)+'s';
     head.textContent=pf.platform;
     // Contador de % de conclusão das tarefas do card
     let _tot=0,_done=0;
@@ -15453,7 +15516,9 @@ function renderMktLinks(){
       // Cor do tile por plataforma/loja (mesma paleta dos painéis por plataforma)
       const tc='#8fa8d8';
       const storeLbl=document.createElement('span');
-      storeLbl.style.cssText=`min-width:170px;text-align:center;background:linear-gradient(135deg,${_hexA(tc,0.12)},${_hexA(tc,0.02)});border:1.5px solid ${_hexA(tc,0.5)};border-radius:10px;padding:6px 12px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${tc};white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+      storeLbl.className='mkt-loja';
+      storeLbl.style.cssText=`min-width:170px;text-align:center;background:linear-gradient(135deg,${_hexA(tc,0.12)},${_hexA(tc,0.02)});border:1.5px solid ${_hexA(tc,0.5)};border-radius:10px;padding:6px 12px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+      storeLbl.style.setProperty('--mkt-cor', tc);
       storeLbl.textContent=st.store;
       row.appendChild(storeLbl);
       st.links.forEach(lk=>{
@@ -15564,6 +15629,11 @@ const MKT_TILE_COLORS={
   'Mercado Livre Vitalife':  '#8fa8d8'  // amarelo claro
 };
 
+// "#8fa8d8" -> "143,168,216", para usar dentro de rgba() no CSS
+function _hexRGB(hex){
+  const h=String(hex).replace('#','');
+  return [0,2,4].map(i=>parseInt(h.substring(i,i+2),16)).join(',');
+}
 function _hexA(hex,alpha){
   const h=hex.replace('#','');
   const r=parseInt(h.substring(0,2),16), g=parseInt(h.substring(2,4),16), b=parseInt(h.substring(4,6),16);
