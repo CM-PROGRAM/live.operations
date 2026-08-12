@@ -5848,18 +5848,12 @@ function buildTabs(){
     {type:'group', id:'grp-atendimentos', icon:'📞', label:'Atendimentos', perm:'atendimentos', children:[
       {id:'atendimentos', label:'Lançamentos'}
     ]},
-    {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', permAny:['whatsapp','envios'], children:[
-      {id:'whatsapp',  label:'WhatsApp (Chatwoot)'},
-      {id:'registrovendas', label:'Registro de Vendas'},
-      {id:'envios',    label:'Rastreios'}
-    ]},
-    {type:'group', id:'grp-financeiro', icon:'💰', label:'Financeiro', perm:'financeiro', children:[
-      {type:'link', key:'finNFs',    label:'Pasta NFs Serviço', url:''},
-      {type:'link', key:'finContab', label:'Contabilidade',     url:''}
-    ]},
-    {type:'group', id:'grp-cpf', icon:'🪪', label:'Consulta CPF', perm:'consultacpf', children:[
-      {id:'consultacpf', label:'CPF Cliente'},
-      {id:'cpf-tarefa',  label:'Gerar Tarefa', panel:'cpftarefa'}
+    {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', permAny:['whatsapp','envios','consultacpf'], children:[
+      {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
+      {id:'registrovendas', label:'Registro de Vendas', perm:'whatsapp'},
+      {id:'envios',    label:'Rastreios', perm:'envios'},
+      {id:'consultacpf', label:'CPF Cliente', perm:'consultacpf'},
+      {id:'cpf-tarefa',  label:'Gerar Tarefa', panel:'cpftarefa', perm:'consultacpf'}
     ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
       {id:'atribuir',  label:'Atribuir Tarefa'},
@@ -10712,8 +10706,7 @@ function renderUsersGrid(){
     {id:'atendimentos',label:'📞 Atendimentos'},
     {id:'whatsapp',label:'🛍 Vendas · WhatsApp'},
     {id:'envios',label:'🛍 Vendas · Rastreios'},
-    {id:'financeiro',label:'💰 Financeiro'},
-    {id:'consultacpf',label:'🔎 Consulta CPF'},
+    {id:'consultacpf',label:'🪪 CPF Cliente (dentro de Vendas)'},
     {id:'base',label:'🗄 Base (links dentro de Marketplaces)'},
     {id:'integracoes',label:'🔗 Anúncios'},
     {id:'plataformas',label:'🛒 Marketplaces'},
