@@ -4994,6 +4994,22 @@ function _migrarParaRegistros(){
   });
 }
 
+// Antes de publicar qualquer coisa, esta sessão precisa ter LIDO a nuvem.
+// Sem isso, um navegador que abriu com uma cópia velha no localStorage
+// empurrava esse estado antigo por cima do que já estava lá — foi assim que
+// tarefas concluídas voltavam a aparecer em aberto.
+let _recebeuNuvem=false;
+let _salvarQuandoLiberar=false;
+function _liberarGravacaoNaNuvem(){
+  if(_recebeuNuvem) return;
+  _recebeuNuvem=true;
+  if(_salvarQuandoLiberar){
+    _salvarQuandoLiberar=false;
+    console.log('[SYNC] nuvem lida — publicando a alteração que ficou esperando');
+    try{ saveState(appState); }catch(e){ console.warn('[SYNC]',e); }
+  }
+}
+
 function saveState(s){
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
@@ -5005,21 +5021,26 @@ function saveState(s){
   // Salva localmente SEM _savedBy (para não contaminar o appState)
   saveLocal(s);
   if(db && fbConnected){
-    // Deep copy para evitar referência compartilhada com appState
+    if(!_recebeuNuvem){
+      // Ainda não sabemos o que a nuvem tem. Guarda a intenção e publica
+      // assim que o estado remoto chegar.
+      _salvarQuandoLiberar=true;
+      console.warn('[SYNC] gravação adiada: a nuvem ainda não foi lida nesta sessão');
+      return;
+    }
+    // As listas grandes vivem em suplelive/reg e NUNCA entram no pacote —
+    // duas fontes para o mesmo dado é o que fazia uma sessão sobrescrever a
+    // outra com uma cópia antiga.
+    _gravarRegistrosAlterados(s);
     let payload;
     try{
-      payload = sanitizeFirebaseKeys(JSON.parse(JSON.stringify(s)));
+      payload = sanitizeFirebaseKeys(_estadoSemColecoes(s));
     }catch(e){
       console.error('[saveState] erro ao sanitizar payload:', e.message);
-      payload = JSON.parse(JSON.stringify(s));
+      payload = _estadoSemColecoes(s);
     }
     payload._version = _localVersion;
     payload._savedBy = _sessionId;
-    // Formato novo: as listas grandes vão registro a registro e saem do pacote
-    if(_regAtivo){
-      _gravarRegistrosAlterados(s);
-      payload = Object.assign(_estadoSemColecoes(s), {_version:_localVersion, _savedBy:_sessionId});
-    }
     // O estado inteiro sobe a cada alteração: se crescer demais (imagens
     // embutidas), a gravação passa a derrubar a conexão. Avisa antes disso.
     try{
@@ -5407,21 +5428,27 @@ function startFirebaseSync(){
   // Sincronização por registro: migra na primeira vez e passa a escutar
   // cada lista separadamente, em vez do pacote inteiro
   _migrarParaRegistros()
-    .then(()=>{ _regAtivo=true; _ouvirRegistros(); console.log('[reg] sincronização por registro ativa'); })
+    .then(()=>{ _regAtivo=true; _ouvirRegistros(); _liberarGravacaoNaNuvem(); console.log('[reg] sincronização por registro ativa'); })
     .catch(err=>{ console.warn('[reg] indisponível, seguindo pelo pacote:',err.message); _regAtivo=false; });
 
   // Listener único em tempo real — dispara na conexão e em cada mudança
   fbListener = db.ref(FB_PATH).on('value', snap => {
     const data = snap.val();
 
-    // Nuvem vazia: sobe o estado local (primeira vez)
+    // Nuvem vazia: sobe o estado local (primeira vez). Mesmo aqui as listas
+    // ficam de fora do pacote — elas pertencem a suplelive/reg.
     if(!data){
+      _liberarGravacaoNaNuvem();
       if(currentUser){
-        const payload = Object.assign({}, appState, {_savedBy: _sessionId});
+        const payload = Object.assign(_estadoSemColecoes(appState), {_savedBy: _sessionId});
         db.ref(FB_PATH).set(payload);
+        try{ _gravarRegistrosAlterados(appState); }catch(e){}
       }
       return;
     }
+
+    // Já sabemos o que a nuvem tem: esta sessão pode publicar
+    _liberarGravacaoNaNuvem();
 
     if(!currentUser) return;
 
@@ -5442,15 +5469,17 @@ function startFirebaseSync(){
     const patched = applyRemoteState(data);
     if(!patched){ console.warn('[SYNC] applyRemoteState retornou vazio'); return; }
 
-    // No formato por registro, as listas grandes não vêm no pacote —
-    // preserva as que já estão em memória para não zerá-las
-    if(_regAtivo){
-      Object.entries(COLECOES_REG).forEach(([,acc])=>{
-        const atual=acc.get(appState);
-        const vindo=acc.get(patched);
-        if(Array.isArray(atual) && (!Array.isArray(vindo) || !vindo.length)) acc.set(patched,atual);
-      });
-    }
+    // As listas grandes vivem em suplelive/reg. Se o pacote trouxer uma cópia
+    // delas — de uma sessão antiga ou de um navegador que gravou antes de ler
+    // a nuvem — essa cópia é velha por definição e não pode vencer o que já
+    // está em memória, que veio registro a registro.
+    Object.entries(COLECOES_REG).forEach(([,acc])=>{
+      const atual=acc.get(appState);
+      const vindo=acc.get(patched);
+      if(Array.isArray(atual) && atual.length){ acc.set(patched,atual); return; }
+      // Nada em memória ainda: só aceita o pacote se ele realmente trouxer algo
+      if(!Array.isArray(vindo)) acc.set(patched, Array.isArray(atual)?atual:[]);
+    });
 
     appState = patched;
     // Estado veio de outro usuário: só atualiza a referência da auditoria,
@@ -6224,6 +6253,9 @@ function doLogout(){
   if(db){ try{ _pararDeOuvirRegistros(); }catch(e){} }
   _regAtivo=false;
   Object.keys(_regEnviado).forEach(k=>delete _regEnviado[k]);
+  // A próxima sessão precisa ler a nuvem antes de publicar de novo
+  _recebeuNuvem=false;
+  _salvarQuandoLiberar=false;
   _fbSyncStarted = false;
   _localSyncStarted = false;
   _actLoginTs = 0;
