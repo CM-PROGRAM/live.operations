@@ -396,7 +396,15 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 .sidebar-section-label{padding:20px 8px 10px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;}
 /* Caixa de entrada no alto da barra lateral */
-.sidebar-inbox{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:14px 8px 6px;padding:11px 14px;position:relative;
+.sidebar-user{display:flex;align-items:center;gap:10px;width:calc(100% - 16px);margin:14px 8px 4px;padding:2px 2px;}
+.sb-user-av{flex-shrink:0;line-height:0;}
+.sb-user-info{min-width:0;flex:1;}
+.sb-user-nome{font-size:14px;font-weight:700;color:var(--text-primary);letter-spacing:-0.01em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.25;}
+.sb-user-papel{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--accent,#8fa8d8);font-family:var(--font-mono);margin-top:2px;}
+@media(max-width:500px){.sidebar-user .sb-user-info{display:none;}.sidebar-user{justify-content:center;}}
+.sidebar-inbox{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:10px 8px 6px;padding:11px 14px;position:relative;
   background:linear-gradient(135deg,rgba(143,168,216,.14),rgba(88,118,184,.06));
   border:1px solid rgba(143,168,216,.32);border-radius:12px;cursor:pointer;
   color:#b8ccee;font-family:var(--font-sans);font-size:13px;font-weight:700;letter-spacing:-0.01em;
@@ -5889,6 +5897,17 @@ function buildTabs(){
   if(searchEl) nav.appendChild(searchEl);
 
   // section label
+  // Identificação do usuário no alto: avatar, nome e o papel dele
+  const idUser=document.createElement('div');
+  idUser.className='sidebar-user';
+  idUser.innerHTML=`
+    <div class="sb-user-av" id="header-avatar">${userAvatarHTML(currentUser,34)}</div>
+    <div class="sb-user-info">
+      <div class="sb-user-nome" id="header-username" title="${currentUser.name}">${currentUser.name}</div>
+      <div class="sb-user-papel" id="master-badge">${currentUser.master?'Master':'Colaborador'}</div>
+    </div>`;
+  nav.appendChild(idUser);
+
   // No lugar de um rótulo solto, a caixa de entrada — o envelope do topo
   // passava despercebido, e é por ele que chegam as notificações
   const lbl=document.createElement('button');
@@ -5989,16 +6008,12 @@ function buildTabs(){
   // footer: user + clock + logout
   const footer=document.createElement('div');footer.className='sidebar-footer';
   footer.innerHTML=`
-    <div style="display:flex;align-items:center;gap:9px;padding:10px 12px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);">
-      <div id="header-avatar">${userAvatarHTML(currentUser,36)}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-0.01em;" id="header-username">${currentUser.name}</div>
-        <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--green);font-family:var(--font-mono);font-weight:600;margin-top:3px;"><div style="width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite;"></div><span id="live-time">--:--:--</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:9px;padding:9px 12px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.3),inset 0 1px 0 rgba(255,255,255,0.07);">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-family:var(--font-mono);font-weight:600;">
+        <div style="width:5px;height:5px;border-radius:50%;background:var(--green);flex-shrink:0;animation:pulse 2s infinite;"></div>
+        <span id="live-time">--:--:--</span>
       </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-        ${currentUser.master?`<span style="background:linear-gradient(135deg,rgba(143,168,216,0.25),rgba(143,168,216,0.1));border:1px solid rgba(143,168,216,0.5);border-radius:6px;color:var(--accent);font-size:9px;font-family:var(--font-sans);font-weight:700;padding:3px 6px;letter-spacing:1px;text-transform:uppercase;" id="master-badge">M</span>`:'<span id="master-badge" style="display:none"></span>'}
-        <button onclick="doLogout()" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-sans);padding:5px 10px;transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(239,68,68,0.5)';this.style.color='#fca5a5';" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text-muted)';">Sair</button>
-      </div>
+      <button onclick="doLogout()" style="background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));border:1px solid var(--glass-border);border-radius:8px;color:var(--text-muted);cursor:pointer;font-size:11px;font-weight:600;font-family:var(--font-sans);padding:5px 12px;transition:all .15s;white-space:nowrap;" onmouseover="this.style.borderColor='rgba(239,68,68,0.5)';this.style.color='#fca5a5';" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text-muted)';">Sair</button>
     </div>`;
   nav.appendChild(footer);
 
