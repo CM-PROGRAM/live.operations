@@ -262,7 +262,13 @@ html{overflow-x:hidden;}
 /* Texto explicativo do cartão */
 .login-box .login-hint{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.65;text-align:center;}
 .login-box .login-link{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);align-self:center;}
-.login-box .login-link:hover{color:var(--text-primary);border-bottom-color:var(--text-primary);}
+".login-box .login-link:hover{color:var(--text-primary);border-bottom-color:var(--text-primary);}
+/* Navegação interna do Adm. Master */
+.adm-nav-btn{background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);
+  cursor:pointer;font-family:var(--font-sans);font-size:12.5px;font-weight:600;padding:8px 18px;transition:all .15s;width:auto;}
+.adm-nav-btn:hover{background:rgba(255,255,255,0.08);color:var(--text-primary);}
+.adm-nav-btn.ativo{background:linear-gradient(135deg,rgba(99,102,241,.45),rgba(99,102,241,.22));
+  border-color:rgba(99,102,241,.7);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.22);}
 /* Campo de senha com o botão de mostrar/ocultar dentro */
 .pw-wrap{position:relative;display:flex;align-items:center;}
 .pw-wrap input{padding-right:46px;}
@@ -1769,8 +1775,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="master-badge">MASTER ONLY</span>
       </div>
 
+      <!-- Seções: evita empilhar tudo e carrega só o que está aberto -->
+      <div id="adm-nav" style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 18px;">
+        <button class="adm-nav-btn ativo" data-alvo="desempenho" onclick="admAbrirSecao('desempenho')">⬡ Desempenho</button>
+        <button class="adm-nav-btn" data-alvo="equipe"     onclick="admAbrirSecao('equipe')">👥 Equipe</button>
+        <button class="adm-nav-btn" data-alvo="seguranca"  onclick="admAbrirSecao('seguranca')">🔒 Segurança</button>
+        <button class="adm-nav-btn" data-alvo="dados"      onclick="admAbrirSecao('dados')">💾 Dados & Backup</button>
+      </div>
+
       <!-- SEGURANÇA — estado do acesso ao banco -->
-      <div class="admin-panel" id="seguranca-panel">
+      <div class="admin-panel adm-sec" data-sec="seguranca" style="display:none;" id="seguranca-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">🔒 Segurança do Acesso</div>
           <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
@@ -1837,7 +1851,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- BACKUP — cópias automáticas diárias -->
-      <div class="admin-panel" id="backup-panel">
+      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="backup-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">💾 Backup Automático</div>
           <button class="btn btn-sm" onclick="carregarBackups()" style="width:auto;">↻ Atualizar</button>
@@ -1851,7 +1865,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- ARQUIVO — tudo que foi excluído, nunca some de verdade -->
-      <div class="admin-panel" id="arquivo-panel">
+      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="arquivo-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">🗄 Arquivo — Registros Excluídos
             <span id="arq-count" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;margin-left:6px;">0</span>
@@ -1880,7 +1894,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- MANUTENÇÃO — peso dos dados enviados à nuvem -->
-      <div class="admin-panel" id="manutencao-panel">
+      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="manutencao-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">🩺 Saúde dos Dados</div>
           <button class="btn btn-sm" onclick="renderSaudeDados()" style="width:auto;">↻ Verificar</button>
@@ -1912,7 +1926,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- AUDITORIA — histórico geral de alterações -->
-      <div class="admin-panel" id="auditoria-panel">
+      <div class="admin-panel adm-sec" data-sec="desempenho" id="auditoria-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">🔍 Auditoria — Histórico de Alterações</div>
           <button class="btn btn-sm" onclick="carregarAuditoriaGeral()" style="width:auto;">↻ Atualizar</button>
@@ -1938,7 +1952,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="audit-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:520px;overflow-y:auto;"></div>
       </div>
 
-      <div class="admin-panel" id="dash-panel">
+      <div class="admin-panel adm-sec" data-sec="desempenho" id="dash-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">⬡ Dashboard de Desempenho</div>
           <div style="display:flex;gap:8px;">
@@ -1971,7 +1985,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
 
-      <div class="admin-panel">
+      <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
         <div class="admin-title">⬡ Usuários & Permissões</div>
         <div class="users-grid" id="users-grid"></div>
         <div class="new-user-form">
@@ -1982,7 +1996,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
-      <div class="admin-panel">
+      <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
         <div class="admin-title">🔗 Links das Tarefas</div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:14px;letter-spacing:0.5px;">A atribuição de responsáveis agora é feita direto no card de cada usuário acima. Aqui você só edita os links de cada tarefa.</div>
         <div id="task-assign-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
@@ -3758,6 +3772,29 @@ Total de imagens neste backup: ${imagens.length}
       if(btn){ btn.disabled=false; btn.textContent='💾 Baixar backup (.zip)'; }
     }
   });
+}
+
+// Seções do Adm. Master. Além de organizar, carrega só o que está aberto —
+// antes, entrar na aba disparava auditoria, backups, arquivo e diagnóstico
+// de uma vez.
+let _admSecao='desempenho';
+function admAbrirSecao(sec){
+  _admSecao=sec||'desempenho';
+  document.querySelectorAll('#adm-nav .adm-nav-btn').forEach(b=>{
+    b.classList.toggle('ativo', b.dataset.alvo===_admSecao);
+  });
+  document.querySelectorAll('.adm-sec').forEach(p=>{
+    p.style.display = p.dataset.sec===_admSecao ? '' : 'none';
+  });
+  // Carrega o conteúdo apenas da seção aberta
+  const carregar={
+    desempenho:()=>{ try{renderAdmin();}catch(e){} try{carregarAuditoriaGeral();}catch(e){} },
+    equipe:()=>{ try{renderUsersGrid();}catch(e){} },
+    seguranca:()=>{ try{renderSeguranca();}catch(e){} },
+    dados:()=>{ try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
+                try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){} }
+  }[_admSecao];
+  if(carregar) carregar();
 }
 
 // Estado da proteção: senhas protegidas e quem já tem conta de acesso
@@ -5728,7 +5765,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='cpf-tarefa'){ try{initCpfTarefaForm();}catch(e){console.warn('initCpfTarefaForm:',e);} }
-    if(id==='admin'){ try{ renderAdmin(); renderUsersGrid(); carregarAuditoriaGeral(); renderSaudeDados(); renderSeguranca(); carregarArquivo(); carregarBackups(); renderAvisoBackupZip(); }catch(e){ console.warn('admin render:',e); } }
+    if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
   }
 
   tabs.forEach(tb=>{
