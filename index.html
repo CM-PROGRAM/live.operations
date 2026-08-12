@@ -255,7 +255,26 @@ html{overflow-x:hidden;}
   font-family:var(--font-mono);
 }
 .login-box{background:linear-gradient(135deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:34px;width:380px;display:flex;flex-direction:column;gap:16px;box-shadow:0 8px 40px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1);backdrop-filter:blur(20px);}
-.login-box h2{font-size:11px;font-weight:500;color:var(--text-muted);text-align:center;letter-spacing:3px;text-transform:uppercase;font-family:var(--font-mono);}
+.login-box h2{font-size:11px;font-weight:500;color:var(--text-muted);text-align:center;letter-spacing:3px;text-transform:uppercase;font-family:var(--font-mono);margin-bottom:2px;}
+/* Os passos da redefinição são blocos dentro do cartão: sem isto, os campos
+   dentro deles não herdam o espaçamento e ficam desalinhados */
+.login-box .login-step{display:flex;flex-direction:column;gap:14px;}
+/* Texto explicativo do cartão */
+.login-box .login-hint{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.65;text-align:center;}
+.login-box .login-link{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);align-self:center;}
+.login-box .login-link:hover{color:var(--text-primary);border-bottom-color:var(--text-primary);}
+/* O preenchimento automático do Chrome pinta o campo de branco e ignora o
+   tema — este bloco devolve o fundo e a cor do texto do sistema */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active{
+  -webkit-box-shadow:inset 0 2px 8px rgba(0,0,0,0.3), inset 0 0 0 1000px var(--bg-surface) !important;
+  -webkit-text-fill-color:var(--text-primary) !important;
+  caret-color:var(--text-primary);
+  border:1px solid var(--glass-border) !important;
+  transition:background-color 99999s ease-in-out 0s;
+}
 .input-group{display:flex;flex-direction:column;gap:5px;}
 .atv-prior-dot{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2c2f36,#0d0e11);box-shadow:0 0 0 1px rgba(255,255,255,.1),inset 0 1px 1px rgba(255,255,255,.15);position:relative;display:inline-block;flex-shrink:0;}
 .atv-prior-dot::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;top:4px;left:4px;background:var(--dc,#8fa8d8);box-shadow:0 0 6px var(--dc,#8fa8d8),0 0 12px var(--dc,#8fa8d8);}
@@ -269,7 +288,7 @@ html{overflow-x:hidden;}
 .atv-prior-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:14px;color:var(--text-primary);cursor:pointer;transition:background .15s;}
 .atv-prior-opt:hover{background:rgba(255,255,255,0.06);}
 .input-group label{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;font-weight:500;}
-input[type="text"],input[type="password"],select,textarea{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);}
+input[type="text"],input[type="password"],input[type="email"],input[type="number"],input[type="tel"],input[type="search"],select,textarea{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);}
 input[type="date"]{background:linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:15px;font-weight:600;letter-spacing:.5px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);color-scheme:dark;}
 input[type="date"]:focus{border-color:rgba(59,130,246,0.5);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(59,130,246,0.15);}
 input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.6);cursor:pointer;opacity:.85;transition:opacity .15s;}
@@ -710,12 +729,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
     <div class="login-error" id="login-error">Usuário ou senha incorretos</div>
     <button class="btn" type="submit">Entrar</button>
-    <div style="text-align:center;margin-top:12px;">
-      <a href="#" onclick="abrirRedefinicao();return false;"
-         style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);">
-        Esqueci minha senha
-      </a>
-    </div>
+    <a href="#" class="login-link" onclick="abrirRedefinicao();return false;">Esqueci minha senha</a>
   </form>
 
   <!-- REDEFINIÇÃO DE SENHA — código enviado por e-mail -->
@@ -723,25 +737,21 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <h2>Redefinir Senha</h2>
 
     <!-- Passo 1: pedir o código -->
-    <div id="reset-passo1">
-      <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:14px;">
-        Informe seu e-mail. Enviaremos um código para você criar uma senha nova.
-      </div>
+    <div id="reset-passo1" class="login-step">
+      <div class="login-hint">Informe seu e-mail.<br>Enviaremos um link para você criar uma senha nova.</div>
       <div class="input-group">
         <label>E-mail</label>
         <input type="email" id="reset-email" placeholder="seu@email.com.br" autocomplete="username">
       </div>
-      <button class="btn" type="button" onclick="enviarCodigoRedefinicao()">Enviar código</button>
+      <button class="btn" type="button" onclick="enviarCodigoRedefinicao()">Enviar link</button>
     </div>
 
     <!-- Passo 2: código + nova senha -->
-    <div id="reset-passo2" style="display:none;">
-      <div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;margin-bottom:14px;">
-        Abra o e-mail que enviamos e copie o link que aparece nele. Cole abaixo e escolha a senha que quiser.
-      </div>
+    <div id="reset-passo2" class="login-step" style="display:none;">
+      <div class="login-hint">Copie o link do e-mail, cole abaixo<br>e escolha a senha que quiser.</div>
       <div class="input-group">
-        <label>Link ou código do e-mail</label>
-        <input type="text" id="reset-codigo" placeholder="cole aqui o link do e-mail" autocomplete="one-time-code">
+        <label>Link recebido por e-mail</label>
+        <input type="text" id="reset-codigo" placeholder="cole aqui o link" autocomplete="one-time-code">
       </div>
       <div class="input-group">
         <label>Nova senha</label>
@@ -752,19 +762,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <input type="password" id="reset-senha2" placeholder="••••••••" autocomplete="new-password">
       </div>
       <button class="btn" type="button" onclick="confirmarNovaSenha()">Salvar nova senha</button>
-      <div style="text-align:center;margin-top:10px;">
-        <a href="#" onclick="document.getElementById('reset-passo1').style.display='block';document.getElementById('reset-passo2').style.display='none';return false;"
-           style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;">Não recebi o e-mail</a>
-      </div>
+      <a href="#" class="login-link" onclick="document.getElementById('reset-passo1').style.display='flex';document.getElementById('reset-passo2').style.display='none';return false;">Não recebi o e-mail</a>
     </div>
 
     <div class="login-error" id="reset-erro" style="display:none;"></div>
-    <div style="text-align:center;margin-top:12px;">
-      <a href="#" onclick="fecharRedefinicao();return false;"
-         style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);">
-        ← Voltar ao login
-      </a>
-    </div>
+    <a href="#" class="login-link" onclick="fecharRedefinicao();return false;">← Voltar ao login</a>
   </form>
 </div>
 
@@ -5216,8 +5218,8 @@ function testarAutenticacao(){
 // e escolhe a senha. Nem o master precisa saber qual é.
 function abrirRedefinicao(email){
   document.getElementById('login-form').style.display='none';
-  document.getElementById('reset-box').style.display='block';
-  document.getElementById('reset-passo1').style.display='block';
+  document.getElementById('reset-box').style.display='flex';
+  document.getElementById('reset-passo1').style.display='flex';
   document.getElementById('reset-passo2').style.display='none';
   _resetErro('');
   const campo=document.getElementById('reset-email');
@@ -5225,7 +5227,7 @@ function abrirRedefinicao(email){
 }
 function fecharRedefinicao(){
   document.getElementById('reset-box').style.display='none';
-  document.getElementById('login-form').style.display='block';
+  document.getElementById('login-form').style.display='flex';
   _resetErro('');
 }
 // Mesma caixa serve para erro (vermelho) e para aviso/sucesso — sem a
@@ -5254,7 +5256,7 @@ function enviarCodigoRedefinicao(){
   firebase.auth().sendPasswordResetEmail(email,cfg)
     .then(()=>{
       document.getElementById('reset-passo1').style.display='none';
-      document.getElementById('reset-passo2').style.display='block';
+      document.getElementById('reset-passo2').style.display='flex';
       _resetErro('E-mail enviado para '+email+'. Confira também o spam.','#22c55e');
     })
     .catch(err=>{
@@ -5323,7 +5325,7 @@ function _verificarCodigoNaUrl(){
     if(!codigo || (modo && modo!=='resetPassword')) return;
     abrirRedefinicao();
     document.getElementById('reset-passo1').style.display='none';
-    document.getElementById('reset-passo2').style.display='block';
+    document.getElementById('reset-passo2').style.display='flex';
     document.getElementById('reset-codigo').value=codigo;
     _resetErro('Código reconhecido — escolha sua nova senha.','#22c55e');
     history.replaceState({},'',location.pathname);
