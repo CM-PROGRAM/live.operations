@@ -1905,7 +1905,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       // Caixa de entrada do n8n: aceita gravação sem login para a automação
       // não parar. A leitura continua restrita a quem está aprovado.
-      "atividadesExternas": { ".write": true }
+      "atividadesExternas": { ".write": true },
+
+      // Presença: cada um grava a própria sessão; a lista é lida por quem
+      // já está aprovado, pelas regras gerais acima
+      "presence": {
+        "$usuario": { ".write": "auth != null" }
+      }
     },
 
     // Caminhos de integrações que ainda gravam sem autenticação. Quando o
@@ -2068,6 +2074,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+
+      <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">🟢 Quem está no sistema
+            <span id="online-count" style="background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.4);border-radius:10px;color:#4ade80;font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;margin-left:6px;">0</span>
+          </div>
+          <span style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">atualiza sozinho</span>
+        </div>
+        <div id="online-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;"></div>
+      </div>
 
       <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
         <div class="admin-title">⬡ Usuários & Permissões</div>
@@ -3975,7 +3991,7 @@ function admAbrirSecao(sec){
   // Carrega o conteúdo apenas da seção aberta
   const carregar={
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{carregarAuditoriaGeral();}catch(e){} },
-    equipe:()=>{ try{renderUsersGrid();}catch(e){} },
+    equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} },
     dados:()=>{ try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
                 try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){} }
@@ -5795,6 +5811,7 @@ function doLogin(){
 
 function doLogout(){
   // Desanexa listener de forceLogout antes de limpar currentUser
+  try{ pararPresenca(); }catch(e){}
   if(db && fbConnected && currentUser){
     db.ref('suplelive/forceLogout/'+currentUser.key).off('value');
   }
@@ -5828,6 +5845,7 @@ function initApp(){
   // Cópia diária automática — roda um pouco depois, para não competir com
   // o carregamento inicial dos dados
   setTimeout(()=>{ try{ verificarBackupAutomatico(); }catch(e){ console.warn('[backup]',e); } }, 6000);
+  try{ registerPresence(); }catch(e){ console.warn('[presenca]',e); }
 }
 
 /* ===== BLOCO DE NOTAS ===== */
@@ -10404,7 +10422,7 @@ function renderDash(){
   const taxaHoje = today.total>0 ? Math.round((today.done/today.total)*100) : 0;
   const taxaSem  = totalW>0 ? Math.round((doneW/totalW)*100) : 0;
 
-  renderOnlineUsers();
+
 
   // ── KPI strip ────────────────────────────────────────────
   const kpiEl = document.getElementById('dash-kpi');
@@ -10635,44 +10653,94 @@ function renderDash(){
 }
 
 /* ── PRESENÇA ONLINE (Firebase) ─────────────────────────────── */
+// Cada sessão aberta se anuncia em suplelive/presence/<usuario>/<sessao>.
+// O Firebase remove o registro sozinho quando a conexão cai; um sinal
+// periódico cobre os casos em que isso falha (queda de energia, aba morta).
+const PRES_INTERVALO = 40000;   // sinal de vida
+const PRES_TOLERANCIA = 120000; // sem sinal por mais que isso = fora do ar
+let _presTimer=null, _presRef=null;
+
 function registerPresence(){
   if(!db || !fbConnected || !currentUser) return;
-  const presRef = db.ref('suplelive/presence/'+currentUser.key);
-  presRef.set({ name: currentUser.name, color: currentUser.color, online: true, since: Date.now() });
-  presRef.onDisconnect().remove();
+  pararPresenca();
+  _presRef = db.ref('suplelive/presence/'+currentUser.key+'/'+_sessionId);
+  const dados=()=>({
+    nome: currentUser.name, cor: currentUser.color||'#8fa8d8',
+    chave: currentUser.key, desde: Date.now(), ts: Date.now(),
+    agente: (navigator.userAgent||'').slice(0,80)
+  });
+  _presRef.set(dados());
+  _presRef.onDisconnect().remove();
+  _presTimer=setInterval(()=>{ try{ _presRef.update({ts:Date.now()}); }catch(e){} }, PRES_INTERVALO);
 }
 
-function renderOnlineUsers(){
+function pararPresenca(){
+  if(_presTimer){ clearInterval(_presTimer); _presTimer=null; }
+  if(_presRef){ try{ _presRef.onDisconnect().cancel(); _presRef.remove(); }catch(e){} _presRef=null; }
+}
+
+// Painel do Adm. Master: quem está no sistema agora, atualizando sozinho
+let _presListener=null;
+function ouvirPresenca(){
   if(!db || !fbConnected) return;
-  const existing = document.getElementById('online-panel');
-  if(existing) existing.remove();
-
-  db.ref('suplelive/presence').once('value').then(snap=>{
-    const presence = snap.val() || {};
-    const panel = document.createElement('div');
-    panel.id = 'online-panel';
-    panel.style.cssText='background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;';
-
-    const label = document.createElement('span');
-    label.style.cssText='font-size:10px;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;font-weight:600;margin-right:4px;';
-    label.textContent='Online agora';
-    panel.appendChild(label);
-
-    Object.entries(presence).forEach(([k, p]) => {
-      const chip = document.createElement('div');
-      chip.style.cssText='display:flex;align-items:center;gap:6px;background:var(--bg-active);border:1px solid var(--border-light);border-radius:20px;padding:3px 10px 3px 5px;';
-      const dot2 = document.createElement('div');
-      dot2.style.cssText=`width:6px;height:6px;border-radius:50%;background:${p.color||'var(--green)'};animation:pulse 2s infinite;`;
-      const nm = document.createElement('span');
-      nm.style.cssText='font-size:12px;color:var(--text-secondary);font-weight:500;';
-      nm.textContent = p.name;
-      chip.appendChild(dot2); chip.appendChild(nm);
-      panel.appendChild(chip);
-    });
-
-    const dashGrid = document.getElementById('dash-grid');
-    dashGrid.parentNode.insertBefore(panel, dashGrid);
+  if(_presListener) return;
+  _presListener = db.ref('suplelive/presence').on('value', snap=>{
+    _renderPresenca(snap.val()||{});
   });
+}
+
+function _renderPresenca(presenca){
+  const alvo=document.getElementById('online-lista');
+  if(!alvo) return;
+  const agora=Date.now();
+  // Uma pessoa pode estar em mais de um lugar (dois navegadores, celular)
+  const porUsuario={};
+  Object.entries(presenca).forEach(([chave,sessoes])=>{
+    Object.values(sessoes||{}).forEach(se=>{
+      if(!se || (agora-(se.ts||0))>PRES_TOLERANCIA) return;
+      if(!porUsuario[chave]) porUsuario[chave]={nome:se.nome,cor:se.cor,desde:se.desde,sessoes:0};
+      porUsuario[chave].sessoes++;
+      porUsuario[chave].desde=Math.min(porUsuario[chave].desde||se.desde, se.desde||agora);
+    });
+  });
+
+  const todos=Object.entries(appState.users||{});
+  const online=todos.filter(([k])=>porUsuario[k]);
+  const offline=todos.filter(([k])=>!porUsuario[k]);
+  const cnt=document.getElementById('online-count'); if(cnt) cnt.textContent=online.length;
+
+  const desdeTxt=ms=>{
+    const min=Math.floor((agora-ms)/60000);
+    if(min<1) return 'agora mesmo';
+    if(min<60) return 'há '+min+' min';
+    const h=Math.floor(min/60);
+    return 'há '+h+'h'+(min%60?(' '+(min%60)+'min'):'');
+  };
+
+  const linha=(k,u,ativo)=>{
+    const p=porUsuario[k];
+    return `<div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--border-light);">
+      <span style="position:relative;flex-shrink:0;">${userAvatarHTML(u,30)}
+        <span style="position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;
+          border:2px solid var(--bg-card);background:${ativo?'#4ade80':'#6b7280'};
+          ${ativo?'box-shadow:0 0 7px rgba(74,222,128,.85);animation:pulse 2s infinite;':''}"></span>
+      </span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:${ativo?'var(--text-primary)':'var(--text-muted)'};">${u.name||k}</div>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">
+          ${ativo ? ('No sistema desde '+desdeTxt(p.desde)+(p.sessoes>1?(' · '+p.sessoes+' acessos abertos'):'')) : 'Fora do sistema'}
+        </div>
+      </div>
+      <span style="flex-shrink:0;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--font-mono);
+        color:${ativo?'#4ade80':'var(--text-muted)'};background:${ativo?'rgba(74,222,128,.10)':'rgba(255,255,255,.04)'};
+        border:1px solid ${ativo?'rgba(74,222,128,.35)':'var(--glass-border)'};border-radius:999px;padding:3px 10px;">
+        ${ativo?'Online':'Offline'}</span>
+    </div>`;
+  };
+
+  alvo.innerHTML = online.map(([k,u])=>linha(k,u,true)).join('')
+                 + offline.map(([k,u])=>linha(k,u,false)).join('')
+                 || '<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhum usuário cadastrado.</div>';
 }
 
 function countTodayTasks(){
