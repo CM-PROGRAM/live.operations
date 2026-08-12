@@ -1680,7 +1680,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           ".read": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())",
           ".write": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())"
         }
-      }
+      },
+
+      // Caixa de entrada do n8n: precisa aceitar gravação sem login, senão a
+      // automação para. A leitura continua restrita a quem está aprovado.
+      "atividadesExternas": { ".write": true }
     },
 
     // Caminhos usados por integrações externas (n8n etc.), fora deste
