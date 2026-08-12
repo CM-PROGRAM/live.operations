@@ -3933,7 +3933,7 @@ const LOG_VALORES={
            prioridade:{urgente:'Urgente', alta:'Alta', normal:'Normal'} }
 };
 // Ruído interno — nunca entra no histórico
-const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','tarefaAutoCriada','alertaPrazoEnviado',
+const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemImgId','origemAteId',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
@@ -4058,6 +4058,145 @@ function auditarMudancas(novo){
 const _FB_ALERTA_BYTES = 3 * 1048576; // 3 MB por gravação já é sinal de alerta
 let _fbAvisoPesoTs = 0;
 
+// ── SINCRONIZAÇÃO POR REGISTRO ───────────────────────────────
+// Antes, qualquer alteração reenviava o estado inteiro — e todos os
+// conectados rebaixavam tudo. Agora as listas grandes ficam em
+// suplelive/reg/<lista>/<id>: alterar uma tarefa grava e trafega só
+// aquela tarefa. O restante do estado (configurações, usuários) segue
+// no pacote, que ficou pequeno.
+const FB_REG='suplelive/reg';
+const COLECOES_REG={
+  atividades:    {get:s=>s.atividades,                 set:(s,v)=>{s.atividades=v;}},
+  integracoes:   {get:s=>s.integracoes,                set:(s,v)=>{s.integracoes=v;}},
+  excluirIntBase:{get:s=>s.excluirIntBase,             set:(s,v)=>{s.excluirIntBase=v;}},
+  entradas:      {get:s=>s.entradas,                   set:(s,v)=>{s.entradas=v;}},
+  imagensReq:    {get:s=>s.imagensReq,                 set:(s,v)=>{s.imagensReq=v;}},
+  projetos:      {get:s=>s.projetos,                   set:(s,v)=>{s.projetos=v;}},
+  devolucoes:    {get:s=>(s.tasks||{}).devolucoes,     set:(s,v)=>{(s.tasks=s.tasks||{}).devolucoes=v;}},
+  atendimentos:  {get:s=>(s.tasks||{}).atendimentos,   set:(s,v)=>{(s.tasks=s.tasks||{}).atendimentos=v;}}
+};
+let _regAtivo=false;               // ligado depois que a sincronização inicia
+const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
+function _regChave(id){ return String(id).replace(/[.#$/\[\]]/g,'_'); }
+
+// Grava apenas os registros que mudaram, em uma única operação
+function _gravarRegistrosAlterados(s){
+  const updates={};
+  let alterados=0, removidos=0;
+  Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
+    const lista=acc.get(s);
+    if(!Array.isArray(lista)) return;
+    const antes=_regEnviado[nome]||{};
+    const agora={};
+    lista.forEach(r=>{
+      if(!r || !r.id) return;
+      const k=_regChave(r.id);
+      const json=JSON.stringify(r);
+      agora[k]=json;
+      if(antes[k]!==json){ updates[FB_REG+'/'+nome+'/'+k]={...r,_by:_sessionId}; alterados++; }
+    });
+    Object.keys(antes).forEach(k=>{ if(agora[k]===undefined){ updates[FB_REG+'/'+nome+'/'+k]=null; removidos++; } });
+    _regEnviado[nome]=agora;
+  });
+  if(!alterados && !removidos) return;
+  db.ref().update(updates).catch(err=>{
+    console.error('[reg] falha ao gravar:',err.message);
+    showToast('Erro ao sincronizar: '+err.message,'error');
+  });
+}
+
+// O que sobra do estado, sem as listas que agora vivem separadas
+function _estadoSemColecoes(s){
+  const copia=JSON.parse(JSON.stringify(s));
+  Object.entries(COLECOES_REG).forEach(([,acc])=>{ try{ acc.set(copia,[]); }catch(e){} });
+  return copia;
+}
+
+// Aplica um registro recebido de outro usuário
+function _aplicarRegistroRemoto(nome,acc,chave,valor){
+  if(!valor || valor._by===_sessionId) return false;   // eco da própria sessão
+  const lista=acc.get(appState);
+  const alvo=Array.isArray(lista)?lista:[];
+  if(!Array.isArray(lista)) acc.set(appState,alvo);
+  const reg={...valor}; delete reg._by;
+  const i=alvo.findIndex(x=>x && _regChave(x.id)===chave);
+  if(i>-1) alvo[i]=reg; else alvo.push(reg);
+  _regEnviado[nome]=_regEnviado[nome]||{};
+  _regEnviado[nome][chave]=JSON.stringify(reg);
+  return true;
+}
+function _removerRegistroRemoto(nome,acc,chave,valor){
+  if(valor && valor._by===_sessionId) return false;
+  const lista=acc.get(appState);
+  if(!Array.isArray(lista)) return false;
+  const i=lista.findIndex(x=>x && _regChave(x.id)===chave);
+  if(i<0) return false;
+  lista.splice(i,1);
+  if(_regEnviado[nome]) delete _regEnviado[nome][chave];
+  return true;
+}
+
+// Re-renderiza uma vez só, mesmo recebendo vários registros seguidos
+let _regRenderTimer=null;
+function _agendarRenderRegistros(){
+  clearTimeout(_regRenderTimer);
+  _regRenderTimer=setTimeout(()=>{
+    try{ saveLocal(appState); }catch(e){}
+    try{ logSincronizarSnapshot(appState); }catch(e){}
+    try{ renderAll(); }catch(e){}
+    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
+      .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+  },250);
+}
+
+function _ouvirRegistros(){
+  Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
+    const ref=db.ref(FB_REG+'/'+nome);
+    const trata=snap=>{ if(_aplicarRegistroRemoto(nome,acc,snap.key,snap.val())) _agendarRenderRegistros(); };
+    ref.on('child_added',trata);
+    ref.on('child_changed',trata);
+    ref.on('child_removed',snap=>{ if(_removerRegistroRemoto(nome,acc,snap.key,snap.val())) _agendarRenderRegistros(); });
+  });
+}
+function _pararDeOuvirRegistros(){
+  try{ Object.keys(COLECOES_REG).forEach(nome=>db.ref(FB_REG+'/'+nome).off()); }catch(e){}
+}
+
+// Primeira vez: leva as listas do pacote antigo para o formato novo
+function _migrarParaRegistros(){
+  return db.ref(FB_REG).once('value').then(snap=>{
+    const jaExiste=snap.exists();
+    if(jaExiste){
+      // Guarda o que já está na nuvem, para não regravar tudo no 1º save
+      const dados=snap.val()||{};
+      Object.keys(COLECOES_REG).forEach(nome=>{
+        _regEnviado[nome]={};
+        Object.entries(dados[nome]||{}).forEach(([k,v])=>{
+          const reg={...v}; delete reg._by;
+          _regEnviado[nome][k]=JSON.stringify(reg);
+        });
+      });
+      return false;
+    }
+    // Ainda no formato antigo: sobe as listas do estado atual
+    const updates={};
+    Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
+      const lista=acc.get(appState);
+      if(!Array.isArray(lista)) return;
+      _regEnviado[nome]={};
+      lista.forEach(r=>{
+        if(!r||!r.id) return;
+        const k=_regChave(r.id);
+        updates[FB_REG+'/'+nome+'/'+k]={...r,_by:_sessionId};
+        _regEnviado[nome][k]=JSON.stringify(r);
+      });
+    });
+    if(!Object.keys(updates).length) return false;
+    console.log('[reg] migrando',Object.keys(updates).length,'registros para o formato por registro');
+    return db.ref().update(updates).then(()=>true);
+  });
+}
+
 function saveState(s){
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
@@ -4079,6 +4218,11 @@ function saveState(s){
     }
     payload._version = _localVersion;
     payload._savedBy = _sessionId;
+    // Formato novo: as listas grandes vão registro a registro e saem do pacote
+    if(_regAtivo){
+      _gravarRegistrosAlterados(s);
+      payload = Object.assign(_estadoSemColecoes(s), {_version:_localVersion, _savedBy:_sessionId});
+    }
     // O estado inteiro sobe a cada alteração: se crescer demais (imagens
     // embutidas), a gravação passa a derrubar a conexão. Avisa antes disso.
     try{
@@ -4463,6 +4607,12 @@ function startFirebaseSync(){
   // Fila de tarefas criadas externamente via n8n — só o master processa
   startExternalTasksListener();
 
+  // Sincronização por registro: migra na primeira vez e passa a escutar
+  // cada lista separadamente, em vez do pacote inteiro
+  _migrarParaRegistros()
+    .then(()=>{ _regAtivo=true; _ouvirRegistros(); console.log('[reg] sincronização por registro ativa'); })
+    .catch(err=>{ console.warn('[reg] indisponível, seguindo pelo pacote:',err.message); _regAtivo=false; });
+
   // Listener único em tempo real — dispara na conexão e em cada mudança
   fbListener = db.ref(FB_PATH).on('value', snap => {
     const data = snap.val();
@@ -4494,6 +4644,16 @@ function startFirebaseSync(){
     console.log('[SYNC] aplicando estado remoto...');
     const patched = applyRemoteState(data);
     if(!patched){ console.warn('[SYNC] applyRemoteState retornou vazio'); return; }
+
+    // No formato por registro, as listas grandes não vêm no pacote —
+    // preserva as que já estão em memória para não zerá-las
+    if(_regAtivo){
+      Object.entries(COLECOES_REG).forEach(([,acc])=>{
+        const atual=acc.get(appState);
+        const vindo=acc.get(patched);
+        if(Array.isArray(atual) && (!Array.isArray(vindo) || !vindo.length)) acc.set(patched,atual);
+      });
+    }
 
     appState = patched;
     // Estado veio de outro usuário: só atualiza a referência da auditoria,
@@ -5245,6 +5405,9 @@ function doLogout(){
   currentUser=null;
   clearInterval(syncTimer);
   if(db && fbListener){ db.ref(FB_PATH).off('value', fbListener); fbListener=null; }
+  if(db){ try{ _pararDeOuvirRegistros(); }catch(e){} }
+  _regAtivo=false;
+  Object.keys(_regEnviado).forEach(k=>delete _regEnviado[k]);
   _fbSyncStarted = false;
   _localSyncStarted = false;
   _actLoginTs = 0;
