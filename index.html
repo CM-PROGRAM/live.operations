@@ -265,6 +265,9 @@ html{overflow-x:hidden;}
 ".login-box .login-link:hover{color:var(--text-primary);border-bottom-color:var(--text-primary);}
 /* Navegação interna do Adm. Master — reaproveita o estilo das abas de
    status usado em Tarefas, para manter a mesma linguagem visual */
+.atv-stab2[data-c="naolidas"]{--sc-border:rgba(167,139,250,.45);--sc-bg:rgba(167,139,250,.10);--sc-text:#c4b5fd;}
+.atv-stab2[data-c="naolidas"].active{background:linear-gradient(135deg,#a78bfa,#7c3aed);
+  box-shadow:0 4px 16px rgba(124,58,237,.4),inset 0 1px 0 rgba(255,255,255,.15);}
 .atv-stab2[data-c="adm"]{--sc-border:rgba(143,168,216,.35);--sc-bg:rgba(143,168,216,.08);--sc-text:#b8ccee;}
 .atv-stab2[data-c="adm"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);
   box-shadow:0 4px 16px rgba(143,168,216,.35),inset 0 1px 0 rgba(255,255,255,.15);}
@@ -383,7 +386,7 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 .sidebar-section-label{padding:20px 8px 10px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;}
 /* Caixa de entrada no alto da barra lateral */
-.sidebar-inbox{display:flex;align-items:center;gap:9px;width:100%;margin:14px 0 10px;padding:10px 12px;position:relative;
+.sidebar-inbox{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:14px 8px 6px;padding:11px 14px;position:relative;
   background:linear-gradient(135deg,rgba(143,168,216,.14),rgba(88,118,184,.06));
   border:1px solid rgba(143,168,216,.32);border-radius:12px;cursor:pointer;
   color:#b8ccee;font-family:var(--font-sans);font-size:13px;font-weight:700;letter-spacing:-0.01em;
@@ -394,6 +397,9 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   filter:drop-shadow(0 0 5px rgba(143,168,216,.6));}
 .sb-inbox-ic svg{width:100%;height:100%;}
 .sb-inbox-txt{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sidebar-inbox::after{content:'';position:absolute;left:6px;right:6px;bottom:-11px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--glass-border),transparent);}
+.sidebar-inbox{margin-bottom:22px;}
 .sb-inbox-badge{flex-shrink:0;min-width:19px;height:19px;line-height:19px;padding:0 5px;border-radius:999px;
   background:var(--accent,#8fa8d8);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;text-align:center;}
 @media(max-width:500px){.sb-inbox-txt{display:none;}.sidebar-inbox{justify-content:center;}}
@@ -1185,10 +1191,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <button class="btn btn-sm" onclick="marcarTodasLidas()" id="btn-ler-todas" style="width:auto;">✓ Marcar todas como lidas</button>
       </div>
       <div id="notif-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 14px;">
-        <button class="atv-stab2 active" data-c="afazer" data-filtro="todas" onclick="notifSetFiltro('todas')">
+        <button class="atv-stab2 active" data-c="todas" data-filtro="todas" onclick="notifSetFiltro('todas')">
           Todas <span id="notif-cnt-todas" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
         </button>
-        <button class="atv-stab2" data-c="atrasada" data-filtro="naolidas" onclick="notifSetFiltro('naolidas')">
+        <button class="atv-stab2" data-c="naolidas" data-filtro="naolidas" onclick="notifSetFiltro('naolidas')">
           Não lidas <span id="notif-cnt-naolidas" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
         </button>
       </div>
