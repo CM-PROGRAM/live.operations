@@ -1066,6 +1066,22 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="app">
+  <!-- Faixa de bloqueio de gravação: aparece quando a nuvem recusa a escrita.
+       Fica visível até resolver, porque o toast some antes de a pessoa ler. -->
+  <div id="barra-bloqueio" style="display:none;background:linear-gradient(135deg,rgba(239,68,68,.16),rgba(239,68,68,.06));border-bottom:1px solid rgba(239,68,68,.4);padding:10px 18px;font-family:var(--font-sans);">
+    <div style="display:flex;align-items:flex-start;gap:10px;max-width:1100px;margin:0 auto;">
+      <span style="font-size:15px;line-height:1.2;">🔒</span>
+      <div style="flex:1;min-width:0;">
+        <div id="bloqueio-titulo" style="font-size:12.5px;font-weight:700;color:var(--tom-vermelho);margin-bottom:2px;"></div>
+        <div id="bloqueio-texto" style="font-size:11.5px;color:var(--text-secondary);line-height:1.5;"></div>
+        <div id="bloqueio-uid-wrap" style="display:none;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);margin-top:6px;">
+          Código deste acesso: <span id="bloqueio-uid" style="color:var(--text-primary);user-select:all;word-break:break-all;"></span>
+          <button class="btn-link btn-sm" style="margin-left:6px;" onclick="copiarUidBloqueio()">Copiar</button>
+        </div>
+      </div>
+      <button class="btn-link btn-sm" style="flex-shrink:0;" onclick="reverificarAcesso()">Verificar de novo</button>
+    </div>
+  </div>
   <header style="justify-content:space-between;padding:0 20px;">
     <div style="width:38px;"></div>
     <div style="display:flex;align-items:center;gap:10px;">
@@ -4925,9 +4941,97 @@ function _gravarRegistrosAlterados(s){
 // Um aviso por vez, em vez de um toast por gravação que falha
 let _ultimoAvisoFalhaTs=0;
 function _avisarFalhaDeGravacao(err){
+  const t=String((err&&err.message)||err||'');
+  if(/PERMISSION_DENIED|Permission denied/i.test(t)){
+    // Recusa de permissão não é passageira: mostra a faixa e diz o motivo exato
+    try{ diagnosticarBloqueio(); }catch(e){ console.warn('[bloqueio]',e); }
+  }
   if(Date.now()-_ultimoAvisoFalhaTs < 20000) return;
   _ultimoAvisoFalhaTs=Date.now();
   showToast(_mensagemDeErroDaNuvem(err),'error');
+}
+
+// ── Por que esta sessão não consegue gravar? ────────────────────────
+// São dois problemas diferentes e o usuário não tem como distinguir:
+//   1. a sessão nem chegou a autenticar na nuvem (auth == null);
+//   2. autenticou, mas o acesso ainda não foi aprovado pelo master.
+// A faixa diz qual é e o que fazer. No caso 2 o pedido é reenviado, para
+// aparecer na fila do master mesmo que o primeiro tenha se perdido.
+function diagnosticarBloqueio(){
+  const barra=document.getElementById('barra-bloqueio');
+  if(!barra) return Promise.resolve();
+  const uid=_uidAtual();
+  _meuUid=uid;   // _pedirAcesso() usa essa variável
+  if(!uid){
+    const [titulo,como]=_explicarErroAuth(_ultimoErroAuth);
+    _mostrarBloqueio('Sua sessão não está autenticada na nuvem',
+      titulo+'. '+como+' Enquanto isso, o que você faz fica salvo só neste navegador.','');
+    return Promise.resolve();
+  }
+  return db.ref(FB_AUTORIZADOS+'/'+uid).once('value')
+    .then(snap=>{
+      if(snap.exists()){
+        // Autenticado e aprovado: o problema é outro (regra ou caminho)
+        _mostrarBloqueio('A nuvem recusou a gravação',
+          'Seu acesso está aprovado, então provavelmente as regras do banco ainda não foram publicadas. '
+        + 'Avise o master para conferir em Adm. Master → Segurança.', uid);
+      } else {
+        _mostrarBloqueio('Seu acesso ainda não foi aprovado',
+          'Já pedimos a liberação ao master. Passe o código abaixo para ele aprovar em '
+        + 'Adm. Master → Segurança. Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
+        try{ _pedirAcesso(); }catch(e){}
+      }
+    })
+    .catch(()=>{
+      // Nem ler a lista foi permitido: é o caso clássico de não aprovado
+      _mostrarBloqueio('Seu acesso ainda não foi aprovado',
+        'Passe o código abaixo ao master para ele aprovar em Adm. Master → Segurança. '
+      + 'Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
+      try{ _pedirAcesso(); }catch(e){}
+    });
+}
+
+function _mostrarBloqueio(titulo,texto,uid){
+  const barra=document.getElementById('barra-bloqueio');
+  if(!barra) return;
+  const t1=document.getElementById('bloqueio-titulo');
+  const t2=document.getElementById('bloqueio-texto');
+  const wrap=document.getElementById('bloqueio-uid-wrap');
+  const el=document.getElementById('bloqueio-uid');
+  if(t1) t1.textContent=titulo;
+  if(t2) t2.textContent=texto;
+  if(wrap) wrap.style.display=uid?'block':'none';
+  if(el) el.textContent=uid||'';
+  barra.style.display='block';
+}
+
+function esconderBloqueio(){
+  const barra=document.getElementById('barra-bloqueio');
+  if(barra) barra.style.display='none';
+}
+
+function copiarUidBloqueio(){
+  const el=document.getElementById('bloqueio-uid');
+  const uid=el?el.textContent:'';
+  if(uid && navigator.clipboard) navigator.clipboard.writeText(uid)
+    .then(()=>showToast('Código copiado','success'))
+    .catch(()=>showToast('Selecione e copie manualmente','warn'));
+}
+
+// Botão "Verificar de novo": reconfere e, se já liberou, publica o que ficou
+function reverificarAcesso(){
+  showToast('Verificando o acesso...','info');
+  const uid=_uidAtual();
+  if(!uid){ return diagnosticarBloqueio(); }
+  return db.ref(FB_AUTORIZADOS+'/'+uid).once('value')
+    .then(snap=>{
+      if(!snap.exists()) return diagnosticarBloqueio();
+      _souAutorizado=true;
+      esconderBloqueio();
+      showToast('✓ Acesso liberado — enviando o que ficou pendente','success');
+      try{ saveState(appState); }catch(e){}
+    })
+    .catch(()=>diagnosticarBloqueio());
 }
 
 // O que sobra do estado, sem as listas que agora vivem separadas
