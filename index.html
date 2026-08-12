@@ -1917,6 +1917,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
             📤 3. Tirar imagens do pacote
           </button>
+          <button class="btn btn-danger" id="btn-recuperar-img" onclick="recuperarImagensPerdidas()" style="width:auto;">
+            🔧 Recuperar imagens
+          </button>
         </div>
         <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
           Desconecte todos antes de compactar: sessões abertas ainda têm os dados antigos em memória
@@ -3523,6 +3526,108 @@ function renderAvisoBackupZip(){
   }
 }
 
+// ── RECUPERAÇÃO DE IMAGENS ───────────────────────────────────
+// As imagens originais ficam em suplelive/imagens com o id do registro no
+// nome da chave. Se a miniatura ou a referência se perderem do registro,
+// dá para reconstruí-las a partir daí, sem depender de backup.
+function _localizarRegistroPorId(id){
+  const listas=[
+    {lista:appState.atividades,    tipo:'atividade'},
+    {lista:(appState.tasks||{}).devolucoes,   tipo:'devolucao'},
+    {lista:(appState.tasks||{}).atendimentos, tipo:'atendimento'},
+    {lista:appState.projetos,      tipo:'projeto'}
+  ];
+  for(const {lista,tipo} of listas){
+    if(!Array.isArray(lista)) continue;
+    const r=lista.find(x=>x && _regChave(x.id)===id);
+    if(r) return {registro:r,tipo};
+  }
+  return null;
+}
+
+// Descobre em qual campo do registro a imagem deve voltar
+function _campoDeDestino(sufixo){
+  if(/^provaAtualizacao/.test(sufixo)) return {campo:'provaAtualizacao',indice:null};
+  if(/^provaConclusao/.test(sufixo))   return {campo:'provaConclusao',indice:null};
+  if(/^prova_/.test(sufixo))           return {campo:'provaConclusao',indice:null}; // anexo pelo card
+  const m=/^fotos_(\d+)/.exec(sufixo);
+  if(m) return {campo:'fotos',indice:parseInt(m[1],10)};
+  if(/^foto_/.test(sufixo))            return {campo:'fotos',indice:-1}; // acrescenta ao fim
+  if(/^ultimaFoto/.test(sufixo))       return {campo:'ultimaFoto',indice:null};
+  return null;
+}
+
+function recuperarImagensPerdidas(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const btn=document.getElementById('btn-recuperar-img');
+  if(btn){ btn.disabled=true; btn.textContent='Lendo imagens guardadas…'; }
+  showToast('Procurando imagens guardadas…','warn');
+
+  db.ref(FB_IMG_PATH).once('value').then(snap=>{
+    const guardadas=snap.val()||{};
+    const chaves=Object.keys(guardadas);
+    if(!chaves.length){
+      showToast('Nenhuma imagem encontrada em suplelive/imagens','error');
+      if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; }
+      return;
+    }
+    let recuperadas=0, jaOk=0, semDono=0, feitos=0;
+    const proximo=()=>{
+      if(feitos>=chaves.length){
+        if(recuperadas) saveState(appState);
+        const msg=`✓ ${recuperadas} imagem(ns) recuperada(s) · ${jaOk} já estavam certas · ${semDono} sem registro correspondente`;
+        console.log('[recuperar]',msg);
+        showToast(msg, recuperadas?'success':'warn');
+        ['renderAtividades','renderDev','renderAte','renderAtribuir'].forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+        if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; }
+        return;
+      }
+      const chave=chaves[feitos++];
+      if(btn) btn.textContent=`Recuperando ${feitos}/${chaves.length}…`;
+      const sep=chave.indexOf('__');
+      if(sep<0){ setTimeout(proximo,0); return; }
+      const idReg=chave.slice(0,sep), sufixo=chave.slice(sep+2);
+      const achado=_localizarRegistroPorId(idReg);
+      const destino=_campoDeDestino(sufixo);
+      if(!achado || !destino){ semDono++; setTimeout(proximo,0); return; }
+      const r=achado.registro;
+
+      // Já tem miniatura e referência? Nada a fazer.
+      if(destino.indice===null){
+        if(r[destino.campo] && r[destino.campo+'Ref']===chave){ jaOk++; setTimeout(proximo,0); return; }
+      } else if(destino.indice>=0){
+        const refs=r[destino.campo+'Ref']||[];
+        if((r[destino.campo]||[])[destino.indice] && refs[destino.indice]===chave){ jaOk++; setTimeout(proximo,0); return; }
+      }
+
+      const v=guardadas[chave];
+      const original=(v && (v.d||v))||'';
+      if(!original || typeof original!=='string'){ semDono++; setTimeout(proximo,0); return; }
+      _imgCache[chave]=original;
+      imgGerarThumb(original, thumb=>{
+        if(destino.indice===null){
+          r[destino.campo]=thumb;
+          r[destino.campo+'Ref']=chave;
+        } else {
+          if(!Array.isArray(r[destino.campo])) r[destino.campo]=[];
+          if(!Array.isArray(r[destino.campo+'Ref'])) r[destino.campo+'Ref']=[];
+          const i = destino.indice>=0 ? destino.indice : r[destino.campo].length;
+          r[destino.campo][i]=thumb;
+          r[destino.campo+'Ref'][i]=chave;
+        }
+        recuperadas++;
+        setTimeout(proximo,0);
+      });
+    };
+    proximo();
+  }).catch(err=>{
+    console.error('[recuperar]',err);
+    showToast('Falha ao ler as imagens: '+err.message,'error');
+    if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; }
+  });
+}
+
 // ── DIAGNÓSTICO / MANUTENÇÃO DO ESTADO ───────────────────────
 // Percorre o estado somando o peso de cada campo de imagem, para saber o
 // que está inflando o blob enviado ao Firebase.
@@ -4023,24 +4128,22 @@ function compactarImagensDoEstado(){
 // O localStorage tem limite de ~5-10MB por site — fotos em base64 estouram
 // essa cota rapidamente. Essas fotos já são persistidas no Firebase (fonte
 // de verdade), então não precisam ocupar espaço no cache local.
+// Antes, as imagens iam inteiras dentro do estado e precisavam ser retiradas
+// para caber no armazenamento do navegador. Só que o sistema INICIA lendo
+// esse cache — e uma gravação feita antes de os dados da nuvem chegarem
+// levava os registros sem imagem por cima dos bons.
+// Hoje o registro guarda apenas a miniatura (poucos KB), então ela pode
+// ficar no cache. Só as imagens ainda embutidas (formato antigo, acima do
+// limite) são retiradas, uma a uma.
+const _LIMITE_IMG_LOCAL = 40 * 1024; // acima disso não é miniatura
 function _stripHeavyForLocal(s){
   try{
     const copy = JSON.parse(JSON.stringify(s));
-    if(copy?.tasks?.devolucoes?.length){
-      copy.tasks.devolucoes.forEach(d=>{ if(d && d.fotos) d.fotos=[]; });
-    }
-    if(copy?.atividades?.length){
-      copy.atividades.forEach(a=>{
-        if(a && a.provaConclusao) a.provaConclusao='';
-        if(a && a.provaAtualizacao) a.provaAtualizacao='';
-      });
-    }
-    if(copy?.tasks?.atendimentos?.length){
-      copy.tasks.atendimentos.forEach(d=>{
-        if(d && d.ultimaFoto) d.ultimaFoto=''; // registros antigos (formato anterior)
-        if(d && Array.isArray(d.comentarios)) d.comentarios.forEach(c=>{ if(c && Array.isArray(c.fotos)) c.fotos=[]; });
-      });
-    }
+    const enxugar=(obj,chave)=>{
+      const v=obj[chave];
+      if(typeof v==='string' && v.length>_LIMITE_IMG_LOCAL) obj[chave]='';
+    };
+    _percorrerImagensDoEstado(copy,(obj,chave)=>enxugar(obj,chave));
     return copy;
   }catch(e){
     return s;
