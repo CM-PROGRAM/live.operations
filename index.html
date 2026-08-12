@@ -263,12 +263,11 @@ html{overflow-x:hidden;}
 .login-box .login-hint{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.65;text-align:center;}
 .login-box .login-link{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);align-self:center;}
 ".login-box .login-link:hover{color:var(--text-primary);border-bottom-color:var(--text-primary);}
-/* Navegação interna do Adm. Master */
-.adm-nav-btn{background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);
-  cursor:pointer;font-family:var(--font-sans);font-size:12.5px;font-weight:600;padding:8px 18px;transition:all .15s;width:auto;}
-.adm-nav-btn:hover{background:rgba(255,255,255,0.08);color:var(--text-primary);}
-.adm-nav-btn.ativo{background:linear-gradient(135deg,rgba(99,102,241,.45),rgba(99,102,241,.22));
-  border-color:rgba(99,102,241,.7);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.22);}
+/* Navegação interna do Adm. Master — reaproveita o estilo das abas de
+   status usado em Tarefas, para manter a mesma linguagem visual */
+.atv-stab2[data-c="adm"]{--sc-border:rgba(143,168,216,.35);--sc-bg:rgba(143,168,216,.08);--sc-text:#b8ccee;}
+.atv-stab2[data-c="adm"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);
+  box-shadow:0 4px 16px rgba(143,168,216,.35),inset 0 1px 0 rgba(255,255,255,.15);}
 /* Campo de senha com o botão de mostrar/ocultar dentro */
 .pw-wrap{position:relative;display:flex;align-items:center;}
 .pw-wrap input{padding-right:46px;}
@@ -1776,11 +1775,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- Seções: evita empilhar tudo e carrega só o que está aberto -->
-      <div id="adm-nav" style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 18px;">
-        <button class="adm-nav-btn ativo" data-alvo="desempenho" onclick="admAbrirSecao('desempenho')">⬡ Desempenho</button>
-        <button class="adm-nav-btn" data-alvo="equipe"     onclick="admAbrirSecao('equipe')">👥 Equipe</button>
-        <button class="adm-nav-btn" data-alvo="seguranca"  onclick="admAbrirSecao('seguranca')">🔒 Segurança</button>
-        <button class="adm-nav-btn" data-alvo="dados"      onclick="admAbrirSecao('dados')">💾 Dados & Backup</button>
+      <div id="adm-nav" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 20px;">
+        <button class="atv-stab2 active" data-c="adm" data-alvo="desempenho" onclick="admAbrirSecao('desempenho')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>Desempenho</button>
+        <button class="atv-stab2" data-c="adm" data-alvo="equipe" onclick="admAbrirSecao('equipe')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/></svg></span>Equipe</button>
+        <button class="atv-stab2" data-c="adm" data-alvo="seguranca" onclick="admAbrirSecao('seguranca')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>Segurança</button>
+        <button class="atv-stab2" data-c="adm" data-alvo="dados" onclick="admAbrirSecao('dados')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>Dados &amp; Backup</button>
       </div>
 
       <!-- SEGURANÇA — estado do acesso ao banco -->
@@ -3780,8 +3779,8 @@ Total de imagens neste backup: ${imagens.length}
 let _admSecao='desempenho';
 function admAbrirSecao(sec){
   _admSecao=sec||'desempenho';
-  document.querySelectorAll('#adm-nav .adm-nav-btn').forEach(b=>{
-    b.classList.toggle('ativo', b.dataset.alvo===_admSecao);
+  document.querySelectorAll('#adm-nav button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.alvo===_admSecao);
   });
   document.querySelectorAll('.adm-sec').forEach(p=>{
     p.style.display = p.dataset.sec===_admSecao ? '' : 'none';
