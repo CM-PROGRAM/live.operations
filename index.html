@@ -1680,19 +1680,18 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           ".read": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())",
           ".write": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())"
         }
-      }
+      },
+
+      // Caixa de entrada do n8n: aceita gravação sem login para a automação
+      // não parar. A leitura continua restrita a quem está aprovado.
+      "atividadesExternas": { ".write": true }
     },
 
-    // Integrações (n8n) entram com conta de serviço e passam por cima das
-    // regras — por isso nenhum caminho precisa ficar aberto aqui.
-    "produtos": {
-      ".read": "auth != null && root.child('suplelive/autorizados').child(auth.uid).exists()",
-      ".write": "auth != null && root.child('suplelive/autorizados').child(auth.uid).exists()"
-    },
-    "historico_produtos": {
-      ".read": "auth != null && root.child('suplelive/autorizados').child(auth.uid).exists()",
-      ".write": "auth != null && root.child('suplelive/autorizados').child(auth.uid).exists()"
-    }
+    // Caminhos de integrações que ainda gravam sem autenticação. Quando o
+    // n8n passar a usar conta de serviço, troque os "true" abaixo pela
+    // mesma expressão usada em "suplelive" (veja o botão da versão estrita).
+    "produtos": { ".read": true, ".write": true },
+    "historico_produtos": { ".read": true, ".write": true }
   }
 }</pre>
         <button class="btn btn-sm" onclick="copiarRegrasFirebase()" style="width:auto;">📋 Copiar regras</button>
@@ -1703,11 +1702,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <span style="color:var(--text-primary);">true</span>. Sem isso você fecha a porta com todos do lado de fora.
           Depois disso, os demais aparecem aqui como pedido e você libera com um clique.
         </div>
-        <div style="font-size:10.5px;color:#f59e0b;font-family:var(--font-mono);margin-top:10px;line-height:1.7;border-left:2px solid #f59e0b;padding-left:8px;">
-          <b>Integrações (n8n):</b> estas regras não abrem nenhum caminho. Configure o n8n com
-          <b>conta de serviço</b> (Firebase → Configurações do projeto → Contas de serviço → gerar chave
-          privada) <b>antes</b> de publicar. Com ela a automação passa por cima das regras e continua
-          gravando; sem ela, para de funcionar assim que você publicar.
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:10px;line-height:1.7;border-left:2px solid var(--border);padding-left:8px;">
+          <b>Integrações (n8n):</b> as regras acima mantêm gravável o que hoje grava sem autenticação,
+          para nada parar. Quando o n8n passar a usar <b>conta de serviço</b> (Firebase → Configurações
+          do projeto → Contas de serviço), ele deixa de depender disso e você pode fechar esses caminhos.
+          Nada a fazer agora.
         </div>
       </div>
 
