@@ -122,6 +122,52 @@ E no nó HTTP Request seguinte, o corpo vai como `{{ JSON.stringify($json) }}`.
 
 ---
 
+## Uma "Entrada" pelo caminho externo
+
+O que a tela grava numa Entrada, traduzido para o JSON:
+
+```json
+{
+  "id": "ext_entrada_LE22306",
+  "titulo": "Entrada Produto",
+  "skuTipo": "SKU",
+  "sku": "LE22306",
+  "descricao": "Criar/Atualizar o produto em questão informado",
+  "marketplace": "BASE",
+  "responsaveis": ["gustavo"],
+  "responsavel": "gustavo",
+  "vencimento": "2026-08-12",
+  "prioridade": "urgente",
+  "status": "aberta",
+  "criadoEm": "12/08/2026",
+  "criadoPor": "Base (n8n)",
+  "criadoPorKey": "n8n",
+  "ordemManual": 1786550000000
+}
+```
+
+Três detalhes que a tela aplica sozinha e o n8n precisa mandar explícito:
+
+- **`prioridade`**: Entrada entra como `urgente`.
+- **`marketplace`: `"BASE"`** — é a plataforma fixa da Entrada.
+- **`descricao`**: o texto padrão *"Criar/Atualizar o produto em questão
+  informado"*, que na tela vira o comentário fixo.
+
+O prazo pela tela é de **2 dias úteis**. Se quiser o mesmo comportamento, calcule
+no nó de Code — mas lembre que data futura fica invisível no quadro até o dia.
+Para a tarefa aparecer na hora, mande a data de hoje.
+
+---
+
+## A fila antiga (`suplelive/atividadesExternas`)
+
+Continua funcionando, mas é o caminho antigo e tem duas limitações: só importa
+com **um master logado** e não grava `sku`, `skuTipo`, `marketplace` nem
+`responsaveis` (só um responsável). Para integrações novas, use a gravação
+direta descrita acima.
+
+---
+
 ## O que o sistema faz sozinho depois
 
 - O card aparece em **Tarefas Diárias** sem ninguém atualizar a página.
@@ -129,11 +175,15 @@ E no nó HTTP Request seguinte, o corpo vai como `{{ JSON.stringify($json) }}`.
 - O print da conclusão é anexado pela tela, não pela API — a imagem original vai
   para `suplelive/imagens` e só a miniatura fica no registro.
 
-**Notificação:** o aviso no sino é disparado por quem cria a tarefa **pela tela**.
-Uma tarefa gravada direto pela API entra sem notificar. Se precisar avisar os
-responsáveis, ou o n8n manda a mensagem por outro canal, ou dá para fazer como
-em Canceladas, onde o próprio sistema completa e notifica ao receber o registro
-— me avise que eu ligo isso para as tarefas também.
+- **Os responsáveis são notificados automaticamente.** O sistema reconhece que
+  a tarefa nasceu fora (o `criadoPorKey` não é um usuário cadastrado) e dispara
+  o aviso no sino assim que o registro chega, com o nome que estiver em
+  `criadoPor`. A marca `notificadaEm` fica gravada no registro, então dois
+  navegadores abertos não avisam duas vezes.
+
+  Só é preciso **um navegador aberto** para o aviso sair — não precisa ser o do
+  master. Tarefas que já chegam com `status` diferente de `aberta` não geram
+  notificação.
 
 ---
 

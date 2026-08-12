@@ -4718,7 +4718,7 @@ const LOG_VALORES={
 // Ruído interno — nunca entra no histórico
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
-  'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase',
+  'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase','notificadaEm',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -4931,6 +4931,9 @@ function _agendarRenderRegistros(){
     // sistema completa aqui e devolve as tarefas novas para a nuvem
     let novasTarefas=false;
     try{ novasTarefas=cancGarantirTarefas(); }catch(e){ console.warn('[canceladas]',e); }
+    // Tarefas gravadas direto pela API não passaram pela tela e ninguém foi
+    // avisado; o sistema completa a notificação aqui
+    try{ if(notificarTarefasExternas()) novasTarefas=true; }catch(e){ console.warn('[externas]',e); }
     try{ saveLocal(appState); }catch(e){}
     try{ logSincronizarSnapshot(appState); }catch(e){}
     try{ renderAll(); }catch(e){}
@@ -9310,6 +9313,40 @@ function _padronizarCoresUsuarios(state){
     const users=(state&&state.users)||{};
     Object.keys(USER_LETTER_COLORS).forEach(k=>{ if(users[k]) users[k].color=USER_LETTER_COLORS[k]; });
   }catch(e){}
+}
+
+// ── TAREFAS CRIADAS POR FORA (n8n / API) ───────────────────────────
+// Uma tarefa gravada direto em suplelive/reg/atividades não passa pela tela,
+// então ninguém foi notificado. Aqui o próprio sistema avisa os responsáveis
+// assim que o registro chega. A marca notificadaEm volta para a nuvem, então
+// dois navegadores abertos não avisam duas vezes.
+// Externa = quem criou não é um usuário do sistema (criadoPorKey fora de users).
+function _tarefaVeioDeFora(a){
+  if(!a || a.notificadaEm) return false;
+  if(a.status && a.status!=='aberta') return false;
+  const dono=a.criadoPorKey;
+  if(!dono) return false;
+  return !((appState.users||{})[dono]);
+}
+
+function notificarTarefasExternas(){
+  if(!Array.isArray(appState.atividades)) return false;
+  let avisou=false;
+  appState.atividades.forEach(a=>{
+    if(!_tarefaVeioDeFora(a)) return;
+    const quem=getAtvResponsaveis(a);
+    const venc=a.vencimento
+      ? ' · Vence '+new Date(a.vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})
+      : '';
+    const prio={urgente:' · 🔴 Urgente',alta:' · 🟡 Alta'}[a.prioridade]||'';
+    const desc=[a.titulo,a.sku].filter(Boolean).join(' · ');
+    const de=a.criadoPor||'automação';
+    const msg=`📌 Nova tarefa atribuída a você por ${de}: "${desc}"${venc}${prio}`;
+    [...new Set(quem)].forEach(k=>_notifEnviarDeFora(k,msg,de,'tarefa','tarefa',a.id));
+    a.notificadaEm=Date.now();
+    avisou=true;
+  });
+  return avisou;
 }
 
 // Remove tarefas automáticas "órfãs": aquelas que vieram de uma Integração/Imagem/
@@ -14625,6 +14662,18 @@ function _notifEnviar(destKey,msg,tipo,alvoTipo,alvoId){
   });
 }
 
+// Envia a notificação de um registro que nasceu fora do sistema (n8n, API).
+// Diferente de _notifEnviar, não pula o usuário da vez: quem "criou" foi a
+// automação, então o responsável precisa ser avisado mesmo sendo ele quem
+// está com o navegador aberto na hora em que o registro chegou.
+function _notifEnviarDeFora(destKey,msg,de,tipo,alvoTipo,alvoId){
+  if(!destKey || !(db && fbConnected)) return;
+  db.ref('suplelive/notificacoes/'+destKey).push({
+    msg, ts:Date.now(), lida:false, tipo:tipo||'tarefa', de:de||'automação',
+    alvoTipo:alvoTipo||tipo||'tarefa', alvoId:alvoId||''
+  });
+}
+
 // Notifica os responsáveis de que algo foi atribuído a eles
 function notifyResponsaveisAtribuido(item,tipoLabel,tipo,alvoTipo){
   if(!item || !currentUser) return;
@@ -15804,9 +15853,15 @@ function _cancMontarTarefa(item,c){
 // com o navegador aberto na hora em que a tarefa foi completada
 function _cancNotificar(item,c){
   const desc=c.tarefaTitulo+' · '+(item.cliente||'');
-  const msg=`📌 Nova tarefa atribuída a você por ${item.criadoPor||'—'}: "${desc}"`;
-  [...new Set(item.responsaveis||CANC_RESPONSAVEIS)]
-    .forEach(k=>_notifEnviar(k,msg,'tarefa','tarefa',c.autoPrefix+item.id));
+  const de=item.criadoPor||'—';
+  const msg=`📌 Nova tarefa atribuída a você por ${de}: "${desc}"`;
+  // Solicitação vinda de fora (n8n): avisa todos os responsáveis, inclusive
+  // quem está com o navegador aberto. Vinda da tela: o autor não se notifica.
+  const deFora=!((appState.users||{})[item.criadoPorKey]);
+  [...new Set(item.responsaveis||CANC_RESPONSAVEIS)].forEach(k=>{
+    if(deFora) _notifEnviarDeFora(k,msg,de,'tarefa','tarefa',c.autoPrefix+item.id);
+    else       _notifEnviar(k,msg,'tarefa','tarefa',c.autoPrefix+item.id);
+  });
 }
 
 // Concluir a tarefa também fecha a solicitação que a originou
