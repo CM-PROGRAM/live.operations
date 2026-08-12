@@ -1660,17 +1660,38 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
         </div>
         <div id="seg-status" style="margin-bottom:14px;"></div>
+        <div id="seg-acessos" style="margin-bottom:14px;"></div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;line-height:1.6;">
-          Depois que <b>todos</b> tiverem entrado ao menos uma vez (coluna acima), cole as regras
-          abaixo no Firebase em <b>Realtime Database → Regras</b> para fechar o banco:
+          Regras finais — liberam apenas quem está na <b>lista de aprovados</b>. Estar autenticado
+          deixa de ser suficiente. Cole em <b>Realtime Database → Regras</b>:
         </div>
         <pre id="seg-regras" style="background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;font-family:var(--font-mono);color:var(--text-primary);overflow-x:auto;margin:0 0 8px;">{
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null"
+    "suplelive": {
+      ".read": "auth != null && root.child('suplelive/autorizados').child(auth.uid).exists()",
+      ".write": "auth != null && root.child('suplelive/autorizados').child(auth.uid).exists()",
+      "autorizados": {
+        "$uid": {
+          ".read": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())"
+        }
+      },
+      "solicitacoesAcesso": {
+        "$uid": {
+          ".read": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())",
+          ".write": "auth != null && ($uid === auth.uid || root.child('suplelive/autorizados').child(auth.uid).exists())"
+        }
+      }
+    }
   }
 }</pre>
         <button class="btn btn-sm" onclick="copiarRegrasFirebase()" style="width:auto;">📋 Copiar regras</button>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:10px;line-height:1.7;">
+          <b>Liberação inicial (uma única vez):</b> antes de publicar as regras, copie seu UID acima e crie
+          no Firebase, em <b>Realtime Database → Dados</b>, o caminho
+          <span style="color:var(--text-primary);">suplelive/autorizados/SEU_UID</span> com valor
+          <span style="color:var(--text-primary);">true</span>. Sem isso você fecha a porta com todos do lado de fora.
+          Depois disso, os demais aparecem aqui como pedido e você libera com um clique.
+        </div>
       </div>
 
       <!-- MANUTENÇÃO — peso dos dados enviados à nuvem -->
@@ -3195,7 +3216,47 @@ function renderSeguranca(){
                  return linha(false,titulo,comoResolver); })())
     + (autenticado?'':`<div style="margin-top:8px;">
         <button class="btn btn-sm" onclick="testarAutenticacao()" style="width:auto;">🔑 Testar autenticação agora</button>
-      </div>`);
+      </div>`)
+    + (autenticado?linha(_souAutorizado===true,
+        _souAutorizado===true?'Acesso aprovado na lista':'Este acesso ainda não está na lista de aprovados',
+        _souAutorizado===true?'Só quem está na lista consegue ler ou gravar no banco.'
+          :'Se você é o master, faça a liberação inicial no console (instruções abaixo).'):'')
+    + (autenticado&&_meuUid?`<div style="margin-top:10px;font-size:11px;font-family:var(--font-mono);color:var(--text-muted);">
+        Seu identificador de acesso (UID):
+        <span style="color:var(--text-primary);user-select:all;word-break:break-all;">${_meuUid}</span>
+        <button class="btn-link btn-sm" style="margin-left:6px;" onclick="navigator.clipboard&&navigator.clipboard.writeText('${_meuUid}').then(()=>showToast('UID copiado','success'))">Copiar</button>
+      </div>`:'');
+  // Fila de pedidos e lista de aprovados (só para o master)
+  if(currentUser && currentUser.master && db){
+    Promise.all([
+      db.ref(FB_SOLICITACOES).once('value').then(s2=>s2.val()||{}).catch(()=>({})),
+      db.ref(FB_AUTORIZADOS).once('value').then(s2=>s2.val()||{}).catch(()=>({}))
+    ]).then(([pedidos,aprovados])=>{
+      const box=document.getElementById('seg-acessos'); if(!box) return;
+      const linhas=[];
+      Object.entries(pedidos).forEach(([uid,p2])=>{
+        linhas.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-light);">
+          <div style="min-width:0;">
+            <div style="font-size:12px;color:#f59e0b;font-weight:700;font-family:var(--font-mono);">⏳ ${(p2&&p2.nome)||uid}</div>
+            <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);word-break:break-all;">${(p2&&p2.email)||''}</div>
+          </div>
+          <button class="btn btn-sm" style="width:auto;flex-shrink:0;" onclick="autorizarAcesso('${uid}','${String((p2&&p2.nome)||'').replace(/'/g,"")}')">Autorizar</button>
+        </div>`);
+      });
+      Object.entries(aprovados).forEach(([uid,a2])=>{
+        linhas.push(`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid var(--border-light);">
+          <div style="min-width:0;">
+            <div style="font-size:12px;color:#22c55e;font-weight:700;font-family:var(--font-mono);">✅ ${(a2&&a2.nome)||uid}</div>
+            <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);word-break:break-all;">${uid===_meuUid?'este acesso':uid}</div>
+          </div>
+          ${uid===_meuUid?'':`<button class="btn-link btn-sm" style="flex-shrink:0;" onclick="revogarAcesso('${uid}','${String((a2&&a2.nome)||'').replace(/'/g,"")}')">Revogar</button>`}
+        </div>`);
+      });
+      box.innerHTML = linhas.length
+        ? `<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin:14px 0 4px;">Acessos</div>`+linhas.join('')
+        : '';
+    });
+  }
 }
 
 function copiarRegrasFirebase(){
@@ -4393,6 +4454,59 @@ function _autenticarNoFirebase(chave,senha){
   }catch(e){ _ultimoErroAuth=e.message||'erro'; return Promise.resolve(false); }
 }
 
+// ── LISTA DE ACESSO ──────────────────────────────────────────
+// Só estar autenticado não basta: qualquer pessoa poderia criar uma conta
+// usando a configuração que fica visível na página. O acesso real é dado
+// por uma lista de aprovados (suplelive/autorizados/<uid>), mantida pelo
+// master. Quem autentica sem estar na lista entra numa fila de pedidos.
+const FB_AUTORIZADOS='suplelive/autorizados';
+const FB_SOLICITACOES='suplelive/solicitacoesAcesso';
+let _meuUid='', _souAutorizado=null;
+
+function _uidAtual(){
+  try{ const u=firebase.auth().currentUser; return u?u.uid:''; }catch(e){ return ''; }
+}
+
+// Verifica se este acesso já foi aprovado; se não, registra o pedido
+function verificarAutorizacao(){
+  _meuUid=_uidAtual();
+  if(!_meuUid || !db){ _souAutorizado=null; return Promise.resolve(null); }
+  return db.ref(FB_AUTORIZADOS+'/'+_meuUid).once('value')
+    .then(snap=>{
+      _souAutorizado=snap.exists();
+      if(!_souAutorizado) return _pedirAcesso();
+    })
+    .catch(()=>{ _souAutorizado=false; return _pedirAcesso(); })
+    .then(()=>{ try{ renderSeguranca(); }catch(e){} return _souAutorizado; });
+}
+
+function _pedirAcesso(){
+  if(!_meuUid || !db || !currentUser) return Promise.resolve();
+  const email=(currentUser.email)||_emailDoUsuario(currentUser.key);
+  return db.ref(FB_SOLICITACOES+'/'+_meuUid)
+    .set({email, nome:currentUser.name||currentUser.key, chave:currentUser.key, ts:Date.now()})
+    .catch(()=>{});
+}
+
+// Master aprova um pedido — a partir daí aquele acesso passa a ler/gravar
+function autorizarAcesso(uid,nome){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode autorizar','warn'); return; }
+  if(!db){ showToast('Sem conexão','error'); return; }
+  db.ref(FB_AUTORIZADOS+'/'+uid).set({nome:nome||'', por:currentUser.name, ts:Date.now()})
+    .then(()=>db.ref(FB_SOLICITACOES+'/'+uid).remove())
+    .then(()=>{ showToast(`✓ Acesso liberado para ${nome||uid}`,'success'); renderSeguranca(); })
+    .catch(err=>showToast('Falha ao autorizar: '+err.message,'error'));
+}
+
+function revogarAcesso(uid,nome){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode revogar','warn'); return; }
+  if(uid===_meuUid){ showToast('Você não pode revogar o próprio acesso','warn'); return; }
+  if(!confirm(`Revogar o acesso de ${nome||uid}?`)) return;
+  db.ref(FB_AUTORIZADOS+'/'+uid).remove()
+    .then(()=>{ showToast('Acesso revogado','success'); renderSeguranca(); })
+    .catch(err=>showToast('Falha ao revogar: '+err.message,'error'));
+}
+
 // Traduz o código do Firebase para o que precisa ser feito
 function _explicarErroAuth(codigo){
   const M={
@@ -4435,7 +4549,7 @@ function testarAutenticacao(){
     if(!confere){ showToast('Senha incorreta','error'); return; }
     _autenticarNoFirebase(currentUser.key,senha).then(ok=>{
       renderSeguranca();
-      if(ok) showToast('✓ Sessão autenticada na nuvem','success');
+      if(ok){ showToast('✓ Sessão autenticada na nuvem','success'); verificarAutorizacao(); }
       else { const [t]=_explicarErroAuth(_ultimoErroAuth); showToast(t,'warn'); }
     });
   });
@@ -4474,7 +4588,8 @@ function doLogin(){
     }
 
     currentUser={key:chave,...dados};
-    _autenticarNoFirebase(chave,p); // segue em paralelo, sem travar a entrada
+    // Autentica e, em seguida, confere se este acesso já foi aprovado
+    _autenticarNoFirebase(chave,p).then(ok=>{ if(ok) verificarAutorizacao(); });
     document.getElementById('splash').style.display='none';
     document.getElementById('app').style.display='block';
     initApp();
