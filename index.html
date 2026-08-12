@@ -263,6 +263,13 @@ html{overflow-x:hidden;}
 .login-box .login-hint{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.65;text-align:center;}
 .login-box .login-link{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-decoration:none;border-bottom:1px dotted var(--text-muted);align-self:center;}
 .login-box .login-link:hover{color:var(--text-primary);border-bottom-color:var(--text-primary);}
+/* Campo de senha com o botão de mostrar/ocultar dentro */
+.pw-wrap{position:relative;display:flex;align-items:center;}
+.pw-wrap input{padding-right:46px;}
+.pw-toggle{position:absolute;right:5px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;
+  color:var(--text-muted);padding:7px;line-height:0;border-radius:8px;transition:color .15s,background .15s;display:flex;align-items:center;}
+.pw-toggle:hover{color:var(--text-primary);background:rgba(255,255,255,0.07);}
+.pw-toggle:focus-visible{outline:2px solid rgba(59,130,246,.6);outline-offset:1px;}
 /* O preenchimento automático do Chrome pinta o campo de branco e ignora o
    tema — este bloco devolve o fundo e a cor do texto do sistema */
 input:-webkit-autofill,
@@ -725,7 +732,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
     <div class="input-group">
       <label>Senha</label>
-      <input type="password" id="login-pass" name="password" placeholder="••••••••" autocomplete="current-password">
+      <div class="pw-wrap">
+        <input type="password" id="login-pass" name="password" placeholder="••••••••" autocomplete="current-password">
+        <button type="button" class="pw-toggle" onclick="alternarVisibilidadeSenha('login-pass',this)" title="Mostrar senha" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
     </div>
     <div class="login-error" id="login-error">Usuário ou senha incorretos</div>
     <button class="btn" type="submit">Entrar</button>
@@ -755,11 +765,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div class="input-group">
         <label>Nova senha</label>
-        <input type="password" id="reset-senha1" placeholder="mínimo 6 caracteres" autocomplete="new-password">
+        <div class="pw-wrap">
+          <input type="password" id="reset-senha1" placeholder="mínimo 6 caracteres" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="alternarVisibilidadeSenha('reset-senha1',this)" title="Mostrar senha" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
       </div>
       <div class="input-group">
         <label>Repita a nova senha</label>
-        <input type="password" id="reset-senha2" placeholder="••••••••" autocomplete="new-password">
+        <div class="pw-wrap">
+          <input type="password" id="reset-senha2" placeholder="••••••••" autocomplete="new-password">
+          <button type="button" class="pw-toggle" onclick="alternarVisibilidadeSenha('reset-senha2',this)" title="Mostrar senha" aria-label="Mostrar senha"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        </div>
       </div>
       <button class="btn" type="button" onclick="confirmarNovaSenha()">Salvar nova senha</button>
       <a href="#" class="login-link" onclick="document.getElementById('reset-passo1').style.display='flex';document.getElementById('reset-passo2').style.display='none';return false;">Não recebi o e-mail</a>
@@ -5230,6 +5246,24 @@ function fecharRedefinicao(){
   document.getElementById('login-form').style.display='flex';
   _resetErro('');
 }
+// Mostra/oculta a senha digitada, mantendo o cursor onde estava
+const _SVG_OLHO='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+const _SVG_OLHO_CORTADO='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M10.6 6.1A9.9 9.9 0 0 1 12 6c6.4 0 10 7 10 7a17 17 0 0 1-2.7 3.5M6.6 6.6A17 17 0 0 0 2 13s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6"/><path d="M9.9 10.1a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/></svg>';
+function alternarVisibilidadeSenha(id,botao){
+  const campo=document.getElementById(id);
+  if(!campo) return;
+  const estavaVisivel = campo.type==='text';
+  const pos=campo.selectionStart;
+  campo.type = estavaVisivel ? 'password' : 'text';
+  if(botao){
+    botao.innerHTML = estavaVisivel ? _SVG_OLHO : _SVG_OLHO_CORTADO;
+    const rotulo = estavaVisivel ? 'Mostrar senha' : 'Ocultar senha';
+    botao.title=rotulo; botao.setAttribute('aria-label',rotulo);
+  }
+  // Devolve o foco sem perder a posição do cursor
+  try{ campo.focus(); if(pos!=null) campo.setSelectionRange(pos,pos); }catch(e){}
+}
+
 // Mesma caixa serve para erro (vermelho) e para aviso/sucesso — sem a
 // cor de erro quando a mensagem é positiva
 function _resetErro(msg,cor){
