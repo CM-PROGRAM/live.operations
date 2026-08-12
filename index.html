@@ -16067,6 +16067,9 @@ function saveIntegracao(){
   const codigo=codigoGetValue('integ');
   const consideracoes=considGet('integ');
   const responsaveis=respGetSel('integ');
+  // Sem responsável a solicitação vira "Não atribuído": a tarefa nasce sem dono
+  // e ninguém é notificado — quem pediu acha que atribuiu, quem faria nunca sabe
+  if(!responsaveis.length){ showToast('Escolha o colaborador responsável','warn'); return; }
   const vencimento=(document.getElementById('integ-vencimento')||{}).value||'';
   const prioridade=(document.getElementById('integ-prioridade')||{}).value||'normal';
 
@@ -16145,6 +16148,15 @@ function _mktResponsavelLabel(it){
   if(!keys.length) return 'Não atribuído';
   return keys.map(k=>(appState.users[k]||{}).name||k).join(', ');
 }
+// Solicitação sem responsável gerou tarefa sem dono e não notificou ninguém.
+// Marca em vermelho para o master achar e corrigir as que já existem.
+function _mktSemResponsavel(it){ return !getAtvResponsaveis(it).length && !it.atribuir; }
+function _mktResponsavelHtml(it){
+  const txt=_mktResponsavelLabel(it);
+  return _mktSemResponsavel(it)
+    ? `<span style="color:var(--tom-vermelho);font-weight:700;">⚠ ${txt} — abra e escolha o colaborador</span>`
+    : txt;
+}
 
 function renderIntegracoes(){
   _renderMktGrid('integ-grid', m=>openIntegModal(m,null), false, false);
@@ -16171,7 +16183,7 @@ function renderIntegracoes(){
         <span style="font-size:13.5px;font-weight:800;color:var(--text-primary);">${it.variacao||it.marketplace}</span>
         ${_statusBadgeHtml(it.status)}
       </div>
-      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelLabel(it)}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelHtml(it)}</div>
       <div style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
     if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
   });
@@ -16366,7 +16378,7 @@ function renderAtribuir(){
       <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
         <span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:var(--tom-indigo);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:999px;padding:2px 8px;">${it._tipoLabel}</span>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelLabel(it)}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelHtml(it)}</div>
       <div style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
     if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
   });
@@ -16413,7 +16425,7 @@ function renderExcluirIntBase(){
         <span style="font-size:13.5px;font-weight:800;color:var(--text-primary);">${it.variacao||it.marketplace}</span>
         ${_statusBadgeHtml(it.status)}
       </div>
-      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelLabel(it)}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelHtml(it)}</div>
       <div style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
     if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
   });
@@ -16459,6 +16471,7 @@ function saveEntradaReq(){
   const codigo=codigoGetValue('entrada');
   const consideracoes=considGet('entrada');
   const responsaveis=respGetSel('entrada');
+  if(!responsaveis.length){ showToast('Escolha o colaborador responsável','warn'); return; }
   const vencimento=(document.getElementById('entrada-vencimento')||{}).value||'';
   const prioridade=(document.getElementById('entrada-prioridade')||{}).value||'normal';
   if(!Array.isArray(appState.entradas)) appState.entradas=[];
@@ -16579,6 +16592,7 @@ function saveImagemReq(){
   const codigo=codigoGetValue('img');
   const consideracoes=considGet('img');
   const responsaveis=respGetSel('img');
+  if(!responsaveis.length){ showToast('Escolha o colaborador responsável','warn'); return; }
   const vencimento=(document.getElementById('img-vencimento')||{}).value||'';
   const prioridade=(document.getElementById('img-prioridade')||{}).value||'normal';
   if(!Array.isArray(appState.imagensReq)) appState.imagensReq=[];
@@ -16657,7 +16671,7 @@ function renderImagens(){
         <span style="font-size:13.5px;font-weight:800;color:var(--text-primary);">${it.variacao||it.marketplace}</span>
         ${_statusBadgeHtml(it.status)}
       </div>
-      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelLabel(it)}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelHtml(it)}</div>
       <div style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
     if(it.status==='concluida'){ listC.appendChild(card); nC++; } else { listA.appendChild(card); nA++; }
   });
