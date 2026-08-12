@@ -15313,76 +15313,83 @@ function renderProjetos(){
 // sistema de tarefas já existente, que permanece intacto abaixo)
 // ═══════════════════════════════════════════════════════
 const MKT_LINKS=[
-  {platform:'Loja Integrada', stores:[
-    {store:'Site Suplelive', links:[
-      {label:'Métricas', url:'https://app.lojaintegrada.com.br/painel'},
-      {label:'Pedidos',  url:'https://app.lojaintegrada.com.br/painel/pedido/listar'}
-    ]}
-  ]},
   {platform:'RD Marketplace', stores:[
     {store:'Vix Suplementos', links:[
-      {label:'Administrar Pedidos', url:'https://portal.rdmarketplace.com.br/app/orders'},
-      {label:'Meus Protocolos',     url:'https://www.lojistard.com.br/mapa-atendimento/protocolos/'}
+      {label:'Pedidos', url:'https://portal.rdmarketplace.com.br/app/orders'}
     ]}
   ]},
   {platform:'Web Continental', stores:[
     {store:'4Vita Suplementos', links:[
-      {label:'Dashboard', url:'https://portal.webcontinental.com.br/#/Dashboard'},
-      {label:'Pedidos',   url:'https://portal.webcontinental.com.br/#/listar/pedidos'}
+      {label:'Métricas Conta', url:'https://portal.webcontinental.com.br/#/Dashboard'},
+      {label:'Pedidos',        url:'https://portal.webcontinental.com.br/#/listar/pedidos'},
+      {label:'Produtos',       url:'https://portal.webcontinental.com.br/#/listar/produtos'},
+      {label:'Tickets',        url:'https://webcontinental.movidesk.com/Ticket'}
     ]}
   ]},
   {platform:'Magalu', stores:[
     {store:'4Vita Suplementos', links:[
-      {label:'Dashboard',         url:'https://seller.magalu.com/reputacao'},
-      {label:'Mensagens no Chat', url:'https://seller.magalu.com/chat-com-cliente'},
-      {label:'Pedidos',           url:'https://seller.magalu.com/pedidos'},
-      {label:'Devoluções',        url:'https://seller.magaluentregas.com.br/gestao-de-devolucoes'},
-      {label:'SAC',               url:'https://seller.magalu.com/tickets'},
-      {label:'Central de Ajuda',  url:'https://marketplacemagalu.zendesk.com/hc/pt-br'}
-    ]}
-  ]},
-  {platform:'DPSP', stores:[
-    {store:'Drogaria Pacheco Forvita', links:[
-      {label:'Dashboard',    url:'https://marketplace.drogariaspacheco.com.br/v3/'},
-      {label:'Baixas D.P',   internal:'drogarias-pacheco'},
-      {label:'Pedidos',      url:'https://marketplace.drogariaspacheco.com.br/v3/pedidos'},
-      {label:'Devoluções',   url:'https://marketplace.drogariaspacheco.com.br/v3/pedidos/devolucoes'},
-      {label:'Atendimentos', url:'https://marketplace.drogariaspacheco.com.br/v3/atendimento'}
-    ]},
-    {store:'Drogaria São Paulo Forvita', links:[
-      {label:'Dashboard',    url:'https://marketplace.drogariasaopaulo.com.br/v3/'},
-      {label:'Baixas D.SP',  internal:'drogarias-saopaulo'},
-      {label:'Pedidos',      url:'https://marketplace.drogariasaopaulo.com.br/v3/pedidos'},
-      {label:'Devoluções',   url:'https://marketplace.drogariasaopaulo.com.br/v3/pedidos/devolucoes'},
-      {label:'Atendimentos', url:'https://marketplace.drogariasaopaulo.com.br/v3/atendimento'}
-    ]}
-  ]},
-  {platform:'Shopee', stores:[
-    {store:'Suplenium', links:[
-      {label:'Dashboard',         url:'https://seller.shopee.com.br/portal/accounthealth/home'},
-      {label:'Mensagens no Chat', url:'https://seller.shopee.com.br/webchat/conversations'},
-      {label:'Pedidos',           url:'https://seller.shopee.com.br/portal/sale/order'},
-      {label:'Devoluções',        url:''},
-      {label:'Avaliações',        url:'https://seller.shopee.com.br/portal/settings/shop/rating?pageNumber=1&fromPageNumber=1&cursor=0&pageSize=20&replied=TO_REPLY&ratingStar=ALL&ratingStar=5&ratingStar=4&ratingStar=3&ratingStar=2&ratingStar=1'}
-    ]},
-    {store:'Primevitaminas', links:[
-      {label:'Dashboard',         url:'https://seller.shopee.com.br/portal/accounthealth/home'},
-      {label:'Mensagens no Chat', url:'https://seller.shopee.com.br/webchat/conversations'},
-      {label:'Pedidos',           url:'https://seller.shopee.com.br/portal/sale/order'},
-      {label:'Devoluções',        url:''},
-      {label:'Avaliações',        url:'https://seller.shopee.com.br/portal/settings/shop/rating?pageNumber=1&fromPageNumber=1&cursor=0&pageSize=20&replied=TO_REPLY&ratingStar=ALL&ratingStar=5&ratingStar=4&ratingStar=3&ratingStar=2&ratingStar=1'}
+      {label:'Métricas Conta',        url:'https://seller.magalu.com/reputacao'},
+      {label:'Chat com Cliente',      url:'https://seller.magalu.com/chat-com-cliente'},
+      {label:'Pedidos',               url:'https://seller.magalu.com/pedidos'},
+      {label:'Produtos',              url:'https://seller.magalu.com/products'},
+      {label:'SAC',                   url:'https://seller.magalu.com/tickets'},
+      {label:'Central de Ajuda',      url:'https://marketplacemagalu.zendesk.com/hc/pt-br'},
+      {label:'Devoluções',            url:'https://seller.magaluentregas.com.br/gestao-de-devolucoes'},
+      {label:'Perguntas e Respostas', url:'https://seller.magalu.com/perguntas'}
     ]}
   ]},
   {platform:'Mercado Livre', stores:[
     {store:'VXShop', links:[
-      {label:'Dashboard',  url:'https://www.mercadolivre.com.br/reputacao'},
-      {label:'Vendas',     url:'https://www.mercadolivre.com.br/vendas/omni/lista?filters=TAB_TODAY#!'},
-      {label:'Pós-Vendas', url:'https://www.mercadolivre.com.br/post-purchase/post-sales#side-menu'}
+      {label:'Envios Hoje',              url:'https://vendedores.mercadolivre.com.br/vendas/omni/lista#from=seller-menu'},
+      {label:'Reclamações e Mediações',  url:'https://vendedores.mercadolivre.com.br/post-purchase/post-sales#from=seller-menu'},
+      {label:'Mensagens',                url:'https://vendedores.mercadolivre.com.br/post-purchase/post-sales?main.filter=messages&temporal.filter=read#from=seller-menu'},
+      {label:'Devoluções',               url:'https://vendedores.mercadolivre.com.br/post-purchase/post-sales?main.filter=returns&temporal.filter=in-process#from=seller-menu'},
+      {label:'Gestão de Anúncios',       url:'https://vendedores.mercadolivre.com.br/anuncios#from=seller-menu'},
+      {label:'Reputação',                url:'https://vendedores.mercadolivre.com.br/reputacao#from=seller-menu'}
     ]},
     {store:'Vitalife', links:[
-      {label:'Dashboard',  url:'https://www.mercadolivre.com.br/reputacao'},
-      {label:'Vendas',     url:'https://www.mercadolivre.com.br/vendas/omni/lista?filters=TAB_TODAY#!'},
-      {label:'Pós-Vendas', url:'https://www.mercadolivre.com.br/post-purchase/post-sales#side-menu'}
+      {label:'Envios Hoje',              url:'https://vendedores.mercadolivre.com.br/vendas/omni/lista#from=seller-menu'},
+      {label:'Reclamações e Mediações',  url:'https://vendedores.mercadolivre.com.br/post-purchase/post-sales#from=seller-menu'},
+      {label:'Mensagens',                url:'https://vendedores.mercadolivre.com.br/post-purchase/post-sales?main.filter=messages&temporal.filter=read#from=seller-menu'},
+      {label:'Devoluções',               url:'https://vendedores.mercadolivre.com.br/post-purchase/post-sales?main.filter=returns&temporal.filter=in-process#from=seller-menu'},
+      {label:'Gestão de Anúncios',       url:'https://vendedores.mercadolivre.com.br/anuncios#from=seller-menu'},
+      {label:'Reputação',                url:'https://vendedores.mercadolivre.com.br/reputacao#from=seller-menu'}
+    ]}
+  ]},
+  {platform:'Shopee', stores:[
+    {store:'Suplenium', links:[
+      {label:'Cancelados',        url:'https://seller.shopee.com.br/portal/sale/order'},
+      {label:'Não Pagos',         url:'https://seller.shopee.com.br/portal/sale/order?type=unpaid'},
+      {label:'Devoluções',        url:'https://seller.shopee.com.br/portal/sale/returnrefundcancel'},
+      {label:'Produtos',          url:'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2'},
+      {label:'Gestão de Revisão', url:'https://seller.shopee.com.br/portal/settings/shop/rating'},
+      {label:'Saúde da Conta',    url:'https://seller.shopee.com.br/portal/accounthealth/home'}
+    ]},
+    {store:'Primevitaminas', links:[
+      {label:'Cancelados',        url:'https://seller.shopee.com.br/portal/sale/order'},
+      {label:'Não Pagos',         url:'https://seller.shopee.com.br/portal/sale/order?type=unpaid'},
+      {label:'Devoluções',        url:'https://seller.shopee.com.br/portal/sale/returnrefundcancel'},
+      {label:'Produtos',          url:'https://seller.shopee.com.br/portal/product/list/live/all?operationSortBy=recommend_v2'},
+      {label:'Gestão de Revisão', url:'https://seller.shopee.com.br/portal/settings/shop/rating'},
+      {label:'Saúde da Conta',    url:'https://seller.shopee.com.br/portal/accounthealth/home'}
+    ]}
+  ]},
+  {platform:'DPSP', stores:[
+    {store:'Drogaria Pacheco', links:[
+      {label:'Performance de Sellers', url:'https://marketplace.drogariaspacheco.com.br/v3/sellers/nota/ROKQ86921088830001'},
+      {label:'Gestão Vendas',          url:'https://marketplace.drogariaspacheco.com.br/v3/pedidos'},
+      {label:'Devoluções',             url:'https://marketplace.drogariaspacheco.com.br/v3/pedidos/devolucoes'},
+      {label:'Gestão de SKUs',         url:'https://marketplace.drogariaspacheco.com.br/v3/produto/gerenciar'},
+      {label:'Atendimentos',           url:'https://marketplace.drogariaspacheco.com.br/v3/atendimento'},
+      {label:'Baixas D.P',             internal:'drogarias-pacheco'}
+    ]},
+    {store:'Drogaria São Paulo', links:[
+      {label:'Performance de Sellers', url:'https://marketplace.drogariasaopaulo.com.br/v3/sellers/nota/ACXP17921305839856'},
+      {label:'Gestão Vendas',          url:'https://marketplace.drogariasaopaulo.com.br/v3/pedidos'},
+      {label:'Devoluções',             url:'https://marketplace.drogariasaopaulo.com.br/v3/pedidos/devolucoes'},
+      {label:'Gestão de SKUs',         url:'https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar'},
+      {label:'Atendimento',            url:'https://marketplace.drogariasaopaulo.com.br/v3/atendimento'},
+      {label:'Baixas D.SP',            internal:'drogarias-saopaulo'}
     ]}
   ]}
 ];
