@@ -5839,12 +5839,20 @@ function startFirebaseSync(){
       if(!manutencao && currentUser.master) return;
       // Remove o sinal para não disparar novamente
       db.ref('suplelive/forceLogout/'+currentUser.key).remove();
+      // Recarrega a página em vez de só voltar para a tela de login: sair do
+      // usuário não troca o código que já está rodando no navegador. Sem o
+      // recarregamento, derrubar a equipe para publicar uma correção deixava
+      // todo mundo entrando de novo na versão antiga.
+      const sair=()=>{
+        try{ doLogout(); }catch(e){}
+        try{ location.reload(); }catch(e){}
+      };
       if(manutencao){
         showToast('🛠 '+(data.msg||'Manutenção do sistema — você será desconectado.'),'warn');
-        setTimeout(()=>doLogout(), 4000);
+        setTimeout(sair, 4000);
       } else {
         showToast('⚠ Suas permissões foram atualizadas. Reconectando...','warn');
-        setTimeout(()=>doLogout(), 2000);
+        setTimeout(sair, 2000);
       }
     });
   }
