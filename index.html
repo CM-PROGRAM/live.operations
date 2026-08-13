@@ -17919,23 +17919,32 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   saveState(appState);
 
   // ── Notificação a quem ficou responsável ──────────
-  const vencFmt=new Date(vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+  // Na rotina os campos da tela estão vazios: o texto do aviso vem do registro
+  const tituloNotif = ehRotina ? [anterior.titulo,anterior.mktEtapa].filter(Boolean).join(' · ') : titulo;
+  const vencNotif   = vencimento || anterior.vencimento || '';
+  const vencFmt = vencNotif
+    ? new Date(vencNotif+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})
+    : '—';
   const priorLabel={urgente:'🔴 Urgente',alta:'🟡 Alta',normal:'⚪ Normal'}[prioridade]||prioridade;
   const notifMsg=statusFinal==='concluida'
-    ? `✅ Tarefa "${titulo}" concluída por ${currentUser.name} — atribuída para conferência`
+    ? `✅ Tarefa "${tituloNotif}" concluída por ${currentUser.name} — atribuída para conferência`
     : statusFinal==='finalizada'
-    ? `🏁 Tarefa "${titulo}" finalizada por ${currentUser.name}`
+    ? `🏁 Tarefa "${tituloNotif}" finalizada por ${currentUser.name}`
     : respMudou
-    ? `🔁 Tarefa transferida/devolvida por ${currentUser.name}: "${titulo}" · Vence ${vencFmt}`
+    ? `🔁 Tarefa transferida/devolvida por ${currentUser.name}: "${tituloNotif}" · Vence ${vencFmt}`
     : novoComentarioTexto
-    ? `💬 Novo comentário de ${currentUser.name} em "${titulo}"`
-    : `✏ Tarefa atualizada por ${currentUser.name}: "${titulo}" · Vence ${vencFmt} · ${priorLabel}`;
+    ? `💬 Novo comentário de ${currentUser.name} em "${tituloNotif}"`
+    : `✏ Tarefa atualizada por ${currentUser.name}: "${tituloNotif}" · Vence ${vencFmt} · ${priorLabel}`;
   (responsaveis.length?responsaveis:[responsavel]).filter(Boolean).forEach(respKey=>{
+    // Ninguém é avisado do que acabou de fazer. A caixa de entrada é para o
+    // que os outros fizeram — era daqui que vinha o entulho: concluir as
+    // tarefas do dia enchia a própria caixa com um aviso por tarefa.
+    // É a mesma regra de _notifEnviar, que este trecho não seguia.
+    if(respKey===currentUser.key) return;
     if(db && fbConnected){
       db.ref('suplelive/notificacoes/'+respKey).push({msg:notifMsg,ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,
         alvoTipo:'tarefa', alvoId:editId});
     }
-    if(respKey===currentUser.key){ pushNotify('Tarefa atribuída',notifMsg); }
   });
 
   renderAtividades();
@@ -18002,6 +18011,10 @@ let _notifRef = null;
 // a cada atualização do Firebase (o listener dispara em qualquer mudança)
 let _notifPushExibidas = null;
 
+// O contador mostra o número real até 999. Antes parava em "9+", e uma caixa
+// com 40 avisos parecia ter os mesmos 9 de uma com 200.
+function _notifContador(n){ return n > 999 ? '999+' : String(n); }
+
 function initNotifListener(){
   if(!db || !fbConnected || !currentUser) return;
   _notifRef = db.ref('suplelive/notificacoes/'+currentUser.key);
@@ -18014,13 +18027,13 @@ function initNotifListener(){
     const badge = document.getElementById('notif-badge');
     if(badge){
       badge.style.display = naoLidas.length ? 'block' : 'none';
-      badge.textContent = naoLidas.length > 9 ? '9+' : naoLidas.length;
+      badge.textContent = _notifContador(naoLidas.length);
     }
     // Mesmo contador na caixa de entrada da barra lateral
     const badgeSide = document.getElementById('notif-badge-side');
     if(badgeSide){
       badgeSide.style.display = naoLidas.length ? 'inline-block' : 'none';
-      badgeSide.textContent = naoLidas.length > 9 ? '9+' : naoLidas.length;
+      badgeSide.textContent = _notifContador(naoLidas.length);
     }
     // Push das novas não lidas. Na 1ª carga apenas registra o que já existia,
     // para não disparar um alerta de tudo que estava acumulado ao entrar.
