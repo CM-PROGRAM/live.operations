@@ -645,37 +645,48 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   filter:drop-shadow(0 0 5px rgba(248,113,113,.55));
   pointer-events:none;
 }
-/* Neon dando a volta na etiqueta do nome: um arco de luz gira pela borda
-   do quadrinho. A cor vem do card (--mkt-neon) e cada card entra com um
-   atraso diferente, para os seis não girarem em bloco.
-   O truque: um cone de luz girando, recortado só na faixa da borda pela
-   máscara — o miolo fica de fora e o texto continua limpo. */
-@property --mkt-ang{ syntax:'<angle>'; initial-value:0deg; inherits:false; }
+/* Neon nas letras do nome: um brilho fixo na cor da plataforma, com uma
+   faixa de luz atravessando as letras da esquerda para a direita. A borda do
+   quadrinho fica parada — quem tem vida agora é o texto.
+   O truque: o gradiente é recortado no desenho das letras (background-clip:
+   text) e o text-shadow, que atravessa a letra transparente, faz o halo. */
 .mkt-nome{
   --mkt-neon:143,168,216;
   position:relative;
 }
-.mkt-nome::after{
-  content:'';position:absolute;inset:-1.5px;border-radius:12px;
-  pointer-events:none;
-  padding:1.5px;
-  background:conic-gradient(from var(--mkt-ang),
-    rgba(var(--mkt-neon),0) 0deg,
-    rgba(var(--mkt-neon),0) 250deg,
-    rgba(var(--mkt-neon),.85) 320deg,
-    rgba(var(--mkt-neon),1) 350deg,
-    rgba(var(--mkt-neon),0) 360deg);
-  -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite:xor;
-          mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask-composite:exclude;
-  animation:mktNeonGira 3.4s linear infinite;
+.mkt-nome-txt{
+  /* currentColor é a cor normal do nome; a faixa é a cor neon da plataforma */
+  --mkt-faixa:rgb(var(--mkt-neon));
+  background-image:linear-gradient(100deg,
+    currentColor 0%,
+    currentColor 41%,
+    var(--mkt-faixa) 50%,
+    currentColor 59%,
+    currentColor 100%);
+  /* 300% de largura com o percurso preso entre 100% e 0%: fora dessa faixa o
+     gradiente deixaria de cobrir parte do texto e as letras sumiriam. */
+  background-size:300% 100%;
+  background-repeat:no-repeat;
+  background-position:100% 0;
+  -webkit-background-clip:text;
+          background-clip:text;
+  -webkit-text-fill-color:transparent;
+  text-shadow:0 0 7px rgba(var(--mkt-neon),.40);
+  animation:mktNeonLetras 3.4s linear infinite;
   animation-delay:inherit;
-  filter:drop-shadow(0 0 4px rgba(var(--mkt-neon),.65));
 }
-@keyframes mktNeonGira{ to{ --mkt-ang:360deg; } }
+@keyframes mktNeonLetras{
+  from{background-position:100% 0;}
+  to  {background-position:0 0;}
+}
+/* Sobre o fundo branco a mesma cor "estoura": a faixa clara some e o halo
+   apaga as letras. No tema claro ela entra escurecida e o halo, discreto. */
+:root[data-theme="light"] .mkt-nome-txt{
+  --mkt-faixa:color-mix(in srgb, rgb(var(--mkt-neon)) 60%, #101a33);
+  text-shadow:0 0 5px rgba(var(--mkt-neon),.22);
+}
 @media (prefers-reduced-motion:reduce){
-  .mkt-nome::after{animation:none;}
+  .mkt-nome-txt{animation:none;background-position:100% 0;}
 }
 /* A cor do nome vem daqui (e não do estilo em linha) para o tema claro poder
    escurecê-la — o azul-aço do escuro some sobre o branco. */
@@ -683,8 +694,10 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .mkt-loja{color:var(--mkt-cor,#8fa8d8);}
 :root[data-theme="light"] .mkt-nome,
 :root[data-theme="light"] .mkt-loja{color:#3d5a94;}
-/* No tema claro o neon branco do Web Continental sumiria no fundo claro */
-:root[data-theme="light"] .mkt-nome[data-mkt="webcontinental"]{--mkt-neon:100,116,139;}
+/* No tema claro o neon branco do Web Continental sumiria no fundo claro.
+   O !important é necessário: a cor de cada card é aplicada em estilo em linha
+   e, sem ele, a regra do tema claro nunca ganharia. */
+:root[data-theme="light"] .mkt-nome[data-mkt="webcontinental"]{--mkt-neon:100,116,139 !important;}
 @keyframes sbNeonVaiVem{
   from{background-position:-30% 0, 0 0;}
   to{background-position:130% 0, 0 0;}
@@ -4943,7 +4956,8 @@ const LOG_VALORES={
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
   'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase','notificadaEm',
-  'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo']);
+  'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo',
+  'mktEtapa','mktLoja','prazoHoras']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
 // Campos base64 tratados como "anexado/removido", sem gravar o conteúdo
@@ -5027,7 +5041,7 @@ function _logResumoRegistro(entidade,r){
   if(!r) return '';
   if(entidade==='atendimento') return [r.plataforma,r.cliente].filter(Boolean).join(' · ');
   if(entidade==='devolucao')   return [r.plataforma,r.cliente,r.nped].filter(Boolean).join(' · ');
-  if(entidade==='tarefa')      return [r.titulo,r.sku].filter(Boolean).join(' · ');
+  if(entidade==='tarefa')      return [r.titulo,r.mktEtapa,r.sku].filter(Boolean).join(' · ');
   return '';
 }
 
@@ -5054,11 +5068,19 @@ function auditarMudancas(novo){
     const antes=_logSnapshot[entidade]||{};
     const agora=_logMapear(novo,entidade);
     Object.keys(agora).forEach(id=>{
-      if(!antes[id]){ _logGravar(entidade,id,'criado',[],agora[id].resumo); return; }
+      if(!antes[id]){
+        // A rotina diária dos marketplaces nasce e morre sozinha, dezenas de
+        // cards por dia — registrar cada nascimento afogaria o histórico. O
+        // que interessa (concluir, pendência, transferência) continua entrando.
+        if(!agora[id].campos.rotinaMkt) _logGravar(entidade,id,'criado',[],agora[id].resumo);
+        return;
+      }
       const campos=_logDiffRegistro(entidade,antes[id].campos,agora[id].campos);
       if(campos.length) _logGravar(entidade,id,'editado',campos,agora[id].resumo);
     });
-    Object.keys(antes).forEach(id=>{ if(!agora[id]) _logGravar(entidade,id,'excluido',[],antes[id].resumo); });
+    Object.keys(antes).forEach(id=>{
+      if(!agora[id] && !antes[id].campos.rotinaMkt) _logGravar(entidade,id,'excluido',[],antes[id].resumo);
+    });
     _logSnapshot[entidade]=agora;
   });
 }
@@ -5280,6 +5302,10 @@ function _agendarRenderRegistros(){
     // sistema completa aqui e devolve as tarefas novas para a nuvem
     let novasTarefas=false;
     try{ novasTarefas=cancGarantirTarefas(); }catch(e){ console.warn('[canceladas]',e); }
+    // Rotina diária dos marketplaces: a nuvem pode ter trazido os cards de
+    // ontem (ou nenhum card de hoje) — aqui o quadro é acertado
+    try{ if(mktRotinaLimparAntigas()>0) novasTarefas=true; }catch(e){ console.warn('[rotina mkt]',e); }
+    try{ if(mktRotinaGarantirTarefas()>0) novasTarefas=true; }catch(e){ console.warn('[rotina mkt]',e); }
     // Tarefas gravadas direto pela API não passaram pela tela e ninguém foi
     // avisado; o sistema completa a notificação aqui
     try{ if(notificarTarefasExternas()) novasTarefas=true; }catch(e){ console.warn('[externas]',e); }
@@ -6620,6 +6646,8 @@ function initApp(){
   try{ logSincronizarSnapshot(appState); }catch(e){}
   // buildTabs() cria o footer com avatar/nome/relógio/sair dinamicamente
   buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
+  // Cards de revisão dos marketplaces do dia
+  try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
   initNotifListener();
   // Cópia diária automática — roda um pouco depois, para não competir com
   // o carregamento inicial dos dados
@@ -11993,7 +12021,9 @@ function startClock(){
     if(h>=17&&anyPending){
       // Notificação de pendentes removida a pedido
     }
-
+    // Virada do dia com a tela aberta: os cards de rotina dos marketplaces
+    // trocam sozinhos às 00:00, sem ninguém precisar recarregar a página
+    try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
   },60000);
   setTimeout(registerPresence,1000);
   initPushNotifications();
@@ -14917,6 +14947,10 @@ function renderAtividades(){
       const lista=a.origemCancId?(appState.canceladas||[]):(appState.canceladasNF||[]);
       const it=lista.find(x=>x.id===(a.origemCancId||a.origemCancNfId));
       if(it){ codigoLabel=[it.cliente,it.plataforma].filter(Boolean).join(' · '); solicitadoPor=it.criadoPor||'—'; }
+    } else if(a.rotinaMkt){
+      // Card da revisão diária: a etapa e a loja vão na frente
+      codigoLabel = [a.mktEtapa,a.mktLoja].filter(Boolean).join(' · ');
+      solicitadoPor = a.criadoPor||'Rotina diária';
     } else {
       codigoLabel = a.sku ? ((a.skuTipo||'SKU')+': '+a.sku) : '';
       solicitadoPor = a.criadoPor||'—';
@@ -14931,6 +14965,7 @@ function renderAtividades(){
         </div>
         <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${a.titulo||'Sem título'}</div>
         ${codigoLabel?`<div style="font-size:10.5px;color:var(--text-secondary);font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
+        ${a.prazoHoras?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Prazo: <span style="color:var(--text-secondary);font-weight:600;">${a.prazoHoras}h</span></div>`:''}
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':'8'}px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
         ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:var(--tom-vermelho);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--linha-sutil);flex-wrap:wrap;gap:5px;">
@@ -15469,7 +15504,11 @@ function renderMktLinks(){
     head.dataset.mkt=_mktSlug(pf.platform);
     head.style.setProperty('--mkt-neon', MKT_NEON[pf.platform] || _hexRGB(hc));
     head.style.animationDelay=(_mktIdx*0.45).toFixed(2)+'s';
-    head.textContent=pf.platform;
+    // O nome vai num span próprio: é nele que a faixa de neon corre
+    const headTxt=document.createElement('span');
+    headTxt.className='mkt-nome-txt';
+    headTxt.textContent=pf.platform;
+    head.appendChild(headTxt);
     // Contador de % de conclusão das tarefas do card
     let _tot=0,_done=0;
     pf.stores.forEach(st=>st.links.forEach(lk=>{
@@ -16294,6 +16333,122 @@ function _cancPrazoLabel(item){
   if(!item.prazoLimite) return (item.prazoHoras||CANC_PRAZO_HORAS)+'h';
   const d=new Date(item.prazoLimite);
   return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+}
+
+/* ═══════════ ROTINA DIÁRIA DOS MARKETPLACES ═══════════
+   Cada etapa de revisão dos marketplaces vira um card em Tarefas Diárias.
+   A lista é fixa e o quadro se renova sozinho: virou 00:00, entram os cards
+   do dia novo. Os cards do dia anterior que ninguém tocou saem do quadro — a
+   conferência de ontem não vale mais, quem manda é a de hoje. O que teve
+   trabalho (concluída, finalizada ou com pendência anotada) permanece.
+
+   Os ids são determinísticos (dia + plataforma + loja + etapa): dois
+   navegadores abertos na virada geram exatamente os mesmos registros, então
+   ninguém duplica nada. */
+const MKT_ROTINA_RESP  = 'gustavo';
+const MKT_ROTINA_HORAS = 9;
+const MKT_ROTINA=[
+  {plataforma:'RD Marketplace',  loja:'Vix Suplementos',   etapas:[
+    'Pedidos','Protocolos em Aberto']},
+  {plataforma:'Web Continental', loja:'4Vita Suplementos', etapas:[
+    'Métricas Conta','Pedidos','Tickets']},
+  {plataforma:'Magalu',          loja:'4Vita Suplementos', etapas:[
+    'Métricas Conta','Chat com Cliente','Pedidos','SAC','Central de Ajuda',
+    'Devoluções','Perguntas e Respostas']},
+  {plataforma:'Mercado Livre',   loja:'VXShop',            etapas:[
+    'Envios Hoje','Reclamações e Mediações','Mensagens','Devoluções',
+    'Gestão de Anúncios','Reputação']},
+  {plataforma:'Mercado Livre',   loja:'Vitalife',          etapas:[
+    'Envios Hoje','Reclamações e Mediações','Mensagens','Devoluções',
+    'Gestão de Anúncios','Reputação']},
+  {plataforma:'Shopee',          loja:'Suplenium',         etapas:[
+    'Cancelados','Não Pagos','Devoluções','Gestão de Revisão','Saúde da Conta']},
+  {plataforma:'Shopee',          loja:'Primevitaminas',    etapas:[
+    'Cancelados','Não Pagos','Devoluções','Gestão de Revisão','Saúde da Conta']},
+  {plataforma:'DPSP',            loja:'Pacheco',           etapas:[
+    'Performance de Sellers','Gestão Vendas','Relatórios','Pacheco Baixas Pedidos',
+    'Devoluções','Atendimentos']},
+  {plataforma:'DPSP',            loja:'São Paulo',         etapas:[
+    'Performance de Sellers','Gestão Vendas','Relatórios','Pacheco Baixas Pedidos',
+    'Devoluções','Atendimentos']}
+];
+
+// Achata a lista em um item por card
+function _mktRotinaItens(){
+  const out=[];
+  MKT_ROTINA.forEach(g=>g.etapas.forEach(etapa=>out.push({plataforma:g.plataforma,loja:g.loja,etapa})));
+  return out;
+}
+
+function _mktRotinaId(dia,it){
+  return 'atv_mkt_'+String(dia).replace(/-/g,'')+'_'
+    +_mktSlug(it.plataforma)+'_'+_mktSlug(it.loja)+'_'+_mktSlug(it.etapa);
+}
+
+// Cria os cards de hoje que ainda não existem. Devolve quantos criou.
+function mktRotinaGarantirTarefas(){
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const dia=todayStr();
+  const existentes=new Set(appState.atividades.map(a=>a&&a.id));
+  const base=Date.now();
+  let criou=0;
+  _mktRotinaItens().forEach((it,i)=>{
+    const id=_mktRotinaId(dia,it);
+    if(existentes.has(id)) return;
+    appState.atividades.push({
+      id,
+      titulo:it.plataforma,
+      rotinaMkt:dia,
+      mktEtapa:it.etapa,
+      mktLoja:it.loja,
+      descricao:it.etapa+' — '+it.loja,
+      prioridade:'normal',
+      vencimento:dia,
+      prazoHoras:MKT_ROTINA_HORAS,
+      responsavel:MKT_ROTINA_RESP,
+      responsaveis:[MKT_ROTINA_RESP],
+      status:'aberta',
+      criadoEm:new Date().toLocaleDateString('pt-BR'),
+      criadoPor:'Rotina diária',
+      criadoPorKey:'rotina',
+      ordemManual:base+i
+    });
+    criou++;
+  });
+  return criou;
+}
+
+// Tira do quadro os cards de rotina de dias anteriores que ficaram intocados.
+// Devolve quantos removeu.
+function mktRotinaLimparAntigas(){
+  if(!Array.isArray(appState.atividades)) return 0;
+  const dia=todayStr();
+  const antes=appState.atividades.length;
+  appState.atividades=appState.atividades.filter(a=>{
+    if(!a || !a.rotinaMkt || a.rotinaMkt===dia) return true;
+    // Teve trabalho em cima: fica no histórico do quadro
+    if(a.status==='concluida'||a.status==='finalizada'||a.status==='andamento') return true;
+    if(a.provaConclusao||a.pendencia||(a.comentarios&&a.comentarios.length)) return true;
+    return false;
+  });
+  return antes-appState.atividades.length;
+}
+
+// Ponto único de entrada: limpa o dia velho, cria o dia novo e publica.
+// Chamada no login, quando chegam registros da nuvem e a cada minuto — é o
+// minuto que faz a virada acontecer com a tela aberta.
+function mktRotinaSincronizar(){
+  if(!currentUser) return false;
+  let mudou=false;
+  try{
+    if(mktRotinaLimparAntigas()>0) mudou=true;
+    if(mktRotinaGarantirTarefas()>0) mudou=true;
+  }catch(e){ console.warn('[rotina mkt]',e); return false; }
+  if(mudou){
+    try{ saveState(appState); }catch(e){}
+    try{ renderAtividades(); }catch(e){}
+  }
+  return mudou;
 }
 
 function saveIntegracao(){
