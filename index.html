@@ -4698,7 +4698,10 @@ function renderSeguranca(){
             <div style="font-size:12px;color:#f59e0b;font-weight:700;font-family:var(--font-mono);">⏳ ${(p2&&p2.nome)||uid}</div>
             <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);word-break:break-all;">${(p2&&p2.email)||''}</div>
           </div>
-          <button class="btn btn-sm" style="width:auto;flex-shrink:0;" onclick="autorizarAcesso('${uid}','${String((p2&&p2.nome)||'').replace(/'/g,"")}')">Autorizar</button>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <button class="btn btn-sm" style="width:auto;" onclick="autorizarAcesso('${uid}','${String((p2&&p2.nome)||'').replace(/'/g,"")}')">Autorizar</button>
+            <button class="btn-link btn-sm" onclick="descartarPedidoAcesso('${uid}','${String((p2&&p2.nome)||'').replace(/'/g,"")}')">Excluir</button>
+          </div>
         </div>`);
       });
       Object.entries(aprovados).forEach(([uid,a2])=>{
@@ -6292,6 +6295,18 @@ function autorizarAcesso(uid,nome){
     .then(()=>db.ref(FB_SOLICITACOES+'/'+uid).remove())
     .then(()=>{ showToast(`✓ Acesso liberado para ${nome||uid}`,'success'); renderSeguranca(); })
     .catch(err=>showToast('Falha ao autorizar: '+err.message,'error'));
+}
+
+// Pedido de acesso que não vai ser aprovado — sai da fila. É um caso comum:
+// a pessoa entrou por engano com outra conta e o pedido fica pendurado na
+// lista para sempre, ao lado do acesso dela que já está aprovado.
+function descartarPedidoAcesso(uid,nome){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode excluir pedidos','warn'); return; }
+  if(!db){ showToast('Sem conexão','error'); return; }
+  if(!confirm(`Excluir o pedido de acesso de ${nome||uid}?\n\nEle sai da lista sem ser autorizado. Se a pessoa entrar de novo com essa conta, o pedido volta a aparecer.`)) return;
+  db.ref(FB_SOLICITACOES+'/'+uid).remove()
+    .then(()=>{ showToast('Pedido de acesso excluído','success'); renderSeguranca(); })
+    .catch(err=>showToast('Falha ao excluir: '+err.message,'error'));
 }
 
 function revogarAcesso(uid,nome){
@@ -9725,6 +9740,7 @@ function criarTarefaAutoIntegracao(item,ctx){
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
   };
+  _tarefaAbsorverSolicitacao(novaTarefa,item);
   appState.atividades.push(novaTarefa);
   // Avisa quem ficou responsável pela nova tarefa
   notifyResponsaveisAtribuido({...novaTarefa,titulo:ctx.tarefaTitulo+' · '+_notifDescricaoItem(item)},'tarefa','tarefa');
@@ -9800,6 +9816,48 @@ function reconcileAutoTasks(state){
   return state;
 }
 
+/* A tarefa carrega tudo o que foi preenchido na solicitação: código,
+   marketplace, prazo, prioridade, responsáveis e as considerações — que viram
+   o histórico de comentários do card. Antes a tarefa nascia só com
+   responsável e prioridade, e quem abria o card em Tarefas Diárias não via o
+   comentário escrito na hora da criação.
+
+   Vale na criação e a cada edição da solicitação, para os dois lados nunca
+   contarem histórias diferentes. */
+function _tarefaAbsorverSolicitacao(t,item){
+  if(!t || !item) return t;
+  const codTipo = item.codigoTipo || (item.tipo==='ml'?'MLB':'SKU');
+  const codValor= item.codigoValor || item.mlb || item.sku || item.nome || '';
+  if(codValor){
+    t.sku=codValor;
+    // O campo da tela só aceita SKU, MLB ou Código
+    t.skuTipo=(codTipo==='SKU'||codTipo==='MLB')?codTipo:'Código';
+  }
+  const mkt=integToAtvMkt(item);
+  if(mkt) t.marketplace=mkt;
+  if(item.vencimento)  t.vencimento=item.vencimento;
+  if(item.prioridade)  t.prioridade=item.prioridade;
+  if(Array.isArray(item.responsaveis) && item.responsaveis.length){
+    t.responsaveis=item.responsaveis.slice();
+    t.responsavel=item.responsaveis[0];
+  }
+  // Comentário escrito dentro da tarefa não é apagado pelos da solicitação:
+  // os que vieram de lá ficam marcados e só eles são substituídos
+  const proprios=(t.comentarios||[]).filter(c=>c && !c.daSolicitacao);
+  const daSolic=(Array.isArray(item.consideracoes)?item.consideracoes:[])
+    .filter(c=>c && c.texto)
+    .map(c=>({texto:c.texto, autor:c.autor||'—', em:c.data||'', daSolicitacao:true}));
+  t.comentarios=[...daSolic,...proprios];
+  return t;
+}
+
+// Editar a solicitação depois de criada tem de chegar na tarefa que ela gerou
+function _atualizarTarefaDaSolicitacao(item,autoPrefix){
+  if(!item || !autoPrefix) return;
+  const t=(appState.atividades||[]).find(x=>x && x.id===autoPrefix+item.id);
+  if(t) _tarefaAbsorverSolicitacao(t,item);
+}
+
 // Cria automaticamente uma tarefa em Tarefas Diárias a partir de uma
 // solicitação de Entrada. Antes a Entrada não gerava tarefa; com "Atribuir
 // Tarefa" todos os tipos passam a aparecer para o responsável.
@@ -9819,6 +9877,7 @@ function criarTarefaAutoEntrada(item){
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
   };
+  _tarefaAbsorverSolicitacao(novaTarefa,item);
   appState.atividades.push(novaTarefa);
   notifyResponsaveisAtribuido({...novaTarefa,titulo:'Entrada · '+_notifDescricaoItem(item)},'tarefa','tarefa');
 }
@@ -9840,6 +9899,7 @@ function criarTarefaAutoImagem(item){
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
   };
+  _tarefaAbsorverSolicitacao(novaTarefa,item);
   appState.atividades.push(novaTarefa);
   // Avisa quem ficou responsável pela nova tarefa
   notifyResponsaveisAtribuido({...novaTarefa,titulo:'Imagem · '+_notifDescricaoItem(item)},'tarefa','tarefa');
@@ -13471,7 +13531,9 @@ function _atvSelectMarketplace(nome){
 }
 
 /* --- Central de Tarefas: Título --- */
-const ATV_TITULO_BASE=['Entrada Produto','Integração','Imagem','Atendimentos','Devoluções','Contabilidade'];
+// 'Exclusão Integração' precisa estar aqui: é o título que a solicitação de
+// exclusão dá à tarefa, e sem a opção na lista o campo abria em branco.
+const ATV_TITULO_BASE=['Entrada Produto','Integração','Exclusão Integração','Imagem','Atendimentos','Devoluções','Contabilidade'];
 const ATV_PRAZOS_BASE={'Entrada Produto':2}; // dias padrão por título
 function renderAtvTituloOptions(sel){ renderCustomOpts('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv',sel); }
 function addAtvTitulo(){ if(!currentUser||!currentUser.master){showToast('Apenas o master pode gerenciar os títulos','warn');return;} addCustomOpt('atv-titulo',ATV_TITULO_BASE,'customTitulosAtv','título',renderAtvTituloOptions); }
@@ -14889,10 +14951,12 @@ function renderAtividades(){
     const prior=ATV_PRIOR[a.prioridade]||ATV_PRIOR.normal;
     const dias=atvDiasRestantes(a.vencimento);
 
-    // Tarefa com vencimento futuro fica "adormecida": some do quadro e volta
-    // apenas no dia do prazo — evita poluir o kanban com tratativas agendadas
-    // (ex.: atendimento cuja data de retorno foi remarcada).
-    if(dias!==null && dias>0 && a.status!=='concluida' && a.status!=='finalizada') return;
+    // Tratativa de atendimento remarcada para outro dia fica "adormecida":
+    // some do quadro e volta no dia do retorno. Vale só para Atendimentos —
+    // é o caso que a regra existe para resolver. Tarefa atribuída com prazo
+    // para daqui a dois dias tem de aparecer hoje, senão o prazo escolhido
+    // faria o card sumir justamente de quem precisa começar a trabalhar nele.
+    if(a.origemAteId && dias!==null && dias>0 && a.status!=='concluida' && a.status!=='finalizada') return;
     const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida' && a.status !== 'finalizada';
     const diasLabel=atvDiasLabel(dias,a.status);
 
@@ -16533,6 +16597,7 @@ function saveIntegracao(){
         if(ctx.conf) confRegistrarIntegracaoConcluida(arr[idx]);
       }
       notifyNovosResponsaveis(anterior,arr[idx],'solicitação de '+ctx.notifLabel,ctx.notifTipo);
+      _atualizarTarefaDaSolicitacao(arr[idx],ctx.autoPrefix);
     }
     showToast('Solicitação atualizada','success');
   } else {
@@ -16933,6 +16998,7 @@ function saveEntradaReq(){
         ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.entradas[idx],'Entrada','entrada'); }
       notifyNovosResponsaveis(anterior,appState.entradas[idx],'solicitação de Entrada','entrada');
+      _atualizarTarefaDaSolicitacao(appState.entradas[idx],'atv_entrada_');
     }
     showToast('Solicitação atualizada','success');
   } else {
@@ -17054,6 +17120,7 @@ function saveImagemReq(){
         ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.imagensReq[idx],'Imagens','imagens'); confRegistrarImagemConcluida(appState.imagensReq[idx]); }
       notifyNovosResponsaveis(anterior,appState.imagensReq[idx],'solicitação de Imagens','imagens');
+      _atualizarTarefaDaSolicitacao(appState.imagensReq[idx],'atv_img_');
     }
     showToast('Solicitação atualizada','success');
   } else {
@@ -17284,9 +17351,12 @@ function openAtvModal(id){
     let _idVal=a.sku||'';
     _atvMktpRestrict=null;
     let _atvMktSel=a.marketplace||'';
-    if(a.origemIntegId||a.origemExIntId||a.origemImgId){
-      const _srcList=a.origemIntegId?(appState.integracoes||[]):(a.origemExIntId?(appState.excluirIntBase||[]):(appState.imagensReq||[]));
-      const _src=_srcList.find(x=>x.id===(a.origemIntegId||a.origemExIntId||a.origemImgId));
+    if(a.origemIntegId||a.origemExIntId||a.origemImgId||a.origemEntradaId){
+      const _srcList = a.origemIntegId ? (appState.integracoes||[])
+                     : a.origemExIntId ? (appState.excluirIntBase||[])
+                     : a.origemImgId   ? (appState.imagensReq||[])
+                     :                   (appState.entradas||[]);
+      const _src=_srcList.find(x=>x.id===(a.origemIntegId||a.origemExIntId||a.origemImgId||a.origemEntradaId));
       if(_src){
         const _k=integToAtvMkt(_src);
         if(_k){ _atvMktpRestrict=[_k]; if(!_atvMktSel) _atvMktSel=_k; }
