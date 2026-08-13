@@ -11117,16 +11117,16 @@ function renderProgressoAbas(containerId){
   const hojeDM=String(_now.getDate()).padStart(2,'0')+'/'+String(_now.getMonth()+1).padStart(2,'0'); // dd/mm
   const hojeFull=_now.toLocaleDateString('pt-BR'); // dd/mm/aaaa
 
-  // Marketplaces (checks das tarefas dos cards — estado atual)
+  // Marketplaces (revisão diária — o estado vem das Tarefas Diárias de hoje)
   {
     let tot=0,done=0; const pend=[];
-    if(typeof MKT_LINKS!=='undefined'){
-      MKT_LINKS.forEach(pf=>pf.stores.forEach(st=>st.links.forEach(lk=>{
-        tot++;
-        const ok=appState.mktStoreDone&&appState.mktStoreDone[_mktLinkKey(pf.platform,st.store,lk.label)+'_done'];
-        if(ok) done++; else pend.push({badge:st.store, text:lk.label});
-      })));
-    }
+    const hojeRotina=todayStr();
+    (appState.atividades||[]).forEach(a=>{
+      if(!a || a.rotinaMkt!==hojeRotina) return;
+      tot++;
+      if(a.status==='concluida'||a.status==='finalizada') done++;
+      else pend.push({badge:a.mktLoja||a.titulo, text:a.mktEtapa||a.titulo});
+    });
     abas.push({label:'Marketplaces', icon:'🛒', total:tot, done, pend});
   }
   // Atendimentos
@@ -15190,6 +15190,8 @@ function atvMoveStatus(id,novoStatus,provaBase64){
     a.finalizadoEm=new Date().toLocaleDateString('pt-BR');a.finalizadoPor=currentUser.name;
   }
   saveState(appState);renderAtividades();
+  // O painel de Marketplaces espelha o estado da revisão diária
+  if(a.rotinaMkt){ try{ renderMktLinks(); }catch(e){} }
   showToast('Tarefa → '+{aberta:'A Fazer',andamento:'Com Pendência',concluida:'Concluída',finalizada:'Finalizada'}[novoStatus],'success');
 }
 
@@ -15469,7 +15471,7 @@ const MKT_LINKS=[
       {label:'São Paulo Baixas Pedidos', internal:'drogarias-saopaulo'},
       {label:'Devoluções',             url:'https://marketplace.drogariasaopaulo.com.br/v3/pedidos/devolucoes'},
       {label:'Gestão de SKUs',         url:'https://marketplace.drogariasaopaulo.com.br/v3/produto/gerenciar'},
-      {label:'Atendimento',            url:'https://marketplace.drogariasaopaulo.com.br/v3/atendimento'}
+      {label:'Atendimentos',           url:'https://marketplace.drogariasaopaulo.com.br/v3/atendimento'}
     ]}
   ]}
 ];
@@ -15489,8 +15491,6 @@ function renderMktLinks(){
   const panel=document.getElementById('mkt-links-panel');
   if(!panel) return;
   panel.innerHTML='';
-  if(!appState.mktStoreDone) appState.mktStoreDone={};
-  const canMkt = currentUser && (currentUser.master || (currentUser.perms||[]).includes('plataformas'));
   MKT_LINKS.forEach((pf,_mktIdx)=>{
     const card=document.createElement('div');
     card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;box-shadow:var(--sombra-card);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;`;
@@ -15509,16 +15509,12 @@ function renderMktLinks(){
     headTxt.className='mkt-nome-txt';
     headTxt.textContent=pf.platform;
     head.appendChild(headTxt);
-    // Contador de % de conclusão das tarefas do card
-    let _tot=0,_done=0;
-    pf.stores.forEach(st=>st.links.forEach(lk=>{
-      _tot++;
-      if(appState.mktStoreDone[_mktLinkKey(pf.platform,st.store,lk.label)+'_done']) _done++;
-    }));
-    const pct=_tot>0?Math.round((_done/_tot)*100):0;
+    // O % vem das Tarefas Diárias: a revisão é concluída lá, não aqui
+    const prog=mktProgressoPlataforma(pf.platform);
+    const pct=prog.total>0?Math.round((prog.feitas/prog.total)*100):0;
     const pctBadge=document.createElement('span');
     pctBadge.style.cssText=`font-size:11px;font-family:var(--font-mono);font-weight:700;padding:3px 12px;border-radius:12px;${pctBadgeCSS(pct)}`;
-    pctBadge.title=_done+' de '+_tot+' tarefas concluídas';
+    pctBadge.title=prog.feitas+' de '+prog.total+' tarefas de hoje concluídas em Tarefas Diárias';
     pctBadge.textContent=pct+'%';
     const headRow=document.createElement('div');
     headRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;';
@@ -15539,25 +15535,20 @@ function renderMktLinks(){
       storeLbl.textContent=st.store;
       row.appendChild(storeLbl);
       st.links.forEach(lk=>{
-        const doneKey=_mktLinkKey(pf.platform,st.store,lk.label)+'_done';
-        const isDone=!!appState.mktStoreDone[doneKey];
+        // A conclusão vem da tarefa do dia em Tarefas Diárias — aqui é só leitura
+        const tarefa=_mktTarefaDoLink(pf.platform,st.store,lk.label);
+        const isDone=_mktTarefaConcluida(tarefa);
         // Pill da tarefa: roxo com borda neon branco claro + verificado na frente do nome
         const pill=document.createElement('span');
         pill.style.cssText=`display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08));border:1.5px solid rgba(255,255,255,.65);border-radius:50px;padding:3px 5px 3px 6px;box-shadow:0 0 8px rgba(255,255,255,.22),inset 0 1px 0 rgba(255,255,255,.12);white-space:nowrap;`;
-        if(canMkt){
-          const checkBtn=document.createElement('button');
-          checkBtn.type='button';
-          checkBtn.title=isDone?'Desmarcar tarefa concluída':'Marcar tarefa como concluída';
-          checkBtn.style.cssText=`background:${isDone?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.4);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:10px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
-          checkBtn.textContent=isDone?'✓':'';
-          checkBtn.onclick=(e)=>{
-            e.stopPropagation();
-            if(!appState.mktStoreDone) appState.mktStoreDone={};
-            appState.mktStoreDone[doneKey]=!isDone;
-            saveState(appState);
-            renderMktLinks();
-          };
-          pill.appendChild(checkBtn);
+        if(tarefa){
+          const marca=document.createElement('span');
+          marca.title=isDone
+            ?'Concluída em Tarefas Diárias'+(tarefa.concluidoPor?' por '+tarefa.concluidoPor:'')
+            :'Pendente — concluir em Tarefas Diárias';
+          marca.style.cssText=`background:${isDone?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.4);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+          marca.textContent=isDone?'✓':'';
+          pill.appendChild(marca);
         }
         const btn=document.createElement('button');
         btn.type='button';
@@ -16372,6 +16363,28 @@ const MKT_ROTINA=[
     'Performance de Sellers','Gestão Vendas','Relatórios','São Paulo Baixas Pedidos',
     'Devoluções','Atendimentos']}
 ];
+
+// O painel de Marketplaces chama as lojas da DPSP pelo nome completo;
+// a rotina usa o nome curto que o usuário definiu.
+const MKT_ROTINA_LOJA_ALIAS={'Drogaria Pacheco':'Pacheco','Drogaria São Paulo':'São Paulo'};
+
+// Tarefa de hoje correspondente a um link do painel de Marketplaces, se houver.
+// Links que não fazem parte da revisão diária (Produtos, Abrir Protocolo,
+// Gestão de SKUs) simplesmente não têm tarefa e não entram na conta.
+function _mktTarefaDoLink(platform,store,label){
+  const loja=MKT_ROTINA_LOJA_ALIAS[store]||store;
+  const id=_mktRotinaId(todayStr(),{plataforma:platform,loja,etapa:label});
+  return (appState.atividades||[]).find(a=>a && a.id===id)||null;
+}
+
+function _mktTarefaConcluida(t){ return !!t && (t.status==='concluida'||t.status==='finalizada'); }
+
+// Quanto da revisão diária de uma plataforma já foi concluída
+function mktProgressoPlataforma(platform){
+  const hoje=todayStr();
+  const arr=(appState.atividades||[]).filter(a=>a && a.rotinaMkt===hoje && a.titulo===platform);
+  return {total:arr.length, feitas:arr.filter(_mktTarefaConcluida).length};
+}
 
 // Achata a lista em um item por card
 function _mktRotinaItens(){
