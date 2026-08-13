@@ -6802,6 +6802,13 @@ function onNotasInput(ta){
 
 let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes']);
 
+/* Marca da versão que este navegador carregou. Serve para responder a
+   pergunta que custou caro: "esta máquina já está com a correção?" — o
+   sistema é um arquivo só, então a única forma de atualizar é recarregar a
+   página, e até aqui não havia como saber se isso tinha acontecido.
+   Trocar esta data a cada publicação. */
+const APP_VERSAO='2026.08.13';
+
 function buildTabs(){
   const tabs=[
     {type:'group', id:'grp-tarefas', icon:'📌', label:'Central de Tarefas', perm:'tarefas', children:[
@@ -6956,6 +6963,10 @@ function buildTabs(){
         <span class="sb-tema-txt" id="theme-toggle-label">Modo Escuro</span>
       </button>
       <button onclick="doLogout()" class="sb-sair" title="Encerrar a sessão">Sair</button>
+    </div>
+    <div style="margin-top:7px;text-align:center;font-size:9.5px;font-family:var(--font-mono);color:var(--text-muted);opacity:.75;"
+         title="Versão que ESTE navegador está rodando. Se estiver diferente da de outra máquina, recarregue a página com Ctrl+Shift+R.">
+      versão ${APP_VERSAO}
     </div>`;
   nav.appendChild(footer);
   try{ _loThemeIcon(); }catch(e){}
