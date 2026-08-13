@@ -5356,15 +5356,39 @@ function _migrarParaRegistros(){
   return db.ref(FB_REG).once('value').then(snap=>{
     const jaExiste=snap.exists();
     if(jaExiste){
-      // Guarda o que já está na nuvem, para não regravar tudo no 1º save
+      /* A nuvem manda no login. O que está no localStorage é a foto do último
+         acesso DESTE computador e pode ser de dias atrás; deixar essa foto de
+         pé é o que fazia o dia de trabalho voltar atrás ao abrir o sistema em
+         outra máquina. Aqui as listas são substituídas pelo que está na nuvem
+         antes de esta sessão ter permissão de gravar qualquer coisa.
+
+         Coleção que ainda não existe na nuvem não é tocada: nesse caso o que
+         está aqui é o que há, e sobe no primeiro save. */
       const dados=snap.val()||{};
-      Object.keys(COLECOES_REG).forEach(nome=>{
+      let trocadas=0, registros=0;
+      Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
         _regEnviado[nome]={};
-        Object.entries(dados[nome]||{}).forEach(([k,v])=>{
+        const daNuvem=dados[nome];
+        const lista=[];
+        Object.entries(daNuvem||{}).forEach(([k,v])=>{
           const reg={...v}; delete reg._by;
           _regEnviado[nome][k]=JSON.stringify(reg);
+          lista.push(reg);
         });
+        if(daNuvem===undefined || daNuvem===null) return; // sem essa lista na nuvem
+        const antes=acc.get(appState);
+        acc.set(appState,lista);
+        registros+=lista.length;
+        if(!Array.isArray(antes) || JSON.stringify(antes)!==JSON.stringify(lista)) trocadas++;
       });
+      if(trocadas){
+        console.log('[reg] estado local substituído pelo da nuvem:',registros,'registro(s) em',trocadas,'lista(s)');
+        try{ saveLocal(appState); }catch(e){}
+        try{ logSincronizarSnapshot(appState); }catch(e){}
+        try{ renderAll(); }catch(e){}
+        ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
+          .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+      }
       return false;
     }
     // Ainda no formato antigo: sobe as listas do estado atual
@@ -5386,13 +5410,24 @@ function _migrarParaRegistros(){
   });
 }
 
-// Antes de publicar qualquer coisa, esta sessão precisa ter LIDO a nuvem.
-// Sem isso, um navegador que abriu com uma cópia velha no localStorage
-// empurrava esse estado antigo por cima do que já estava lá — foi assim que
-// tarefas concluídas voltavam a aparecer em aberto.
+/* Antes de publicar qualquer coisa, esta sessão precisa ter LIDO a nuvem —
+   as DUAS pontas dela: o pacote (configurações, usuários) e os registros
+   (tarefas, solicitações, devoluções...).
+
+   Faltava esperar a segunda. O pacote chegava primeiro, a gravação era
+   liberada, e qualquer save disparado nesse intervalo publicava as listas do
+   localStorage — a foto do último acesso daquele computador. Numa máquina que
+   ficou dias sem abrir o sistema, essa foto sobrescrevia o trabalho do dia
+   inteiro: tarefa concluída voltava para "A Fazer" e registro apagado
+   ressuscitava. */
 let _recebeuNuvem=false;
 let _salvarQuandoLiberar=false;
-function _liberarGravacaoNaNuvem(){
+let _nuvemPacoteLido=false;
+let _nuvemRegistrosLidos=false;
+function _liberarGravacaoNaNuvem(origem){
+  if(origem==='registros') _nuvemRegistrosLidos=true;
+  else                     _nuvemPacoteLido=true;
+  if(!_nuvemPacoteLido || !_nuvemRegistrosLidos) return;
   if(_recebeuNuvem) return;
   _recebeuNuvem=true;
   if(_salvarQuandoLiberar){
@@ -5820,8 +5855,22 @@ function startFirebaseSync(){
   // Sincronização por registro: migra na primeira vez e passa a escutar
   // cada lista separadamente, em vez do pacote inteiro
   _migrarParaRegistros()
-    .then(()=>{ _regAtivo=true; _ouvirRegistros(); _liberarGravacaoNaNuvem(); console.log('[reg] sincronização por registro ativa'); })
-    .catch(err=>{ console.warn('[reg] indisponível, seguindo pelo pacote:',err.message); _regAtivo=false; });
+    .then(()=>{
+      _regAtivo=true;
+      _ouvirRegistros();
+      _liberarGravacaoNaNuvem('registros');
+      // Agora sim sobre o estado verdadeiro: a rotina do dia é conferida
+      // depois da leitura, não sobre a cópia velha desta máquina
+      try{ mktRotinaSincronizar(); }catch(e){}
+      console.log('[reg] sincronização por registro ativa');
+    })
+    .catch(err=>{
+      console.warn('[reg] indisponível, seguindo pelo pacote:',err.message);
+      _regAtivo=false;
+      // Sem os registros a sessão trabalha só com o pacote — travar a gravação
+      // para sempre deixaria o usuário perdendo tudo o que fizesse
+      _liberarGravacaoNaNuvem('registros');
+    });
 
   // Listener único em tempo real — dispara na conexão e em cada mudança
   fbListener = db.ref(FB_PATH).on('value', snap => {
@@ -5834,7 +5883,10 @@ function startFirebaseSync(){
       if(currentUser){
         const payload = Object.assign(_estadoSemColecoes(appState), {_savedBy: _sessionId});
         db.ref(FB_PATH).set(payload);
-        try{ _gravarRegistrosAlterados(appState); }catch(e){}
+        // Os registros só sobem depois que a leitura de suplelive/reg terminar:
+        // antes disso não dá para saber o que já existe lá, e subir a cópia
+        // local ressuscitaria o que outra sessão apagou
+        if(_recebeuNuvem){ try{ _gravarRegistrosAlterados(appState); }catch(e){} }
       }
       return;
     }
@@ -5886,6 +5938,9 @@ function startFirebaseSync(){
 
   }, err => {
     console.error('[SYNC] Firebase listener error:', err);
+    // Se o pacote nunca chega, a gravação não pode ficar travada para sempre —
+    // a sessão segue com o que os registros trouxeram
+    _liberarGravacaoNaNuvem();
     startLocalSync();
   });
 }
