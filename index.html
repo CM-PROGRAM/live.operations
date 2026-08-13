@@ -16369,7 +16369,7 @@ const MKT_ROTINA=[
     'Performance de Sellers','Gestão Vendas','Relatórios','Pacheco Baixas Pedidos',
     'Devoluções','Atendimentos']},
   {plataforma:'DPSP',            loja:'São Paulo',         etapas:[
-    'Performance de Sellers','Gestão Vendas','Relatórios','Pacheco Baixas Pedidos',
+    'Performance de Sellers','Gestão Vendas','Relatórios','São Paulo Baixas Pedidos',
     'Devoluções','Atendimentos']}
 ];
 
@@ -16418,14 +16418,17 @@ function mktRotinaGarantirTarefas(){
   return criou;
 }
 
-// Tira do quadro os cards de rotina de dias anteriores que ficaram intocados.
-// Devolve quantos removeu.
+// Tira do quadro os cards de rotina que ficaram intocados e não valem mais:
+// os de dias anteriores e os de hoje que saíram da lista (etapa renomeada ou
+// removida). Devolve quantos removeu.
 function mktRotinaLimparAntigas(){
   if(!Array.isArray(appState.atividades)) return 0;
   const dia=todayStr();
+  const doDia=new Set(_mktRotinaItens().map(it=>_mktRotinaId(dia,it)));
   const antes=appState.atividades.length;
   appState.atividades=appState.atividades.filter(a=>{
-    if(!a || !a.rotinaMkt || a.rotinaMkt===dia) return true;
+    if(!a || !a.rotinaMkt) return true;
+    if(a.rotinaMkt===dia && doDia.has(a.id)) return true;
     // Teve trabalho em cima: fica no histórico do quadro
     if(a.status==='concluida'||a.status==='finalizada'||a.status==='andamento') return true;
     if(a.provaConclusao||a.pendencia||(a.comentarios&&a.comentarios.length)) return true;
