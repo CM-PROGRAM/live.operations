@@ -502,6 +502,55 @@ input:-webkit-autofill:active{
 .atv-prior-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:14px;color:var(--text-primary);cursor:pointer;transition:background .15s;}
 .atv-prior-opt:hover{background:var(--veu-medio);}
 .input-group label{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;font-weight:500;}
+/* ── Projetos: notas livres com neon branco na borda ── */
+.proj-nota{
+  position:relative;display:flex;flex-direction:column;
+  background:var(--bg-card);border:1.5px solid rgba(255,255,255,.65);border-radius:14px;
+  box-shadow:0 0 10px rgba(255,255,255,.22), inset 0 1px 0 rgba(255,255,255,.12), var(--sombra-card);
+  transition:box-shadow .2s, border-color .2s;
+}
+.proj-nota:focus-within{
+  border-color:rgba(255,255,255,.92);
+  box-shadow:0 0 18px rgba(255,255,255,.38), inset 0 1px 0 rgba(255,255,255,.18), var(--sombra-card-alta);
+}
+/* Finalizado: o neon esfria para verde, para o quadro se ler de longe */
+.proj-nota.finalizado{
+  border-color:rgba(74,222,128,.55);
+  box-shadow:0 0 10px rgba(74,222,128,.25), var(--sombra-card);
+}
+.proj-nota.finalizado .proj-nota-corpo,
+.proj-nota.finalizado .proj-nota-titulo{opacity:.62;}
+/* Sobre o fundo branco o neon branco não existe — vira um contorno de aço */
+:root[data-theme="light"] .proj-nota{
+  border-color:rgba(100,116,139,.55);
+  box-shadow:0 0 10px rgba(100,116,139,.16), var(--sombra-card);
+}
+:root[data-theme="light"] .proj-nota:focus-within{
+  border-color:rgba(71,85,105,.85);
+  box-shadow:0 0 16px rgba(100,116,139,.28), var(--sombra-card-alta);
+}
+.proj-nota-titulo{
+  background:none;border:none;outline:none;width:100%;
+  color:var(--text-primary);font-family:var(--font-sans);font-size:15px;font-weight:700;
+  letter-spacing:-.01em;padding:0;
+}
+.proj-nota-titulo::placeholder{color:var(--text-muted);font-weight:600;}
+.proj-nota-corpo{
+  outline:none;min-height:110px;max-height:340px;overflow-y:auto;
+  color:var(--text-secondary);font-family:var(--font-sans);font-size:13px;line-height:1.55;
+  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;
+}
+.proj-nota-corpo:empty::before{content:attr(data-placeholder);color:var(--text-muted);}
+.proj-nota-corpo ul,.proj-nota-corpo ol{margin:6px 0 6px 18px;}
+.proj-nota-corpo h3{font-size:14px;font-weight:800;color:var(--text-primary);margin:8px 0 4px;}
+.proj-nota-corpo a{color:var(--tom-azul);}
+.proj-fmt{
+  background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:7px;
+  color:var(--text-muted);font-family:var(--font-mono);font-size:11px;font-weight:700;
+  min-width:26px;height:26px;padding:0 7px;cursor:pointer;transition:all .15s;
+}
+.proj-fmt:hover{color:var(--text-primary);border-color:rgba(255,255,255,.35);background:var(--veu-medio);}
+
 /* Campo só de leitura no modal da tarefa: mesma caixa dos inputs, sem cursor */
 .atv-campo-fixo{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);
   color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;width:100%;
@@ -1655,6 +1704,28 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <!-- PROJETOS -->
+    <!-- PROJETOS — área livre de notas (título + texto formatado) -->
+    <div class="tab-panel" id="tab-projnotas">
+      <div class="section-header">
+        <span class="section-title">Projetos</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <select id="projnota-filtro" onchange="renderProjNotas()" style="width:auto;min-width:160px;">
+            <option value="abertos">Em aberto</option>
+            <option value="todos">Todos</option>
+            <option value="finalizados">Finalizados</option>
+          </select>
+          <button class="btn btn-sm" onclick="projNotaNova()" style="width:auto;white-space:nowrap;--bc: var(--rgb-aco);">+ Nova nota</button>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">
+        Área livre para os projetos que você quer executar. O texto salva sozinho.
+      </div>
+      <div id="projnota-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;align-items:start;"></div>
+      <div id="projnota-empty" style="display:none;padding:48px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">
+        Nenhuma nota ainda. Clique em “+ Nova nota” para começar.
+      </div>
+    </div>
+
     <div class="tab-panel" id="tab-projetos">
       <div class="section-header">
         <span class="section-title">Projetos</span>
@@ -3434,6 +3505,7 @@ function defaultState(){
     cnpjMkt:{},
     atividades:[],
     projetos:[],
+    projNotas:[],
     integracoes:[],
     excluirIntBase:[],
     imagensReq:[],
@@ -3521,6 +3593,7 @@ function loadLocal(){
     if(!Array.isArray(s.conferencia)) s.conferencia=[];
     if(!s.cnpjMkt || typeof s.cnpjMkt!=='object') s.cnpjMkt={};
     if(!Array.isArray(s.projetos)) s.projetos=[];
+    if(!Array.isArray(s.projNotas)) s.projNotas=[];
     if(!Array.isArray(s.integracoes)) s.integracoes=[];
     if(!Array.isArray(s.excluirIntBase)) s.excluirIntBase=[];
     _semearEmails(s);
@@ -3971,7 +4044,7 @@ function restaurarDoArquivo(area,chave){
   lista.push(JSON.parse(JSON.stringify(item.dados)));
   saveState(appState);
   showToast('✓ Registro restaurado','success');
-  ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
+  ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
     .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
 }
 
@@ -4097,7 +4170,7 @@ function restaurarBackup(dia){
     appState.users=usuariosAtuais;
     saveState(appState);
     showToast('✓ Cópia de '+dia.split('-').reverse().join('/')+' restaurada','success');
-    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderAll']
+    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas','renderAll']
       .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
   }).catch(err=>showToast('Falha ao restaurar: '+err.message,'error'));
 }
@@ -5123,6 +5196,7 @@ const COLECOES_REG={
   canceladas:    {get:s=>s.canceladas,                 set:(s,v)=>{s.canceladas=v;}},
   canceladasNF:  {get:s=>s.canceladasNF,               set:(s,v)=>{s.canceladasNF=v;}},
   projetos:      {get:s=>s.projetos,                   set:(s,v)=>{s.projetos=v;}},
+  projNotas:     {get:s=>s.projNotas,                  set:(s,v)=>{s.projNotas=v;}},
   devolucoes:    {get:s=>(s.tasks||{}).devolucoes,     set:(s,v)=>{(s.tasks=s.tasks||{}).devolucoes=v;}},
   atendimentos:  {get:s=>(s.tasks||{}).atendimentos,   set:(s,v)=>{(s.tasks=s.tasks||{}).atendimentos=v;}}
 };
@@ -5331,7 +5405,7 @@ function _agendarRenderRegistros(){
     try{ saveLocal(appState); }catch(e){}
     try{ logSincronizarSnapshot(appState); }catch(e){}
     try{ renderAll(); }catch(e){}
-    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
+    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
       .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
     ['canc','cancnf'].forEach(p=>{ try{ renderCanceladas(p); }catch(e){} });
     if(novasTarefas){ try{ saveState(appState); }catch(e){} }
@@ -5386,7 +5460,7 @@ function _migrarParaRegistros(){
         try{ saveLocal(appState); }catch(e){}
         try{ logSincronizarSnapshot(appState); }catch(e){}
         try{ renderAll(); }catch(e){}
-        ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos']
+        ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
           .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
       }
       return false;
@@ -6831,6 +6905,7 @@ function buildTabs(){
       {id:'relatorio', label:'Relatório Entrega'}
     ]},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
+    {id:'projnotas',  icon:'🗂', label:'Projetos',              perm:null},
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
       {id:'devolucoes', label:'Lançamentos'}
     ]},
@@ -6880,6 +6955,7 @@ function buildTabs(){
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
     if(id==='projetos'){ try{renderProjetos();}catch(e){console.warn('renderProjetos:',e);} }
+    if(id==='projnotas'){ try{renderProjNotas();}catch(e){console.warn('renderProjNotas:',e);} }
     if(id==='plataformas'){ try{renderMktLinks();}catch(e){console.warn('renderMktLinks:',e);} }
     if(id==='entrada'){ try{renderEntradas();}catch(e){console.warn('renderEntradas:',e);} }
     if(id==='integracao'){ try{renderIntegracoes();}catch(e){console.warn('renderIntegracoes:',e);} }
@@ -15398,6 +15474,232 @@ function deleteAtividade(id){
 // ═══════════════════════════════════════════════════════
 // PROJETOS — solicitações de melhorias/planilhas (baixa urgência)
 // ═══════════════════════════════════════════════════════
+/* ═══════════ PROJETOS — notas livres ═══════════
+   Título + texto formatado, um card por projeto. Salva sozinho enquanto se
+   escreve e sincroniza registro a registro, como o resto do sistema. */
+
+// O corpo é HTML (o texto tem formatação), então nunca entra na tela como
+// veio: só sobrevivem as marcações de formatação, e nenhum atributo.
+const PROJ_TAGS_OK=new Set(['B','STRONG','I','EM','U','S','BR','P','DIV','UL','OL','LI','H3','SPAN','FONT']);
+function _projSanitizarHtml(html){
+  const doc=document.implementation.createHTMLDocument('');
+  doc.body.innerHTML=String(html||'');
+  // script/style vão embora inteiros: aproveitar o texto deles só despejaria
+  // código no meio da nota. Nas demais tags desconhecidas o texto é mantido.
+  doc.body.querySelectorAll('script,style,noscript,template,iframe,object,embed').forEach(el=>el.remove());
+  const limpar=(no)=>{
+    [...no.children].forEach(el=>{
+      limpar(el);
+      if(!PROJ_TAGS_OK.has(el.tagName)){
+        el.replaceWith(...el.childNodes);
+        return;
+      }
+      [...el.attributes].forEach(a=>el.removeAttribute(a.name));
+    });
+  };
+  limpar(doc.body);
+  return doc.body.innerHTML.slice(0,20000);
+}
+
+function _projNotas(){
+  if(!Array.isArray(appState.projNotas)) appState.projNotas=[];
+  return appState.projNotas;
+}
+function _projNota(id){ return _projNotas().find(n=>n && n.id===id)||null; }
+// Master ou quem criou a nota
+function _projPodeMexer(n){
+  return !!(currentUser && (currentUser.master || !n.criadoPorKey || n.criadoPorKey===currentUser.key));
+}
+
+function projNotaNova(){
+  if(!currentUser){ showToast('Faça login para criar notas','warn'); return; }
+  const agora=Date.now();
+  _projNotas().unshift({
+    id:'projnota_'+agora,
+    titulo:'', corpo:'', status:'aberto',
+    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoPor:currentUser.name, criadoPorKey:currentUser.key,
+    ordemManual:agora
+  });
+  const filtro=document.getElementById('projnota-filtro');
+  if(filtro && filtro.value==='finalizados') filtro.value='abertos';
+  saveState(appState);
+  renderProjNotas();
+  // Cursor já no título da nota nova
+  const campo=document.querySelector('#projnota-grid .proj-nota-titulo');
+  if(campo) campo.focus();
+}
+
+// Enquanto se digita não vale gravar a cada tecla: junta as alterações
+const _projSalvarTimers={};
+function _projAgendarSalvar(id){
+  clearTimeout(_projSalvarTimers[id]);
+  _projSalvarTimers[id]=setTimeout(()=>{
+    const n=_projNota(id); if(!n) return;
+    const card=document.getElementById('projnota-'+id);
+    if(!card) return;
+    const tit=card.querySelector('.proj-nota-titulo');
+    const corpo=card.querySelector('.proj-nota-corpo');
+    if(tit)   n.titulo=String(tit.value||'').slice(0,120);
+    if(corpo) n.corpo=_projSanitizarHtml(corpo.innerHTML);
+    n.atualizadoEm=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    n.atualizadoPor=currentUser?currentUser.name:'';
+    saveState(appState);
+    const marca=card.querySelector('.proj-nota-salvo');
+    if(marca){ marca.textContent='salvo '+n.atualizadoEm.split(' ')[1]; }
+  },700);
+}
+
+// Negrito, itálico e afins no trecho selecionado
+function projNotaFormato(id,cmd,valor){
+  const card=document.getElementById('projnota-'+id);
+  const corpo=card&&card.querySelector('.proj-nota-corpo');
+  if(!corpo) return;
+  corpo.focus();
+  try{ document.execCommand(cmd,false,valor||null); }catch(e){}
+  _projAgendarSalvar(id);
+}
+
+// Colar entra como texto puro: HTML de fora traria estilos e imagens
+// embutidas, que incham o registro e quebram o visual do card.
+function projNotaColar(ev,id){
+  ev.preventDefault();
+  const txt=(ev.clipboardData||window.clipboardData).getData('text/plain')||'';
+  try{ document.execCommand('insertText',false,txt); }catch(e){}
+  _projAgendarSalvar(id);
+}
+
+function projNotaFinalizar(id){
+  const n=_projNota(id); if(!n) return;
+  if(!_projPodeMexer(n)){ showToast('Apenas o master ou quem criou pode alterar','warn'); return; }
+  const finalizando = n.status!=='finalizado';
+  n.status = finalizando ? 'finalizado' : 'aberto';
+  if(finalizando){
+    n.finalizadoEm=new Date().toLocaleDateString('pt-BR');
+    n.finalizadoPor=currentUser.name;
+  } else {
+    delete n.finalizadoEm; delete n.finalizadoPor;
+  }
+  saveState(appState);
+  renderProjNotas();
+  showToast(finalizando?'✓ Projeto finalizado':'Projeto reaberto','success');
+}
+
+function projNotaExcluir(id){
+  const n=_projNota(id); if(!n) return;
+  if(!_projPodeMexer(n)){ showToast('Apenas o master ou quem criou pode excluir','warn'); return; }
+  if(!confirm('Excluir esta nota?\n\n'+(n.titulo||'(sem título)'))) return;
+  appState.projNotas=_projNotas().filter(x=>x.id!==id);
+  saveState(appState);
+  renderProjNotas();
+  showToast('Nota excluída','success');
+}
+
+function renderProjNotas(){
+  const grid=document.getElementById('projnota-grid');
+  if(!grid) return;
+  const vazio=document.getElementById('projnota-empty');
+  const filtro=(document.getElementById('projnota-filtro')||{}).value||'abertos';
+  grid.innerHTML='';
+  const lista=_projNotas().slice()
+    .filter(n=>{
+      if(filtro==='abertos')     return n.status!=='finalizado';
+      if(filtro==='finalizados') return n.status==='finalizado';
+      return true;
+    })
+    .sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+  if(vazio) vazio.style.display=lista.length?'none':'block';
+
+  lista.forEach(n=>{
+    const fin=n.status==='finalizado';
+    const podeMexer=_projPodeMexer(n);
+    const card=document.createElement('div');
+    card.className='proj-nota'+(fin?' finalizado':'');
+    card.id='projnota-'+n.id;
+    card.style.cssText='padding:14px;gap:10px;';
+
+    // Cabeçalho: título editável + selo de finalizado
+    const topo=document.createElement('div');
+    topo.style.cssText='display:flex;align-items:center;gap:8px;';
+    const tit=document.createElement('input');
+    tit.type='text'; tit.className='proj-nota-titulo'; tit.maxLength=120;
+    tit.placeholder='Título do projeto';
+    tit.value=n.titulo||'';
+    tit.disabled=!podeMexer;
+    tit.oninput=()=>_projAgendarSalvar(n.id);
+    topo.appendChild(tit);
+    if(fin){
+      const selo=document.createElement('span');
+      selo.style.cssText='flex:0 0 auto;font-size:9px;font-weight:700;letter-spacing:.3px;color:#4ade80;background:rgba(74,222,128,.10);border:1px solid rgba(74,222,128,.4);border-radius:999px;padding:2px 9px;';
+      selo.textContent='Finalizado';
+      topo.appendChild(selo);
+    }
+    card.appendChild(topo);
+
+    // Barra de formatação
+    if(podeMexer && !fin){
+      const barra=document.createElement('div');
+      barra.style.cssText='display:flex;gap:5px;flex-wrap:wrap;';
+      [['B','bold','Negrito'],['I','italic','Itálico'],['U','underline','Sublinhado'],
+       ['S','strikeThrough','Riscado'],['H','formatBlock','Subtítulo','h3'],
+       ['•','insertUnorderedList','Lista'],['1.','insertOrderedList','Lista numerada'],
+       ['⌫','removeFormat','Limpar formatação']
+      ].forEach(([rot,cmd,titulo,val])=>{
+        const b=document.createElement('button');
+        b.type='button'; b.className='proj-fmt'; b.title=titulo; b.textContent=rot;
+        if(cmd==='italic') b.style.fontStyle='italic';
+        if(cmd==='underline') b.style.textDecoration='underline';
+        if(cmd==='strikeThrough') b.style.textDecoration='line-through';
+        b.onmousedown=(e)=>e.preventDefault(); // não perder a seleção do texto
+        b.onclick=()=>projNotaFormato(n.id,cmd,val);
+        barra.appendChild(b);
+      });
+      card.appendChild(barra);
+    }
+
+    // Corpo do texto
+    const corpo=document.createElement('div');
+    corpo.className='proj-nota-corpo';
+    corpo.dataset.placeholder='Escreva o projeto aqui...';
+    corpo.contentEditable = (podeMexer && !fin) ? 'true' : 'false';
+    corpo.innerHTML=_projSanitizarHtml(n.corpo||'');
+    corpo.oninput=()=>_projAgendarSalvar(n.id);
+    corpo.onpaste=(e)=>projNotaColar(e,n.id);
+    card.appendChild(corpo);
+
+    // Rodapé: autor, marca de salvo e as ações
+    const pe=document.createElement('div');
+    pe.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid var(--linha-sutil);';
+    const info=document.createElement('div');
+    info.style.cssText='display:flex;flex-direction:column;gap:1px;min-width:0;';
+    info.innerHTML=`<span style="font-size:9.5px;color:var(--text-muted);">${(n.criadoPor||'—')} · ${(n.criadoEm||'')}</span>`
+      + (fin
+          ? `<span style="font-size:9.5px;color:#4ade80;">Finalizado por ${(n.finalizadoPor||'—')} em ${(n.finalizadoEm||'')}</span>`
+          : `<span class="proj-nota-salvo" style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${n.atualizadoEm?('salvo '+n.atualizadoEm.split(' ')[1]):''}</span>`);
+    pe.appendChild(info);
+
+    const acoes=document.createElement('div');
+    acoes.style.cssText='display:flex;gap:6px;align-items:center;flex-shrink:0;';
+    if(podeMexer){
+      const btnFin=document.createElement('button');
+      btnFin.className='btn-pill '+(fin?'v-amber':'v-green');
+      btnFin.innerHTML= fin
+        ? '<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg></span>Reabrir'
+        : '<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Projeto Finalizado';
+      btnFin.onclick=()=>projNotaFinalizar(n.id);
+      acoes.appendChild(btnFin);
+      const btnDel=document.createElement('button');
+      btnDel.className='btn-orb v-danger sm'; btnDel.title='Excluir nota';
+      btnDel.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
+      btnDel.onclick=()=>projNotaExcluir(n.id);
+      acoes.appendChild(btnDel);
+    }
+    pe.appendChild(acoes);
+    card.appendChild(pe);
+    grid.appendChild(card);
+  });
+}
+
 function openProjModal(id){
   if(!Array.isArray(appState.projetos)) appState.projetos=[];
   const p = id ? appState.projetos.find(x=>x.id===id) : null;
