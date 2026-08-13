@@ -17799,15 +17799,22 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   const responsavel = responsaveis[0] || '';
   let vencimento=document.getElementById('atv-vencimento').value;
   let prioridade=document.getElementById('atv-prioridade').value;
-  if(!titulo){showToast('Informe o título da tarefa','warn');return false;}
-  if(!responsavel){showToast('Selecione o(a) Conferência Colaborador','warn');return false;}
-  if(titulo==='Entrada'){ prioridade='urgente'; }
-  if(!vencimento){showToast('Informe a data de vencimento','warn');return false;}
   if(!Array.isArray(appState.atividades))appState.atividades=[];
 
   const idx=appState.atividades.findIndex(x=>x.id===editId);
   if(idx<0){showToast('Tarefa não encontrada','error');return false;}
   const anterior=appState.atividades[idx];
+  // O card da revisão diária não tem campos para preencher: título, prazo e
+  // responsável já vêm prontos da rotina e nem aparecem na tela. Cobrar esses
+  // campos deixava o botão Concluir sem efeito, avisando para informar um
+  // título que o usuário não tinha como escrever.
+  const ehRotina=!!anterior.rotinaMkt;
+  if(!ehRotina){
+    if(!titulo){showToast('Informe o título da tarefa','warn');return false;}
+    if(!responsavel){showToast('Selecione o(a) Conferência Colaborador','warn');return false;}
+    if(!vencimento){showToast('Informe a data de vencimento','warn');return false;}
+  }
+  if(titulo==='Entrada'){ prioridade='urgente'; }
   const isMaster=currentUser.master;
   const isResp=getAtvResponsaveis(anterior).includes(currentUser.key);
   // Finalizar é liberado para CM Andrade/Matheus mesmo que, por algum motivo,
@@ -17839,7 +17846,9 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   const respMudou = (anterior.responsaveis||[]).slice().sort().join(',') !== responsaveis.slice().sort().join(',');
   const eraConcluida = anterior.status==='concluida';
 
-  let patch = isMaster
+  // Na rotina os campos da tela estão ocultos e vazios — gravá-los apagaria o
+  // título e a loja do card. Só o responsável e o comentário vêm da tela.
+  let patch = (isMaster && !ehRotina)
     ? {titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
        ...(isEntradaTitulo?{comentario:comentarioFixo,comentarioAutor:comentarioFixoAutor,comentarioEm:comentarioFixoEm}:{})}
     // Colaborador responsável: só altera "Conferência Colaborador" (devolver/
@@ -17940,7 +17949,10 @@ function atvConcluirCardFace(id){
   const a=(appState.atividades||[]).find(x=>x.id===id);if(!a)return;
   const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
   if(!podeAgir){showToast('Você não tem permissão para concluir esta tarefa','warn');return;}
-  if(a.provaConclusao || a.provaAtualizacao){
+  // A revisão diária dos marketplaces é uma conferência de rotina: o print
+  // não é exigido. Nas demais tarefas ele continua sendo a prova que a equipe
+  // usa para finalizar.
+  if(a.rotinaMkt || a.provaConclusao || a.provaAtualizacao){
     atvMoveStatus(id,'concluida');
   } else {
     showToast('Anexe uma imagem no card para concluir a tarefa','warn');
@@ -17957,7 +17969,8 @@ function atvConcluirModal(id){
   const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
   if(!podeAgir){showToast('Você não tem permissão para concluir esta tarefa','warn');return;}
   const temImagem = !!(_atvPendingImagem || a.provaConclusao || a.provaAtualizacao);
-  if(!temImagem){showToast('Anexe uma imagem para concluir a tarefa','warn');return;}
+  // Print opcional na revisão diária — ver atvConcluirCardFace
+  if(!temImagem && !a.rotinaMkt){showToast('Anexe uma imagem para concluir a tarefa','warn');return;}
   if(!_atvPersistirCampos('concluida')) return;
   _atvSetPendingImagem('','');
   closeAtvModal();
