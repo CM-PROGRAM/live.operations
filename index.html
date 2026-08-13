@@ -502,6 +502,10 @@ input:-webkit-autofill:active{
 .atv-prior-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:14px;color:var(--text-primary);cursor:pointer;transition:background .15s;}
 .atv-prior-opt:hover{background:var(--veu-medio);}
 .input-group label{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;font-weight:500;}
+/* Campo só de leitura no modal da tarefa: mesma caixa dos inputs, sem cursor */
+.atv-campo-fixo{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);
+  color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;width:100%;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);}
 input[type="text"],input[type="password"],input[type="email"],input[type="number"],input[type="tel"],input[type="search"],select,textarea{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:15px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);}
 input[type="date"]{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:15px;font-weight:600;letter-spacing:.5px;padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);color-scheme:dark;}
 input[type="date"]:focus{border-color:rgba(59,130,246,0.5);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(59,130,246,0.15);}
@@ -2997,8 +3001,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div class="input-group">
         <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span id="atv-titulo-admin-btns" style="display:flex;gap:4px;"><button type="button" onclick="addAtvTitulo()" title="Adicionar novo título" class="btn-orb v-add" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button type="button" onclick="removeAtvTitulo()" title="Excluir título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button></span></label>
         <select id="atv-titulo" onchange="atvTituloChanged()"></select>
+        <div id="atv-titulo-fixo" class="atv-campo-fixo" style="display:none;"></div>
       </div>
-      <div class="input-group">
+      <div class="input-group" id="atv-identificador-wrap">
         <label>Identificador</label>
         <div style="display:flex;gap:8px;align-items:stretch;">
           <select id="atv-id-tipo" style="flex:0 0 130px;">
@@ -3016,12 +3021,23 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <input type="hidden" id="atv-marketplace">
       </div>
+      <!-- Loja e prazo da revisão diária dos marketplaces (só nesses cards) -->
+      <div id="atv-rotina-info" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="input-group">
+          <label>Loja</label>
+          <div id="atv-rotina-loja" class="atv-campo-fixo">—</div>
+        </div>
+        <div class="input-group">
+          <label>Prazo</label>
+          <div id="atv-rotina-prazo" class="atv-campo-fixo">—</div>
+        </div>
+      </div>
       <div class="input-group">
-        <label>Conferência Colaborador</label>
+        <label id="atv-responsavel-label">Conferência Colaborador</label>
         <div id="atv-responsavel-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
         <input type="hidden" id="atv-responsavel">
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div id="atv-venc-prior-row" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="input-group" style="position:relative;">
           <label>Data de vencimento</label>
           <input type="hidden" id="atv-vencimento">
@@ -16379,6 +16395,19 @@ function _mktTarefaDoLink(platform,store,label){
 
 function _mktTarefaConcluida(t){ return !!t && (t.status==='concluida'||t.status==='finalizada'); }
 
+// Link do painel de Marketplaces correspondente a um card da rotina
+function _mktLinkDaRotina(a){
+  if(!a || !a.rotinaMkt) return null;
+  const pf=MKT_LINKS.find(p=>p.platform===a.titulo);
+  if(!pf) return null;
+  for(const st of pf.stores){
+    if((MKT_ROTINA_LOJA_ALIAS[st.store]||st.store)!==a.mktLoja) continue;
+    const lk=st.links.find(l=>l.label===a.mktEtapa);
+    if(lk) return {platform:pf.platform, store:st.store, link:lk};
+  }
+  return null;
+}
+
 // Quanto da revisão diária de uma plataforma já foi concluída
 function mktProgressoPlataforma(platform){
   const hoje=todayStr();
@@ -17426,7 +17455,65 @@ function openAtvModal(id){
     const acoesElNew=document.getElementById('atv-modal-acoes'); if(acoesElNew) acoesElNew.innerHTML='';
   }
   _atvAplicarSomenteLeitura(somenteLeitura);
+  // Depois do modo conferência: o card da revisão diária tem forma própria e
+  // o atalho para o marketplace continua clicável mesmo em somente leitura
+  _atvRenderRotina(a);
   overlay.style.display='flex';
+}
+
+/* O card da revisão diária dos marketplaces é enxuto: título da plataforma,
+   a tarefa do dia (que leva direto ao link do painel), a loja, o prazo e o
+   responsável. Identificador, grade de marketplaces, data de vencimento e
+   prioridade não dizem nada nesse card e saem da frente. */
+function _atvRenderRotina(a){
+  const ehRotina=!!(a && a.rotinaMkt);
+  const mostra=(idEl,ver,display)=>{
+    const el=document.getElementById(idEl);
+    if(el) el.style.display = ver ? (display||'') : 'none';
+  };
+  mostra('atv-identificador-wrap', !ehRotina, 'flex');
+  mostra('atv-venc-prior-row',     !ehRotina, 'grid');
+  mostra('atv-rotina-info',         ehRotina, 'grid');
+  mostra('atv-titulo',             !ehRotina);
+  mostra('atv-titulo-fixo',         ehRotina);
+  const admBtns=document.getElementById('atv-titulo-admin-btns');
+  if(admBtns && ehRotina) admBtns.style.display='none';
+  const respLbl=document.getElementById('atv-responsavel-label');
+  if(respLbl) respLbl.textContent = ehRotina ? 'Usuário' : 'Conferência Colaborador';
+  const header=document.getElementById('atv-mkt-header');
+  if(header) header.textContent = ehRotina ? 'Tarefa' : 'Marketplace';
+  if(!ehRotina) return;
+
+  const fixo=document.getElementById('atv-titulo-fixo');
+  if(fixo) fixo.textContent=a.titulo||'—';
+  const loja=document.getElementById('atv-rotina-loja');
+  if(loja) loja.textContent=a.mktLoja||'—';
+  const prazo=document.getElementById('atv-rotina-prazo');
+  if(prazo) prazo.textContent=(a.prazoHoras||MKT_ROTINA_HORAS)+' horas';
+
+  const grid=document.getElementById('atv-marketplace-grid');
+  if(!grid) return;
+  grid.innerHTML='';
+  grid.style.pointerEvents=''; grid.style.opacity='';
+  const destino=_mktLinkDaRotina(a);
+  const pill=document.createElement('button');
+  pill.type='button';
+  pill.style.cssText='display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(143,168,216,.22),rgba(143,168,216,.08));border:1.5px solid rgba(255,255,255,.65);border-radius:50px;padding:7px 16px;color:var(--tom-lilas);font-size:13px;font-weight:700;font-family:var(--font-sans);cursor:pointer;box-shadow:0 0 8px rgba(255,255,255,.22),inset 0 1px 0 rgba(255,255,255,.12);';
+  pill.textContent=a.mktEtapa||'—';
+  if(destino){
+    pill.title=destino.link.url ? 'Abrir '+destino.link.url : 'Abrir dentro do sistema';
+    pill.onclick=(e)=>{
+      e.preventDefault(); e.stopPropagation();
+      // Destino interno troca de aba: o modal precisa sair da frente antes
+      if(destino.link.internal) closeAtvModal();
+      _mktLinkClick(e,destino.platform,destino.store,destino.link.label,destino.link.url,destino.link.internal);
+    };
+  } else {
+    pill.disabled=true;
+    pill.style.cursor='default'; pill.style.opacity='.6';
+    pill.title='Sem link cadastrado no painel de Marketplaces';
+  }
+  grid.appendChild(pill);
 }
 
 // Modo conferência: a tarefa abre inteira, com o print à vista, mas nenhum
