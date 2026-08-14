@@ -5471,6 +5471,19 @@ function _mensagemDeErroDaNuvem(err){
   return 'Erro ao sincronizar com a nuvem: '+t;
 }
 
+/* Acima deste número, um apagamento em uma única gravação é tratado como
+   defeito e não sai daqui. Excluir tarefas de uma em uma pela tela continua
+   funcionando normalmente. */
+const LIMITE_APAGAR_DE_UMA_VEZ=4;
+let _avisoApagamentoTs=0;
+function _avisarApagamentoBloqueado(){
+  if(Date.now()-_avisoApagamentoTs<60000) return;
+  _avisoApagamentoTs=Date.now();
+  try{
+    showToast('🛡 Uma exclusão em massa foi bloqueada — nada foi apagado. Avise o suporte.','warn');
+  }catch(e){}
+}
+
 function _gravarRegistrosAlterados(s){
   const updates={};
   // Guarda o que foi enviado nesta rodada. Se a gravação falhar, a marca de
@@ -5496,6 +5509,26 @@ function _gravarRegistrosAlterados(s){
     });
     _regEnviado[nome]=agora;
   });
+  /* Trava contra apagamento em massa.
+     Os dois estragos desta semana foram apagamentos: uma máquina com cópia
+     velha apagou as tarefas criadas no dia, e a limpeza da virada apagou os
+     46 cards da rotina de uma vez. Nenhuma ação de tela apaga tanta coisa
+     junto — quando isso acontece é bug, não intenção. Aqui a gravação segue
+     com as alterações e os apagamentos são engolidos, com aviso ao master. */
+  if(removidos>LIMITE_APAGAR_DE_UMA_VEZ){
+    console.error('[reg] BLOQUEADO: tentativa de apagar',removidos,'registros de uma vez');
+    Object.keys(updates).forEach(caminho=>{
+      if(updates[caminho]===null){
+        delete updates[caminho];
+        // Desfaz a marca para o registro continuar sendo considerado enviado
+        const p=caminho.split('/'); const k=p.pop(); const nome=p.pop();
+        const anterior=(enviadosAgora[nome]||{})[k];
+        if(anterior!==undefined){ (_regEnviado[nome]=_regEnviado[nome]||{})[k]=anterior; }
+      }
+    });
+    removidos=0;
+    _avisarApagamentoBloqueado();
+  }
   if(!alterados && !removidos) return;
   db.ref().update(updates).catch(err=>{
     console.error('[reg] falha ao gravar:',err.message);
@@ -7135,7 +7168,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14d';
+const APP_VERSAO='2026.08.14e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15550,6 +15583,8 @@ function renderAtividades(){
     // para daqui a dois dias tem de aparecer hoje, senão o prazo escolhido
     // faria o card sumir justamente de quem precisa começar a trabalhar nele.
     if(a.origemAteId && dias!==null && dias>0 && a.status!=='concluida' && a.status!=='finalizada') return;
+    // Rotina de um dia anterior que ninguém tocou: fica guardada, fora do quadro
+    if(_atvRotinaVelhaEscondida(a)) return;
     const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida' && a.status !== 'finalizada';
     const diasLabel=atvDiasLabel(dias,a.status);
 
@@ -17477,17 +17512,51 @@ function mktRotinaGarantirTarefas(){
 // Tira do quadro os cards de rotina que ficaram intocados e não valem mais:
 // os de dias anteriores e os de hoje que saíram da lista (etapa renomeada ou
 // removida). Devolve quantos removeu.
+/* Cards de rotina de dias anteriores.
+
+   Antes esta função APAGAVA os cards intocados do dia anterior, para o quadro
+   não juntar 46 atrasadas por dia. O problema é que apagar é irreversível: se
+   a conclusão de ontem tivesse sido desfeita por uma regravação, o card
+   chegava aqui parecendo intocado e ia embora de vez, levando junto a única
+   cópia do trabalho.
+
+   Agora ninguém apaga nada no mesmo dia. O card intocado some do quadro pela
+   renderização (_atvRotinaVelhaEscondida) e continua guardado. Só depois de
+   uma semana, quando não há mais o que recuperar, ele é removido de fato —
+   e é isso que impede a lista de crescer para sempre. */
+const ROTINA_DIAS_ATE_APAGAR=7;
+
+// Card de rotina de um dia anterior que ninguém tocou: fora do quadro, mas
+// continua no sistema
+function _atvRotinaVelhaEscondida(a){
+  if(!a || !a.rotinaMkt || a.rotinaMkt===todayStr()) return false;
+  if(a.status==='concluida'||a.status==='finalizada'||a.status==='andamento') return false;
+  if(a.provaConclusao||a.provaAtualizacao||a.pendencia) return false;
+  if(Array.isArray(a.comentarios) && a.comentarios.length) return false;
+  return true;
+}
+
+function _diasEntreISO(a,b){
+  const x=new Date(a+'T00:00:00'), y=new Date(b+'T00:00:00');
+  return Math.round((y-x)/86400000);
+}
+
 function mktRotinaLimparAntigas(){
   if(!Array.isArray(appState.atividades)) return 0;
   const dia=todayStr();
   const doDia=new Set(_mktRotinaItens().map(it=>_mktRotinaId(dia,it)));
+  // Poucos por vez, de propósito: a gravação bloqueia apagamento em massa, e
+  // com razão. A limpeza roda a cada minuto, então a semana vencida se
+  // resolve sozinha em alguns minutos sem parecer um estrago.
+  let orcamento=LIMITE_APAGAR_DE_UMA_VEZ;
   const antes=appState.atividades.length;
   appState.atividades=appState.atividades.filter(a=>{
     if(!a || !a.rotinaMkt) return true;
     if(a.rotinaMkt===dia && doDia.has(a.id)) return true;
-    // Teve trabalho em cima: fica no histórico do quadro
-    if(a.status==='concluida'||a.status==='finalizada'||a.status==='andamento') return true;
-    if(a.provaConclusao||a.pendencia||(a.comentarios&&a.comentarios.length)) return true;
+    if(!_atvRotinaVelhaEscondida(a)) return true;
+    if(_diasEntreISO(a.rotinaMkt,dia) < ROTINA_DIAS_ATE_APAGAR) return true;
+    if(orcamento<=0) return true;   // fica para a próxima rodada
+    orcamento--;
     return false;
   });
   return antes-appState.atividades.length;
