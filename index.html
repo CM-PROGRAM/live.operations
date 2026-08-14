@@ -7292,7 +7292,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14i';
+const APP_VERSAO='2026.08.14j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8373,6 +8373,14 @@ function renderVendasChart(){
   const compacto=dias.length>10; // 30/60 dias: barras finas, sem valor em cima
 
   chart.innerHTML='';
+  const totalPeriodo=dias.reduce((soma,dt)=>soma+porDia[dt].total,0);
+  if(!totalPeriodo){
+    chart.innerHTML='<div style="flex:1;display:flex;align-items:center;justify-content:center;'
+      +'font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-align:center;line-height:1.7;">'
+      +'Nenhuma venda lançada '+(labels[_historicoFiltro]||'no período')+'.<br>'
+      +'O gráfico se monta com os pedidos de "Registro de Vendas".</div>';
+    return;
+  }
   dias.forEach(dt=>{
     const info=porDia[dt];
     const pct=Math.round((info.total/max)*100);
@@ -12053,6 +12061,15 @@ function renderDash(){
   const weekChart = document.getElementById('dash-week-chart');
   if(weekChart){
     weekChart.innerHTML='';
+    // Sem dias arquivados o gráfico ficava só um retângulo vazio, sem dizer
+    // por quê. O histórico só nasce quando um dia vira — então no primeiro
+    // uso é normal não haver nada, e a tela passa a explicar isso.
+    if(!days.length){
+      weekChart.innerHTML='<div style="flex:1;display:flex;align-items:center;justify-content:center;'
+        +'font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-align:center;line-height:1.7;">'
+        +'Ainda não há dias fechados para comparar.<br>'
+        +'O histórico começa a ser montado na virada do primeiro dia.</div>';
+    } else {
     const maxV = Math.max(...days.map(d=>hist[d].total||0), 1);
     days.forEach(d=>{
       const h=hist[d]||{}; const tot=h.total||0; const done=h.done||0; const pend=tot-done;
@@ -12087,6 +12104,7 @@ function renderDash(){
       col.appendChild(lbl);
       weekChart.appendChild(col);
     });
+    }
   }
 
   // ── (legado) 3D Bar Chart — inerte: elemento canvas removido ──
