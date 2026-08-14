@@ -5198,7 +5198,7 @@ const LOG_VALORES={
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
   'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase','notificadaEm',
-  'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo',
+  'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo','concluidoPorKey',
   'mktEtapa','mktLoja','prazoHoras']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -7031,7 +7031,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.13b';
+const APP_VERSAO='2026.08.13c';
 
 function buildTabs(){
   const tabs=[
@@ -15079,6 +15079,19 @@ function getAtvResponsaveis(item){
   return [];
 }
 
+/* Chave de quem concluiu a tarefa. As tarefas concluídas antes de o sistema
+   passar a gravar concluidoPorKey só têm o nome — aí a chave é procurada
+   pelo nome, que é único entre os colaboradores. */
+function _atvQuemConcluiu(a){
+  if(!a) return '';
+  if(a.concluidoPorKey) return a.concluidoPorKey;
+  const nome=String(a.concluidoPor||a.provaConclusaoPor||'').trim().toLowerCase();
+  if(!nome) return '';
+  const achado=Object.entries(appState.users||{})
+    .find(([,u])=>u && String(u.name||'').trim().toLowerCase()===nome);
+  return achado?achado[0]:'';
+}
+
 function atvDiasRestantes(vencimento){
   if(!vencimento) return null;
   const hoje=new Date(); hoje.setHours(0,0,0,0);
@@ -15301,6 +15314,16 @@ function renderAtividades(){
     const canAct=currentUser.master || isMine; // master ou o colaborador responsável podem concluir/marcar pendência
 
     const avColor=uColor||'#888';
+    // Quem de fato concluiu, quando não é nenhum dos responsáveis: a inicial
+    // dele aparece ao lado, para o dono da tarefa ver que outra pessoa teve
+    // de fazer o trabalho dele.
+    const _outroKey=_atvQuemConcluiu(a);
+    const feitoPorOutro=(a.status==='concluida'||a.status==='finalizada')
+      && _outroKey && !respKeys.includes(_outroKey);
+    const uOutro=feitoPorOutro?(appState.users[_outroKey]||null):null;
+    const outroInit=uOutro?getUserInitials(uOutro):'?';
+    const outroNome=uOutro?uOutro.name:(a.concluidoPor||'—');
+    const outroCor=uOutro?(uOutro.color||'#888'):'#888';
 
     const card=document.createElement('div');
     card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-left:3px solid ${(a.status==='concluida'||a.status==='finalizada')?'var(--glass-border)':'#ef4444'};border-radius:12px;overflow:visible;transition:transform .2s,box-shadow .2s,border-color .2s;box-shadow:var(--sombra-card);cursor:default;`;
@@ -15340,6 +15363,10 @@ function renderAtividades(){
       <div style="position:relative;padding:10px 12px 10px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           <div style="width:28px;height:28px;border-radius:8px;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${avColor};font-size:10px;font-weight:800;font-family:var(--font-mono);">${uInit}</div>
+          ${feitoPorOutro?`
+          <span style="font-size:12px;color:#fb7185;flex-shrink:0;line-height:1;">→</span>
+          <div title="Concluída por ${outroNome} — a tarefa estava atribuída a ${respLine}"
+               style="width:28px;height:28px;border-radius:8px;background:var(--grad-avatar);border:1.5px solid rgba(251,113,133,.75);box-shadow:0 0 8px rgba(251,113,133,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${outroCor};font-size:10px;font-weight:800;font-family:var(--font-mono);">${outroInit}</div>`:''}
           <div style="flex:1;"></div>
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
@@ -15495,6 +15522,25 @@ function notifyNovosResponsaveis(anterior,novo,tipoLabel,tipo){
   notifyResponsaveisAtribuido({...novo,responsaveis:novos,responsavel:novos[0]},tipoLabel,tipo);
 }
 
+/* Tarefa atribuída a um colaborador e concluída por outra pessoa: quem
+   deveria ter feito recebe o aviso. Serve para a cobrança do processo — o
+   card mostra a inicial de quem de fato concluiu e o aviso abre a tarefa
+   apenas para leitura, já que não é mais dele o trabalho.
+
+   `anterior` é o registro antes da gravação: quando a conclusão vem junto de
+   uma troca de responsável, quem tem de ser avisado é quem estava lá antes. */
+function _avisarTarefaFeitaPorOutro(a,anterior){
+  if(!a || !currentUser) return;
+  const donos=[...new Set(getAtvResponsaveis(anterior||a))];
+  if(!donos.length) return;
+  // Quem fez era um dos responsáveis: processo normal, ninguém falhou
+  if(donos.includes(currentUser.key)) return;
+  const desc=[a.titulo, a.mktEtapa, a.mktLoja, a.sku].filter(Boolean).join(' · ');
+  const msg=`⚠ FALHA SUA NO PROCESSO — ${currentUser.name.toUpperCase()} FEZ A TAREFA ATRIBUÍDA PARA VOCÊ. MAIS ATENÇÃO !!! (${desc})`;
+  // alvoTipo 'tarefa-leitura': abre o card sem permitir alteração
+  donos.forEach(k=>_notifEnviar(k,msg,'tarefa','tarefa-leitura',a.id));
+}
+
 // Notifica o criador de uma tarefa/projeto/solicitação quando ela é concluída por outro usuário
 function notifyCriadorConcluida(item,tipoLabel,tipo){
   if(!item || !item.criadoPorKey) return;
@@ -15522,8 +15568,10 @@ function atvMoveStatus(id,novoStatus,provaBase64){
   // efeitos de "concluir" (data/print de conclusão, notificações, origem)
   if(novoStatus==='concluida' && !veioDeFinalizada){
     a.concluidoEm=new Date().toLocaleDateString('pt-BR');a.concluidoPor=currentUser.name;
+    a.concluidoPorKey=currentUser.key;
     if(provaBase64){ a.provaConclusao=provaBase64; a.provaConclusaoPor=currentUser.name; a.provaConclusaoEm=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
     if(!eraConcluida) notifyCriadorConcluida(a,'Tarefa','tarefa');
+    if(!eraConcluida) _avisarTarefaFeitaPorOutro(a);
     // Se a tarefa veio de Integração/Imagens, conclui a solicitação de origem e alimenta a Relação de Solicitação
     if(!eraConcluida && a.origemIntegId){
       const it=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId);
@@ -17792,7 +17840,7 @@ function renderRelatorioAnuncios(){
     </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-function openAtvModal(id){
+function openAtvModal(id,forcarSomenteLeitura){
   const imgInp=document.getElementById('atv-imagem-input'); if(imgInp) imgInp.value='';
   _atvSetPendingImagem('','');
   const isMasterUser = currentUser && currentUser.master;
@@ -17806,7 +17854,10 @@ function openAtvModal(id){
   // Qualquer colaborador abre a tarefa para ver — é assim que a equipe confere
   // o print da conclusão antes de finalizar. Quem não é master, responsável,
   // criador ou revisor entra em modo somente leitura: vê tudo, não mexe em nada.
-  const somenteLeitura = !!(id && !isMasterUser && !isResponsavel && !isCriador && !_atvPodeRevisar());
+  // forcarSomenteLeitura: chegou pelo aviso de "outra pessoa fez a sua tarefa".
+  // Nesse caso o card abre para ver o que foi feito, mesmo para o responsável.
+  const somenteLeitura = !!forcarSomenteLeitura
+    || !!(id && !isMasterUser && !isResponsavel && !isCriador && !_atvPodeRevisar());
   // Criação de novas tarefas é exclusiva do master
   if(isNovaTask && !isMasterUser){showToast('Apenas o master pode criar tarefas','warn');return;}
 
@@ -17977,7 +18028,11 @@ function openAtvModal(id){
 
     // Ações rápidas (Concluir / Pendente / Reabrir / Finalizar) — direto no card aberto
     const acoesEl=document.getElementById('atv-modal-acoes');
-    if(acoesEl){
+    if(acoesEl && somenteLeitura){
+      // Modo conferência (inclusive o aviso de "outra pessoa fez"): o card
+      // abre para ver, sem nenhum botão de ação
+      acoesEl.innerHTML='';
+    } else if(acoesEl){
       acoesEl.innerHTML='';
       const canAct = isMasterUser || isResponsavel;
       if(a.status==='finalizada'){
@@ -18127,6 +18182,11 @@ function _atvAplicarSomenteLeitura(ativo){
     if(el.type==='hidden' || comRegraPropria.has(el.id)) return;
     el.disabled=!!ativo;
   });
+  // O comentário tem regra própria (o responsável escreve), mas em modo
+  // conferência ninguém escreve nada — inclusive o responsável que chegou
+  // pelo aviso de que outra pessoa fez a tarefa dele.
+  const coment=document.getElementById('atv-comentario');
+  if(coment && ativo){ coment.disabled=true; coment.style.opacity='0.5'; }
   // Gatilhos que não são <input>: data, prioridade, responsáveis, marketplace
   ['atv-venc-trigger','atv-prioridade-wrap','atv-responsavel-grid','atv-marketplace-grid']
     .forEach(idEl=>{
@@ -18392,6 +18452,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     if(statusFinal==='concluida'){
       patch.concluidoEm=new Date().toLocaleDateString('pt-BR');
       patch.concluidoPor=currentUser.name;
+      patch.concluidoPorKey=currentUser.key;
       if(provaAtualizacaoNova){
         patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoRef=provaNovaChave;
         patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora;
@@ -18416,6 +18477,9 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   // solicitação de origem (Integração/Imagens), igual ao fluxo anterior
   if(statusFinal==='concluida' && !eraConcluida){
     notifyCriadorConcluida(appState.atividades[idx],'Tarefa','tarefa');
+    // A tarefa era de outra pessoa e quem fez foi este usuário: o responsável
+    // precisa saber — ver _avisarTarefaFeitaPorOutro
+    _avisarTarefaFeitaPorOutro(appState.atividades[idx], anterior);
     if(anterior.origemIntegId){
       const it=(appState.integracoes||[]).find(x=>x.id===anterior.origemIntegId);
       if(it && it.status!=='concluida'){
@@ -18704,14 +18768,17 @@ function abrirNotificacao(fbKey,alvoTipo,alvoId){
   marcarLida(fbKey);
   if(!alvoTipo||!alvoId){ return; }
   try{
-    if(alvoTipo==='tarefa'){
+    if(alvoTipo==='tarefa' || alvoTipo==='tarefa-leitura'){
       const t=(appState.atividades||[]).find(x=>x.id===alvoId);
       if(!t){ showToast('Esta tarefa não existe mais','warn'); return; }
       switchTab('tarefas');
       // Garante que a aba/coluna da tarefa esteja visível antes de abrir
       if(typeof _atvStatusFilter!=='undefined' && _atvStatusFilter!=='all'){ atvSetStatusFilter('all'); }
       else { renderAtividades(); }
-      setTimeout(()=>{ try{ openAtvModal(alvoId); }catch(e){} },60);
+      // 'tarefa-leitura' é o aviso de que outra pessoa fez a tarefa: o card
+      // abre só para ver o que foi feito, sem permitir alteração
+      const soLeitura = alvoTipo==='tarefa-leitura';
+      setTimeout(()=>{ try{ openAtvModal(alvoId,soLeitura); }catch(e){} },60);
     } else if(alvoTipo==='atendimento'){
       const a=((appState.tasks&&appState.tasks.atendimentos)||[]).find(x=>x.id===alvoId);
       if(!a){ showToast('Este atendimento não existe mais','warn'); return; }
