@@ -7003,6 +7003,8 @@ function initApp(){
   buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
   // Cards de revisão dos marketplaces do dia
   try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
+  // Esta máquina está com a versão publicada? Se não, ela se atualiza sozinha
+  try{ verificarVersaoPublicada(true); }catch(e){ console.warn('[versao]',e); }
   initNotifListener();
   // Cópia diária automática — roda um pouco depois, para não competir com
   // o carregamento inicial dos dados
@@ -7068,7 +7070,76 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14';
+const APP_VERSAO='2026.08.14b';
+
+/* ── Atualização automática do sistema ──
+   O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
+   precisa carregar o arquivo novo. Deixar isso na mão do usuário significou
+   gente trabalhando dias numa versão antiga — e, pior, uma máquina velha
+   regravando por cima do trabalho das outras.
+
+   Agora a própria tela confere: lê versao.json direto da rede e compara com a
+   versão que está rodando. Diferente, ela se atualiza sozinha. */
+const VERSAO_URL='versao.json';
+let _versaoAvisada='';
+
+function _lerVersaoPublicada(){
+  // no-store para não cair no cache do navegador, que é justamente o problema
+  return fetch(VERSAO_URL+'?t='+Date.now(),{cache:'no-store'})
+    .then(r=>r.ok?r.json():null)
+    .then(j=>(j&&j.versao)?String(j.versao):'')
+    .catch(()=>'');
+}
+
+function _mostrarBarraVersao(nova){
+  if(_versaoAvisada===nova) return;
+  _versaoAvisada=nova;
+  let barra=document.getElementById('barra-versao');
+  if(!barra){
+    barra=document.createElement('div');
+    barra.id='barra-versao';
+    barra.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:4000;display:flex;align-items:center;'
+      +'justify-content:center;gap:14px;flex-wrap:wrap;padding:11px 16px;background:linear-gradient(135deg,#1d4ed8,#4f46e5);'
+      +'color:#fff;font-family:var(--font-sans);font-size:13px;font-weight:600;box-shadow:0 -6px 20px rgba(0,0,0,.35);';
+    document.body.appendChild(barra);
+  }
+  barra.innerHTML=`<span>🔄 Uma versão nova do sistema foi publicada (${nova}). Atualize para não trabalhar em cima de dados antigos.</span>`;
+  const b=document.createElement('button');
+  b.textContent='Atualizar agora';
+  b.style.cssText='background:#fff;color:#1d4ed8;border:none;border-radius:999px;padding:7px 18px;font-weight:800;font-size:12.5px;cursor:pointer;';
+  b.onclick=()=>_recarregarParaVersaoNova();
+  barra.appendChild(b);
+}
+
+function _recarregarParaVersaoNova(){
+  try{ sessionStorage.setItem('liveops_recarregou_versao','1'); }catch(e){}
+  // Pede ao service worker que assuma a versão nova antes de recarregar
+  try{
+    if(navigator.serviceWorker && navigator.serviceWorker.controller){
+      navigator.serviceWorker.controller.postMessage('assumir-agora');
+    }
+  }catch(e){}
+  setTimeout(()=>{ try{ location.reload(); }catch(e){} },150);
+}
+
+/* Confere a versão publicada. No login, se estiver diferente, atualiza
+   sozinho — uma vez por sessão, para não entrar em laço se a publicação
+   estiver pela metade. Nas conferências seguintes só mostra a barra, para
+   não recarregar a página no meio de um trabalho. */
+function verificarVersaoPublicada(noLogin){
+  return _lerVersaoPublicada().then(nova=>{
+    if(!nova || nova===APP_VERSAO) return false;
+    let jaRecarregou=false;
+    try{ jaRecarregou=sessionStorage.getItem('liveops_recarregou_versao')==='1'; }catch(e){}
+    if(noLogin && !jaRecarregou){
+      console.log('[versao] rodando',APP_VERSAO,'· publicada',nova,'— atualizando');
+      _recarregarParaVersaoNova();
+      return true;
+    }
+    _mostrarBarraVersao(nova);
+    return true;
+  });
+}
 
 function buildTabs(){
   const tabs=[
@@ -12437,6 +12508,9 @@ function startClock(){
     // Virada do dia com a tela aberta: os cards de rotina dos marketplaces
     // trocam sozinhos às 00:00, sem ninguém precisar recarregar a página
     try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
+    // De 5 em 5 minutos: saiu versão nova, a barra avisa (sem recarregar
+    // sozinho no meio do trabalho de alguém)
+    if(new Date().getMinutes()%5===0){ try{ verificarVersaoPublicada(false); }catch(e){} }
   },60000);
   setTimeout(registerPresence,1000);
   initPushNotifications();
