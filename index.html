@@ -2550,8 +2550,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             </div>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn" id="btn-reparar-tudo" onclick="repararTudo()" style="width:auto;--bc: var(--rgb-teal);">
+              🧰 Reparar tudo
+            </button>
             <button class="btn" id="btn-diagnosticar-reparos" onclick="diagnosticarReparos()" style="width:auto;">
               🔎 Verificar
+            </button>
+            <button class="btn" id="btn-recuperar-historico" onclick="recuperarPeloHistorico()" style="width:auto;">
+              🕘 Recuperar pelo histórico
             </button>
             <button class="btn" id="btn-restaurar-conclusoes" onclick="restaurarConclusoesPerdidas()" style="width:auto;">
               ↩ Devolver às Concluídas
@@ -2561,10 +2567,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             </button>
           </div>
           <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
-            <b>Devolver às Concluídas</b> procura tarefas que têm prova de conclusão (print, data ou
-            quem concluiu) mas voltaram para aberto, e recoloca cada uma em Concluídas.
-            <b>Excluir sem responsável</b> apaga as solicitações que ficaram sem colaborador — elas
-            nunca notificaram ninguém. Tudo vai para o arquivo e pode ser recuperado.
+            <b>Reparar tudo</b> faz os três passos na ordem certa, de uma vez: recupera as imagens,
+            devolve o que o histórico dá como concluído e recoloca em Concluídas o que tem prova.
+            É o botão do dia a dia — os outros ficam para quando você quiser rodar um passo isolado.<br>
+            <b>Recuperar pelo histórico</b> lê o registro de alterações, que fica fora da tarefa e não
+            se perde numa regravação. É o único caminho para as tarefas concluídas sem print, como a
+            revisão diária dos marketplaces. Tarefa reaberta de propósito não volta: vale o último
+            movimento de status.<br>
+            <b>Devolver às Concluídas</b> procura tarefas que guardam prova (print, data, quem concluiu
+            ou comentário) mas voltaram para aberto. <b>Excluir sem responsável</b> apaga as
+            solicitações que ficaram sem colaborador — elas nunca notificaram ninguém. Tudo vai para o
+            arquivo e pode ser recuperado.
           </div>
         </div>
       </div>
@@ -4243,7 +4256,137 @@ function _campoDeDestino(sufixo){
 // A prova de que a tarefa foi concluída: print, data ou quem concluiu.
 // Nada disso é gravado sem alguém ter clicado em Concluir.
 function _temProvaDeConclusao(a){
-  return !!(a && (a.provaConclusao || a.provaConclusaoEm || a.concluidoEm || a.concluidoPor));
+  if(!a) return false;
+  // Print, data ou quem concluiu — a prova clássica
+  if(a.provaConclusao || a.provaConclusaoEm || a.concluidoEm || a.concluidoPor) return true;
+  // A revisão diária dos marketplaces conclui sem print. Nela o rastro que
+  // sobra é o print de atualização ou o comentário que o colaborador
+  // escreveu ao concluir — sem isso essas tarefas ficavam sem recuperação.
+  if(a.provaAtualizacao || a.provaAtualizacaoEm) return true;
+  if(Array.isArray(a.comentarios) && a.comentarios.some(c=>c && !c.daSolicitacao && String(c.texto||'').trim())) return true;
+  return false;
+}
+
+/* ── Recuperação pelo histórico de alterações ──
+   O histórico vive em suplelive/logs, fora do registro da tarefa. Quando um
+   navegador com cópia velha regravou as tarefas por cima, o registro perdeu
+   status, data, print e comentário — mas o histórico continuou lá, contando
+   quem concluiu e quando. É a única fonte que sobrou para as tarefas
+   concluídas sem print, que é o caso da revisão diária dos marketplaces. */
+const _LOG_CONCLUIDA=new Set(['Concluída','Finalizada']);
+
+// Lê o histórico das tarefas que hoje estão abertas e devolve, para cada uma
+// que o histórico dá como concluída, quem concluiu e quando.
+function _conclusoesNoHistorico(){
+  if(!(db && fbConnected)) return Promise.resolve([]);
+  const abertas=(appState.atividades||[]).filter(a=>a && a.status!=='concluida' && a.status!=='finalizada');
+  if(!abertas.length) return Promise.resolve([]);
+  return Promise.all(abertas.map(a=>
+    db.ref(FB_LOGS_PATH+'/tarefa/'+_regChave(a.id)).limitToLast(60).once('value')
+      .then(snap=>{
+        const val=snap.val();
+        if(!val) return null;
+        const eventos=Object.values(val)
+          .filter(e=>e && Array.isArray(e.campos))
+          .sort((x,y)=>(x.ts||0)-(y.ts||0));
+        // Vale o ÚLTIMO movimento de status: reabrir depois de concluir
+        // significa que a tarefa está aberta de propósito.
+        let ultima=null;
+        eventos.forEach(e=>{
+          const st=e.campos.find(c=>c && c.campo==='status');
+          if(!st) return;
+          ultima = _LOG_CONCLUIDA.has(st.para) ? e : null;
+        });
+        if(!ultima) return null;
+        return {tarefa:a, ts:ultima.ts||0, por:(ultima.autor&&ultima.autor.nome)||'—'};
+      })
+      .catch(()=>null)
+  )).then(r=>r.filter(Boolean));
+}
+
+function recuperarPeloHistorico(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode reparar','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const btn=document.getElementById('btn-recuperar-historico');
+  if(btn){ btn.disabled=true; btn.textContent='Lendo o histórico…'; }
+  const soltar=()=>{ if(btn){ btn.disabled=false; btn.textContent='🕘 Recuperar pelo histórico'; } };
+  _conclusoesNoHistorico().then(achados=>{
+    soltar();
+    if(!achados.length){
+      showToast('O histórico não aponta nenhuma conclusão perdida','warn');
+      diagnosticarReparos(); return;
+    }
+    _pedirConfirmacaoReparo(
+      `Devolver ${achados.length} tarefa(s) para Concluídas, pelo histórico?\n\n`+
+      achados.slice(0,10).map(x=>`· ${x.tarefa.titulo||'—'}${x.tarefa.mktEtapa?(' · '+x.tarefa.mktEtapa):''}`
+        +` — por ${x.por} em ${x.ts?new Date(x.ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'?'}`).join('\n')+
+      (achados.length>10?`\n… e mais ${achados.length-10}`:'')+
+      `\n\nSão tarefas que o histórico registra como concluídas e que estão abertas no quadro.`,
+      ()=>{
+        achados.forEach(({tarefa,ts,por})=>{
+          tarefa.status='concluida';
+          if(!tarefa.concluidoEm)  tarefa.concluidoEm = ts ? new Date(ts).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+          if(!tarefa.concluidoPor) tarefa.concluidoPor = por;
+          try{ cancConcluirOrigem(tarefa); }catch(e){}
+        });
+        saveState(appState);
+        try{ renderAtividades(); }catch(e){}
+        try{ renderMktLinks(); }catch(e){}
+        diagnosticarReparos();
+        showToast(`✓ ${achados.length} tarefa(s) devolvida(s) pelo histórico`,'success');
+      });
+  }).catch(err=>{
+    soltar();
+    showToast('Não foi possível ler o histórico: '+(err&&err.message||err),'error');
+  });
+}
+
+/* Um botão só para o caminho inteiro: as imagens voltam para os registros,
+   o histórico devolve o que foi concluído sem print, e por fim as tarefas
+   com prova voltam para Concluídas. Era a sequência que o master tinha de
+   acertar na mão, na ordem certa. */
+function repararTudo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode reparar','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const btn=document.getElementById('btn-reparar-tudo');
+  if(btn){ btn.disabled=true; btn.textContent='1/3 · recuperando imagens…'; }
+  _recuperarImagensPerdidas(true).then(imgs=>{
+    if(btn) btn.textContent='2/3 · lendo o histórico…';
+    return _conclusoesNoHistorico().then(achados=>({imgs,achados}));
+  }).then(({imgs,achados})=>{
+    if(btn) btn.textContent='3/3 · devolvendo às Concluídas…';
+    achados.forEach(({tarefa,ts,por})=>{
+      tarefa.status='concluida';
+      if(!tarefa.concluidoEm)  tarefa.concluidoEm = ts ? new Date(ts).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+      if(!tarefa.concluidoPor) tarefa.concluidoPor = por;
+      try{ cancConcluirOrigem(tarefa); }catch(e){}
+    });
+    const comProva=_conclusoesPerdidas();
+    comProva.forEach(a=>{
+      a.status='concluida';
+      if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm ? String(a.provaConclusaoEm).split(',')[0] : new Date().toLocaleDateString('pt-BR');
+      if(!a.concluidoPor) a.concluidoPor=a.provaConclusaoPor||'—';
+      REPARO_LISTAS.forEach(l=>{
+        const id=a[l.origem]; if(!id) return;
+        const it=(l.lista()||[]).find(x=>x && x.id===id);
+        if(it && it.status!=='concluida'){
+          it.status='concluida';
+          it.concluidoEm=it.concluidoEm||a.concluidoEm;
+          it.concluidoPor=it.concluidoPor||a.concluidoPor;
+        }
+      });
+      try{ cancConcluirOrigem(a); }catch(e){}
+    });
+    saveState(appState);
+    ['renderAtividades','renderMktLinks','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens']
+      .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+    diagnosticarReparos();
+    if(btn){ btn.disabled=false; btn.textContent='🧰 Reparar tudo'; }
+    showToast(`✓ ${imgs} imagem(ns) · ${achados.length} pelo histórico · ${comProva.length} com prova`,'success');
+  }).catch(err=>{
+    if(btn){ btn.disabled=false; btn.textContent='🧰 Reparar tudo'; }
+    showToast('Falha no reparo: '+(err&&err.message||err),'error');
+  });
 }
 function _conclusoesPerdidas(){
   return (appState.atividades||[]).filter(a=>
@@ -4366,30 +4509,19 @@ function _aplicarExclusaoSemResponsavel(achados){
   showToast(`✓ ${achados.length} solicitação(ões) excluída(s)`,'success');
 }
 
-function recuperarImagensPerdidas(){
-  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
-  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
-  const btn=document.getElementById('btn-recuperar-img');
-  if(btn){ btn.disabled=true; btn.textContent='Lendo imagens guardadas…'; }
-  showToast('Procurando imagens guardadas…','warn');
-
-  db.ref(FB_IMG_PATH).once('value').then(snap=>{
+// Núcleo da recuperação: devolve uma promessa com quantas imagens voltaram,
+// para o "Reparar tudo" poder encadear os passos na ordem certa.
+function _recuperarImagensPerdidas(silencioso){
+  const btn = silencioso ? null : document.getElementById('btn-recuperar-img');
+  return db.ref(FB_IMG_PATH).once('value').then(snap=>new Promise(resolve=>{
     const guardadas=snap.val()||{};
     const chaves=Object.keys(guardadas);
-    if(!chaves.length){
-      showToast('Nenhuma imagem encontrada em suplelive/imagens','error');
-      if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; }
-      return;
-    }
+    if(!chaves.length){ resolve({recuperadas:0,jaOk:0,semDono:0,vazio:true}); return; }
     let recuperadas=0, jaOk=0, semDono=0, feitos=0;
     const proximo=()=>{
       if(feitos>=chaves.length){
-        if(recuperadas) saveState(appState);
-        const msg=`✓ ${recuperadas} imagem(ns) recuperada(s) · ${jaOk} já estavam certas · ${semDono} sem registro correspondente`;
-        console.log('[recuperar]',msg);
-        showToast(msg, recuperadas?'success':'warn');
-        ['renderAtividades','renderDev','renderAte','renderAtribuir'].forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
-        if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; }
+        if(recuperadas && !silencioso) saveState(appState);
+        resolve({recuperadas,jaOk,semDono,vazio:false});
         return;
       }
       const chave=chaves[feitos++];
@@ -4430,10 +4562,28 @@ function recuperarImagensPerdidas(){
       });
     };
     proximo();
+  })).then(res=> silencioso ? res.recuperadas : res);
+}
+
+function recuperarImagensPerdidas(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
+  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  const btn=document.getElementById('btn-recuperar-img');
+  if(btn){ btn.disabled=true; btn.textContent='Lendo imagens guardadas…'; }
+  showToast('Procurando imagens guardadas…','warn');
+  const soltar=()=>{ if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; } };
+  _recuperarImagensPerdidas(false).then(res=>{
+    soltar();
+    if(res.vazio){ showToast('Nenhuma imagem encontrada em suplelive/imagens','error'); return; }
+    const msg=`✓ ${res.recuperadas} imagem(ns) recuperada(s) · ${res.jaOk} já estavam certas · ${res.semDono} sem registro correspondente`;
+    console.log('[recuperar]',msg);
+    showToast(msg, res.recuperadas?'success':'warn');
+    ['renderAtividades','renderDev','renderAte','renderAtribuir'].forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+    try{ diagnosticarReparos(); }catch(e){}
   }).catch(err=>{
     console.error('[recuperar]',err);
     showToast('Falha ao ler as imagens: '+err.message,'error');
-    if(btn){ btn.disabled=false; btn.textContent='🔧 Recuperar imagens'; }
+    soltar();
   });
 }
 
@@ -6881,7 +7031,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.13';
+const APP_VERSAO='2026.08.13b';
 
 function buildTabs(){
   const tabs=[
