@@ -2305,21 +2305,46 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div style="max-width:620px;">
         <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
           <div class="input-group">
-            <label>Título da tarefa</label>
-            <input type="text" id="criatar-titulo" maxlength="120" placeholder="Ex: Contato com cliente">
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Título da tarefa</span>
+              <span style="display:flex;gap:4px;">
+                <button type="button" title="Adicionar título à lista" class="btn-orb v-add" style="width:20px;height:20px;"
+                  onclick="criatarAddTitulo()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button type="button" title="Excluir o título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"
+                  onclick="criatarRemoveTitulo()"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+              </span>
+            </label>
+            <select id="criatar-titulo-sel" onchange="criatarTituloChanged()"></select>
+            <div id="criatar-titulo-add" style="display:none;align-items:center;gap:6px;margin-top:6px;">
+              <input type="text" maxlength="120" placeholder="Nome do novo título" style="flex:1;">
+              <button type="button" class="btn btn-sm" data-acao="ok" style="width:auto;">Adicionar</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-acao="cancelar" style="width:auto;">Cancelar</button>
+            </div>
+            <!-- "Outro" mantém a liberdade de escrever um título avulso, que
+                 era como o campo funcionava antes de virar lista -->
+            <input type="text" id="criatar-titulo" maxlength="120" placeholder="Escreva o título" style="display:none;margin-top:6px;">
           </div>
           <div class="input-group">
             <label>Colaborador(es) responsável(is)</label>
             <div id="criatar-resp-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
           </div>
           <div class="input-group">
-            <label>SKU</label>
+            <label style="display:flex;align-items:center;justify-content:space-between;">
+              <span>Identificação</span>
+              <span style="display:flex;gap:4px;">
+                <button type="button" title="Adicionar tipo de identificação" class="btn-orb v-add" style="width:20px;height:20px;"
+                  onclick="criatarAddCodigoTipo()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+                <button type="button" title="Excluir o tipo selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"
+                  onclick="criatarRemoveCodigoTipo()"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+              </span>
+            </label>
+            <div id="criatar-codigo-add" style="display:none;align-items:center;gap:6px;margin-bottom:6px;">
+              <input type="text" maxlength="30" placeholder="Ex: EAN, GTIN, Nº Pedido" style="flex:1;">
+              <button type="button" class="btn btn-sm" data-acao="ok" style="width:auto;">Adicionar</button>
+              <button type="button" class="btn btn-ghost btn-sm" data-acao="cancelar" style="width:auto;">Cancelar</button>
+            </div>
             <div style="display:flex;gap:8px;">
-              <select id="criatar-codigo-tipo" onchange="codigoTipoChanged('criatar')" style="flex:0 0 130px;">
-                <option value="SKU">SKU</option>
-                <option value="MLB">MLB</option>
-                <option value="ID Anúncio">ID Anúncio</option>
-              </select>
+              <select id="criatar-codigo-tipo" onchange="codigoTipoChanged('criatar')" style="flex:0 0 130px;"></select>
               <div style="flex:1;position:relative;">
                 <span id="criatar-codigo-mlb-prefix" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:12px;color:var(--text-muted);pointer-events:none;">MLB</span>
                 <input type="text" id="criatar-codigo-num" oninput="codigoNumInput('criatar')" placeholder="Número" style="width:100%;box-sizing:border-box;">
@@ -7043,7 +7068,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.13d';
+const APP_VERSAO='2026.08.14';
 
 function buildTabs(){
   const tabs=[
@@ -13650,6 +13675,68 @@ function toggleAteRastreio(){
 }
 
 /* ===== Sistema genérico de opções customizáveis (+ / −) ===== */
+/* ── Inclusão/exclusão de opções direto na tela ──
+   O prompt()/confirm() do navegador some depois que o usuário marca "impedir
+   que esta página crie caixas de diálogo" — e aí o botão não faz nada, sem
+   dizer por quê. Já aconteceu aqui. Estes dois usam uma caixa da própria
+   tela, no lugar do diálogo do navegador. */
+function _optAbrirInclusao(caixaId,aoConfirmar){
+  const box=document.getElementById(caixaId);
+  if(!box) return;
+  const inp=box.querySelector('input');
+  const ok=box.querySelector('[data-acao="ok"]');
+  box.style.display='flex';
+  if(inp){ inp.value=''; setTimeout(()=>inp.focus(),20); }
+  const fechar=()=>{ box.style.display='none'; };
+  const confirmar=()=>{
+    const v=((inp&&inp.value)||'').trim();
+    if(!v){ showToast('Escreva o nome antes de adicionar','warn'); return; }
+    fechar(); aoConfirmar(v);
+  };
+  if(ok) ok.onclick=confirmar;
+  if(inp) inp.onkeydown=(e)=>{ if(e.key==='Enter'){ e.preventDefault(); confirmar(); } if(e.key==='Escape') fechar(); };
+  box.querySelectorAll('[data-acao="cancelar"]').forEach(b=>b.onclick=fechar);
+}
+
+// Acrescenta uma opção à lista (base do sistema + as criadas pelo usuário)
+function _optIncluir(baseList,stateKey,rotulo,nome,depois){
+  const all=getAllCustomOpts(baseList,stateKey);
+  if(all.some(m=>m.toLowerCase()===nome.toLowerCase())){
+    showToast('Esse(a) '+rotulo.toLowerCase()+' já existe','warn');
+    if(depois) depois(nome);
+    return;
+  }
+  // Se era um item padrão que havia sido excluído, basta trazê-lo de volta
+  const removedKey=getRemovedBaseKey(stateKey);
+  const removidos=(appState[removedKey]||[]);
+  const iRem=removidos.findIndex(r=>r.toLowerCase()===nome.toLowerCase());
+  if(iRem>-1){ removidos.splice(iRem,1); appState[removedKey]=removidos; }
+  else { if(!Array.isArray(appState[stateKey])) appState[stateKey]=[]; appState[stateKey].push(nome); }
+  saveState(appState);
+  if(depois) depois(nome);
+  showToast('✓ '+rotulo+' "'+nome+'" adicionado(a)','success');
+}
+
+// Tira a opção selecionada. Item padrão do sistema não some da lista base:
+// fica marcado como removido, e pode voltar sendo adicionado de novo.
+function _optExcluir(selectId,baseList,stateKey,rotulo,depois){
+  const sel=document.getElementById(selectId);
+  const val=sel?sel.value:'';
+  if(!val){ showToast('Selecione um(a) '+rotulo.toLowerCase()+' para excluir','warn'); return; }
+  const custom=(appState[stateKey]||[]);
+  const idx=custom.findIndex(m=>m.toLowerCase()===val.toLowerCase());
+  if(idx>-1){ custom.splice(idx,1); appState[stateKey]=custom; }
+  else {
+    const removedKey=getRemovedBaseKey(stateKey);
+    const removidos=(appState[removedKey]||[]);
+    if(!removidos.some(r=>r.toLowerCase()===val.toLowerCase())) removidos.push(val);
+    appState[removedKey]=removidos;
+  }
+  saveState(appState);
+  if(depois) depois('');
+  showToast('✓ "'+val+'" excluído(a)','success');
+}
+
 function getRemovedBaseKey(stateKey){ return stateKey+'__removedBase'; }
 function getAllCustomOpts(baseList, stateKey){
   const removedBase=(appState[getRemovedBaseKey(stateKey)]||[]);
@@ -16499,6 +16586,21 @@ document.addEventListener('click',function(e){
 });
 
 // ── Código (SKU/MLB/ID Anúncio[/Nome]) + Número ─────────────────
+/* Tipos de identificação. A lista é uma só para o sistema inteiro: o que for
+   incluído em Criar Tarefa aparece também em Atribuir Tarefa, Integração,
+   Entrada e Imagens. */
+const CODIGO_TIPOS_BASE=['SKU','MLB','ID Anúncio'];
+function codigoTiposAtuais(){ return getAllCustomOpts(CODIGO_TIPOS_BASE,'customCodigoTipos'); }
+function renderCodigoTipos(prefix,selecionado){
+  const sel=document.getElementById(prefix+'-codigo-tipo');
+  if(!sel) return;
+  const val = selecionado!==undefined ? selecionado : sel.value;
+  const lista=codigoTiposAtuais();
+  sel.innerHTML=lista.map(t=>`<option value="${t}">${t}</option>`).join('');
+  // Se o tipo escolhido saiu da lista, cai no primeiro disponível
+  sel.value = lista.includes(val) ? val : (lista[0]||'');
+}
+
 function codigoTipoChanged(prefix){
   const tipo=(document.getElementById(prefix+'-codigo-tipo')||{}).value||'SKU';
   const numInp=document.getElementById(prefix+'-codigo-num');
@@ -16535,6 +16637,7 @@ function codigoGetValue(prefix){
   return {tipo,valor,exibicao};
 }
 function codigoSetValue(prefix,tipo,valor){
+  renderCodigoTipos(prefix,tipo||'SKU');
   const tipoSel=document.getElementById(prefix+'-codigo-tipo');
   const numInp=document.getElementById(prefix+'-codigo-num');
   if(tipoSel) tipoSel.value=tipo||'SKU';
@@ -16676,6 +16779,7 @@ document.getElementById('integ-modal-overlay').onclick=e=>{if(e.target===e.curre
 // responsável(is), SKU, Considerações, Prazo de conclusão e Prioridade.
 function limparCriarTarefa(){
   const t=document.getElementById('criatar-titulo'); if(t) t.value='';
+  try{ renderCriatarTitulos(''); }catch(e){}
   const cons=document.getElementById('criatar-cons-input'); if(cons) cons.value='';
   try{ considSet('criatar',[]); }catch(e){}
   try{ respSetSel('criatar',[]); }catch(e){}
@@ -16685,7 +16789,76 @@ function limparCriarTarefa(){
   try{ prioSelect('criatar','normal'); }catch(e){}
 }
 
+/* ── Criar Tarefa: listas de Título e de Identificação ── */
+const CRIATAR_TITULO_OUTRO='__outro__';
+
+function renderCriatarTitulos(selecionado){
+  const sel=document.getElementById('criatar-titulo-sel');
+  if(!sel) return;
+  const val = selecionado!==undefined ? selecionado : sel.value;
+  // A lista é a mesma dos títulos da tarefa, para os dois lados do sistema
+  // falarem a mesma língua
+  sel.innerHTML='<option value="">— Selecionar —</option>'
+    + getAllCustomOpts(ATV_TITULO_BASE,'customTitulosAtv').map(t=>`<option value="${t}">${t}</option>`).join('')
+    + `<option value="${CRIATAR_TITULO_OUTRO}">✎ Outro (escrever)</option>`;
+  sel.value=val||'';
+  criatarTituloChanged();
+}
+
+// "Outro" revela o campo de texto — é como o título funcionava antes de virar
+// lista, e continua servindo para um título que só vale uma vez
+function criatarTituloChanged(){
+  const sel=document.getElementById('criatar-titulo-sel');
+  const livre=document.getElementById('criatar-titulo');
+  if(!sel||!livre) return;
+  const outro = sel.value===CRIATAR_TITULO_OUTRO;
+  livre.style.display = outro ? 'block' : 'none';
+  if(outro) setTimeout(()=>livre.focus(),20); else livre.value='';
+}
+
+function _criatarTituloValor(){
+  const sel=document.getElementById('criatar-titulo-sel');
+  const livre=document.getElementById('criatar-titulo');
+  if(sel && sel.value && sel.value!==CRIATAR_TITULO_OUTRO) return sel.value.trim();
+  return ((livre||{}).value||'').trim();
+}
+
+function criatarAddTitulo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar os títulos','warn'); return; }
+  _optAbrirInclusao('criatar-titulo-add', nome=>{
+    _optIncluir(ATV_TITULO_BASE,'customTitulosAtv','Título',nome, n=>{
+      renderCriatarTitulos(n);
+      try{ renderAtvTituloOptions(document.getElementById('atv-titulo').value); }catch(e){}
+    });
+  });
+}
+function criatarRemoveTitulo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar os títulos','warn'); return; }
+  const sel=document.getElementById('criatar-titulo-sel');
+  if(sel && sel.value===CRIATAR_TITULO_OUTRO){ showToast('"Outro" faz parte da tela e não pode ser excluído','warn'); return; }
+  _optExcluir('criatar-titulo-sel',ATV_TITULO_BASE,'customTitulosAtv','Título', ()=>{
+    renderCriatarTitulos('');
+    try{ renderAtvTituloOptions(document.getElementById('atv-titulo').value); }catch(e){}
+  });
+}
+
+function criatarAddCodigoTipo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar a identificação','warn'); return; }
+  _optAbrirInclusao('criatar-codigo-add', nome=>{
+    _optIncluir(CODIGO_TIPOS_BASE,'customCodigoTipos','Tipo de identificação',nome,
+      n=>renderCodigoTipos('criatar',n));
+  });
+}
+function criatarRemoveCodigoTipo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar a identificação','warn'); return; }
+  if(codigoTiposAtuais().length<=1){ showToast('Tem de sobrar ao menos um tipo de identificação','warn'); return; }
+  _optExcluir('criatar-codigo-tipo',CODIGO_TIPOS_BASE,'customCodigoTipos','Tipo de identificação',
+    ()=>renderCodigoTipos('criatar'));
+}
+
 function initCriarTarefaForm(){
+  try{ renderCriatarTitulos(); }catch(e){}
+  try{ renderCodigoTipos('criatar'); }catch(e){}
   try{ respRenderGrid('criatar'); }catch(e){}
   try{ considRenderList('criatar'); }catch(e){}
   try{ vencSyncDisplay('criatar'); }catch(e){}
@@ -16694,7 +16867,7 @@ function initCriarTarefaForm(){
 
 function salvarCriarTarefa(){
   if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
-  const titulo=((document.getElementById('criatar-titulo')||{}).value||'').trim();
+  const titulo=_criatarTituloValor();
   if(!titulo){ showToast('Informe o título da tarefa','warn'); return; }
   const responsaveis=respGetSel('criatar');
   if(!responsaveis.length){ showToast('Selecione ao menos um colaborador responsável','warn'); return; }
