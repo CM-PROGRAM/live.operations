@@ -2614,11 +2614,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="carregarAuditoriaGeral()" style="width:auto;">↻ Atualizar</button>
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <select id="audit-f-entidade" onchange="renderAuditoriaGeral()" style="width:auto;min-width:150px;">
+          <!-- As opções saem de LOG_ENTIDADES, para o filtro nunca ficar para
+               trás quando uma área nova entra na auditoria -->
+          <select id="audit-f-entidade" onchange="renderAuditoriaGeral()" style="width:auto;min-width:170px;">
             <option value="">Todas as áreas</option>
-            <option value="atendimento">Atendimentos</option>
-            <option value="tarefa">Tarefas</option>
-            <option value="devolucao">Devoluções</option>
           </select>
           <select id="audit-f-autor" onchange="renderAuditoriaGeral()" style="width:auto;min-width:150px;">
             <option value="">Todos os autores</option>
@@ -5273,10 +5272,49 @@ function _logAutorAtual(){
 }
 
 // Entidades auditadas — onde encontrar a lista de registros em cada uma
+/* As listas de conferência (Vendas, Marketplaces, Anúncios) não são listas de
+   registros: são grupos com itens dentro. Para o histórico enxergar cada item
+   como um registro próprio, eles são achatados aqui — o id leva o grupo junto,
+   porque o mesmo id de item pode se repetir entre grupos. */
+function _logItensDeGrupos(grupos){
+  const out=[];
+  (grupos||[]).forEach(g=>{
+    if(!g) return;
+    if(Array.isArray(g.items)){
+      g.items.forEach(i=>{ if(i && i.id) out.push({...i, id:g.id+'__'+i.id, _grupo:g.group||g.id}); });
+    } else if(g.id){
+      out.push({...g, _grupo:''});   // lista plana (Rastreios do Baselinker)
+    }
+  });
+  return out;
+}
+
+/* Toda aba do sistema entra no histórico. Antes só Tarefas, Atendimentos e
+   Devoluções eram auditados — o que foi sobrescrito nas outras abas não
+   deixava rastro nenhum, e não havia de onde recuperar. */
 const LOG_ENTIDADES={
-  atendimento:{ rotulo:'Atendimento', lista:s=>((s&&s.tasks&&s.tasks.atendimentos)||[]) },
-  tarefa:     { rotulo:'Tarefa',      lista:s=>((s&&s.atividades)||[]) },
-  devolucao:  { rotulo:'Devolução',   lista:s=>((s&&s.tasks&&s.tasks.devolucoes)||[]) }
+  atendimento:{ rotulo:'Atendimento',        lista:s=>((s&&s.tasks&&s.tasks.atendimentos)||[]) },
+  tarefa:     { rotulo:'Tarefa',             lista:s=>((s&&s.atividades)||[]) },
+  devolucao:  { rotulo:'Devolução',          lista:s=>((s&&s.tasks&&s.tasks.devolucoes)||[]) },
+  // Vendas
+  vendaCheck: { rotulo:'Vendas · Conferência', lista:s=>_logItensDeGrupos((s&&s.tasks&&s.tasks.whatsapp)||[]) },
+  envio:      { rotulo:'Vendas · Envios',    lista:s=>_logItensDeGrupos((s&&s.tasks&&s.tasks.envios)||[]) },
+  rastreio:   { rotulo:'Vendas · Rastreio',  lista:s=>((s&&s.tasks&&s.tasks.rastreios)||[]) },
+  pedidoWpp:  { rotulo:'Vendas · Pedido',    lista:s=>((s&&s.pedidosWpp)||[]) },
+  // Marketplaces e Anúncios
+  mktCheck:   { rotulo:'Marketplaces',       lista:s=>_logItensDeGrupos((s&&s.tasks&&s.tasks.plataformas)||[]) },
+  anuncioCheck:{rotulo:'Anúncios · Conferência', lista:s=>_logItensDeGrupos((s&&s.tasks&&s.tasks.anuncios)||[]) },
+  // Anúncios — solicitações
+  integracao: { rotulo:'Integração',         lista:s=>((s&&s.integracoes)||[]) },
+  exclusaoInt:{ rotulo:'Exclusão Integração',lista:s=>((s&&s.excluirIntBase)||[]) },
+  entrada:    { rotulo:'Entrada',            lista:s=>((s&&s.entradas)||[]) },
+  imagem:     { rotulo:'Imagens',            lista:s=>((s&&s.imagensReq)||[]) },
+  // Vendas — canceladas
+  cancelada:  { rotulo:'Cancelada',          lista:s=>((s&&s.canceladas)||[]) },
+  canceladaNF:{ rotulo:'Cancelada com NF',   lista:s=>((s&&s.canceladasNF)||[]) },
+  // Projetos
+  projeto:    { rotulo:'Projeto',            lista:s=>((s&&s.projetos)||[]) },
+  projNota:   { rotulo:'Projetos · Nota',    lista:s=>((s&&s.projNotas)||[]) }
 };
 
 // Rótulos amigáveis — o histórico mostra "Data Retorno", não "prazo"
@@ -5291,17 +5329,36 @@ const LOG_ROTULOS={
     motivo:'Motivo', status:'Status', workflow:'Etapa', linkBase:'Link Base',
     linkPlat:'Link Plataforma', criadoPor:'Responsável', atualizadoPor:'Atualizado por' }
 };
+// Itens de conferência (Vendas, Marketplaces, Anúncios, Envios) usam os mesmos campos
+const LOG_ROTULOS_CHECK={ done:'Concluído', doneBy:'Concluído por', doneAt:'Concluído em',
+  owner:'Responsável', owners:'Responsáveis', text:'Item', sub:'Descrição', repeats:'Repetições' };
+['vendaCheck','mktCheck','anuncioCheck','envio'].forEach(e=>{ LOG_ROTULOS[e]={...LOG_ROTULOS_CHECK}; });
+// Solicitações e canceladas
+const LOG_ROTULOS_SOLIC={ marketplace:'Marketplace', variacao:'Loja', sku:'SKU', mlb:'MLB',
+  codigoValor:'Código', codigoTipo:'Tipo do código', produto:'Produto', status:'Status',
+  vencimento:'Prazo', prioridade:'Prioridade', responsaveis:'Colaborador(es)',
+  criadoPor:'Solicitado por', concluidoPor:'Concluído por', cliente:'Cliente',
+  cpf:'CPF', telefone:'Telefone', plataforma:'Plataforma', pedidoBase:'Nº Pedido' };
+['integracao','exclusaoInt','entrada','imagem','cancelada','canceladaNF'].forEach(e=>{ LOG_ROTULOS[e]={...LOG_ROTULOS_SOLIC}; });
+LOG_ROTULOS.projeto={ titulo:'Título', descricao:'Descrição', status:'Status', criadoPor:'Solicitado por' };
+LOG_ROTULOS.projNota={ titulo:'Título', corpo:'Texto', status:'Situação', criadoPor:'Criado por' };
+LOG_ROTULOS.rastreio={ codigo:'Rastreio', cliente:'Cliente', status:'Status', plataforma:'Plataforma' };
+LOG_ROTULOS.pedidoWpp={ cliente:'Cliente', valor:'Valor', status:'Status', vendedor:'Vendedor' };
 // Valores internos traduzidos para o que o usuário lê na tela
 const LOG_VALORES={
   tarefa:{ status:{aberta:'A Fazer', andamento:'Com Pendência', concluida:'Concluída', finalizada:'Finalizada'},
            prioridade:{urgente:'Urgente', alta:'Alta', normal:'Normal'} }
 };
+// "true → false" não diz nada a quem lê; nos itens de conferência vira Sim/Não
+['vendaCheck','mktCheck','anuncioCheck','envio'].forEach(e=>{
+  LOG_VALORES[e]={ done:{true:'Sim', false:'Não'} };
+});
 // Ruído interno — nunca entra no histórico
 const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','tarefaAutoCriada','alertaPrazoEnviado',
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
   'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase','notificadaEm',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo','concluidoPorKey',
-  'concluidoTs','finalizadoTs',
+  'concluidoTs','finalizadoTs','_grupo','execs','link','linkLabel','icon',
   'mktEtapa','mktLoja','prazoHoras']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -5387,7 +5444,14 @@ function _logResumoRegistro(entidade,r){
   if(entidade==='atendimento') return [r.plataforma,r.cliente].filter(Boolean).join(' · ');
   if(entidade==='devolucao')   return [r.plataforma,r.cliente,r.nped].filter(Boolean).join(' · ');
   if(entidade==='tarefa')      return [r.titulo,r.mktEtapa,r.sku].filter(Boolean).join(' · ');
-  return '';
+  if(r._grupo!==undefined)     return [r._grupo,r.text].filter(Boolean).join(' · ');
+  if(entidade==='projeto'||entidade==='projNota') return r.titulo||'(sem título)';
+  if(entidade==='rastreio')    return [r.codigo,r.cliente].filter(Boolean).join(' · ');
+  if(entidade==='pedidoWpp')   return [r.cliente,r.valor].filter(Boolean).join(' · ');
+  if(entidade==='cancelada'||entidade==='canceladaNF') return [r.cliente,r.plataforma].filter(Boolean).join(' · ');
+  // Solicitações: marketplace + código
+  if(r.marketplace)            return [r.variacao||r.marketplace, (typeof _mktCodigoLabel==='function'?_mktCodigoLabel(r):'')].filter(Boolean).join(' · ');
+  return r.titulo||r.text||'';
 }
 
 // Snapshot do último estado conhecido, por entidade
@@ -7228,7 +7292,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14h';
+const APP_VERSAO='2026.08.14i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14682,9 +14746,24 @@ function _auditPopularAutores(){
   if(nomes.includes(atual)) sel.value=atual;
 }
 
+// Monta o filtro de áreas a partir das entidades auditadas
+function _auditPreencherAreas(){
+  const sel=document.getElementById('audit-f-entidade');
+  if(!sel || sel.dataset.pronto==='1') return;
+  const atual=sel.value;
+  sel.innerHTML='<option value="">Todas as áreas</option>'
+    + Object.entries(LOG_ENTIDADES)
+        .map(([k,v])=>[k,v.rotulo])
+        .sort((a,b)=>a[1].localeCompare(b[1],'pt-BR'))
+        .map(([k,r])=>`<option value="${k}">${r}</option>`).join('');
+  sel.value=atual||'';
+  sel.dataset.pronto='1';
+}
+
 function renderAuditoriaGeral(){
   const alvo=document.getElementById('audit-lista');
   if(!alvo) return;
+  _auditPreencherAreas();
   const fEnt=(document.getElementById('audit-f-entidade')||{}).value||'';
   const fAutor=(document.getElementById('audit-f-autor')||{}).value||'';
   const fPer=(document.getElementById('audit-f-periodo')||{}).value||'';
