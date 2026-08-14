@@ -2717,6 +2717,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:var(--sombra-painel),var(--realce-topo);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="entrada-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Solicitar Entrada</div>
+      <!-- Tipo da solicitação: no título só se lê "Editar Solicitação", e sem
+           isso não dava para saber se o card é de Entrada, Integração, Imagens
+           ou Exclusão Integração -->
+      <div id="entrada-modal-tipo" style="text-align:center;margin-top:6px;"><span style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tom-indigo);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:999px;padding:3px 12px;"></span></div>
       <button onclick="closeEntradaModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
@@ -2902,6 +2906,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:var(--sombra-painel),var(--realce-topo);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="integ-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Solicitar Integração</div>
+      <!-- Tipo da solicitação: no título só se lê "Editar Solicitação", e sem
+           isso não dava para saber se o card é de Entrada, Integração, Imagens
+           ou Exclusão Integração -->
+      <div id="integ-modal-tipo" style="text-align:center;margin-top:6px;"><span style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tom-indigo);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:999px;padding:3px 12px;"></span></div>
       <button onclick="closeIntegModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
@@ -2989,6 +2997,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:var(--sombra-painel),var(--realce-topo);width:600px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
     <div style="position:relative;margin-bottom:20px;">
       <div id="img-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Solicitar Imagens</div>
+      <!-- Tipo da solicitação: no título só se lê "Editar Solicitação", e sem
+           isso não dava para saber se o card é de Entrada, Integração, Imagens
+           ou Exclusão Integração -->
+      <div id="img-modal-tipo" style="text-align:center;margin-top:6px;"><span style="display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--tom-indigo);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:999px;padding:3px 12px;"></span></div>
       <button onclick="closeImgModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
     <div style="display:grid;gap:12px;">
@@ -7031,7 +7043,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.13c';
+const APP_VERSAO='2026.08.13d';
 
 function buildTabs(){
   const tabs=[
@@ -16622,6 +16634,15 @@ const INTEG_CTX = {
 let _integCtx='integracao';
 function _ictx(){ return INTEG_CTX[_integCtx]||INTEG_CTX.integracao; }
 
+// Preenche o selo de tipo no alto do card de solicitação
+function _mktSeloTipo(prefixo,tipo){
+  const wrap=document.getElementById(prefixo+'-modal-tipo');
+  if(!wrap) return;
+  const selo=wrap.firstElementChild;
+  if(selo) selo.textContent=tipo||'';
+  wrap.style.display = tipo ? 'block' : 'none';
+}
+
 function openIntegModal(mkt,id,ctx){
   _integCtx = (ctx && INTEG_CTX[ctx]) ? ctx : 'integracao';
   const arr=_ictx().getArr();
@@ -16633,6 +16654,7 @@ function openIntegModal(mkt,id,ctx){
   document.getElementById('integ-mkt-label').textContent = marketplace;
   _renderVariacaoField('integ-variacao-field','integ-variacao',marketplace, item?item.variacao:'');
   document.getElementById('integ-modal-title').textContent = item ? 'Editar Solicitação' : _ictx().tituloNovo;
+  _mktSeloTipo('integ', _ictx().notifLabel);
   _mktAbrirCamposComuns('integ',item);
   const statusField=document.getElementById('integ-status-field');
   const delWrap=document.getElementById('integ-delete-wrap');
@@ -17523,6 +17545,7 @@ function openEntradaModal(mkt,id){
   document.getElementById('entrada-mkt-label').textContent = marketplace;
   _renderVariacaoField('entrada-variacao-field','entrada-variacao',marketplace, item?item.variacao:'');
   document.getElementById('entrada-modal-title').textContent = item ? 'Editar Solicitação' : 'Solicitar Entrada';
+  _mktSeloTipo('entrada','Entrada');
   document.getElementById('entrada-produto').value = item ? (item.produto||'') : '';
   _mktAbrirCamposComuns('entrada',item);
   const statusField=document.getElementById('entrada-status-field');
@@ -17647,6 +17670,7 @@ function openImgModal(mkt,id){
   document.getElementById('img-mkt-label').textContent = marketplace;
   _renderVariacaoField('img-variacao-field','img-variacao',marketplace, item?item.variacao:'');
   document.getElementById('img-modal-title').textContent = item ? 'Editar Solicitação' : 'Solicitar Imagens';
+  _mktSeloTipo('img','Imagens');
   _mktAbrirCamposComuns('img',item);
   const statusField=document.getElementById('img-status-field');
   const delWrap=document.getElementById('img-delete-wrap');
