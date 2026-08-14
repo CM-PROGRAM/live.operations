@@ -5514,6 +5514,11 @@ const COLECOES_REG={
   canceladasNF:  {get:s=>s.canceladasNF,               set:(s,v)=>{s.canceladasNF=v;}},
   projetos:      {get:s=>s.projetos,                   set:(s,v)=>{s.projetos=v;}},
   projNotas:     {get:s=>s.projNotas,                  set:(s,v)=>{s.projNotas=v;}},
+  // Vendas e Rastreios crescem registro a registro, como as tarefas. Enquanto
+  // viajavam no pacote, gravar uma venda reescrevia a lista inteira — duas
+  // pessoas registrando ao mesmo tempo, uma apagava a venda da outra.
+  pedidosWpp:    {get:s=>s.pedidosWpp,                 set:(s,v)=>{s.pedidosWpp=v;}},
+  rastreios:     {get:s=>(s.tasks||{}).rastreios,      set:(s,v)=>{(s.tasks=s.tasks||{}).rastreios=v;}},
   devolucoes:    {get:s=>(s.tasks||{}).devolucoes,     set:(s,v)=>{(s.tasks=s.tasks||{}).devolucoes=v;}},
   atendimentos:  {get:s=>(s.tasks||{}).atendimentos,   set:(s,v)=>{(s.tasks=s.tasks||{}).atendimentos=v;}}
 };
@@ -7292,7 +7297,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14j';
+const APP_VERSAO='2026.08.14k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
