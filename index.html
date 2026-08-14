@@ -5301,6 +5301,7 @@ const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','taref
   'criadoEm','finalizadoEm','concludedEm','externalId','origemIntegId','origemExIntId','origemEntradaId','origemImgId','origemAteId',
   'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase','notificadaEm',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo','concluidoPorKey',
+  'concluidoTs','finalizadoTs',
   'mktEtapa','mktLoja','prazoHoras']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -7168,7 +7169,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14e';
+const APP_VERSAO='2026.08.14f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15395,6 +15396,39 @@ function getAtvResponsaveis(item){
 /* Chave de quem concluiu a tarefa. As tarefas concluídas antes de o sistema
    passar a gravar concluidoPorKey só têm o nome — aí a chave é procurada
    pelo nome, que é único entre os colaboradores. */
+/* ── Ordem das colunas do quadro ──
+   A Fazer, Com Pendência e Atrasadas: da mais antiga para a mais nova, para
+   se trabalhar de cima para baixo.
+   Concluídas e Finalizadas: ao contrário — o que acabou de sair fica em cima.
+
+   A data sozinha não resolve o desempate dentro do mesmo dia. Por isso as
+   conclusões passaram a guardar o momento exato (concluidoTs/finalizadoTs);
+   nas tarefas antigas, que só têm a data, o desempate cai na ordem de
+   criação, que é o melhor palpite disponível. */
+function _dataBR(txt){
+  const m=/^(\d{2})\/(\d{2})\/(\d{4})/.exec(String(txt||''));
+  return m ? new Date(+m[3],+m[2]-1,+m[1]).getTime() : 0;
+}
+// Quando a tarefa entrou na fila: o prazo manda, e a ordem de criação desempata
+function _atvMomentoEntrada(a){
+  const d=a && a.vencimento ? new Date(a.vencimento+'T00:00:00').getTime() : 0;
+  return d || (a&&a.ordemManual) || 0;
+}
+function _atvMomentoSaida(a){
+  if(!a) return 0;
+  if(a.finalizadoTs) return a.finalizadoTs;
+  if(a.concluidoTs)  return a.concluidoTs;
+  return _dataBR(a.finalizadoEm) || _dataBR(a.concluidoEm) || 0;
+}
+// Comparadores por coluna
+const ATV_ORDEM={
+  aberta:    (x,y)=> (_atvMomentoEntrada(x)-_atvMomentoEntrada(y)) || ((x.ordemManual||0)-(y.ordemManual||0)),
+  andamento: (x,y)=> (_atvMomentoEntrada(x)-_atvMomentoEntrada(y)) || ((x.ordemManual||0)-(y.ordemManual||0)),
+  atrasada:  (x,y)=> (_atvMomentoEntrada(x)-_atvMomentoEntrada(y)) || ((x.ordemManual||0)-(y.ordemManual||0)),
+  concluida: (x,y)=> (_atvMomentoSaida(y)-_atvMomentoSaida(x)) || ((y.ordemManual||0)-(x.ordemManual||0)),
+  finalizada:(x,y)=> (_atvMomentoSaida(y)-_atvMomentoSaida(x)) || ((y.ordemManual||0)-(x.ordemManual||0))
+};
+
 function _atvQuemConcluiu(a){
   if(!a) return '';
   if(a.concluidoPorKey) return a.concluidoPorKey;
@@ -15565,6 +15599,7 @@ function renderAtividades(){
 
   const hoje=new Date();hoje.setHours(0,0,0,0);
   const counts={aberta:0,andamento:0,atrasada:0,concluida:0,finalizada:0};
+  const _paraDesenhar={};
   let total=0;
 
   appState.atividades.forEach(a=>{
@@ -15767,7 +15802,16 @@ function renderAtividades(){
     } else {
       card.addEventListener('click',()=>openAtvModal(a.id));
     }
-    col.appendChild(card);
+    (_paraDesenhar[colKey]=_paraDesenhar[colKey]||[]).push({a,card});
+  });
+
+  // Cada coluna tem a sua ordem — ver ATV_ORDEM
+  Object.entries(_paraDesenhar).forEach(([colKey,itens])=>{
+    const col=document.getElementById('atv-col-'+colKey);
+    if(!col) return;
+    const cmp=ATV_ORDEM[colKey];
+    if(cmp) itens.sort((p,q)=>cmp(p.a,q.a));
+    itens.forEach(({card})=>col.appendChild(card));
   });
 
   Object.entries(counts).forEach(([s,n])=>{
@@ -15884,6 +15928,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
   if(novoStatus==='concluida' && !veioDeFinalizada){
     a.concluidoEm=new Date().toLocaleDateString('pt-BR');a.concluidoPor=currentUser.name;
     a.concluidoPorKey=currentUser.key;
+    a.concluidoTs=Date.now();
     if(provaBase64){ a.provaConclusao=provaBase64; a.provaConclusaoPor=currentUser.name; a.provaConclusaoEm=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
     if(!eraConcluida) notifyCriadorConcluida(a,'Tarefa','tarefa');
     if(!eraConcluida) _avisarTarefaFeitaPorOutro(a);
@@ -15931,6 +15976,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
   }
   if(novoStatus==='finalizada'){
     a.finalizadoEm=new Date().toLocaleDateString('pt-BR');a.finalizadoPor=currentUser.name;
+    a.finalizadoTs=Date.now();
   }
   saveState(appState);renderAtividades();
   // O painel de Marketplaces espelha o estado da revisão diária
@@ -18900,6 +18946,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
       patch.concluidoEm=new Date().toLocaleDateString('pt-BR');
       patch.concluidoPor=currentUser.name;
       patch.concluidoPorKey=currentUser.key;
+      patch.concluidoTs=Date.now();
       if(provaAtualizacaoNova){
         patch.provaConclusao=provaAtualizacaoNova; patch.provaConclusaoRef=provaNovaChave;
         patch.provaConclusaoPor=currentUser.name; patch.provaConclusaoEm=agora;
@@ -18911,6 +18958,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     } else if(statusFinal==='finalizada'){
       patch.finalizadoEm=new Date().toLocaleDateString('pt-BR');
       patch.finalizadoPor=currentUser.name;
+      patch.finalizadoTs=Date.now();
     }
   }
 
