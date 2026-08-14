@@ -7169,7 +7169,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14f';
+const APP_VERSAO='2026.08.14g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15429,6 +15429,22 @@ const ATV_ORDEM={
   finalizada:(x,y)=> (_atvMomentoSaida(y)-_atvMomentoSaida(x)) || ((y.ordemManual||0)-(x.ordemManual||0))
 };
 
+/* Data e hora da saída da tarefa, para o card de Concluídas/Finalizadas.
+   As tarefas fechadas antes de o sistema carimbar o horário só têm a data —
+   nesses casos mostra a data sozinha, sem inventar hora. */
+function _atvCarimboSaida(a){
+  if(!a) return null;
+  const fmt=ts=>new Date(ts).toLocaleString('pt-BR',
+    {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  if(a.status==='finalizada'){
+    return {rotulo:'Finalizada em', texto: a.finalizadoTs?fmt(a.finalizadoTs):(a.finalizadoEm||'—')};
+  }
+  if(a.status==='concluida'){
+    return {rotulo:'Concluída em', texto: a.concluidoTs?fmt(a.concluidoTs):(a.concluidoEm||'—')};
+  }
+  return null;
+}
+
 function _atvQuemConcluiu(a){
   if(!a) return '';
   if(a.concluidoPorKey) return a.concluidoPorKey;
@@ -15667,6 +15683,7 @@ function renderAtividades(){
     // Quem de fato concluiu, quando não é nenhum dos responsáveis: a inicial
     // dele aparece ao lado, para o dono da tarefa ver que outra pessoa teve
     // de fazer o trabalho dele.
+    const carimboSaida=_atvCarimboSaida(a);
     const _outroKey=_atvQuemConcluiu(a);
     const feitoPorOutro=(a.status==='concluida'||a.status==='finalizada')
       && _outroKey && !respKeys.includes(_outroKey);
@@ -15723,7 +15740,8 @@ function renderAtividades(){
         <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${a.titulo||'Sem título'}</div>
         ${codigoLabel?`<div style="font-size:10.5px;color:var(--text-secondary);font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
         ${a.prazoHoras?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Prazo: <span style="color:var(--text-secondary);font-weight:600;">${a.prazoHoras}h</span></div>`:''}
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':'8'}px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':(carimboSaida?'2':'8')}px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
+        ${carimboSaida?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">${carimboSaida.rotulo}: <span style="color:var(--tom-verde);font-weight:700;font-family:var(--font-mono);">${carimboSaida.texto}</span></div>`:''}
         ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:var(--tom-vermelho);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--linha-sutil);flex-wrap:wrap;gap:5px;">
           <div style="display:flex;flex-direction:column;gap:1px;">
