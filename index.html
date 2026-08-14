@@ -5840,11 +5840,67 @@ function saveState(s){
         }
       }
     }catch(e){}
-    db.ref(FB_PATH).set(payload).catch(err => {
-      console.error('[Firebase] ERRO AO SALVAR:', err.message);
-      _avisarFalhaDeGravacao(err);
-    });
+    _gravarPacotePorPartes(payload);
   }
+}
+
+/* ── Gravação do pacote, parte por parte ──
+   O pacote (Vendas, Marketplaces, Anúncios, configurações) subia inteiro, com
+   um set() que substitui tudo. Duas pessoas mexendo em abas diferentes ao
+   mesmo tempo: a última gravação apagava a da outra, sem erro nenhum na tela.
+   Foi assim que o trabalho do Gustavo em Vendas desapareceu.
+
+   Agora sobe só o pedaço que mudou. Quem mexe em Vendas grava Vendas; quem
+   mexe em Rastreios grava Rastreios; um não encosta no outro. */
+const _pacoteEnviado={};
+
+// Guarda o que a nuvem já tem, para esta sessão não reescrever o que acabou
+// de receber (e para a primeira gravação não subir o pacote inteiro)
+function _marcarPacoteRecebido(data){
+  if(!data || typeof data!=='object') return;
+  Object.keys(_pacoteEnviado).forEach(k=>delete _pacoteEnviado[k]);
+  Object.keys(data).forEach(k=>{
+    if(k==='tasks') return;
+    try{ _pacoteEnviado[k]=JSON.stringify(data[k]); }catch(e){}
+  });
+  const tasks=data.tasks||{};
+  Object.keys(tasks).forEach(k=>{
+    try{ _pacoteEnviado['tasks.'+k]=JSON.stringify(tasks[k]); }catch(e){}
+  });
+}
+
+function _gravarPacotePorPartes(payload){
+  const updates={};
+  let mudou=0;
+  const conferir=(chave,caminho,valor)=>{
+    let json;
+    try{ json=JSON.stringify(valor); }catch(e){ return; }
+    if(_pacoteEnviado[chave]===json) return;
+    updates[caminho]=valor===undefined?null:valor;
+    _pacoteEnviado[chave]=json;
+    mudou++;
+  };
+  Object.keys(payload).forEach(k=>{
+    if(k==='tasks' || k==='_version' || k==='_savedBy') return;
+    conferir(k, FB_PATH+'/'+k, payload[k]);
+  });
+  const tasks=payload.tasks||{};
+  Object.keys(tasks).forEach(k=>{
+    conferir('tasks.'+k, FB_PATH+'/tasks/'+k, tasks[k]);
+  });
+  if(!mudou) return;
+  // A marca de quem gravou continua sendo o que identifica o eco
+  updates[FB_PATH+'/_version']=payload._version;
+  updates[FB_PATH+'/_savedBy']=payload._savedBy;
+  db.ref().update(updates).catch(err=>{
+    console.error('[Firebase] ERRO AO SALVAR:', err.message);
+    // Desfaz as marcas para a próxima gravação tentar de novo
+    Object.keys(updates).forEach(caminho=>{
+      const k=caminho.replace(FB_PATH+'/','').replace('tasks/','tasks.');
+      delete _pacoteEnviado[k];
+    });
+    _avisarFalhaDeGravacao(err);
+  });
 }
 
 // ── IMPORTAÇÃO DE TAREFAS EXTERNAS (n8n) ─────────────────────
@@ -6251,6 +6307,7 @@ function startFirebaseSync(){
       if(currentUser){
         const payload = Object.assign(_estadoSemColecoes(appState), {_savedBy: _sessionId});
         db.ref(FB_PATH).set(payload);
+        try{ _marcarPacoteRecebido(payload); }catch(e){}
         // Os registros só sobem depois que a leitura de suplelive/reg terminar:
         // antes disso não dá para saber o que já existe lá, e subir a cópia
         // local ressuscitaria o que outra sessão apagou
@@ -6294,6 +6351,8 @@ function startFirebaseSync(){
     });
 
     appState = patched;
+    // O que acabou de chegar já está na nuvem: não precisa voltar para lá
+    try{ _marcarPacoteRecebido(data); }catch(e){}
     // Estado veio de outro usuário: só atualiza a referência da auditoria,
     // sem gravar log (quem alterou já registrou na própria sessão)
     try{ logSincronizarSnapshot(appState); }catch(e){}
@@ -7169,7 +7228,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14g';
+const APP_VERSAO='2026.08.14h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
