@@ -1244,6 +1244,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
           <input id="reg-conf-busca" type="text" placeholder="🔎 Buscar em qualquer coluna..." oninput="renderConferenciaVendas()"
             style="flex:1;min-width:220px;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:10px 18px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+          <select id="reg-conf-aba" onchange="confTrocarAba(this.value)" title="Mês da planilha"
+            style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:11.5px;font-family:var(--font-mono);padding:9px 14px;outline:none;cursor:pointer;"></select>
           <button class="btn btn-sm" id="btn-conf-atualizar" onclick="carregarConferenciaVendas(true)" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
           <a href="https://docs.google.com/spreadsheets/d/15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY/edit" target="_blank" rel="noopener"
              class="btn btn-ghost btn-sm" style="width:auto;white-space:nowrap;text-decoration:none;">Abrir planilha</a>
@@ -7347,7 +7349,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16b';
+const APP_VERSAO='2026.08.16c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8572,10 +8574,21 @@ function renderVendasChart(){
    do sistema. Os dados vêm pelo Apps Script (a planilha não é acessível
    direto do navegador), e a tabela é montada com as colunas que vierem —
    mexer na planilha não quebra a tela. */
-let _confVendas=null;      // {colunas, linhas, aba}
+let _confVendas=null;      // {colunas, linhas, aba, abas}
 let _confCarregando=false;
 let _confErro='';
+let _confAbaEscolhida='';  // '' = o mês corrente, decidido pelo Apps Script
 let _regSubTab='registros';
+
+/* A planilha é feita à mão: célula com fórmula quebrada vira "#DIV/0!" e os
+   valores vêm com espaços de sobra (" R$  134,99 "). Isso é ruído de planilha,
+   não informação — na tela some. */
+const CONF_ERROS_PLANILHA=/^#(DIV\/0!|N\/A|REF!|VALUE!|NAME\?|NUM!|NULL!|ERROR!)$/i;
+function _confValor(v){
+  const t=String(v==null?'':v).replace(/\s+/g,' ').trim();
+  if(!t || CONF_ERROS_PLANILHA.test(t)) return '—';
+  return t;
+}
 
 function regSetSubTab(qual){
   _regSubTab=qual;
@@ -8593,6 +8606,11 @@ function regSetSubTab(qual){
   }
 }
 
+function confTrocarAba(aba){
+  _confAbaEscolhida=aba||'';
+  carregarConferenciaVendas(true);
+}
+
 function carregarConferenciaVendas(forcar){
   if(_confCarregando) return;
   if(!PLANILHA_VENDAS_URL){ _confErro='Integração com a planilha não configurada'; renderConferenciaVendas(); return; }
@@ -8601,11 +8619,15 @@ function carregarConferenciaVendas(forcar){
   const btn=document.getElementById('btn-conf-atualizar');
   if(btn){ btn.disabled=true; btn.textContent='Carregando…'; }
   renderConferenciaVendas();
-  fetch(PLANILHA_VENDAS_URL+'?acao=vendas&t='+Date.now())
+  fetch(PLANILHA_VENDAS_URL+'?acao=vendas&t='+Date.now()
+        +(_confAbaEscolhida?('&aba='+encodeURIComponent(_confAbaEscolhida)):''))
     .then(r=>r.json())
     .then(j=>{
       if(!j || j.ok===false) throw new Error((j&&j.erro)||'resposta inválida');
-      _confVendas={colunas:j.colunas||[], linhas:j.linhas||[], aba:j.aba||'', em:new Date()};
+      _confVendas={colunas:j.colunas||[], linhas:j.linhas||[], aba:j.aba||'',
+                   abas:j.abas||[], em:new Date()};
+      // Sem escolha explícita, o mês que o script abriu vira o selecionado
+      if(!_confAbaEscolhida && _confVendas.aba) _confAbaEscolhida=_confVendas.aba;
     })
     .catch(err=>{
       console.error('[conferência]',err);
@@ -8624,6 +8646,20 @@ function renderConferenciaVendas(){
   const info=document.getElementById('reg-conf-info');
   const cnt=document.getElementById('reg-cnt-conf');
   if(!tab) return;
+  const sel=document.getElementById('reg-conf-aba');
+  if(sel){
+    const abas=(_confVendas&&_confVendas.abas&&_confVendas.abas.length)
+      ? _confVendas.abas
+      : (_confVendas&&_confVendas.aba?[_confVendas.aba]:[]);
+    sel.style.display=abas.length?'':'none';
+    const atual=_confAbaEscolhida||(_confVendas&&_confVendas.aba)||'';
+    const assinatura=abas.join('|')+'>>'+atual;
+    if(sel.dataset.assinatura!==assinatura){
+      sel.dataset.assinatura=assinatura;
+      sel.innerHTML=abas.map(a=>`<option value="${String(a).replace(/"/g,'&quot;')}"${a===atual?' selected':''}>${String(a).replace(/</g,'&lt;')}</option>`).join('');
+    }
+    sel.disabled=_confCarregando;
+  }
   const scroll=document.getElementById('reg-conf-scroll');
   const mostrarAviso=(txt)=>{
     tab.innerHTML='';
@@ -8641,7 +8677,7 @@ function renderConferenciaVendas(){
   const q=((document.getElementById('reg-conf-busca')||{}).value||'').toLowerCase().trim();
   const cols=_confVendas.colunas;
   const linhas=q
-    ? _confVendas.linhas.filter(l=>l.some(c=>String(c||'').toLowerCase().includes(q)))
+    ? _confVendas.linhas.filter(l=>l.some(c=>_confValor(c).toLowerCase().includes(q)))
     : _confVendas.linhas;
 
   if(cnt) cnt.textContent=_confVendas.linhas.length?('· '+_confVendas.linhas.length):'';
@@ -8660,7 +8696,9 @@ function renderConferenciaVendas(){
   tab.innerHTML=
     '<thead><tr>'+cols.map(c=>`<th style="position:sticky;top:0;background:var(--bg-surface);border-bottom:1px solid var(--border);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap;">${esc(c)}</th>`).join('')+'</tr></thead>'
     +'<tbody>'+ordenadas.map(l=>
-      '<tr>'+cols.map((_,i)=>`<td style="border-bottom:1px solid var(--linha-sutil);padding:8px 12px;color:var(--text-secondary);white-space:nowrap;">${esc(l[i])}</td>`).join('')+'</tr>'
+      '<tr>'+cols.map((_,i)=>{ const v=_confValor(l[i]);
+        return `<td style="border-bottom:1px solid var(--linha-sutil);padding:8px 12px;color:var(--text-${v==='—'?'muted':'secondary'});white-space:nowrap;">${esc(v)}</td>`;
+      }).join('')+'</tr>'
     ).join('')+'</tbody>';
 }
 

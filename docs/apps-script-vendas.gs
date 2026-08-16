@@ -62,13 +62,19 @@ function doPost(e) {
  * o sistema.
  */
 function doGet(e) {
-  var acao = (e && e.parameter && e.parameter.acao) || '';
+  var p = (e && e.parameter) || {};
+  var acao = p.acao || '';
   if (acao !== 'vendas') {
     return _json({ ok: true, servico: 'LiveOps · Vendas e Comprovantes' });
   }
   try {
-    var aba = abaDeVendas();
-    if (!aba) return _json({ ok: false, erro: 'Aba de vendas não encontrada' });
+    // A planilha tem uma aba por mês ("AGOSTO 2026"). Sem pedido explícito,
+    // vale a do mês corrente — senão a tela ficaria presa em agosto para
+    // sempre quando setembro começasse.
+    var aba = p.aba ? SpreadsheetApp.openById(PLANILHA_ID).getSheetByName(p.aba)
+                    : abaDoMes(p.mes || '');
+    if (!aba) return _json({ ok: false, erro: 'Aba de vendas não encontrada',
+                             abas: listarAbas() });
 
     var ultLinha = aba.getLastRow(), ultCol = aba.getLastColumn();
     if (ultLinha < 1 || ultCol < 1) return _json({ ok: true, colunas: [], linhas: [] });
@@ -81,12 +87,37 @@ function doGet(e) {
       return l.some(function (c) { return String(c || '').trim() !== ''; });
     });
 
-    return _json({ ok: true, aba: aba.getName(), colunas: colunas,
-                   linhas: linhas, total: linhas.length });
+    return _json({ ok: true, aba: aba.getName(), abas: listarAbas(),
+                   colunas: colunas, linhas: linhas, total: linhas.length });
   } catch (err) {
     console.error(err);
     return _json({ ok: false, erro: String(err) });
   }
+}
+
+function listarAbas() {
+  if (!PLANILHA_ID) return [];
+  return SpreadsheetApp.openById(PLANILHA_ID).getSheets().map(function (a) { return a.getName(); });
+}
+
+/**
+ * A aba do mês pedido (AAAA-MM). Sem mês, usa o de hoje. Não encontrando,
+ * cai para o gid configurado e, por último, para a primeira aba — é melhor
+ * mostrar algo do que uma tela vazia.
+ */
+function abaDoMes(mes) {
+  if (!PLANILHA_ID) return null;
+  var pl = SpreadsheetApp.openById(PLANILHA_ID);
+  if (!/^\d{4}-\d{2}$/.test(mes)) {
+    var h = new Date();
+    mes = h.getFullYear() + '-' + ('0' + (h.getMonth() + 1)).slice(-2);
+  }
+  var aceitos = nomesAceitosDoMes(mes);
+  var abas = pl.getSheets();
+  for (var i = 0; i < abas.length; i++) {
+    if (aceitos[normalizar(abas[i].getName())]) return abas[i];
+  }
+  return abaDeVendas();
 }
 
 // Acha a aba pelo gid (o número no fim da URL da planilha) ou pelo nome
@@ -145,19 +176,29 @@ function salvarComprovante(d) {
  * 2026-08). Não achando nenhuma, cria "08.2026" — assim nada se perde por
  * causa de um nome escrito de um jeito diferente.
  */
-function pastaDoMes(mes) {
-  var raiz = DriveApp.getFolderById(PASTA_COMPROVANTES_ID);
-  var ano  = mes.slice(0, 4);
-  var mm   = mes.slice(5, 7);
+/**
+ * Os nomes que valem como "este mês" — serve para a pasta do Drive e para a
+ * aba da planilha, que também é uma por mês ("AGOSTO 2026").
+ */
+function nomesAceitosDoMes(mes) {
+  var ano = mes.slice(0, 4), mm = mes.slice(5, 7);
   var nomeMes = ['','JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO',
                  'JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'][parseInt(mm, 10)];
-
   var aceitos = {};
   [ mm + '.' + ano, mm + '-' + ano, mm + '/' + ano, mm + ' ' + ano,
     ano + '-' + mm, ano + '.' + mm, ano + '/' + mm,
     nomeMes, nomeMes + ' ' + ano, nomeMes + '/' + ano, nomeMes + '.' + ano,
     nomeMes + ' DE ' + ano
   ].forEach(function (c) { aceitos[normalizar(c)] = true; });
+  return aceitos;
+}
+
+function pastaDoMes(mes) {
+  var raiz = DriveApp.getFolderById(PASTA_COMPROVANTES_ID);
+  var ano  = mes.slice(0, 4);
+  var mm   = mes.slice(5, 7);
+
+  var aceitos = nomesAceitosDoMes(mes);
 
   var pastas = raiz.getFolders();
   while (pastas.hasNext()) {
@@ -188,7 +229,8 @@ function extensaoDe(mime) {
 function gravarNaPlanilha(acao, d) {
   if (!PLANILHA_ID) return { ok: true, aviso: 'Planilha não configurada — nada gravado' };
 
-  var aba = abaDeVendas();
+  // A venda entra na aba do mês dela, não numa aba fixa
+  var aba = abaDoMes(String(d.data || '').slice(0, 7));
   if (!aba) return { ok: false, erro: 'Aba de vendas não encontrada' };
 
   // Coluna A guarda o id do pedido: é por ele que editar e excluir acham a linha
