@@ -3545,6 +3545,15 @@ function todayStr(){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 function nowTimeStr(){ return new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }
+// Carimbo padrão de data+hora para os registros do sistema (criadoEm,
+// concluidoEm, finalizadoEm...) — uma data sozinha, sem hora, não diz quando
+// algo aconteceu de fato.
+function _agoraCarimbo(){
+  return new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function _carimboDe(ts){
+  return ts ? new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+}
 
 // Conta apenas dias úteis (seg-sex, fins de semana não contam) entre duas datas.
 // Retorna valor com sinal: positivo se dateEnd é depois de dateStart, negativo se antes, 0 se igual.
@@ -4439,7 +4448,7 @@ function _recriarRotinaConcluida(x,ordem){
     prioridade:'normal', vencimento:x.dia, prazoHoras:MKT_ROTINA_HORAS,
     responsavel:MKT_ROTINA_RESP, responsaveis:[MKT_ROTINA_RESP],
     status:'concluida',
-    concluidoEm: x.ts ? new Date(x.ts).toLocaleDateString('pt-BR') : '',
+    concluidoEm: _carimboDe(x.ts),
     concluidoPor: x.por,
     criadoPor:'Rotina diária', criadoPorKey:'rotina',
     restauradoDoHistorico:true,
@@ -4471,7 +4480,7 @@ function recuperarPeloHistorico(){
       ()=>{
         achados.forEach(({tarefa,ts,por})=>{
           tarefa.status='concluida';
-          if(!tarefa.concluidoEm)  tarefa.concluidoEm = ts ? new Date(ts).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+          if(!tarefa.concluidoEm)  tarefa.concluidoEm = ts ? _carimboDe(ts) : _agoraCarimbo();
           if(!tarefa.concluidoPor) tarefa.concluidoPor = por;
           try{ cancConcluirOrigem(tarefa); }catch(e){}
         });
@@ -4507,7 +4516,7 @@ function repararTudo(){
     if(btn) btn.textContent='3/3 · devolvendo às Concluídas…';
     achados.forEach(({tarefa,ts,por})=>{
       tarefa.status='concluida';
-      if(!tarefa.concluidoEm)  tarefa.concluidoEm = ts ? new Date(ts).toLocaleDateString('pt-BR') : new Date().toLocaleDateString('pt-BR');
+      if(!tarefa.concluidoEm)  tarefa.concluidoEm = ts ? _carimboDe(ts) : _agoraCarimbo();
       if(!tarefa.concluidoPor) tarefa.concluidoPor = por;
       try{ cancConcluirOrigem(tarefa); }catch(e){}
     });
@@ -4517,7 +4526,7 @@ function repararTudo(){
     const comProva=_conclusoesPerdidas();
     comProva.forEach(a=>{
       a.status='concluida';
-      if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm ? String(a.provaConclusaoEm).split(',')[0] : new Date().toLocaleDateString('pt-BR');
+      if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm || _agoraCarimbo();
       if(!a.concluidoPor) a.concluidoPor=a.provaConclusaoPor||'—';
       REPARO_LISTAS.forEach(l=>{
         const id=a[l.origem]; if(!id) return;
@@ -4610,7 +4619,7 @@ function restaurarConclusoesPerdidas(){
 function _aplicarRestaurarConclusoes(perdidas){
   perdidas.forEach(a=>{
     a.status='concluida';
-    if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm ? String(a.provaConclusaoEm).split(',')[0] : new Date().toLocaleDateString('pt-BR');
+    if(!a.concluidoEm)  a.concluidoEm=a.provaConclusaoEm || _agoraCarimbo();
     if(!a.concluidoPor) a.concluidoPor=a.provaConclusaoPor||'—';
     // Fecha de novo a solicitação que originou a tarefa
     REPARO_LISTAS.forEach(l=>{
@@ -6075,7 +6084,7 @@ function importExternalTask(key, item){
       vencimento,
       prioridade,
       status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),
+      criadoEm:_agoraCarimbo(),
       criadoPor:'n8n · '+(item.origem||'automação'),
       criadoPorKey:'n8n',
       ordemManual:Date.now(),
@@ -7350,7 +7359,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16f';
+const APP_VERSAO='2026.08.16g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8141,7 +8150,7 @@ function criarTarefaConferenciaVenda(pedido){
     vencimento:todayStr(),
     responsavel:VENDA_CONF_RESP, responsaveis:[VENDA_CONF_RESP],
     status:'aberta',
-    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoEm:_agoraCarimbo(),
     criadoPor:(currentUser&&currentUser.name)||'Registro de Vendas',
     criadoPorKey:(currentUser&&currentUser.key)||'',
     ordemManual:Date.now()
@@ -10716,6 +10725,7 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
     vencimento:new Date().toISOString().slice(0,10),
     responsavel:d.criadoPorKey||'',
     status:'aberta',
+    criadoEm:_agoraCarimbo(),
     criadoPor:'Sistema',
     criadoPorKey:'sistema',
     ordemManual:appState.atividades.length
@@ -10750,6 +10760,7 @@ function criarTarefaAutoIntegracao(item,ctx){
     responsavel:(item.responsaveis&&item.responsaveis[0])||'',
     responsaveis:item.responsaveis||[],
     status:'aberta',
+    criadoEm:_agoraCarimbo(),
     criadoPor:item.criadoPor||currentUser.name,
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
@@ -10887,6 +10898,7 @@ function criarTarefaAutoEntrada(item){
     responsavel:(item.responsaveis&&item.responsaveis[0])||'',
     responsaveis:item.responsaveis||[],
     status:'aberta',
+    criadoEm:_agoraCarimbo(),
     criadoPor:item.criadoPor||currentUser.name,
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
@@ -10909,6 +10921,7 @@ function criarTarefaAutoImagem(item){
     responsavel:(item.responsaveis&&item.responsaveis[0])||'',
     responsaveis:item.responsaveis||[],
     status:'aberta',
+    criadoEm:_agoraCarimbo(),
     criadoPor:item.criadoPor||currentUser.name,
     criadoPorKey:item.criadoPorKey||currentUser.key,
     ordemManual:appState.atividades.length
@@ -16046,7 +16059,7 @@ function moveAtividade(draggedId, targetStatus, targetId){
     const oldStatus = item.status;
     item.status = targetStatus;
     if(targetStatus==='concluida' && oldStatus!=='concluida'){
-      item.concluidoEm=new Date().toLocaleDateString('pt-BR');
+      item.concluidoEm=_agoraCarimbo();
       item.concluidoPor=currentUser.name;
       notifyCriadorConcluida(item,'Tarefa','tarefa');
     }
@@ -16230,7 +16243,8 @@ function renderAtividades(){
         <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${a.titulo||'Sem título'}</div>
         ${codigoLabel?`<div style="font-size:10.5px;color:var(--text-secondary);font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
         ${a.prazoHoras?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Prazo: <span style="color:var(--text-secondary);font-weight:600;">${a.prazoHoras}h</span></div>`:''}
-        <div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':(carimboSaida?'2':'8')}px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
+        ${a.criadoEm?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':(carimboSaida?'2':'8')}px;">Criada em: <span style="color:var(--text-secondary);font-weight:600;font-family:var(--font-mono);">${a.criadoEm}</span></div>`:''}
         ${carimboSaida?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">${carimboSaida.rotulo}: <span style="color:var(--tom-verde);font-weight:700;font-family:var(--font-mono);">${carimboSaida.texto}</span></div>`:''}
         ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:var(--tom-vermelho);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--linha-sutil);flex-wrap:wrap;gap:5px;">
@@ -16434,7 +16448,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
   // Reabrir de Finalizada para Concluída: só volta o status, sem repetir os
   // efeitos de "concluir" (data/print de conclusão, notificações, origem)
   if(novoStatus==='concluida' && !veioDeFinalizada){
-    a.concluidoEm=new Date().toLocaleDateString('pt-BR');a.concluidoPor=currentUser.name;
+    a.concluidoEm=_agoraCarimbo();a.concluidoPor=currentUser.name;
     a.concluidoPorKey=currentUser.key;
     a.concluidoTs=Date.now();
     if(provaBase64){ a.provaConclusao=provaBase64; a.provaConclusaoPor=currentUser.name; a.provaConclusaoEm=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
@@ -16445,7 +16459,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
       const it=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId);
       if(it && it.status!=='concluida'){
         it.status='concluida';
-        it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+        it.concluidoEm=_agoraCarimbo();
         it.concluidoPor=currentUser.name;
         confRegistrarIntegracaoConcluida(it);
         try{ renderIntegracoes(); }catch(e){}
@@ -16455,7 +16469,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
       const it=(appState.entradas||[]).find(x=>x.id===a.origemEntradaId);
       if(it && it.status!=='concluida'){
         it.status='concluida';
-        it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+        it.concluidoEm=_agoraCarimbo();
         it.concluidoPor=currentUser.name;
         try{ renderEntradas(); }catch(e){}
         try{ renderAtribuir(); }catch(e){}
@@ -16465,7 +16479,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
       const it=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId);
       if(it && it.status!=='concluida'){
         it.status='concluida';
-        it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+        it.concluidoEm=_agoraCarimbo();
         it.concluidoPor=currentUser.name;
         try{ renderExcluirIntBase(); }catch(e){}
       }
@@ -16474,7 +16488,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
       const it=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId);
       if(it && it.status!=='concluida'){
         it.status='concluida';
-        it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+        it.concluidoEm=_agoraCarimbo();
         it.concluidoPor=currentUser.name;
         confRegistrarImagemConcluida(it);
         try{ renderImagens(); }catch(e){}
@@ -16483,7 +16497,7 @@ function atvMoveStatus(id,novoStatus,provaBase64){
     if(!eraConcluida) cancConcluirOrigem(a);
   }
   if(novoStatus==='finalizada'){
-    a.finalizadoEm=new Date().toLocaleDateString('pt-BR');a.finalizadoPor=currentUser.name;
+    a.finalizadoEm=_agoraCarimbo();a.finalizadoPor=currentUser.name;
     a.finalizadoTs=Date.now();
   }
   saveState(appState);renderAtividades();
@@ -16584,7 +16598,7 @@ function projNotaNova(){
   _projNotas().unshift({
     id:'projnota_'+agora,
     titulo:'', corpo:'', status:'aberto',
-    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoEm:_agoraCarimbo(),
     criadoPor:currentUser.name, criadoPorKey:currentUser.key,
     ordemManual:agora
   });
@@ -16642,7 +16656,7 @@ function projNotaFinalizar(id){
   const finalizando = n.status!=='finalizado';
   n.status = finalizando ? 'finalizado' : 'aberto';
   if(finalizando){
-    n.finalizadoEm=new Date().toLocaleDateString('pt-BR');
+    n.finalizadoEm=_agoraCarimbo();
     n.finalizadoPor=currentUser.name;
   } else {
     delete n.finalizadoEm; delete n.finalizadoPor;
@@ -16807,14 +16821,14 @@ function saveProjeto(){
       const novoStatus=document.getElementById('proj-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
       appState.projetos[idx]={...anterior,titulo,descricao,status:novoStatus,
-        ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
+        ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido) notifyCriadorConcluida(appState.projetos[idx],'Projeto','projeto');
     }
     showToast('Projeto atualizado','success');
   } else {
     appState.projetos.push({
       id:'proj_'+Date.now(),titulo,descricao,status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
+      criadoEm:_agoraCarimbo(),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
       ordemManual:Date.now()
     });
     showToast('Projeto solicitado','success');
@@ -16830,7 +16844,7 @@ function projMoveStatus(id,novoStatus){
   const eraConcluida = p.status==='concluida';
   p.status=novoStatus;
   if(novoStatus==='concluida'){
-    p.concluidoEm=new Date().toLocaleDateString('pt-BR');p.concluidoPor=currentUser.name;
+    p.concluidoEm=_agoraCarimbo();p.concluidoPor=currentUser.name;
     if(!eraConcluida) notifyCriadorConcluida(p,'Projeto','projeto');
   }
   saveState(appState);renderProjetos();
@@ -17656,7 +17670,7 @@ function salvarCriarTarefa(){
     descricao:consideracoes.map(c=>(c&&c.texto)?c.texto:String(c||'')).join(' | ').slice(0,1000),
     responsaveis, responsavel:responsaveis[0],
     vencimento, prioridade, status:'aberta',
-    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoEm:_agoraCarimbo(),
     criadoPor:currentUser.name, criadoPorKey:currentUser.key,
     ordemManual:appState.atividades.length
   });
@@ -17782,7 +17796,7 @@ function salvarCancelada(p){
     prazoHoras:CANC_PRAZO_HORAS,
     prazoLimite:agora+CANC_PRAZO_HORAS*3600*1000,
     status:'aberta',
-    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoEm:_agoraCarimbo(),
     criadoPor:currentUser.name, criadoPorKey:currentUser.key,
     ordemManual:agora
   };
@@ -17906,6 +17920,7 @@ function _cancMontarTarefa(item,c){
     responsavel:(item.responsaveis||CANC_RESPONSAVEIS)[0],
     responsaveis:(item.responsaveis||CANC_RESPONSAVEIS).slice(),
     status:'aberta',
+    criadoEm:item.criadoEm||_agoraCarimbo(),
     criadoPor:item.criadoPor||'—', criadoPorKey:item.criadoPorKey||'',
     ordemManual:appState.atividades.length
   };
@@ -17933,7 +17948,7 @@ function cancConcluirOrigem(a){
   const it=_cancLista(p).find(x=>x.id===(a.origemCancId||a.origemCancNfId));
   if(it && it.status!=='concluida'){
     it.status='concluida';
-    it.concluidoEm=new Date().toLocaleDateString('pt-BR');
+    it.concluidoEm=_agoraCarimbo();
     it.concluidoPor=currentUser.name;
     try{ renderCanceladas(p); }catch(e){}
   }
@@ -18061,7 +18076,7 @@ function mktRotinaGarantirTarefas(){
       responsavel:MKT_ROTINA_RESP,
       responsaveis:[MKT_ROTINA_RESP],
       status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),
+      criadoEm:_agoraCarimbo(),
       criadoPor:'Rotina diária',
       criadoPorKey:'rotina',
       ordemManual:base+i
@@ -18179,7 +18194,7 @@ function saveIntegracao(){
       const novoStatus=document.getElementById('integ-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
       arr[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
-        ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
+        ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){
         notifyCriadorConcluida(arr[idx],ctx.notifLabel,ctx.notifTipo);
         if(ctx.conf) confRegistrarIntegracaoConcluida(arr[idx]);
@@ -18191,7 +18206,7 @@ function saveIntegracao(){
   } else {
     const novoItem={
       id:ctx.idPrefix+Date.now(),marketplace,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
+      criadoEm:_agoraCarimbo(),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
       ordemManual:Date.now()
     };
     arr.push(novoItem);
@@ -18414,7 +18429,7 @@ function salvarAtribuicao(){
     const item={
       id:t.prefixo+(agora+i), marketplace, tipo:tipoMkt, ...derivados,
       responsaveis, vencimento, prioridade, consideracoes, variacao, status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),
+      criadoEm:_agoraCarimbo(),
       criadoPor:currentUser.name, criadoPorKey:currentUser.key,
       ordemManual:agora+i
     };
@@ -18584,7 +18599,7 @@ function saveEntradaReq(){
       const novoStatus=document.getElementById('entrada-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
       appState.entradas[idx]={...anterior,...derivados,produto,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
-        ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
+        ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.entradas[idx],'Entrada','entrada'); }
       notifyNovosResponsaveis(anterior,appState.entradas[idx],'solicitação de Entrada','entrada');
       _atualizarTarefaDaSolicitacao(appState.entradas[idx],'atv_entrada_');
@@ -18593,7 +18608,7 @@ function saveEntradaReq(){
   } else {
     const novoItem={
       id:'entrada_'+Date.now(),marketplace,...derivados,produto,responsaveis,vencimento,prioridade,consideracoes,variacao,status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
+      criadoEm:_agoraCarimbo(),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
       ordemManual:Date.now()
     };
     appState.entradas.push(novoItem);
@@ -18707,7 +18722,7 @@ function saveImagemReq(){
       const novoStatus=document.getElementById('img-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
       appState.imagensReq[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
-        ...(statusMudouParaConcluido?{concluidoEm:new Date().toLocaleDateString('pt-BR'),concluidoPor:currentUser.name}:{})};
+        ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.imagensReq[idx],'Imagens','imagens'); confRegistrarImagemConcluida(appState.imagensReq[idx]); }
       notifyNovosResponsaveis(anterior,appState.imagensReq[idx],'solicitação de Imagens','imagens');
       _atualizarTarefaDaSolicitacao(appState.imagensReq[idx],'atv_img_');
@@ -18716,7 +18731,7 @@ function saveImagemReq(){
   } else {
     const novoItem={
       id:'img_'+Date.now(),marketplace,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:'aberta',
-      criadoEm:new Date().toLocaleDateString('pt-BR'),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
+      criadoEm:_agoraCarimbo(),criadoPor:currentUser.name,criadoPorKey:currentUser.key,
       ordemManual:Date.now()
     };
     appState.imagensReq.push(novoItem);
@@ -19525,7 +19540,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   if(statusFinal){
     patch.status=statusFinal;
     if(statusFinal==='concluida'){
-      patch.concluidoEm=new Date().toLocaleDateString('pt-BR');
+      patch.concluidoEm=_agoraCarimbo();
       patch.concluidoPor=currentUser.name;
       patch.concluidoPorKey=currentUser.key;
       patch.concluidoTs=Date.now();
@@ -19538,7 +19553,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     } else if(statusFinal==='andamento'){
       patch.pendencia=(pendenciaTexto||'').trim();
     } else if(statusFinal==='finalizada'){
-      patch.finalizadoEm=new Date().toLocaleDateString('pt-BR');
+      patch.finalizadoEm=_agoraCarimbo();
       patch.finalizadoPor=currentUser.name;
       patch.finalizadoTs=Date.now();
     }
@@ -19560,7 +19575,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     if(anterior.origemIntegId){
       const it=(appState.integracoes||[]).find(x=>x.id===anterior.origemIntegId);
       if(it && it.status!=='concluida'){
-        it.status='concluida'; it.concluidoEm=new Date().toLocaleDateString('pt-BR'); it.concluidoPor=currentUser.name;
+        it.status='concluida'; it.concluidoEm=_agoraCarimbo(); it.concluidoPor=currentUser.name;
         confRegistrarIntegracaoConcluida(it);
         try{ renderIntegracoes(); }catch(e){}
       } else if(it){ confRegistrarIntegracaoConcluida(it); }
@@ -19568,14 +19583,14 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     if(anterior.origemExIntId){
       const it=(appState.excluirIntBase||[]).find(x=>x.id===anterior.origemExIntId);
       if(it && it.status!=='concluida'){
-        it.status='concluida'; it.concluidoEm=new Date().toLocaleDateString('pt-BR'); it.concluidoPor=currentUser.name;
+        it.status='concluida'; it.concluidoEm=_agoraCarimbo(); it.concluidoPor=currentUser.name;
         try{ renderExcluirIntBase(); }catch(e){}
       }
     }
     if(anterior.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===anterior.origemImgId);
       if(it && it.status!=='concluida'){
-        it.status='concluida'; it.concluidoEm=new Date().toLocaleDateString('pt-BR'); it.concluidoPor=currentUser.name;
+        it.status='concluida'; it.concluidoEm=_agoraCarimbo(); it.concluidoPor=currentUser.name;
         confRegistrarImagemConcluida(it);
         try{ renderImagens(); }catch(e){}
       } else if(it){ confRegistrarImagemConcluida(it); }
@@ -19669,7 +19684,7 @@ function _vendaFinalizar(id){
   if(!_atvPersistirCampos('concluida')) return;
   const t=(appState.atividades||[]).find(x=>x.id===id);
   t.status='finalizada';
-  t.finalizadoEm=new Date().toLocaleDateString('pt-BR');
+  t.finalizadoEm=_agoraCarimbo();
   t.finalizadoPor=currentUser.name;
   t.finalizadoTs=Date.now();
   _atvSetPendingImagem('','');
