@@ -400,10 +400,84 @@ function gravarNaPlanilha(acao, d) {
   celValor.setValue(Number(d.valor || 0));
   if (nova) celValor.setNumberFormat('R$ #,##0.00');
 
-  if (col.origem) aba.getRange(linha, col.origem).setValue(d.formaPagamento || '');
+  var avisos = [];
+  if (col.origem) {
+    var av = gravarOrigem(aba, linha, col.origem, d.formaPagamento || '');
+    if (av) avisos.push(av);
+  }
 
   return { ok: true, acao: nova ? 'criar' : (acao === 'editar' ? 'editar' : 'atualizar'),
-           aba: aba.getName(), linha: linha };
+           aba: aba.getName(), linha: linha,
+           avisos: avisos.length ? avisos : undefined };
+}
+
+/**
+ * A coluna "Origem Recebimento" tem lista de validação, e os nomes de lá não
+ * são os do sistema: aqui é "Pix Manoel", lá é "Venda - Pix Manoel". Gravar o
+ * texto cru viola a validação, o Apps Script lança erro e a gravação morre no
+ * meio — foi por isso que a venda entrou com data, pedido e valor, mas sem a
+ * origem.
+ *
+ * Então o valor da lista é escolhido por palavras: "C. de Crédito Merc. Pago"
+ * casa com "Venda - C. Crédito Merc. Pago Suplelive" porque todas as palavras
+ * que importam estão lá ("de", "venda" e afins não contam).
+ */
+var ORIGEM_PALAVRAS_IGNORADAS = { VENDA: 1, DE: 1, DA: 1, DO: 1, SUPLELIVE: 1, '': 1 };
+
+function _palavrasDe(txt) {
+  return String(txt || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().split(' ')
+    .filter(function (p) { return !ORIGEM_PALAVRAS_IGNORADAS[p]; });
+}
+
+// Opções da lista de validação da célula (ou da linha de cima, se a nova ainda
+// não herdou a regra). Sem lista, devolve null.
+function opcoesDaColuna(aba, linha, coluna) {
+  for (var l = linha; l >= 2; l--) {
+    var regra = aba.getRange(l, coluna).getDataValidation();
+    if (!regra) continue;
+    if (regra.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) return null;
+    var args = regra.getCriteriaValues();
+    if (args && args[0] && args[0].length) return args[0];
+    return null;
+  }
+  return null;
+}
+
+function escolherOpcao(opcoes, valor) {
+  var alvo = _palavrasDe(valor);
+  if (!alvo.length) return null;
+  var melhor = null, melhorNota = 0;
+  opcoes.forEach(function (op) {
+    var tem = _palavrasDe(op), achou = 0;
+    alvo.forEach(function (p) { if (tem.indexOf(p) >= 0) achou++; });
+    var nota = achou / alvo.length;
+    // Empate: ganha a opção mais curta, que é a mais específica
+    if (nota > melhorNota || (nota === melhorNota && melhor && nota > 0 && op.length < melhor.length)) {
+      melhorNota = nota; melhor = op;
+    }
+  });
+  return melhorNota === 1 ? melhor : null;
+}
+
+function gravarOrigem(aba, linha, coluna, valor) {
+  if (!valor) return '';
+  var cel = aba.getRange(linha, coluna);
+  var opcoes = opcoesDaColuna(aba, linha, coluna);
+  if (opcoes) {
+    var escolhida = escolherOpcao(opcoes, valor);
+    if (escolhida) { cel.setValue(escolhida); return ''; }
+    // Nenhuma opção corresponde: não force nada na célula — a venda já está
+    // gravada, e quem confere escolhe no dropdown sabendo o que faltou
+    console.warn('Origem "' + valor + '" não existe na lista da planilha: ' + opcoes.join(' | '));
+    return 'Origem "' + valor + '" não está na lista da planilha — preencher à mão';
+  }
+  try { cel.setValue(valor); } catch (err) {
+    console.warn('Não foi possível gravar a origem: ' + err);
+    return 'Origem não pôde ser gravada: ' + err;
+  }
+  return '';
 }
 
 function _json(obj) {
