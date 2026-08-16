@@ -252,6 +252,53 @@ function extensaoDe(mime) {
 // ─────────────────────────────────────────────────────────────
 // PLANILHA DE VENDAS
 // ─────────────────────────────────────────────────────────────
+/**
+ * Grava a venda na aba do mês. A planilha é conferida por pessoas, então o
+ * script só encosta nas colunas que ele mesmo produz:
+ *
+ *   Data Venda · N° Pedido · Valor Recebido (R$) · Origem Recebimento
+ *
+ * "Valor Cotação Dolar", "Valor Dolar" e "Conferência Socios" ficam de fora:
+ * a primeira é digitada à mão, a segunda tem fórmula própria e a terceira é
+ * a marcação manual dos sócios. As colunas são achadas pelo NOME do
+ * cabeçalho — mudar a ordem delas na planilha não desalinha mais nada.
+ */
+function COLUNAS_VENDA() {
+  return {
+    data:   ['data venda', 'data'],
+    pedido: ['n° pedido', 'no pedido', 'nº pedido', 'numero do pedido', 'n pedido', 'pedido'],
+    valor:  ['valor recebido (r$)', 'valor recebido', 'valor'],
+    origem: ['origem recebimento', 'origem do recebimento', 'origem']
+  };
+}
+
+// "N° Pedido" e "no pedido" viram a mesma coisa: só letras e números, maiúsculo
+function _normalizarCabecalho(t) {
+  return normalizar(String(t || ''));
+}
+
+// Devolve {data:1, pedido:2, ...} com o número da coluna de cada campo
+function _mapaDeColunas(aba) {
+  var ultCol = Math.max(aba.getLastColumn(), 1);
+  var cabecalho = aba.getRange(1, 1, 1, ultCol).getValues()[0] || [];
+  var alvos = COLUNAS_VENDA(), mapa = {};
+  Object.keys(alvos).forEach(function (campo) {
+    for (var c = 0; c < cabecalho.length; c++) {
+      var titulo = _normalizarCabecalho(cabecalho[c]);
+      var bate = alvos[campo].some(function (a) { return normalizar(a) === titulo; });
+      if (bate) { mapa[campo] = c + 1; break; }
+    }
+  });
+  return mapa;
+}
+
+// "2026-08-14" → data de verdade, ao meio-dia (fuso não empurra para o dia anterior)
+function _dataDaVenda(iso) {
+  var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return null;
+  return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12, 0, 0);
+}
+
 function gravarNaPlanilha(acao, d) {
   if (!PLANILHA_ID) return { ok: true, aviso: 'Planilha não configurada — nada gravado' };
 
@@ -259,11 +306,21 @@ function gravarNaPlanilha(acao, d) {
   var aba = abaDoMes(String(d.data || '').slice(0, 7));
   if (!aba) return { ok: false, erro: 'Aba de vendas não encontrada' };
 
-  // Coluna A guarda o id do pedido: é por ele que editar e excluir acham a linha
-  var ids = aba.getRange(1, 1, Math.max(aba.getLastRow(), 1), 1).getValues();
+  var col = _mapaDeColunas(aba);
+  if (!col.data || !col.pedido || !col.valor) {
+    return { ok: false, erro: 'Cabeçalho da aba "' + aba.getName() + '" não tem Data Venda / N° Pedido / Valor Recebido' };
+  }
+
+  // A linha é achada pelo número do pedido — é o que identifica a venda para
+  // quem lê a planilha. Na edição, o número antigo é quem procura.
+  var procurado = String((acao === 'editar' && d.numPedidoAntigo) ? d.numPedidoAntigo : d.numPedido || '').trim();
+  var ultLinha = aba.getLastRow();
   var linha = -1;
-  for (var i = 0; i < ids.length; i++) {
-    if (String(ids[i][0]) === String(d.id)) { linha = i + 1; break; }
+  if (procurado && ultLinha > 1) {
+    var col_ped = aba.getRange(2, col.pedido, ultLinha - 1, 1).getDisplayValues();
+    for (var i = 0; i < col_ped.length; i++) {
+      if (String(col_ped[i][0]).trim() === procurado) { linha = i + 2; break; }
+    }
   }
 
   if (acao === 'excluir') {
@@ -271,22 +328,38 @@ function gravarNaPlanilha(acao, d) {
     return { ok: true, acao: 'excluir', linha: linha };
   }
 
-  var valores = [
-    d.id || '',
-    d.data || '',
-    d.hora || '',
-    d.numPedido || '',
-    Number(d.valor || 0),
-    d.formaPagamento || '',
-    d.registradoPor || ''
-  ];
+  var nova = false;
+  if (linha < 0) { linha = Math.max(ultLinha, 1) + 1; nova = true; }
 
-  if (acao === 'editar' && linha > 0) {
-    aba.getRange(linha, 1, 1, valores.length).setValues([valores]);
-    return { ok: true, acao: 'editar', linha: linha };
+  var dataVenda = _dataDaVenda(d.data);
+  if (dataVenda) {
+    var celData = aba.getRange(linha, col.data);
+    celData.setValue(dataVenda);
+    // Só define o formato em linha nova: em linha existente, respeita o que já está lá
+    if (nova) celData.setNumberFormat('dd/MM');
   }
-  aba.appendRow(valores);
-  return { ok: true, acao: 'criar', linha: aba.getLastRow() };
+
+  // O pedido é identificador, não valor: número puro entra como número sem
+  // formato de moeda (foi assim que "46297969" virou "R$ 46.297.969,00");
+  // qualquer outra coisa entra como texto, para não perder zero à esquerda.
+  var ped = String(d.numPedido || '').trim();
+  var celPed = aba.getRange(linha, col.pedido);
+  if (/^[1-9]\d*$/.test(ped)) {
+    if (nova) celPed.setNumberFormat('0');
+    celPed.setValue(Number(ped));
+  } else {
+    if (nova) celPed.setNumberFormat('@');
+    celPed.setValue(ped);
+  }
+
+  var celValor = aba.getRange(linha, col.valor);
+  celValor.setValue(Number(d.valor || 0));
+  if (nova) celValor.setNumberFormat('R$ #,##0.00');
+
+  if (col.origem) aba.getRange(linha, col.origem).setValue(d.formaPagamento || '');
+
+  return { ok: true, acao: nova ? 'criar' : (acao === 'editar' ? 'editar' : 'atualizar'),
+           aba: aba.getName(), linha: linha };
 }
 
 function _json(obj) {
