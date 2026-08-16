@@ -7358,14 +7358,16 @@ function onNotasInput(ta){
 }
 
 
-let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes']);
+// Sanfona: só um grupo aberto por vez na lateral, para não empilhar submenu
+// de todo mundo aberto ao mesmo tempo.
+let _navGroupOpen = new Set(['grp-tarefas']);
 
 /* Marca da versão que este navegador carregou. Serve para responder a
    pergunta que custou caro: "esta máquina já está com a correção?" — o
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16h';
+const APP_VERSAO='2026.08.16i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7590,10 +7592,21 @@ function buildTabs(){
 
       head.onclick=()=>{
         const nowOpen=childrenWrap.style.display==='flex';
-        childrenWrap.style.display=nowOpen?'none':'flex';
-        if(nowOpen) _navGroupOpen.delete(tb.id); else _navGroupOpen.add(tb.id);
-        const chev=head.querySelector('.tab-group-chevron');
-        if(chev) chev.style.transform=nowOpen?'none':'rotate(90deg)';
+        // Sanfona: fecha todos antes de decidir o que abrir — nunca mais de
+        // um grupo aberto na lateral ao mesmo tempo
+        nav.querySelectorAll('.tab-group').forEach(gw=>{
+          const cw=gw.querySelector('.tab-group-children');
+          const ch=gw.querySelector('.tab-group-chevron');
+          if(cw) cw.style.display='none';
+          if(ch) ch.style.transform='none';
+        });
+        _navGroupOpen.clear();
+        if(!nowOpen){
+          childrenWrap.style.display='flex';
+          const chev=head.querySelector('.tab-group-chevron');
+          if(chev) chev.style.transform='rotate(90deg)';
+          _navGroupOpen.add(tb.id);
+        }
       };
 
       visibleChildren.forEach(c=>{
