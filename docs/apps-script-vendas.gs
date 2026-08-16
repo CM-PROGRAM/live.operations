@@ -1,16 +1,19 @@
 /**
  * LiveOps — Registro de Vendas + Comprovantes
  *
- * ATENÇÃO: este NÃO é o script do proxy de CPF.
- * São duas implantações diferentes:
- *   · CPF        → .../AKfycbwVAjVS...  (o código com doGet e GHOST_TOKEN)
- *   · Vendas     → .../AKfycbzpMlENHS...  ← é ESTE aqui
- * Não cole este código por cima do proxy de CPF: as duas coisas param.
+ * Este arquivo é o projeto ÚNICO do LiveOps: atende as vendas e também o
+ * proxy de consulta de CPF, que antes vivia num projeto separado. Ficou tudo
+ * junto porque o código de vendas foi colado por cima do proxy — em vez de
+ * separar de novo, os dois convivem na mesma implantação, e o index.html
+ * aponta a mesma URL nas duas constantes (PLANILHA_VENDAS_URL e CPF_PROXY_URL).
  *
  * O que este script faz:
  *   acao 'criar' | 'editar' | 'excluir'  → mantém a planilha de vendas
  *   acao 'comprovante'                   → salva o print na pasta do MÊS,
  *                                          com o nome "DD.MM - Nº do pedido"
+ *   acao 'vendas'                        → devolve a planilha para a tela
+ *                                          de Conferência de Vendas
+ *   ?cpf=00000000000                     → repassa a consulta da GhostAPIs
  *
  * COMO PUBLICAR (a cada alteração):
  *   Implantar → Gerenciar implantações → editar (lápis) →
@@ -29,6 +32,9 @@ var PLANILHA_ID  = '15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY';
 // GID_VENDAS em null, usa a primeira aba.
 var GID_VENDAS   = 1231262605;
 var ABA_VENDAS   = '';   // alternativa ao gid: o nome da aba
+
+// Token da GhostAPIs, usado só pela consulta de CPF
+var GHOST_TOKEN  = 'f8ee18bc4b133d6d7e2a6dc9cf62eb2b';
 
 // ─────────────────────────────────────────────────────────────
 // ENTRADA
@@ -64,6 +70,26 @@ function doPost(e) {
 function doGet(e) {
   var p = (e && e.parameter) || {};
   var acao = p.acao || '';
+
+  // Proxy de CPF — a GhostAPIs bloqueia a chamada direta do navegador (CORS),
+  // então quem busca é o servidor do Google. A resposta volta como veio.
+  if (acao === 'cpf' || p.cpf) {
+    var cpf = String(p.cpf || '').replace(/\D/g, '');
+    if (cpf.length !== 11) return _json({ status: false, erro: 'CPF invalido — envie 11 digitos' });
+    try {
+      var resp = UrlFetchApp.fetch(
+        'https://ghostapis.com/api.php?token=' + GHOST_TOKEN + '&cpf_simples=' + cpf,
+        { muteHttpExceptions: true, followRedirects: true });
+      var texto = resp.getContentText();
+      try { return _json(JSON.parse(texto)); }
+      catch (parseErr) {
+        return _json({ status: false, erro: 'Resposta nao e JSON valido', bruto: texto.slice(0, 500) });
+      }
+    } catch (err) {
+      return _json({ status: false, erro: String(err) });
+    }
+  }
+
   if (acao !== 'vendas') {
     return _json({ ok: true, servico: 'LiveOps · Vendas e Comprovantes' });
   }

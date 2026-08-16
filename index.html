@@ -7349,7 +7349,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16c';
+const APP_VERSAO='2026.08.16d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7927,7 +7927,8 @@ function renderWpp(){
 /* ===== Integração Google Sheets (Apps Script) → Planilha "Registro de Vendas WhatsApp" =====
    Cole aqui a URL do App da Web gerada pelo Google Apps Script (Extensões > Apps Script > Implantar).
    Deixe como '' para desativar o envio (nenhuma chamada é feita se estiver vazio). */
-const PLANILHA_VENDAS_URL = 'https://script.google.com/macros/s/AKfycbzpMlENHS1XDTyGckkWeQTV3H0v-ymmEyv4u6YLPcV2jMA2ouH33aTnSVdufFEc3Lh_hw/exec';
+// Mesma implantação do proxy de CPF: um projeto só atende os dois
+const PLANILHA_VENDAS_URL = 'https://script.google.com/macros/s/AKfycbwVAjVS4aLxyxDNOjmUPDxp1SIcIuvkoSiuAXv7dybGtPsJduFxZVVTD4m9sBDjSOWR/exec';
 
 function enviarVendaPlanilha(pedido, acao){
   if(!PLANILHA_VENDAS_URL) return; // integração não configurada ainda
