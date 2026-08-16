@@ -7297,7 +7297,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14k';
+const APP_VERSAO='2026.08.14l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -17701,10 +17701,18 @@ function _mktRotinaId(dia,it){
     +_mktSlug(it.plataforma)+'_'+_mktSlug(it.loja)+'_'+_mktSlug(it.etapa);
 }
 
+// Sábado e domingo não têm expediente: a revisão dos marketplaces é de
+// segunda a sexta e não nasce no fim de semana.
+function _ehDiaUtil(iso){
+  const d=new Date(iso+'T12:00:00').getDay();   // 0 = domingo, 6 = sábado
+  return d!==0 && d!==6;
+}
+
 // Cria os cards de hoje que ainda não existem. Devolve quantos criou.
 function mktRotinaGarantirTarefas(){
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
   const dia=todayStr();
+  if(!_ehDiaUtil(dia)) return 0;
   const existentes=new Set(appState.atividades.map(a=>a&&a.id));
   const base=Date.now();
   let criou=0;
