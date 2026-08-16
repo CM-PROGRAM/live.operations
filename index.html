@@ -3554,6 +3554,12 @@ function _agoraCarimbo(){
 function _carimboDe(ts){
   return ts ? new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
 }
+// "16/08/2026, 22:45" -> "22:45 · 16/08/2026": a hora na frente do dia.
+// Carimbo antigo (só a data, de antes deste ajuste) passa direto, sem hora pra inventar.
+function _carimboHoraNaFrente(str){
+  const m=String(str||'').match(/^(\d{2}\/\d{2}\/\d{4}),?\s*(\d{2}:\d{2})$/);
+  return m ? (m[2]+' · '+m[1]) : String(str||'');
+}
 
 // Conta apenas dias úteis (seg-sex, fins de semana não contam) entre duas datas.
 // Retorna valor com sinal: positivo se dateEnd é depois de dateStart, negativo se antes, 0 se igual.
@@ -7359,7 +7365,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16g';
+const APP_VERSAO='2026.08.16h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -16244,7 +16250,7 @@ function renderAtividades(){
         ${codigoLabel?`<div style="font-size:10.5px;color:var(--text-secondary);font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
         ${a.prazoHoras?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Prazo: <span style="color:var(--text-secondary);font-weight:600;">${a.prazoHoras}h</span></div>`:''}
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
-        ${a.criadoEm?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':(carimboSaida?'2':'8')}px;">Criada em: <span style="color:var(--text-secondary);font-weight:600;font-family:var(--font-mono);">${a.criadoEm}</span></div>`:''}
+        ${a.criadoEm?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':(carimboSaida?'2':'8')}px;">Criada em: <span style="color:var(--text-secondary);font-weight:600;font-family:var(--font-mono);">${_carimboHoraNaFrente(a.criadoEm)}</span></div>`:''}
         ${carimboSaida?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">${carimboSaida.rotulo}: <span style="color:var(--tom-verde);font-weight:700;font-family:var(--font-mono);">${carimboSaida.texto}</span></div>`:''}
         ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:var(--tom-vermelho);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--linha-sutil);flex-wrap:wrap;gap:5px;">
