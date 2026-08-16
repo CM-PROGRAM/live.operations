@@ -241,15 +241,39 @@ function pastaCombinaComMes(nomePasta, mes) {
       || n.indexOf(ano + mm) >= 0;
 }
 
+// Quantos arquivos a pasta tem — para escolher a que está realmente em uso
+function _qtdArquivos(pasta) {
+  var n = 0, it = pasta.getFiles();
+  while (it.hasNext()) { it.next(); n++; if (n > 500) break; }
+  return n;
+}
+
 function pastaDoMes(mes) {
   var raiz = DriveApp.getFolderById(PASTA_COMPROVANTES_ID);
   var ano  = mes.slice(0, 4);
   var mm   = mes.slice(5, 7);
 
+  // Pode haver mais de uma pasta do mesmo mês (uma escrita por pessoa, outra
+  // criada por engano pelo próprio script). Escolher "a primeira que aparecer"
+  // é sorteio: o comprovante ora cai numa, ora noutra. Vale a que já tem
+  // comprovantes dentro — é a que a equipe abre.
+  var candidatas = [];
   var pastas = raiz.getFolders();
   while (pastas.hasNext()) {
     var p = pastas.next();
-    if (pastaCombinaComMes(p.getName(), mes)) return p;
+    if (pastaCombinaComMes(p.getName(), mes)) candidatas.push(p);
+  }
+  if (candidatas.length === 1) return candidatas[0];
+  if (candidatas.length > 1) {
+    var melhor = candidatas[0], melhorQtd = -1;
+    candidatas.forEach(function (c) {
+      var q = _qtdArquivos(c);
+      if (q > melhorQtd) { melhorQtd = q; melhor = c; }
+    });
+    console.warn('Mais de uma pasta para ' + mes + ': ' +
+      candidatas.map(function (c) { return c.getName(); }).join(' | ') +
+      ' — usando "' + melhor.getName() + '". Junte as pastas para não dividir os comprovantes.');
+    return melhor;
   }
   return raiz.createFolder(mm + '.' + ano);
 }
@@ -404,10 +428,13 @@ function testarPastaDoMes() {
   var h = new Date();
   var mes = h.getFullYear() + '-' + ('0' + (h.getMonth() + 1)).slice(-2);
   var raiz = DriveApp.getFolderById(PASTA_COMPROVANTES_ID);
+  var escolhida = pastaDoMes(mes);
   var todas = [], p = raiz.getFolders();
   while (p.hasNext()) {
     var f = p.next();
-    todas.push(f.getName() + (pastaCombinaComMes(f.getName(), mes) ? '   <<< é esta' : ''));
+    todas.push(f.getName() + ' (' + _qtdArquivos(f) + ' arquivo(s))'
+      + (f.getId() === escolhida.getId() ? '   <<< o comprovante vai para esta'
+         : (pastaCombinaComMes(f.getName(), mes) ? '   (também é de ' + mes + ' — junte as duas)' : '')));
   }
   Logger.log('Mês: ' + mes + '\nPastas em "' + raiz.getName() + '":\n· ' + todas.join('\n· '));
 }
