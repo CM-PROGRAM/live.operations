@@ -7350,7 +7350,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16e';
+const APP_VERSAO='2026.08.16f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8082,7 +8082,10 @@ function confirmarModalVenda(){
   try{ renderHistoricoWpp(); }catch(e){}
   try{ renderAtividades(); }catch(e){}
   enviarVendaPlanilha(pedido, 'criar');
-  if(compFile) enviarComprovanteDrive(pedido, compFile);
+  // O comprovante não sobe agora: ele viaja no card do Matheus e só vai para
+  // a pasta do Drive quando a conferência é finalizada — assim ninguém precisa
+  // refazer o caminho do arquivo, e o Drive não fica com duas cópias.
+  if(compFile) anexarComprovanteNaConferencia(pedido, compFile);
   showToast('🎉 Venda #'+cnt+' — Pedido #'+num+' (R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+') registrada!','success');
 }
 
@@ -8133,7 +8136,7 @@ function criarTarefaConferenciaVenda(pedido){
     vendaPedidoId:pedido.id,
     vendaNum:pedido.num, vendaData:pedido.data,
     vendaValor:pedido.valor, vendaPag:pedido.pag,
-    descricao:'Conferir a entrada em conta e anexar o comprovante',
+    descricao:'Conferir a entrada em conta',
     prioridade:'normal',
     vencimento:todayStr(),
     responsavel:VENDA_CONF_RESP, responsaveis:[VENDA_CONF_RESP],
@@ -8147,6 +8150,34 @@ function criarTarefaConferenciaVenda(pedido){
   notifyResponsaveisAtribuido(
     {...t,titulo:VENDA_CONF_TITULO+' · Pedido '+pedido.num},'tarefa','tarefa');
   return t;
+}
+
+/* O comprovante anexado no ato da venda entra no card do Matheus como prova:
+   ele abre, vê e baixa sem precisar que alguém cole o print de novo. A
+   original vai para fora do pacote (suplelive/imagens) e no registro fica só
+   a miniatura, para a tarefa continuar leve. */
+function anexarComprovanteNaConferencia(pedido, file){
+  const t=(appState.atividades||[]).find(a=>a && a.id==='atv_venda_'+pedido.id);
+  if(!t || !file) return;
+  const leitor=new FileReader();
+  leitor.onload=function(){
+    const dataUrl=String(leitor.result||'');
+    const quem=(currentUser&&currentUser.name)||'Registro de Vendas';
+    const em=new Date().toLocaleString('pt-BR',
+      {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    // PDF não vira miniatura: fica embutido para download, sem passar pelo canvas
+    const prep = dataUrl.startsWith('data:image')
+      ? imgPreparar(t.id,'prova_comprovante',null,dataUrl)
+      : Promise.resolve({thumb:dataUrl,chave:''});
+    prep.then(({thumb,chave})=>{
+      t.provaAtualizacao=thumb; t.provaAtualizacaoRef=chave||'';
+      t.provaAtualizacaoPor=quem; t.provaAtualizacaoEm=em;
+      t.comprovanteArquivo=file.name||''; t.comprovanteTipo=file.type||'';
+      saveState(appState);
+      try{ renderAtividades(); }catch(e){}
+    });
+  };
+  leitor.readAsDataURL(file);
 }
 
 function _ehTarefaVenda(a){ return !!(a && a.vendaPedidoId); }
@@ -8166,9 +8197,18 @@ function _vendaDataFmt(iso){
    nome no padrão "DD.MM - Nº do pedido" — o mesmo que a integração já usa
    quando o comprovante é anexado no ato da venda. */
 function _vendaEnviarComprovanteDrive(a){
-  if(!PLANILHA_VENDAS_URL) return false;
+  if(!PLANILHA_VENDAS_URL) return Promise.resolve(false);
   const chave=a.provaConclusaoRef||a.provaAtualizacaoRef||'';
-  const original=(chave && _imgCache[chave]) || a.provaConclusao || a.provaAtualizacao || '';
+  const embutida=a.provaConclusao || a.provaAtualizacao || '';
+  if(!chave && !embutida) return Promise.resolve(false);
+  // Busca a original antes de subir: no card fica só a miniatura, e é o
+  // arquivo cheio que tem que chegar na pasta
+  return ((chave && !_imgCache[chave]) ? imgCarregarOriginal(chave)
+                                       : Promise.resolve(chave?_imgCache[chave]:''))
+    .then(orig=>_vendaSubirComprovante(a, orig||embutida));
+}
+
+function _vendaSubirComprovante(a, original){
   if(!original) return false;
   const partes=String(original).split(',');
   const base64=partes.length>1?partes[1]:'';
@@ -19122,12 +19162,16 @@ function _atvRenderVenda(a){
     grid.style.pointerEvents=''; grid.style.opacity='';
     const aviso=document.createElement('div');
     aviso.style.cssText='font-size:11.5px;color:var(--text-muted);line-height:1.6;';
+    const nomeNoDrive=(a.vendaData||'').slice(8,10)+'.'+(a.vendaData||'').slice(5,7)+' - '+(a.vendaNum||'');
+    const temComprovante=!!(a.provaAtualizacao||a.provaConclusao);
     aviso.innerHTML = a.comprovanteNoDrive
       ? '✔ Comprovante enviado para a pasta do Drive'
         +(a.comprovanteEnviadoEm?(' em '+a.comprovanteEnviadoEm):'')+'.'
-      : 'Cole o comprovante de pagamento no campo de comentário (Ctrl+V) e clique em <b>Finalizar</b>.'
-        +'<br>Ao finalizar, ele sobe para a pasta do mês no Drive como <b>'
-        +((a.vendaData||'').slice(8,10)+'.'+(a.vendaData||'').slice(5,7)+' - '+(a.vendaNum||''))+'</b>.';
+      : temComprovante
+        ? 'O comprovante da venda já está anexado abaixo — clique nele para ver em tamanho cheio ou baixar.'
+          +'<br>Ao clicar em <b>Finalizar</b>, ele sobe sozinho para a pasta do mês no Drive como <b>'+nomeNoDrive+'</b>.'
+        : 'Nenhum comprovante veio junto com a venda. Cole o print no campo de comentário (Ctrl+V) e clique em <b>Finalizar</b>.'
+          +'<br>Ao finalizar, ele sobe para a pasta do mês no Drive como <b>'+nomeNoDrive+'</b>.';
     grid.appendChild(aviso);
   }
   const fixo=document.getElementById('atv-titulo-fixo');
@@ -19624,8 +19668,6 @@ function _vendaFinalizar(id){
   // Grava primeiro (o print colado vira a prova da conclusão)
   if(!_atvPersistirCampos('concluida')) return;
   const t=(appState.atividades||[]).find(x=>x.id===id);
-  const foi=_vendaEnviarComprovanteDrive(t);
-  if(foi) _vendaLimparComprovanteDoCard(t);
   t.status='finalizada';
   t.finalizadoEm=new Date().toLocaleDateString('pt-BR');
   t.finalizadoPor=currentUser.name;
@@ -19634,9 +19676,18 @@ function _vendaFinalizar(id){
   saveState(appState);
   renderAtividades();
   closeAtvModal();
-  showToast(foi
-    ? '🏁 Venda conferida — comprovante enviado para a pasta do Drive'
-    : '🏁 Venda conferida — sem comprovante anexado','success');
+  // O envio busca a imagem original na nuvem, então termina depois: a tarefa
+  // já fica finalizada e o card só perde o comprovante quando ele subiu
+  Promise.resolve(_vendaEnviarComprovanteDrive(t)).then(foi=>{
+    if(foi){
+      _vendaLimparComprovanteDoCard(t);
+      saveState(appState);
+      try{ renderAtividades(); }catch(e){}
+    }
+    showToast(foi
+      ? '🏁 Venda conferida — comprovante enviado para a pasta do Drive'
+      : '🏁 Venda conferida — sem comprovante anexado','success');
+  });
 }
 
 // Clique em "Pendente" dentro do card aberto (modal): persiste os campos
