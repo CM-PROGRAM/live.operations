@@ -206,10 +206,12 @@ function salvarComprovante(d) {
  * Os nomes que valem como "este mês" — serve para a pasta do Drive e para a
  * aba da planilha, que também é uma por mês ("AGOSTO 2026").
  */
+var MESES_PT = ['','JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO',
+                'JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'];
+
 function nomesAceitosDoMes(mes) {
   var ano = mes.slice(0, 4), mm = mes.slice(5, 7);
-  var nomeMes = ['','JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO',
-                 'JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO'][parseInt(mm, 10)];
+  var nomeMes = MESES_PT[parseInt(mm, 10)];
   var aceitos = {};
   [ mm + '.' + ano, mm + '-' + ano, mm + '/' + ano, mm + ' ' + ano,
     ano + '-' + mm, ano + '.' + mm, ano + '/' + mm,
@@ -219,17 +221,35 @@ function nomesAceitosDoMes(mes) {
   return aceitos;
 }
 
+/**
+ * Além dos nomes exatos, reconhece a pasta pelo conteúdo do nome: quem
+ * organiza o Drive escreve "08/2026 (AGO)", "AGO 2026", "Agosto 2026 -
+ * comprovantes". Exigir nome exato fazia o script criar uma pasta paralela e
+ * o comprovante sumir de vista, mesmo estando salvo.
+ * Só vale se o ANO bater — assim "AGOSTO 2025" nunca recebe venda de 2026.
+ */
+function pastaCombinaComMes(nomePasta, mes) {
+  var ano = mes.slice(0, 4), mm = mes.slice(5, 7);
+  var nomeMes = MESES_PT[parseInt(mm, 10)];
+  var n = normalizar(nomePasta);
+  if (nomesAceitosDoMes(mes)[n]) return true;
+  if (n.indexOf(ano) < 0) return false;
+  // Mês por extenso, abreviado (AGO) ou pelo número colado ao ano (082026 / 202608)
+  return n.indexOf(nomeMes) >= 0
+      || n.indexOf(nomeMes.slice(0, 3)) >= 0
+      || n.indexOf(mm + ano) >= 0
+      || n.indexOf(ano + mm) >= 0;
+}
+
 function pastaDoMes(mes) {
   var raiz = DriveApp.getFolderById(PASTA_COMPROVANTES_ID);
   var ano  = mes.slice(0, 4);
   var mm   = mes.slice(5, 7);
 
-  var aceitos = nomesAceitosDoMes(mes);
-
   var pastas = raiz.getFolders();
   while (pastas.hasNext()) {
     var p = pastas.next();
-    if (aceitos[normalizar(p.getName())]) return p;
+    if (pastaCombinaComMes(p.getName(), mes)) return p;
   }
   return raiz.createFolder(mm + '.' + ano);
 }
@@ -376,6 +396,20 @@ function _json(obj) {
 function testarLeituraDaPlanilha() {
   var r = doGet({ parameter: { acao: 'vendas' } });
   Logger.log(r.getContent().slice(0, 800));
+}
+
+// Mostra em qual pasta o comprovante deste mês vai cair, e lista o que existe
+// dentro de "Comprovantes" — serve para conferir sem criar arquivo nenhum.
+function testarPastaDoMes() {
+  var h = new Date();
+  var mes = h.getFullYear() + '-' + ('0' + (h.getMonth() + 1)).slice(-2);
+  var raiz = DriveApp.getFolderById(PASTA_COMPROVANTES_ID);
+  var todas = [], p = raiz.getFolders();
+  while (p.hasNext()) {
+    var f = p.next();
+    todas.push(f.getName() + (pastaCombinaComMes(f.getName(), mes) ? '   <<< é esta' : ''));
+  }
+  Logger.log('Mês: ' + mes + '\nPastas em "' + raiz.getName() + '":\n· ' + todas.join('\n· '));
 }
 
 function testarComprovante() {
