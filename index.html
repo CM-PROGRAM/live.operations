@@ -7297,7 +7297,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14l';
+const APP_VERSAO='2026.08.14m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -17762,11 +17762,16 @@ const ROTINA_DIAS_ATE_APAGAR=7;
 // Card de rotina de um dia anterior que ninguém tocou: fora do quadro, mas
 // continua no sistema
 function _atvRotinaVelhaEscondida(a){
-  if(!a || !a.rotinaMkt || a.rotinaMkt===todayStr()) return false;
+  if(!a || !a.rotinaMkt) return false;
+  // Teve trabalho em cima: fica à vista, seja de que dia for
   if(a.status==='concluida'||a.status==='finalizada'||a.status==='andamento') return false;
   if(a.provaConclusao||a.provaAtualizacao||a.pendencia) return false;
   if(Array.isArray(a.comentarios) && a.comentarios.length) return false;
-  return true;
+  // Card de sábado ou domingo: não há expediente, sai do quadro mesmo sendo
+  // de hoje. Os que já tinham nascido antes da regra somem por aqui.
+  if(!_ehDiaUtil(a.rotinaMkt)) return true;
+  // Card de um dia anterior que ninguém tocou
+  return a.rotinaMkt!==todayStr();
 }
 
 function _diasEntreISO(a,b){
@@ -17785,7 +17790,9 @@ function mktRotinaLimparAntigas(){
   const antes=appState.atividades.length;
   appState.atividades=appState.atividades.filter(a=>{
     if(!a || !a.rotinaMkt) return true;
-    if(a.rotinaMkt===dia && doDia.has(a.id)) return true;
+    // Guardar "os de hoje" só vale em dia útil — no fim de semana não há
+    // rotina, então os cards do próprio dia também não têm por que ficar
+    if(a.rotinaMkt===dia && doDia.has(a.id) && _ehDiaUtil(dia)) return true;
     if(!_atvRotinaVelhaEscondida(a)) return true;
     if(_diasEntreISO(a.rotinaMkt,dia) < ROTINA_DIAS_ATE_APAGAR) return true;
     if(orcamento<=0) return true;   // fica para a próxima rodada
