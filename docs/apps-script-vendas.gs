@@ -23,9 +23,12 @@
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
 
-// Planilha de vendas. Deixe '' para não mexer em planilha nenhuma.
-var PLANILHA_ID  = '';
-var ABA_VENDAS   = 'Vendas';
+// Planilha "Registro de Vendas WhatsApp"
+var PLANILHA_ID  = '15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY';
+// A aba é escolhida pelo gid da URL da planilha (…#gid=1231262605). Deixando
+// GID_VENDAS em null, usa a primeira aba.
+var GID_VENDAS   = 1231262605;
+var ABA_VENDAS   = '';   // alternativa ao gid: o nome da aba
 
 // ─────────────────────────────────────────────────────────────
 // ENTRADA
@@ -49,9 +52,55 @@ function doPost(e) {
   }
 }
 
-// Serve para testar no navegador: abra a URL /exec e veja se responde
-function doGet() {
-  return _json({ ok: true, servico: 'LiveOps · Vendas e Comprovantes' });
+/**
+ * Leitura da planilha pelo sistema (aba "Conferência Vendas").
+ *   /exec                → responde se o serviço está no ar
+ *   /exec?acao=vendas    → devolve o cabeçalho e todas as linhas
+ *
+ * Devolve as colunas como estão na planilha, sem inventar nome nem ordem:
+ * a tela monta a tabela com o que vier. Assim, mexer na planilha não quebra
+ * o sistema.
+ */
+function doGet(e) {
+  var acao = (e && e.parameter && e.parameter.acao) || '';
+  if (acao !== 'vendas') {
+    return _json({ ok: true, servico: 'LiveOps · Vendas e Comprovantes' });
+  }
+  try {
+    var aba = abaDeVendas();
+    if (!aba) return _json({ ok: false, erro: 'Aba de vendas não encontrada' });
+
+    var ultLinha = aba.getLastRow(), ultCol = aba.getLastColumn();
+    if (ultLinha < 1 || ultCol < 1) return _json({ ok: true, colunas: [], linhas: [] });
+
+    var tudo = aba.getRange(1, 1, ultLinha, ultCol).getDisplayValues();
+    var colunas = tudo.shift() || [];
+
+    // Linha totalmente vazia não vira registro
+    var linhas = tudo.filter(function (l) {
+      return l.some(function (c) { return String(c || '').trim() !== ''; });
+    });
+
+    return _json({ ok: true, aba: aba.getName(), colunas: colunas,
+                   linhas: linhas, total: linhas.length });
+  } catch (err) {
+    console.error(err);
+    return _json({ ok: false, erro: String(err) });
+  }
+}
+
+// Acha a aba pelo gid (o número no fim da URL da planilha) ou pelo nome
+function abaDeVendas() {
+  if (!PLANILHA_ID) return null;
+  var pl = SpreadsheetApp.openById(PLANILHA_ID);
+  if (GID_VENDAS !== null && GID_VENDAS !== undefined) {
+    var abas = pl.getSheets();
+    for (var i = 0; i < abas.length; i++) {
+      if (abas[i].getSheetId() === GID_VENDAS) return abas[i];
+    }
+  }
+  if (ABA_VENDAS) return pl.getSheetByName(ABA_VENDAS);
+  return pl.getSheets()[0];
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -139,8 +188,8 @@ function extensaoDe(mime) {
 function gravarNaPlanilha(acao, d) {
   if (!PLANILHA_ID) return { ok: true, aviso: 'Planilha não configurada — nada gravado' };
 
-  var aba = SpreadsheetApp.openById(PLANILHA_ID).getSheetByName(ABA_VENDAS);
-  if (!aba) return { ok: false, erro: 'Aba não encontrada: ' + ABA_VENDAS };
+  var aba = abaDeVendas();
+  if (!aba) return { ok: false, erro: 'Aba de vendas não encontrada' };
 
   // Coluna A guarda o id do pedido: é por ele que editar e excluir acham a linha
   var ids = aba.getRange(1, 1, Math.max(aba.getLastRow(), 1), 1).getValues();
@@ -183,6 +232,11 @@ function _json(obj) {
 // Apps Script → selecione "testarComprovante" → Executar.
 // Deve criar um arquivo de teste na pasta do mês.
 // ─────────────────────────────────────────────────────────────
+function testarLeituraDaPlanilha() {
+  var r = doGet({ parameter: { acao: 'vendas' } });
+  Logger.log(r.getContent().slice(0, 800));
+}
+
 function testarComprovante() {
   var r = salvarComprovante({
     numPedido: '35353535',

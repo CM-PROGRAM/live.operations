@@ -1228,6 +1228,35 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="section-title">Registro de Vendas</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
+      <!-- Registros (o que é lançado aqui) / Conferência (o que está na planilha) -->
+      <div id="reg-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
+        <button class="atv-stab2 active" data-c="afazer" data-sub="registros" onclick="regSetSubTab('registros')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>Registros
+        </button>
+        <button class="atv-stab2" data-c="concluida" data-sub="conferencia" onclick="regSetSubTab('conferencia')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Conferência Vendas
+          <span id="reg-cnt-conf" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
+        </button>
+      </div>
+
+      <!-- CONFERÊNCIA — espelho da planilha de vendas -->
+      <div id="reg-conferencia" style="display:none;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="reg-conf-busca" type="text" placeholder="🔎 Buscar em qualquer coluna..." oninput="renderConferenciaVendas()"
+            style="flex:1;min-width:220px;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:10px 18px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+          <button class="btn btn-sm" id="btn-conf-atualizar" onclick="carregarConferenciaVendas(true)" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
+          <a href="https://docs.google.com/spreadsheets/d/15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY/edit" target="_blank" rel="noopener"
+             class="btn btn-ghost btn-sm" style="width:auto;white-space:nowrap;text-decoration:none;">Abrir planilha</a>
+        </div>
+        <div id="reg-conf-info" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;"></div>
+        <div id="reg-conf-scroll" style="overflow-x:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);">
+          <table id="reg-conf-tabela" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
+        </div>
+        <div id="reg-conf-vazio" style="display:none;padding:40px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);"></div>
+      </div>
+
+      <!-- REGISTROS -->
+      <div id="reg-registros">
       <!-- GRÁFICO DE VENDAS POR DIA -->
       <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),var(--realce-topo);">
         <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border-bottom:1px solid var(--glass-border);padding:11px 16px;display:flex;align-items:center;gap:10px;">
@@ -1332,6 +1361,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
     </div>
+      </div><!-- /reg-registros -->
 
     <!-- PLATAFORMAS -->
     <div class="tab-panel" id="tab-plataformas">
@@ -7317,7 +7347,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16';
+const APP_VERSAO='2026.08.16b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7491,7 +7521,10 @@ function buildTabs(){
   nav.appendChild(lbl);
 
   function fireTabHooks(id){
-    if(id==='registrovendas'){ try{renderHistoricoWpp();}catch(e){console.warn('renderHistoricoWpp:',e);} }
+    if(id==='registrovendas'){
+      try{renderHistoricoWpp();}catch(e){console.warn('renderHistoricoWpp:',e);}
+      try{regSetSubTab(_regSubTab||'registros');}catch(e){}
+    }
     if(id==='devolucoes'){ try{devSetSubTab('ativos');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
@@ -8532,6 +8565,103 @@ function renderVendasChart(){
     col.appendChild(lbl);
     chart.appendChild(col);
   });
+}
+
+/* ═══════════ CONFERÊNCIA DE VENDAS ═══════════
+   Espelho da planilha "Registro de Vendas WhatsApp", para conferir sem sair
+   do sistema. Os dados vêm pelo Apps Script (a planilha não é acessível
+   direto do navegador), e a tabela é montada com as colunas que vierem —
+   mexer na planilha não quebra a tela. */
+let _confVendas=null;      // {colunas, linhas, aba}
+let _confCarregando=false;
+let _confErro='';
+let _regSubTab='registros';
+
+function regSetSubTab(qual){
+  _regSubTab=qual;
+  const reg=document.getElementById('reg-registros');
+  const conf=document.getElementById('reg-conferencia');
+  if(reg)  reg.style.display  = qual==='registros' ? 'block' : 'none';
+  if(conf) conf.style.display = qual==='conferencia' ? 'block' : 'none';
+  document.querySelectorAll('#reg-subtabs .atv-stab2').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub===qual);
+  });
+  if(qual==='conferencia'){
+    // Só busca uma vez por sessão; o botão Atualizar força de novo
+    if(!_confVendas && !_confCarregando) carregarConferenciaVendas(false);
+    else renderConferenciaVendas();
+  }
+}
+
+function carregarConferenciaVendas(forcar){
+  if(_confCarregando) return;
+  if(!PLANILHA_VENDAS_URL){ _confErro='Integração com a planilha não configurada'; renderConferenciaVendas(); return; }
+  if(_confVendas && !forcar){ renderConferenciaVendas(); return; }
+  _confCarregando=true; _confErro='';
+  const btn=document.getElementById('btn-conf-atualizar');
+  if(btn){ btn.disabled=true; btn.textContent='Carregando…'; }
+  renderConferenciaVendas();
+  fetch(PLANILHA_VENDAS_URL+'?acao=vendas&t='+Date.now())
+    .then(r=>r.json())
+    .then(j=>{
+      if(!j || j.ok===false) throw new Error((j&&j.erro)||'resposta inválida');
+      _confVendas={colunas:j.colunas||[], linhas:j.linhas||[], aba:j.aba||'', em:new Date()};
+    })
+    .catch(err=>{
+      console.error('[conferência]',err);
+      _confErro=String(err&&err.message||err);
+    })
+    .then(()=>{
+      _confCarregando=false;
+      if(btn){ btn.disabled=false; btn.textContent='⟳ Atualizar'; }
+      renderConferenciaVendas();
+    });
+}
+
+function renderConferenciaVendas(){
+  const tab=document.getElementById('reg-conf-tabela');
+  const vazio=document.getElementById('reg-conf-vazio');
+  const info=document.getElementById('reg-conf-info');
+  const cnt=document.getElementById('reg-cnt-conf');
+  if(!tab) return;
+  const scroll=document.getElementById('reg-conf-scroll');
+  const mostrarAviso=(txt)=>{
+    tab.innerHTML='';
+    if(scroll) scroll.style.display='none';
+    if(vazio){ vazio.style.display='block'; vazio.textContent=txt; }
+  };
+  if(_confCarregando && !_confVendas){ mostrarAviso('Buscando as vendas na planilha…'); return; }
+  if(_confErro && !_confVendas){
+    mostrarAviso('Não foi possível ler a planilha: '+_confErro
+      +'. Confira se o Apps Script de vendas está publicado com a leitura (acao=vendas).');
+    return;
+  }
+  if(!_confVendas){ mostrarAviso('Clique em Atualizar para buscar as vendas.'); return; }
+
+  const q=((document.getElementById('reg-conf-busca')||{}).value||'').toLowerCase().trim();
+  const cols=_confVendas.colunas;
+  const linhas=q
+    ? _confVendas.linhas.filter(l=>l.some(c=>String(c||'').toLowerCase().includes(q)))
+    : _confVendas.linhas;
+
+  if(cnt) cnt.textContent=_confVendas.linhas.length?('· '+_confVendas.linhas.length):'';
+  if(info){
+    info.textContent=`${linhas.length} de ${_confVendas.linhas.length} linha(s)`
+      +(_confVendas.aba?(' · aba "'+_confVendas.aba+'"'):'')
+      +' · lido às '+_confVendas.em.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  }
+  if(!linhas.length){ mostrarAviso(q?'Nada encontrado para esta busca.':'A planilha está sem linhas.'); return; }
+  if(scroll) scroll.style.display='';
+  if(vazio) vazio.style.display='none';
+
+  const esc=v=>String(v==null?'':v).replace(/</g,'&lt;');
+  // Mais recente em cima: a planilha cresce para baixo
+  const ordenadas=linhas.slice().reverse();
+  tab.innerHTML=
+    '<thead><tr>'+cols.map(c=>`<th style="position:sticky;top:0;background:var(--bg-surface);border-bottom:1px solid var(--border);padding:9px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap;">${esc(c)}</th>`).join('')+'</tr></thead>'
+    +'<tbody>'+ordenadas.map(l=>
+      '<tr>'+cols.map((_,i)=>`<td style="border-bottom:1px solid var(--linha-sutil);padding:8px 12px;color:var(--text-secondary);white-space:nowrap;">${esc(l[i])}</td>`).join('')+'</tr>'
+    ).join('')+'</tbody>';
 }
 
 function renderHistoricoWpp(){
