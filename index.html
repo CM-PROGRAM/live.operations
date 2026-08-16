@@ -3141,6 +3141,25 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <input type="hidden" id="atv-marketplace">
       </div>
+      <!-- Conferência da venda: só leitura, tudo já vem do Registro de Vendas -->
+      <div id="atv-venda-info" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="input-group">
+          <label>Pedido</label>
+          <div id="atv-venda-num" class="atv-campo-fixo">—</div>
+        </div>
+        <div class="input-group">
+          <label>Dia</label>
+          <div id="atv-venda-dia" class="atv-campo-fixo">—</div>
+        </div>
+        <div class="input-group">
+          <label>Valor</label>
+          <div id="atv-venda-valor" class="atv-campo-fixo">—</div>
+        </div>
+        <div class="input-group">
+          <label>Forma de pagamento</label>
+          <div id="atv-venda-pag" class="atv-campo-fixo">—</div>
+        </div>
+      </div>
       <!-- Loja e prazo da revisão diária dos marketplaces (só nesses cards) -->
       <div id="atv-rotina-info" style="display:none;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="input-group">
@@ -5359,6 +5378,7 @@ const LOG_IGNORAR=new Set(['id','ordemManual','_version','_savedBy','_by','taref
   'origemCancId','origemCancNfId','prazoLimite','tarefaGerada','pedidoBase','notificadaEm',
   'criadoPorKey','provaConclusaoEm','notifyCriadorConcluida','atualizadoEm','skuTipo','concluidoPorKey',
   'concluidoTs','finalizadoTs','_grupo','execs','link','linkLabel','icon',
+  'vendaPedidoId','comprovanteEnviadoEm',
   'mktEtapa','mktLoja','prazoHoras']);
 // Campos volumosos (base64/histórico): registra só a variação de quantidade
 const LOG_POR_CONTAGEM={fotos:'Imagem(ns) anexada(s)', comentarios:'Comentário(s)'};
@@ -7297,7 +7317,7 @@ let _navGroupOpen = new Set(['grp-tarefas','grp-atendimentos','grp-devolucoes'])
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.14m';
+const APP_VERSAO='2026.08.16';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8015,9 +8035,15 @@ function confirmarModalVenda(){
     g.items.forEach(i=>{ i.done=false;i.doneBy=null;i.doneAt=null; });
   });
 
+  // Conferência da entrada em conta — vai para o Matheus
+  try{ criarTarefaConferenciaVenda(pedido); }catch(e){ console.warn('[venda]',e); }
   saveState(appState);
   cancelarModalVenda();
   renderWpp();
+  // Faltava redesenhar o Histórico: a venda era salva e não aparecia na lista
+  // até trocar de aba e voltar
+  try{ renderHistoricoWpp(); }catch(e){}
+  try{ renderAtividades(); }catch(e){}
   enviarVendaPlanilha(pedido, 'criar');
   if(compFile) enviarComprovanteDrive(pedido, compFile);
   showToast('🎉 Venda #'+cnt+' — Pedido #'+num+' (R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:2})+') registrada!','success');
@@ -8051,6 +8077,97 @@ function togglePedidosWpp(){
   const open = body.style.display !== 'none';
   body.style.display = open ? 'none' : 'block';
   if(icon) icon.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+/* ═══════════ CONFERÊNCIA DA VENDA ═══════════
+   Toda venda registrada gera uma tarefa para o Matheus conferir a entrada em
+   conta. O card carrega o pedido, o dia, o valor e a forma de pagamento já
+   preenchidos — não há nada para digitar, só anexar o comprovante e finalizar. */
+const VENDA_CONF_RESP='matheusm';
+const VENDA_CONF_TITULO='Venda WhatsApp';
+
+function criarTarefaConferenciaVenda(pedido){
+  if(!pedido || !pedido.id) return null;
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const id='atv_venda_'+pedido.id;
+  if(appState.atividades.some(a=>a && a.id===id)) return null;   // já existe
+  const t={
+    id, titulo:VENDA_CONF_TITULO,
+    vendaPedidoId:pedido.id,
+    vendaNum:pedido.num, vendaData:pedido.data,
+    vendaValor:pedido.valor, vendaPag:pedido.pag,
+    descricao:'Conferir a entrada em conta e anexar o comprovante',
+    prioridade:'normal',
+    vencimento:todayStr(),
+    responsavel:VENDA_CONF_RESP, responsaveis:[VENDA_CONF_RESP],
+    status:'aberta',
+    criadoEm:new Date().toLocaleDateString('pt-BR'),
+    criadoPor:(currentUser&&currentUser.name)||'Registro de Vendas',
+    criadoPorKey:(currentUser&&currentUser.key)||'',
+    ordemManual:Date.now()
+  };
+  appState.atividades.push(t);
+  notifyResponsaveisAtribuido(
+    {...t,titulo:VENDA_CONF_TITULO+' · Pedido '+pedido.num},'tarefa','tarefa');
+  return t;
+}
+
+function _ehTarefaVenda(a){ return !!(a && a.vendaPedidoId); }
+
+// Valor em reais, do jeito que se lê
+function _vendaValorFmt(v){
+  return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+// AAAA-MM-DD -> DD/MM/AAAA
+function _vendaDataFmt(iso){
+  if(!iso) return '—';
+  const p=String(iso).split('-');
+  return p.length===3 ? p[2]+'/'+p[1]+'/'+p[0] : String(iso);
+}
+
+/* Ao finalizar, o comprovante sai do card e sobe para a pasta do Drive com o
+   nome no padrão "DD.MM - Nº do pedido" — o mesmo que a integração já usa
+   quando o comprovante é anexado no ato da venda. */
+function _vendaEnviarComprovanteDrive(a){
+  if(!PLANILHA_VENDAS_URL) return false;
+  const chave=a.provaConclusaoRef||a.provaAtualizacaoRef||'';
+  const original=(chave && _imgCache[chave]) || a.provaConclusao || a.provaAtualizacao || '';
+  if(!original) return false;
+  const partes=String(original).split(',');
+  const base64=partes.length>1?partes[1]:'';
+  if(!base64) return false;
+  const mime=(String(original).match(/^data:([^;]+);/)||[])[1]||'image/jpeg';
+  const dd=(a.vendaData||'').slice(8,10), mm=(a.vendaData||'').slice(5,7);
+  const nome=dd+'.'+mm+' - '+(a.vendaNum||'');
+  const payload={
+    acao:'comprovante',
+    numPedido:a.vendaNum||'',
+    data:a.vendaData||'',
+    // O mês serve para a planilha escolher a pasta do mês no Drive
+    mes:(a.vendaData||'').slice(0,7),
+    fileName:nome,
+    mimeType:mime,
+    fileBase64:base64
+  };
+  fetch(PLANILHA_VENDAS_URL,{method:'POST',mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(payload)})
+    .catch(err=>{
+      console.error('[venda] falha ao enviar o comprovante:',err);
+      showToast('⚠ O comprovante não subiu para o Drive — confira a pasta','warn');
+    });
+  return true;
+}
+
+// Tira o comprovante do card depois de enviado. A imagem original continua
+// guardada em suplelive/imagens: o envio ao Drive não tem confirmação de
+// volta, e apagar a única cópia com base num palpite seria irresponsável.
+function _vendaLimparComprovanteDoCard(a){
+  ['provaConclusao','provaConclusaoRef','provaConclusaoPor','provaConclusaoEm',
+   'provaAtualizacao','provaAtualizacaoRef','provaAtualizacaoPor','provaAtualizacaoEm']
+    .forEach(c=>{ if(a[c]!==undefined) a[c]=''; });
+  a.comprovanteNoDrive=true;
+  a.comprovanteEnviadoEm=new Date().toLocaleString('pt-BR',
+    {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
 function fmtValorWpp(el){
@@ -8088,10 +8205,12 @@ function addPedidoWpp(){
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()-60);
   const cutStr=cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
   appState.pedidosWpp=appState.pedidosWpp.filter(p=>p.data>=cutStr);
+  try{ criarTarefaConferenciaVenda(pedido); }catch(e){ console.warn('[venda]',e); }
   saveState(appState);
   numEl.value='';valorEl.value='';pagEl.value='Pix Manoel';
   numEl.focus();
   renderHistoricoWpp();
+  try{ renderAtividades(); }catch(e){}
   showToast('✓ Pedido #'+num+' registrado — R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:2}),'success');
 }
 
@@ -18756,7 +18875,9 @@ function openAtvModal(id,forcarSomenteLeitura){
         btnConcluir.type='button';
         btnConcluir.className='btn-pill v-aqua';
         btnConcluir.style.flex='1';
-        btnConcluir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>Concluir';
+        // A conferência de venda fecha de uma vez, sem passar por Concluídas
+        btnConcluir.innerHTML='<span class="btn-pill-ic"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg></span>'
+          +(_ehTarefaVenda(a)?'Finalizar':'Concluir');
         btnConcluir.onclick=()=>atvConcluirModal(id);
         acoesEl.appendChild(btnConcluir);
         const btnPend=document.createElement('button');
@@ -18803,12 +18924,61 @@ function openAtvModal(id,forcarSomenteLeitura){
    a tarefa do dia (que leva direto ao link do painel), a loja, o prazo e o
    responsável. Identificador, grade de marketplaces, data de vencimento e
    prioridade não dizem nada nesse card e saem da frente. */
+/* O card da conferência de venda é só leitura: os quatro dados vêm do
+   Registro de Vendas e não há o que digitar. O que o Matheus faz aqui é
+   colar o comprovante no comentário e finalizar. */
+function _atvRenderVenda(a){
+  const ehVenda=_ehTarefaVenda(a);
+  const mostra=(id,ver,display)=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = ver ? (display||'') : 'none';
+  };
+  mostra('atv-venda-info', ehVenda, 'grid');
+  if(!ehVenda) return false;
+  mostra('atv-identificador-wrap', false);
+  mostra('atv-venc-prior-row',     false);
+  mostra('atv-rotina-info',        false);
+  mostra('atv-titulo',             false);
+  mostra('atv-titulo-fixo',        true);
+  const admBtns=document.getElementById('atv-titulo-admin-btns');
+  if(admBtns) admBtns.style.display='none';
+  const respLbl=document.getElementById('atv-responsavel-label');
+  if(respLbl) respLbl.textContent='Conferência';
+  const header=document.getElementById('atv-mkt-header');
+  if(header) header.textContent='Conferência da venda';
+  const grid=document.getElementById('atv-marketplace-grid');
+  if(grid){
+    grid.innerHTML='';
+    grid.style.pointerEvents=''; grid.style.opacity='';
+    const aviso=document.createElement('div');
+    aviso.style.cssText='font-size:11.5px;color:var(--text-muted);line-height:1.6;';
+    aviso.innerHTML = a.comprovanteNoDrive
+      ? '✔ Comprovante enviado para a pasta do Drive'
+        +(a.comprovanteEnviadoEm?(' em '+a.comprovanteEnviadoEm):'')+'.'
+      : 'Cole o comprovante de pagamento no campo de comentário (Ctrl+V) e clique em <b>Finalizar</b>.'
+        +'<br>Ao finalizar, ele sobe para a pasta do mês no Drive como <b>'
+        +((a.vendaData||'').slice(8,10)+'.'+(a.vendaData||'').slice(5,7)+' - '+(a.vendaNum||''))+'</b>.';
+    grid.appendChild(aviso);
+  }
+  const fixo=document.getElementById('atv-titulo-fixo');
+  if(fixo) fixo.textContent=a.titulo||VENDA_CONF_TITULO;
+  const p=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  p('atv-venda-num', a.vendaNum||'—');
+  p('atv-venda-dia', _vendaDataFmt(a.vendaData));
+  p('atv-venda-valor', _vendaValorFmt(a.vendaValor));
+  p('atv-venda-pag', a.vendaPag||'—');
+  return true;
+}
+
 function _atvRenderRotina(a){
+  // O card de venda tem forma própria e é tratado antes
+  if(_atvRenderVenda(a)) return;
   const ehRotina=!!(a && a.rotinaMkt);
   const mostra=(idEl,ver,display)=>{
     const el=document.getElementById(idEl);
     if(el) el.style.display = ver ? (display||'') : 'none';
   };
+  mostra('atv-venda-info', false);
   mostra('atv-identificador-wrap', !ehRotina, 'flex');
   mostra('atv-venc-prior-row',     !ehRotina, 'grid');
   mostra('atv-rotina-info',         ehRotina, 'grid');
@@ -19082,7 +19252,11 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   // campos deixava o botão Concluir sem efeito, avisando para informar um
   // título que o usuário não tinha como escrever.
   const ehRotina=!!anterior.rotinaMkt;
-  if(!ehRotina){
+  // Cards enxutos (revisão diária e conferência de venda) não têm esses campos
+  // na tela: cobrá-los deixava o botão sem efeito, pedindo um título que o
+  // usuário não tinha como escrever.
+  const ehEnxuto=ehRotina || _ehTarefaVenda(anterior);
+  if(!ehEnxuto){
     if(!titulo){showToast('Informe o título da tarefa','warn');return false;}
     if(!responsavel){showToast('Selecione o(a) Conferência Colaborador','warn');return false;}
     if(!vencimento){showToast('Informe a data de vencimento','warn');return false;}
@@ -19121,7 +19295,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
 
   // Na rotina os campos da tela estão ocultos e vazios — gravá-los apagaria o
   // título e a loja do card. Só o responsável e o comentário vêm da tela.
-  let patch = (isMaster && !ehRotina)
+  let patch = (isMaster && !ehEnxuto)
     ? {titulo,descricao,sku,skuTipo,marketplace,marketplacesConcluidos,responsavel,responsaveis,vencimento,prioridade,
        ...(isEntradaTitulo?{comentario:comentarioFixo,comentarioAutor:comentarioFixoAutor,comentarioEm:comentarioFixoEm}:{})}
     // Colaborador responsável: só altera "Conferência Colaborador" (devolver/
@@ -19199,7 +19373,9 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
 
   // ── Notificação a quem ficou responsável ──────────
   // Na rotina os campos da tela estão vazios: o texto do aviso vem do registro
-  const tituloNotif = ehRotina ? [anterior.titulo,anterior.mktEtapa].filter(Boolean).join(' · ') : titulo;
+  const tituloNotif = ehEnxuto
+    ? [anterior.titulo,anterior.mktEtapa,anterior.vendaNum].filter(Boolean).join(' · ')
+    : titulo;
   const vencNotif   = vencimento || anterior.vencimento || '';
   const vencFmt = vencNotif
     ? new Date(vencNotif+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})
@@ -19240,6 +19416,9 @@ function atvConcluirCardFace(id){
   // A revisão diária dos marketplaces é uma conferência de rotina: o print
   // não é exigido. Nas demais tarefas ele continua sendo a prova que a equipe
   // usa para finalizar.
+  // Conferência de venda: o comprovante é colado dentro do card, então o
+  // botão do quadro leva para lá em vez de tentar fechar por aqui
+  if(_ehTarefaVenda(a)){ openAtvModal(id); return; }
   if(a.rotinaMkt || a.provaConclusao || a.provaAtualizacao){
     atvMoveStatus(id,'concluida');
   } else {
@@ -19259,10 +19438,35 @@ function atvConcluirModal(id){
   const temImagem = !!(_atvPendingImagem || a.provaConclusao || a.provaAtualizacao);
   // Print opcional na revisão diária — ver atvConcluirCardFace
   if(!temImagem && !a.rotinaMkt){showToast('Anexe uma imagem para concluir a tarefa','warn');return;}
+  // Conferência de venda: não passa por "Concluída". O Matheus confere, o
+  // comprovante sobe para o Drive e a tarefa fecha de uma vez.
+  if(_ehTarefaVenda(a)){ _vendaFinalizar(id); return; }
   if(!_atvPersistirCampos('concluida')) return;
   _atvSetPendingImagem('','');
   closeAtvModal();
   showToast('Tarefa → Concluída','success');
+}
+
+/* Fecha a conferência da venda de uma vez: grava o comprovante como prova,
+   manda para a pasta do Drive e tira a imagem do card. */
+function _vendaFinalizar(id){
+  const a=(appState.atividades||[]).find(x=>x.id===id); if(!a) return;
+  // Grava primeiro (o print colado vira a prova da conclusão)
+  if(!_atvPersistirCampos('concluida')) return;
+  const t=(appState.atividades||[]).find(x=>x.id===id);
+  const foi=_vendaEnviarComprovanteDrive(t);
+  if(foi) _vendaLimparComprovanteDoCard(t);
+  t.status='finalizada';
+  t.finalizadoEm=new Date().toLocaleDateString('pt-BR');
+  t.finalizadoPor=currentUser.name;
+  t.finalizadoTs=Date.now();
+  _atvSetPendingImagem('','');
+  saveState(appState);
+  renderAtividades();
+  closeAtvModal();
+  showToast(foi
+    ? '🏁 Venda conferida — comprovante enviado para a pasta do Drive'
+    : '🏁 Venda conferida — sem comprovante anexado','success');
 }
 
 // Clique em "Pendente" dentro do card aberto (modal): persiste os campos
