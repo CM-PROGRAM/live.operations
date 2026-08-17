@@ -140,6 +140,8 @@ A resposta é um objeto `{ "rst_1786...": {...}, "rst_1787...": {...} }`.
 const todos = $input.first().json || {};
 const agora = Date.now();
 const DIAS_ATE_DESISTIR = 45;
+const FONTES = ['Melhor Envio', 'Manda Bem'];
+let semFonte = 0;
 
 const fila = Object.entries(todos).map(([chave, r]) => ({ chave, ...r })).filter(r => {
   if (!r || !r.codigo) return false;                    // sem código não há o que consultar
@@ -151,8 +153,19 @@ const fila = Object.entries(todos).map(([chave, r]) => ({ chave, ...r })).filter
   const nasceu = Number(r.ordemManual || 0);
   if (nasceu && (agora - nasceu) > DIAS_ATE_DESISTIR * 864e5) return false;
 
+  /* Sem intermediador não há onde perguntar. Deixar passar não era inofensivo:
+     o item caía na saída "Sem fonte" do Switch e chegava ao normalizador como
+     card cru, que lia o campo "status" do próprio card e o gravava de volta
+     como se fosse resposta da transportadora — o rastreio parecia atualizado
+     de hora em hora sem nunca ter consultado nada. */
+  if (FONTES.indexOf(String(r.intermediador || '').trim()) < 0) { semFonte++; return false; }
+
   return true;
 });
+
+if (semFonte) {
+  console.log(semFonte + ' rastreio(s) fora da fila por não ter intermediador definido no card');
+}
 
 return fila.map(json => ({ json }));
 ```
@@ -469,6 +482,20 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
   // {title, html}; o Melhor Envio, um objeto por pedido
   const fonte = ($json && $json.html !== undefined) ? 'manda-bem-painel' : 'melhor-envio';
   const bruto = ($json && $json.error) ? null : $json;
+
+  /* Chegou o card, não a resposta de ninguém: é a saída "Sem fonte" do Switch,
+     ou um ramo que não consultou. Aqui NÃO se escreve status: o card tem um
+     campo "status" próprio (o da equipe: Postado, Em trânsito…) e gravá-lo de
+     volta como se fosse da transportadora inventaria um rastreio que nunca
+     aconteceu. Só registra o motivo, para a tela poder mostrar. */
+  if (bruto && bruto.codigo && bruto.chave) {
+    const aviso = 'Sem intermediador definido no card — escolha Melhor Envio ou Manda Bem';
+    return { json: {
+      chave: bruto.chave,
+      mudou: card.trackErro !== aviso,
+      patch: { trackErro: aviso, trackConsultadoEm: carimbo, _by: 'n8n' }
+    }};
+  }
 
   /* A mensagem de erro do n8n às vezes vem como objeto ({message, description}).
      String(objeto) daria "[object Object]" e o card mostraria isso ao operador,
