@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.17f';
+var VERSAO_CODIGO = '2026.08.17g';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -986,18 +986,26 @@ function testarGravarVenda() {
   }
 }
 
-/* Celular usado pelos testes daqui. Deixe VAZIO no arquivo e escreva o seu
-   só na hora de testar — um número inventado de exemplo é o número real de
-   alguém, e "testarDisparo" manda mensagem de verdade. Já aconteceu: o
-   27999887766 que estava aqui virou o contato 6701 no Chatwoot. */
+/* Celular usado pelos testes daqui — o do Carlos, autorizado por ele.
+   Fica na propriedade CELULAR_TESTE, não escrito aqui, por dois motivos: este
+   arquivo vai para um repositório público, e celular de pessoa não precisa
+   ficar exposto; e a propriedade sobrevive a colar uma versão nova do código
+   por cima, então não some a cada atualização.
+   Cadastre em: Configurações do projeto → Propriedades do script →
+   nome CELULAR_TESTE, valor = 27999987802 (só dígitos, com DDD).
+
+   Nunca deixe um número de exemplo inventado aqui: número plausível é o
+   número real de alguém, e "testarDisparo" manda mensagem de verdade — foi
+   assim que o 27999887766 virou o contato 6701 no Chatwoot. */
 var CELULAR_DE_TESTE = '';
 
 function _celularDeTeste() {
-  if (!CELULAR_DE_TESTE) {
-    throw new Error('Escreva o SEU celular em CELULAR_DE_TESTE (topo desta seção) ' +
-                    'antes de rodar este teste. Sem isso a mensagem vai para um desconhecido.');
+  var fone = CELULAR_DE_TESTE || _propriedade('CELULAR_TESTE');
+  if (!fone) {
+    throw new Error('Cadastre CELULAR_TESTE nas Propriedades do script (Configuracoes do ' +
+                    'projeto) antes de rodar este teste. Sem isso a mensagem iria para um desconhecido.');
   }
-  return CELULAR_DE_TESTE;
+  return fone;
 }
 
 /**
@@ -1009,10 +1017,11 @@ function testarChatwoot() {
   Logger.log('Token da GhostAPIs cadastrado? ' + (ghostToken() ? 'sim' : 'NÃO — a consulta de CPF vai falhar'));
   Logger.log('Caixas de entrada: ' + JSON.stringify(listarInboxes()));
   Logger.log('Caixa usada nos disparos: ' + JSON.stringify(inboxDoWhatsApp()));
-  if (CELULAR_DE_TESTE) {
-    Logger.log('Verificação: ' + JSON.stringify(verificarNoChatwoot(CELULAR_DE_TESTE), null, 2));
+  var fone = CELULAR_DE_TESTE || _propriedade('CELULAR_TESTE');
+  if (fone) {
+    Logger.log('Verificação: ' + JSON.stringify(verificarNoChatwoot(fone), null, 2));
   } else {
-    Logger.log('Verificação de telefone: pulada — preencha CELULAR_DE_TESTE para conferir um número.');
+    Logger.log('Verificação de telefone: pulada — cadastre CELULAR_TESTE nas Propriedades do script.');
   }
 }
 
