@@ -7418,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16t';
+const APP_VERSAO='2026.08.17a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7534,11 +7534,13 @@ function buildTabs(){
     {type:'group', id:'grp-atendimentos', icon:'📞', label:'Atendimentos', perm:'atendimentos', children:[
       {id:'atendimentos', label:'Lançamentos'}
     ]},
-    {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', permAny:['whatsapp','envios','consultacpf'], children:[
+    {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', perm:null, children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       {id:'registrovendas', label:'Registro de Vendas', perm:'whatsapp'},
       {id:'envios',    label:'Live Track', perm:'envios'},
-      {id:'consultacpf', label:'Live CPF', perm:'consultacpf'},
+      // Live CPF é de todo mundo: quem atende cliente precisa do telefone,
+      // e trancar isso só criava pedido de liberação para o master
+      {id:'consultacpf', label:'Live CPF', perm:null},
       {id:'canceladas', label:'Canceladas'}
     ]},
     {type:'group', id:'grp-integracoes', icon:'🔗', label:'Anúncios', perm:'integracoes', children:[
@@ -11442,10 +11444,7 @@ function buildDevCardFull(d, isConcluida){
    A GhostAPIs bloqueia chamadas diretas do navegador (CORS). */
 const CPF_PROXY_URL='https://script.google.com/macros/s/AKfycbwVAjVS4aLxyxDNOjmUPDxp1SIcIuvkoSiuAXv7dybGtPsJduFxZVVTD4m9sBDjSOWR/exec';
 function openCpfModal(){
-  if(!currentUser || !(currentUser.master || (currentUser.perms||[]).includes('consultacpf'))){
-    showToast('Acesso restrito — peça ao master para liberar a Consulta CPF','error');
-    return;
-  }
+  if(!currentUser){ showToast('Faça login para consultar','warn'); return; }
   const ov=document.getElementById('cpf-modal-overlay');
   if(!ov) return;
   ov.style.display='flex';
