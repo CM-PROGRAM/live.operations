@@ -7418,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17e';
+const APP_VERSAO='2026.08.17f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14642,8 +14642,12 @@ function buildRstCard(r, isEntregue){
     if(r.trackAlerta){
       const al=document.createElement('span');
       al.style.cssText='font-size:9px;font-weight:700;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:2px 8px;';
-      al.textContent='⚠ verificar';
-      al.title=r.trackAlerta;
+      /* "⚠ verificar" obrigava a passar o mouse para saber se era extravio ou
+         endereço errado — duas coisas com respostas bem diferentes. O motivo
+         vem escrito; o texto inteiro continua no title, para os casos longos. */
+      const motivo=String(r.trackAlerta||'').trim();
+      al.textContent='⚠ '+(motivo.length>38 ? motivo.slice(0,36)+'…' : motivo);
+      al.title=motivo;
       topo.appendChild(al);
     }
     box.appendChild(topo);
