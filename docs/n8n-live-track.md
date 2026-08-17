@@ -611,9 +611,19 @@ https://painel.mandabem.com.br/acompanhamento/status_<transportadora>_objeto/<id
 
 Dois detalhes que mudam o desenho:
 
-1. **O id não é o código de rastreio.** É o número da etiqueta sem o prefixo:
-   `MB0000000328080` → `328080`. É esse id que o card precisa guardar no
-   campo `envioId` — sem ele, não há como consultar.
+1. **O id não é o código de rastreio, nem o número da lista.** É o número da
+   **etiqueta** sem o prefixo: `MB0000000328080` → `328080`. É esse id que o
+   card precisa guardar no campo `envioId` — sem ele, não há como consultar.
+
+   Cuidado com os dois números parecidos do mesmo envio:
+
+   | Número | O que é | Serve? |
+   |---|---|---|
+   | `4600136` | id da **coleta** — é o que aparece na lista e no `id="coleta-…"` | não |
+   | `328080` | id da **etiqueta** — vem de `MB0000000328080` | sim |
+
+   Usar o da coleta devolve `404`, o que dá a impressão de que o nome do
+   endpoint está errado quando o errado é o id.
 2. **A resposta é HTML dentro de JSON** (`{"html": "<div>…</div>"}`), porque
    o painel joga esse HTML num modal. O normalizador precisa de um adaptador
    que leia os eventos do HTML, não de um JSON já estruturado.
