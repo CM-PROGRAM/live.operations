@@ -865,21 +865,27 @@ São 15 nós, com todo o código já dentro. **Duas coisas ficam marcadas com
 
 | Nó | O que falta |
 |---|---|
-| `Login Manda Bem` | a URL do POST de login (e o nome dos campos, se não forem `email` / `password`) |
-| `Manda Bem · detalhe` | a URL do endpoint que devolve o HTML do envio |
+| `Login Manda Bem` | trocar `PREENCHER_A_SENHA_AQUI` pela senha do painel |
+| `Melhor Envio · rastreio` | escolher a credencial de cabeçalho criada com o token |
 
-As duas se capturam do mesmo jeito: DevTools → **Rede** → faça a ação (logar
-/ expandir um envio) → clique na linha → aba **Cabeçalhos** → *URL da
-solicitação*.
+### Onde ficam as credenciais (sem plano pago)
 
-Usuário, senha e token não ficam no arquivo — o workflow lê de variáveis de
-ambiente do n8n, que é onde segredo deve morar:
+As *Variáveis* do n8n são recurso Enterprise, então o workflow não depende
+delas. Ficou assim:
 
-```
-MANDABEM_USUARIO=...
-MANDABEM_SENHA=...
-MELHORENVIO_TOKEN=...
-```
+| O quê | Onde | Por quê |
+|---|---|---|
+| Token do Melhor Envio | Credencial **Autenticação de cabeçalho** (`Authorization` = `Bearer <token>`) | credencial é criptografada pelo n8n e não sai no export do workflow |
+| Senha do Manda Bem | No próprio nó `Login Manda Bem` | o painel espera a senha no corpo do POST, e credencial do n8n só injeta em cabeçalho |
+| E-mail do Manda Bem | No próprio nó | não é segredo |
+
+Trocar o token do Melhor Envio depois é editar a credencial, sem tocar no
+workflow.
+
+**A senha no nó tem uma consequência:** ela viaja junto se alguém exportar
+este workflow. Ao compartilhar o JSON, apague a senha antes. (Se o n8n for
+auto-hospedado, dá para trocar por `{{ $env.MANDABEM_SENHA }}` e pôr o valor
+no `.env` do servidor — aí ela não fica no workflow.)
 
 O login roda uma vez por rodada, em paralelo com a leitura dos cards, e o
 cookie fica guardado para os nós do painel. Como o login não tem captcha,

@@ -79,11 +79,11 @@
             },
             {
               "name": "email",
-              "value": "={{ $env.MANDABEM_USUARIO || $vars.MANDABEM_USUARIO }}"
+              "value": "contato@suplelive.com.br"
             },
             {
               "name": "password",
-              "value": "={{ $env.MANDABEM_SENHA || $vars.MANDABEM_SENHA }}"
+              "value": "PREENCHER_A_SENHA_AQUI"
             }
           ]
         },
@@ -226,10 +226,6 @@
         "headerParameters": {
           "parameters": [
             {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.MELHORENVIO_TOKEN || $vars.MELHORENVIO_TOKEN }}"
-            },
-            {
               "name": "Accept",
               "value": "application/json"
             },
@@ -242,7 +238,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ orders: [$json.envioId] }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth"
       },
       "name": "Melhor Envio · rastreio",
       "type": "n8n-nodes-base.httpRequest",
@@ -251,7 +249,13 @@
         380,
         140
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Melhor Envio"
+        }
+      }
     },
     {
       "parameters": {
