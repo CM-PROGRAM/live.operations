@@ -470,6 +470,15 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
   const fonte = ($json && $json.html !== undefined) ? 'manda-bem-painel' : 'melhor-envio';
   const bruto = ($json && $json.error) ? null : $json;
 
+  /* A mensagem de erro do n8n às vezes vem como objeto ({message, description}).
+     String(objeto) daria "[object Object]" e o card mostraria isso ao operador,
+     escondendo justamente o que a gente precisa ler para consertar. */
+  function textoDoErro(e) {
+    if (!e) return '';
+    if (typeof e === 'string') return e;
+    return e.message || e.description || e.reason || JSON.stringify(e);
+  }
+
   // Ramo de erro: o HTTP Request falhou (Continue On Fail preserva o item)
   if (item.json.error || !bruto) {
     const falhas = Number(card.trackFalhas || 0) + 1;
@@ -478,7 +487,7 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
       chave: card.chave || card.id,
       mudou: true,
       patch: {
-        trackErro: String(item.json.error || 'sem resposta da API').slice(0, 300),
+        trackErro: (textoDoErro(item.json.error) || 'sem resposta da API').slice(0, 300),
         trackFalhas: falhas,
         trackConsultadoEm: carimbo,
         trackProximaConsulta: Date.now() + espera,
@@ -930,3 +939,43 @@ isso se renova sozinho — ninguém precisa colar cookie quando expirar.
 4. **Combine o alarme.** Se o workflow falhar inteiro (credencial vencida,
    por exemplo), alguém precisa saber. Um nó de erro que cria uma tarefa no
    LiveOps para o responsável resolve — o mesmo caminho do `n8n-tarefas.md`.
+
+---
+
+## 9. Erros que já apareceram (e o que cada um significa)
+
+### `O nó referenciado não foi executado` chegando no `trackErro`
+
+O `Padroniza` não inventa essa mensagem: ele copia o que veio no campo `error`
+do item, ou seja, **quem falhou foi o nó HTTP anterior**, e o `Continue On
+Fail` preservou o item para o card registrar a pendência.
+
+Um nó HTTP só dá esse erro quando alguma expressão dele aponta para um nó que
+não rodou naquele caminho. No ramo do Melhor Envio existem dois caminhos que
+desembocam no mesmo `Melhor Envio · rastreio`:
+
+```
+Já tem o id? ─true──────────────────────────→ Melhor Envio · rastreio
+             └false→ achar pedido → Id do pedido ─┘
+```
+
+Quem passa pelo `true` **nunca executa** o `Id do pedido`. Se o corpo do
+`Melhor Envio · rastreio` ainda estiver escrito como
+`{{ JSON.stringify({ orders: [$('Id do pedido').item.json.envioId] }) }}`,
+esses itens quebram — e só eles, o que explica a rodada "verde" com um item
+com erro no meio.
+
+**Correção:** o corpo tem que ler o próprio item, que já chega com o id pelos
+dois caminhos:
+
+```
+{{ JSON.stringify({ orders: [$json.envioId] }) }}
+```
+
+O mesmo vale para o par `Abrir tela de login → Login Manda Bem`: foi por isso
+que o login virou uma fila antes do rastreio, e não um ramo paralelo
+(seção 2).
+
+Dentro de um nó Code a regra é outra — lá dá para se defender com
+`try { $('Nó').item } catch (e) {}`, que é como o `Padroniza` lê o `envioId`
+sem se importar com qual dos dois caminhos o item tomou.
