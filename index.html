@@ -1317,7 +1317,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ENVIOS -->
     <div class="tab-panel" id="tab-envios">
       <div class="section-header">
-        <span class="section-title">Rastreios</span>
+        <span class="section-title">Live Track</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
       <div class="date-header" id="env-date"></div>
@@ -7394,7 +7394,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16o';
+const APP_VERSAO='2026.08.16p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7513,7 +7513,7 @@ function buildTabs(){
     {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', permAny:['whatsapp','envios','consultacpf'], children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       {id:'registrovendas', label:'Registro de Vendas', perm:'whatsapp'},
-      {id:'envios',    label:'Rastreios', perm:'envios'},
+      {id:'envios',    label:'Live Track', perm:'envios'},
       {id:'consultacpf', label:'Live CPF', perm:'consultacpf'},
       {id:'canceladas', label:'Canceladas'}
     ]},
