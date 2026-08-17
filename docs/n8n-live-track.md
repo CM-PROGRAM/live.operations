@@ -648,6 +648,65 @@ não por seletor de tabela: o painel mexe no layout com frequência, mas a data
 é o que dá sentido ao evento e não muda de formato sem quebrar a tela deles
 junto.
 
+### Não mapeie transportadora → endpoint. Leia o `data-path`.
+
+Comparando três envios do mesmo painel:
+
+| Envio | `data-path` da lupa | Cancelar | De onde vem o id |
+|---|---|---|---|
+| Loggi | `/acompanhamento/status_loggi_objeto/328080` | `/transportadora/cancel/328080` | etiqueta `MB0000000328080` |
+| Jadlog | `/acompanhamento/status_jadlog_objeto/326447` | `/transportadora/cancel/326447` | `PED: 4596457MBEM326447` |
+| Correios | `/acompanhamento/status_objeto/12411416` | `/envio/cancel/12411416` | `data-envio_id` |
+
+São **duas famílias de rota**:
+
+- **Transportadora própria** (Loggi, Jadlog) — `status_<transp>_objeto/{id}`,
+  com o id que também aparece em `/transportadora/cancel/`.
+- **Correios** — `status_objeto/{envio_id}`, sem nome de transportadora, com
+  o id que aparece em `/envio/cancel/`.
+
+E cada família guarda o id num lugar diferente do HTML: na Loggi ele está
+embutido na etiqueta `MB…`, no Jadlog no texto `PED: …MBEM326447`, nos
+Correios num atributo `data-envio_id`. Três formatos para a mesma coisa.
+
+Dá para escrever um extrator para cada um — e ele quebra no dia em que
+entrar uma transportadora nova. Por isso a regra abaixo.
+
+Qualquer tabela "transportadora → slug" que eu escrevesse aqui estaria
+errada na próxima transportadora que vocês usarem. O caminho que não quebra é
+**perguntar ao painel**: o HTML do detalhe do envio já traz o endereço pronto
+no `data-path`.
+
+Então o fluxo do Manda Bem tem dois passos:
+
+```
+[GET detalhe da coleta]  →  HTML com o data-path da lupa
+        │
+[Code: extrai o data-path]
+        │
+[GET esse data-path]     →  {title, html} com as movimentações
+```
+
+Extrair é uma linha:
+
+```javascript
+// O HTML do detalhe traz o botão da lupa com o endereço do rastreio pronto.
+// Ler daqui vale mais que qualquer tabela de slugs: funciona para
+// transportadora que ainda nem existe no cadastro.
+const html = $json.html || '';
+const m = html.match(/class="btn-get-status-objeto-envio"[^>]*data-path="([^"]+)"/)
+       || html.match(/data-path="([^"]*status[^"]*objeto[^"]*)"/);
+return [{ json: { ...$json, trackUrl: m ? m[1].replace(/\\\//g, '/') : '' } }];
+```
+
+Falta só uma coisa para esse passo ficar de pé: **a URL do endpoint de
+detalhe** — aquela chamada que devolveu este HTML, que no DevTools aparece
+com o nome `4599156` (o id da coleta). Pegue em *Rede* → clique nessa linha →
+aba **Cabeçalhos** → *URL da requisição*.
+
+Com ela, o workflow fica inteiramente automático a partir do id da coleta, e
+nenhum id novo precisa ser digitado no card.
+
 ### O endpoint não confere a transportadora — e isso é uma armadilha
 
 Testando o mesmo objeto (`328080`, que é **Loggi**) contra os outros nomes:
