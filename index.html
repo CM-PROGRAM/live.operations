@@ -7322,6 +7322,9 @@ function initApp(){
   buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
   // Cards de revisão dos marketplaces do dia
   try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
+  // Atendimento sem resposta há 24h volta a ser enviado, com a tela aberta
+  // ou não — quem consultou o CPF ontem não precisa lembrar de reenviar
+  setTimeout(()=>{ try{ lcpfReenviarVencidos(); }catch(e){ console.warn('[live cpf]',e); } }, 9000);
   // Esta máquina está com a versão publicada? Se não, ela se atualiza sozinha
   try{ verificarVersaoPublicada(true); }catch(e){ console.warn('[versao]',e); }
   initNotifListener();
@@ -7391,7 +7394,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16n';
+const APP_VERSAO='2026.08.16o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11673,7 +11676,10 @@ function abrirFichaLiveCpf(id){
       ${t.disparo?`<div style="flex-basis:100%;font-size:10px;font-family:var(--font-mono);color:${t.disparo.erro?'var(--tom-vermelho)':'var(--tom-aco)'};">
         ${t.disparo.erro
           ? ('Envio: '+esc(t.disparo.erro))
-          : ('📨 '+(t.disparo.jaEnviado?'já enviado — aguardando resposta':'atendimento iniciado')+' · '+esc(t.disparo.em))}
+          : ('📨 '+(t.disparo.jaEnviado?'já enviado — aguardando resposta':'atendimento iniciado')+' · '+esc(t.disparo.em)
+             +((t.disparo.tentativas||1)>1?(' · '+(t.disparo.tentativas)+'ª tentativa'):'')
+             +(_lcpfPrecisaReenviar(t)?' · reenvio a caminho'
+               :((t.disparo.tentativas||1)>=LCPF_MAX_TENTATIVAS?' · sem resposta após '+LCPF_MAX_TENTATIVAS+' tentativas':'')))}
         ${t.disparo.link?` · <a href="${esc(t.disparo.link)}" target="_blank" rel="noopener" style="color:var(--tom-aco);">ver conversa</a>`:''}
       </div>`:''}
       ${t.chatwoot?`<div style="flex-basis:100%;font-size:10px;font-family:var(--font-mono);color:${t.chatwoot.erro?'var(--tom-vermelho)':(t.chatwoot.recebidas?'var(--green)':'var(--text-muted)')};">
@@ -11800,8 +11806,8 @@ function lcpfDispararTodos(){
         t.disparando=false;
         t.disparo = (j && j.ok)
           ? {em:_agoraCarimbo(), por:(currentUser&&currentUser.name)||'', link:j.link||'',
-             resumo:j.resumo||'', jaEnviado:!!j.jaEnviado}
-          : {em:_agoraCarimbo(), erro:(j&&(j.erro||j.motivo))||'falha no envio'};
+             resumo:j.resumo||'', jaEnviado:!!j.jaEnviado, tentativas:1}
+          : {em:_agoraCarimbo(), erro:(j&&(j.erro||j.motivo))||'falha no envio', tentativas:1};
         saveState(appState); abrirFichaLiveCpf(f.id);
       })
       .catch(err=>{
@@ -11819,6 +11825,59 @@ function lcpfDispararTodos(){
    de tempos em tempos quem respondeu. Para sozinho quando alguém confirma,
    quando a ficha fecha ou depois de 20 minutos — ninguém deixa a tela batendo
    na API a noite toda. */
+/* Reenvio depois de 24h sem resposta.
+   O limite de tentativas existe porque um número errado nunca responde: sem
+   teto, o mesmo desconhecido receberia a mesma mensagem todo dia, para sempre,
+   e é assim que a conta do WhatsApp é denunciada. Três tentativas em três dias
+   é insistência; a quarta é perseguição. */
+const LCPF_REENVIO_HORAS=24;
+const LCPF_MAX_TENTATIVAS=3;
+
+function _lcpfHorasDesde(carimbo){
+  // "17/08/2026, 03:23" -> horas decorridas
+  const m=String(carimbo||'').match(/^(\d{2})\/(\d{2})\/(\d{4}),?\s*(\d{2}):(\d{2})$/);
+  if(!m) return Infinity;
+  const q=new Date(+m[3],+m[2]-1,+m[1],+m[4],+m[5]).getTime();
+  return (Date.now()-q)/3600000;
+}
+
+function _lcpfPrecisaReenviar(t){
+  if(!t || !t.disparo || t.disparo.erro || t.confirmado) return false;
+  if((t.disparo.tentativas||1)>=LCPF_MAX_TENTATIVAS) return false;
+  return _lcpfHorasDesde(t.disparo.em)>=LCPF_REENVIO_HORAS;
+}
+
+/* Varre todas as fichas atrás de disparo sem resposta há mais de 24h e manda
+   de novo. Roda ao abrir o sistema e de hora em hora — o reenvio não pode
+   depender de alguém estar com a ficha aberta na tela. */
+function lcpfReenviarVencidos(){
+  if(!PLANILHA_VENDAS_URL || !currentUser) return 0;
+  let mandou=0;
+  _lcpfLista().forEach(f=>{
+    // Cliente que já respondeu em algum número não é mais incomodado
+    if((f.telefones||[]).some(t=>t.confirmado)) return;
+    (f.telefones||[]).forEach(t=>{
+      if(!_lcpfPrecisaReenviar(t)) return;
+      mandou++;
+      const tentativa=(t.disparo.tentativas||1)+1;
+      fetch(PLANILHA_VENDAS_URL+'?acao=disparar&fone='+encodeURIComponent(t.num)
+            +'&nome='+encodeURIComponent(f.nome||'')+'&t='+Date.now())
+        .then(r=>r.json())
+        .then(j=>{
+          t.disparo = (j && j.ok)
+            ? {em:_agoraCarimbo(), por:'Reenvio automático', link:j.link||t.disparo.link||'',
+               resumo:j.resumo||'', jaEnviado:!!j.jaEnviado, tentativas:tentativa}
+            : {...t.disparo, erro:(j&&(j.erro||j.motivo))||'falha no reenvio', tentativas:tentativa};
+          saveState(appState);
+          if(_lcpfAberta===f.id) abrirFichaLiveCpf(f.id);
+        })
+        .catch(()=>{});
+    });
+  });
+  if(mandou) console.log('[live cpf] reenviando o atendimento para',mandou,'número(s) sem resposta há 24h');
+  return mandou;
+}
+
 let _lcpfEspera=null;
 function lcpfIniciarEspera(){
   if(_lcpfEspera) return;
@@ -13616,6 +13675,8 @@ function startClock(){
     // De 5 em 5 minutos: saiu versão nova, a barra avisa (sem recarregar
     // sozinho no meio do trabalho de alguém)
     if(new Date().getMinutes()%5===0){ try{ verificarVersaoPublicada(false); }catch(e){} }
+    // De hora em hora: quem não respondeu em 24h recebe de novo
+    if(new Date().getMinutes()===7){ try{ lcpfReenviarVencidos(); }catch(e){ console.warn('[live cpf]',e); } }
   },60000);
   setTimeout(registerPresence,1000);
   initPushNotifications();
