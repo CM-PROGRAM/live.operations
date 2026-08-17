@@ -1325,13 +1325,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <!-- GRUPO 1: PEDIDOS TRANSPORTADORA -->
       <div id="env-tasks"></div>
 
-      <!-- GRUPO 2: ACOMPANHAMENTO RASTREIOS -->
+      <!-- GRUPO 2: ACOMPANHAMENTO — LIVE TRACK -->
       <div style="margin-top:16px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;">
 
         <!-- Header do grupo -->
         <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
           <div style="width:26px;height:26px;border-radius:6px;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:11px;">📦</div>
-          <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">RASTREIOS</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">LIVE TRACK</span>
           <div id="rst-owner-badge" title="Responsável: Gustavo" style="width:22px;height:22px;border-radius:50%;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);color:#ffffff;font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 11px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">GU</div>
           <span id="rst-count-badge" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10px;font-family:var(--font-mono);font-weight:700;padding:1px 8px;">0</span>
           <!-- Pasta Entregues chip -->
@@ -1411,6 +1411,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                 <option value="">— Selecionar —</option>
               </select>
             </div>
+            <div class="input-group"><label>Intermediador</label>
+              <select id="rst-intermediador">
+                <option value="">— Selecionar —</option>
+                <option value="Melhor Envio">Melhor Envio</option>
+                <option value="Manda Bem">Manda Bem</option>
+              </select>
+            </div>
+            <div class="input-group"><label>Id no Melhor Envio <span style="color:var(--text-muted);font-weight:400;">(rastreio automático)</span></label><input type="text" id="rst-envioid" placeholder="Só para Melhor Envio" autocomplete="new-password" data-lpignore="true"></div>
             <div class="input-group" style="grid-column:1/-1;"><label>Código de Rastreio</label><input type="text" id="rst-codigo" placeholder="Ex: LGI-ME262833CI4BR" autocomplete="new-password" data-lpignore="true"></div>
             <div class="input-group" style="grid-column:1/-1;"><label>Link de Rastreio</label><input type="text" id="rst-link" name="rst-link-field-nofill" placeholder="https://app.loggi.com/rastreador/..." autocomplete="new-password" autocorrect="off" autocapitalize="off" spellcheck="false" data-lpignore="true" data-form-type="other"></div>
             <div class="input-group" style="grid-column:1/-1;">
@@ -3312,6 +3320,21 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;">📞 Telefones encontrados</div>
       <div id="cpf-consulta-fones" style="display:flex;flex-direction:column;gap:6px;"></div>
     </div>
+  </div>
+</div>
+
+<!-- HISTÓRICO DE RASTREIO (Live Track) -->
+<div id="rsthist-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:var(--sombra-painel),var(--realce-topo);max-width:520px;width:100%;margin:0 auto;position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#9db8e8,#8fa8d8,#5876b8);border-radius:var(--radius-lg) var(--radius-lg) 0 0;"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;">
+      <div>
+        <div style="font-size:15px;font-weight:800;color:var(--text-primary);">Movimentações</div>
+        <div id="rsthist-titulo" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;"></div>
+      </div>
+      <button onclick="fecharHistoricoRastreio()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+    </div>
+    <div id="rsthist-corpo" style="max-height:60vh;overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -7394,7 +7417,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16p';
+const APP_VERSAO='2026.08.16q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14561,11 +14584,91 @@ function buildRstCard(r, isEntregue){
     row.appendChild(l);row.appendChild(v);card.appendChild(row);
   }
   infoRow('Dt. Pedido',r.data);
-  infoRow('Transp.',r.transp);
+  infoRow('Transp.',r.transp+(r.intermediador?(' · '+r.intermediador):''));
   infoRow('Prev. Entrega',r.previsao);
+
+  /* Rastreio automático (n8n). Fica abaixo dos dados do pedido, separado:
+     o de cima é o que a equipe cadastrou, o de baixo é o que a transportadora
+     respondeu. Misturar os dois faria ninguém saber de onde veio o quê. */
+  if(r.trackStatus || r.trackErro || r.trackConsultadoEm){
+    const box=document.createElement('div');
+    box.style.cssText='margin-top:2px;padding-top:8px;border-top:1px solid var(--linha-sutil);';
+
+    const topo=document.createElement('div');
+    topo.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
+    const st=document.createElement('span');
+    st.style.cssText=`font-size:11.5px;font-weight:700;color:${r.trackErro?'var(--tom-vermelho)':'var(--text-primary)'};line-height:1.3;`;
+    st.textContent=r.trackErro ? ('Falha na consulta: '+r.trackErro) : (r.trackStatus||'—');
+    topo.appendChild(st);
+
+    // Alerta da transportadora (extravio, endereço errado): o robô sinaliza,
+    // quem decide o status é quem fala com o cliente
+    if(r.trackAlerta){
+      const al=document.createElement('span');
+      al.style.cssText='font-size:9px;font-weight:700;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:2px 8px;';
+      al.textContent='⚠ verificar';
+      al.title=r.trackAlerta;
+      topo.appendChild(al);
+    }
+    box.appendChild(topo);
+
+    const hist=Array.isArray(r.trackHistorico)?r.trackHistorico:[];
+    if(hist.length){
+      const ultimo=hist[0];
+      const linha=document.createElement('div');
+      linha.style.cssText='font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;';
+      linha.textContent=[ultimo.data,ultimo.local].filter(Boolean).join(' · ');
+      box.appendChild(linha);
+
+      if(hist.length>1){
+        const ver=document.createElement('button');
+        ver.className='btn-link btn-sm';
+        ver.style.cssText+=';margin-top:6px;';
+        ver.textContent='Ver as '+hist.length+' movimentações';
+        ver.onclick=(e)=>{ e.stopPropagation(); abrirHistoricoRastreio(r.id); };
+        box.appendChild(ver);
+      }
+    }
+
+    if(r.trackConsultadoEm){
+      const q=document.createElement('div');
+      q.style.cssText='font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:5px;';
+      q.textContent='Consultado em '+r.trackConsultadoEm+(r.trackFonte?(' · '+r.trackFonte):'');
+      box.appendChild(q);
+    }
+    card.appendChild(box);
+  }
 
   return card;
 }
+
+/* A linha do tempo completa do pacote, do mais novo para o mais antigo. */
+function abrirHistoricoRastreio(id){
+  const r=getRastreios().find(x=>x.id===id); if(!r) return;
+  const ov=document.getElementById('rsthist-modal-overlay');
+  const box=document.getElementById('rsthist-corpo');
+  const tit=document.getElementById('rsthist-titulo');
+  if(!ov||!box) return;
+  const esc=v=>String(v==null?'':v).replace(/</g,'&lt;');
+  if(tit) tit.textContent=(r.transp||'Rastreio')+' · '+(r.codigo||r.nped||'');
+  const hist=Array.isArray(r.trackHistorico)?r.trackHistorico:[];
+  box.innerHTML = hist.length
+    ? hist.map((e,i)=>`
+        <div style="display:flex;gap:10px;">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;">
+            <div style="width:9px;height:9px;border-radius:50%;background:${i===0?'var(--green)':'var(--text-muted)'};margin-top:4px;"></div>
+            ${i<hist.length-1?'<div style="flex:1;width:1px;background:var(--linha-sutil);margin:2px 0;"></div>':''}
+          </div>
+          <div style="padding-bottom:14px;">
+            <div style="font-size:12.5px;font-weight:${i===0?'700':'600'};color:var(--text-primary);line-height:1.35;">${esc(e.status)}</div>
+            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${esc([e.data,e.local].filter(Boolean).join(' · '))}</div>
+            ${e.detalhe?`<div style="font-size:10.5px;color:var(--text-secondary);margin-top:3px;">${esc(e.detalhe)}</div>`:''}
+          </div>
+        </div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-muted);">Nenhuma movimentação registrada ainda.</div>';
+  ov.style.display='flex';
+}
+function fecharHistoricoRastreio(){ const o=document.getElementById('rsthist-modal-overlay'); if(o) o.style.display='none'; }
 
 
 let _rstEntreguesOpen = false;
@@ -14582,7 +14685,7 @@ function openRstModal(id){
   if(!ov) return;
 
   // Clear fields
-  ['rst-data','rst-nped','rst-previsao','rst-codigo','rst-link','rst-edit-id','rst-obs'].forEach(fid=>{
+  ['rst-data','rst-nped','rst-previsao','rst-codigo','rst-link','rst-edit-id','rst-obs','rst-envioid'].forEach(fid=>{
     const el=document.getElementById(fid); if(el) el.value='';
   });
   const rstObsCnt=document.getElementById('rst-obs-count'); if(rstObsCnt) rstObsCnt.textContent='150 restantes';
@@ -14600,6 +14703,8 @@ function openRstModal(id){
       document.getElementById('rst-previsao').value = r.previsao||'';
       document.getElementById('rst-codigo').value = r.codigo||'';
       document.getElementById('rst-link').value   = r.link||'';
+      const _inter=document.getElementById('rst-intermediador'); if(_inter) _inter.value=r.intermediador||'';
+      const _envid=document.getElementById('rst-envioid'); if(_envid) _envid.value=r.envioId||'';
       document.getElementById('rst-obs').value    = r.obs||'';
       const rstObsCntE=document.getElementById('rst-obs-count'); if(rstObsCntE) rstObsCntE.textContent=(150-(r.obs||'').length)+' restantes';
       document.getElementById('rst-edit-id').value= r.id;
@@ -14655,6 +14760,9 @@ function saveRst(){
   const codigo    = document.getElementById('rst-codigo').value.trim();
   let link        = document.getElementById('rst-link').value.trim();
   const obs       = (document.getElementById('rst-obs')?.value||'').trim().slice(0,150);
+  // Quem gerou a etiqueta decide por onde o robô consulta o rastreio
+  const intermediador = (document.getElementById('rst-intermediador')?.value||'').trim();
+  const envioId       = (document.getElementById('rst-envioid')?.value||'').trim();
   if(link.startsWith('file:')) link=''; // Ignora autofill indevido do navegador (caminho local)
   const editId    = document.getElementById('rst-edit-id').value;
 
@@ -14668,7 +14776,8 @@ function saveRst(){
     const idx=arr.findIndex(r=>r.id===editId);
     if(idx>=0){
       const ex=arr[idx];
-      arr[idx]={id:editId,data,nped,plataforma:ex.plataforma||'',marketplace,status,transp,previsao,cliente:ex.cliente||'',codigo,link,obs,
+      arr[idx]={...ex,id:editId,data,nped,plataforma:ex.plataforma||'',marketplace,status,transp,previsao,cliente:ex.cliente||'',codigo,link,obs,
+        intermediador,envioId,
         entregueEm:(status==='Entregue' ? (ex.status==='Entregue'?ex.entregueEm:_entregueEmAgora) : ''),
         criadoPor:ex.criadoPor||'',criadoEm:ex.criadoEm||'',
         atualizadoPor:currentUser.name,atualizadoEm:nowTimeStr(),ordemManual:ex.ordemManual};
@@ -14676,6 +14785,7 @@ function saveRst(){
     showToast('✓ Rastreio atualizado','success');
   } else {
     arr.push({id:'rst_'+Date.now(),data,nped,plataforma:'',marketplace,status,transp,previsao,cliente:'',codigo,link,obs,
+      intermediador,envioId,
       entregueEm:(status==='Entregue'?_entregueEmAgora:''),
       criadoPor:currentUser.name,criadoEm:nowTimeStr(),ordemManual:Date.now()});
     showToast(status==='Entregue' ? '✓ Rastreio cadastrado — veja na pasta Entregues' : '✓ Rastreio cadastrado','success');
@@ -20286,7 +20396,9 @@ function atvPendenteModal(id){
 
 document.getElementById('atv-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeAtvModal();};
 (function(){ const o=document.getElementById('lcpf-modal-overlay');
-  if(o) o.onclick=e=>{ if(e.target===e.currentTarget) fecharLiveCpf(); }; })();
+  if(o) o.onclick=e=>{ if(e.target===e.currentTarget) fecharLiveCpf(); };
+  const h=document.getElementById('rsthist-modal-overlay');
+  if(h) h.onclick=e=>{ if(e.target===e.currentTarget) fecharHistoricoRastreio(); }; })();
 
 // ═══════════════════════════════════════════════════════
 // SISTEMA DE NOTIFICAÇÕES
