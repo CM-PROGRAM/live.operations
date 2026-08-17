@@ -699,13 +699,16 @@ const m = html.match(/class="btn-get-status-objeto-envio"[^>]*data-path="([^"]+)
 return [{ json: { ...$json, trackUrl: m ? m[1].replace(/\\\//g, '/') : '' } }];
 ```
 
-Falta só uma coisa para esse passo ficar de pé: **a URL do endpoint de
-detalhe** — aquela chamada que devolveu este HTML, que no DevTools aparece
-com o nome `4599156` (o id da coleta). Pegue em *Rede* → clique nessa linha →
-aba **Cabeçalhos** → *URL da requisição*.
+**Endpoint do detalhe (confirmado)**, achado no JS da página:
 
-Com ela, o workflow fica inteiramente automático a partir do id da coleta, e
-nenhum id novo precisa ser digitado no card.
+```javascript
+$.ajax({ url: "https://painel.mandabem.com.br/coleta/get_envios_row/" + coleta_id, ... })
+```
+
+Ou seja, basta o **id da coleta** — o número que já aparece na lista de
+etiquetas geradas (`4600136`). É o único id que o card precisa guardar: dele
+sai o HTML, do HTML sai o `data-path`, e do `data-path` saem as movimentações,
+seja qual for a transportadora.
 
 ### O endpoint não confere a transportadora — e isso é uma armadilha
 

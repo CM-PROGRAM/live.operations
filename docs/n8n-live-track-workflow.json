@@ -3,6 +3,38 @@
   "nodes": [
     {
       "parameters": {
+        "url": "https://painel.mandabem.com.br/login",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Abrir tela de login",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -720,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* O painel é Laravel: o POST de login só é aceito com o _token (CSRF) que a\n   própria tela de login entrega, junto do cookie de sessão daquela visita.\n   Por isso o login tem dois passos — abrir a tela, depois enviar. */\nconst r = $input.first().json;\nconst corpo = String(r.body || r.data || '');\nconst m = corpo.match(/name=\"csrf-token\"\\s+content=\"([^\"]+)\"/)\n       || corpo.match(/name=\"_token\"\\s+value=\"([^\"]+)\"/);\nif (!m) throw new Error('Não achei o _token na tela de login — o painel pode ter mudado');\n\nconst bruto = (r.headers || {})['set-cookie'] || [];\nconst cookie = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]).join('; ');\n\nreturn [{ json: { csrf: m[1], cookie } }];"
+      },
+      "name": "Extrai o _token",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -520,
+        460
+      ]
+    },
+    {
+      "parameters": {
         "rule": {
           "interval": [
             {
@@ -23,11 +55,28 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=PREENCHER_URL_DO_LOGIN",
+        "url": "https://painel.mandabem.com.br/login",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $json.cookie }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
         "sendBody": true,
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
+            {
+              "name": "_token",
+              "value": "={{ $json.csrf }}"
+            },
             {
               "name": "email",
               "value": "={{ $env.MANDABEM_USUARIO || $vars.MANDABEM_USUARIO }}"
@@ -39,6 +88,11 @@
           ]
         },
         "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
           "response": {
             "response": {
               "fullResponse": true,
@@ -51,19 +105,19 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -520,
+        -320,
         460
       ]
     },
     {
       "parameters": {
-        "jsCode": "/* Guarda o cookie da sessão para os nós do painel reaproveitarem.\n   Sem captcha no login, o n8n renova sozinho a cada rodada — ninguém\n   precisa colar cookie à mão quando expirar. */\nconst h = $input.first().json.headers || {};\nconst bruto = h['set-cookie'] || h['Set-Cookie'] || [];\nconst cookie = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]).join('; ');\nif (!cookie) throw new Error('Login do Manda Bem não devolveu cookie — confira usuário e senha');\nreturn [{ json: { cookie } }];"
+        "jsCode": "/* Guarda o cookie da sessão já autenticada, para os nós do painel\n   reaproveitarem. Sem captcha no login, isso se renova a cada rodada — ninguém\n   precisa colar cookie à mão quando expirar. */\nconst r = $input.first().json;\nconst bruto = (r.headers || {})['set-cookie'] || [];\nconst novos = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]);\nconst anterior = $('Extrai o _token').first().json.cookie || '';\n\n// O cookie da sessão logada substitui o da visita anônima quando repetido\nconst mapa = {};\n(anterior.split('; ').concat(novos)).forEach(c => {\n  const i = c.indexOf('=');\n  if (i > 0) mapa[c.slice(0, i)] = c.slice(i + 1);\n});\nconst cookie = Object.entries(mapa).map(([k, v]) => k + '=' + v).join('; ');\n\nconst corpo = String(r.body || '');\nif (/name=\"password\"/i.test(corpo) && !/Location/i.test(JSON.stringify(r.headers || {}))) {\n  throw new Error('Login recusado — confira MANDABEM_USUARIO e MANDABEM_SENHA');\n}\nreturn [{ json: { cookie } }];"
       },
       "name": "Guardar cookie",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -320,
+        -100,
         460
       ]
     },
@@ -201,7 +255,7 @@
     },
     {
       "parameters": {
-        "url": "=PREENCHER_URL_DO_DETALHE/{{ $json.envioId || $json.coletaId }}",
+        "url": "=https://painel.mandabem.com.br/coleta/get_envios_row/{{ $json.coletaId || $json.envioId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -350,7 +404,7 @@
             "index": 0
           },
           {
-            "node": "Login Manda Bem",
+            "node": "Abrir tela de login",
             "type": "main",
             "index": 0
           }
@@ -516,6 +570,28 @@
         [
           {
             "node": "Lotes de 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir tela de login": {
+      "main": [
+        [
+          {
+            "node": "Extrai o _token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai o _token": {
+      "main": [
+        [
+          {
+            "node": "Login Manda Bem",
             "type": "main",
             "index": 0
           }
