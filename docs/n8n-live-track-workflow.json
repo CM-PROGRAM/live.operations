@@ -30,11 +30,11 @@
           "parameters": [
             {
               "name": "email",
-              "value": "={{ $env.MANDABEM_USUARIO }}"
+              "value": "={{ $env.MANDABEM_USUARIO || $vars.MANDABEM_USUARIO }}"
             },
             {
               "name": "password",
-              "value": "={{ $env.MANDABEM_SENHA }}"
+              "value": "={{ $env.MANDABEM_SENHA || $vars.MANDABEM_SENHA }}"
             }
           ]
         },
@@ -173,7 +173,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $env.MELHORENVIO_TOKEN }}"
+              "value": "=Bearer {{ $env.MELHORENVIO_TOKEN || $vars.MELHORENVIO_TOKEN }}"
             },
             {
               "name": "Accept",
