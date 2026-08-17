@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.17g';
+var VERSAO_CODIGO = '2026.08.17h';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -449,13 +449,18 @@ function criarContato(e164, nome) {
   return (r && (r.payload && (r.payload.contact || r.payload))) || null;
 }
 
+/* Conversa do contato NA CAIXA PEDIDA — e só nela.
+   Antes, não achando, devolvia a primeira conversa que existisse: um cliente
+   com histórico na caixa antiga recebia o atendimento por lá, pelo número
+   desativado, e a resposta dizia "enviado" do mesmo jeito. Sem conversa na
+   caixa certa, o certo é devolver nada e deixar criar uma nova. */
 function conversaAberta(contatoId, inboxId) {
   var r = _chatwoot('/contacts/' + contatoId + '/conversations');
   var lista = (r && (r.payload || (r.data && r.data.payload))) || [];
   for (var i = 0; i < lista.length; i++) {
     if (String(lista[i].inbox_id) === String(inboxId)) return lista[i];
   }
-  return lista[0] || null;
+  return null;
 }
 
 function criarConversa(contato, inboxId, e164) {
@@ -1029,7 +1034,7 @@ function testarChatwoot() {
    o caminho inteiro antes de usar na ficha. Preencha CELULAR_DE_TESTE com o
    seu próprio celular. */
 function testarDisparo() {
-  Logger.log(JSON.stringify(dispararAtendimento(_celularDeTeste(), 'Teste LiveOps'), null, 2));
+  Logger.log(JSON.stringify(dispararAtendimento(_celularDeTeste(), 'Teste LiveOps', true), null, 2));
 }
 
 function testarComprovante() {

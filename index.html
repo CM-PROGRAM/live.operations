@@ -7418,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17d';
+const APP_VERSAO='2026.08.17e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11831,15 +11831,13 @@ function lcpfDispararTodos(){
 
   alvos.forEach((t,i)=>setTimeout(()=>{
     t.disparando=true; abrirFichaLiveCpf(f.id);
-    /* Quem decide se já mandamos é a ficha, não o histórico do Chatwoot.
-       Se a ficha foi excluída e o CPF consultado de novo, não há registro
-       nenhum aqui — é recomeço, e o comando tem que sair outra vez mesmo que
-       o Chatwoot ainda tenha a conversa de ontem. O reenvio automático de 24h
-       continua valendo por cima do registro, e número confirmado nunca entra
-       nesta lista. */
-    const recomeco = t.disparo ? '' : '&forcar=1';
+    /* Clicou no botão, manda. O prazo de 24h é regra do REENVIO automático,
+       não uma trava para quem está com o cliente na frente: se o atendente
+       consultou o CPF e mandou disparar, o comando tem que sair naquele
+       momento, tenha o Chatwoot conversa de ontem ou não. Número já
+       confirmado nem chega aqui — ele sai da lista antes. */
     fetch(PLANILHA_VENDAS_URL+'?acao=disparar&fone='+encodeURIComponent(t.num)
-          +'&nome='+encodeURIComponent(f.nome||'')+recomeco+'&t='+Date.now())
+          +'&nome='+encodeURIComponent(f.nome||'')+'&forcar=1&t='+Date.now())
       .then(r=>r.json())
       .then(j=>{
         t.disparando=false;
@@ -11899,8 +11897,13 @@ function lcpfReenviarVencidos(){
       if(!_lcpfPrecisaReenviar(t)) return;
       mandou++;
       const tentativa=(t.disparo.tentativas||1)+1;
+      /* Também vai forçado: quem controla o ritmo é o registro da ficha
+         (24h entre tentativas, no máximo 3, e para de vez quando alguém
+         responde). Deixar a trava do Chatwoot por cima faria o reenvio ser
+         engolido nos casos de borda — contaria a tentativa e não mandaria
+         nada, que é o pior dos mundos: silencioso e irreversível. */
       fetch(PLANILHA_VENDAS_URL+'?acao=disparar&fone='+encodeURIComponent(t.num)
-            +'&nome='+encodeURIComponent(f.nome||'')+'&t='+Date.now())
+            +'&nome='+encodeURIComponent(f.nome||'')+'&forcar=1&t='+Date.now())
         .then(r=>r.json())
         .then(j=>{
           t.disparo = (j && j.ok)
