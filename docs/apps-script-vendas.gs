@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.17e';
+var VERSAO_CODIGO = '2026.08.17f';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -986,22 +986,41 @@ function testarGravarVenda() {
   }
 }
 
+/* Celular usado pelos testes daqui. Deixe VAZIO no arquivo e escreva o seu
+   só na hora de testar — um número inventado de exemplo é o número real de
+   alguém, e "testarDisparo" manda mensagem de verdade. Já aconteceu: o
+   27999887766 que estava aqui virou o contato 6701 no Chatwoot. */
+var CELULAR_DE_TESTE = '';
+
+function _celularDeTeste() {
+  if (!CELULAR_DE_TESTE) {
+    throw new Error('Escreva o SEU celular em CELULAR_DE_TESTE (topo desta seção) ' +
+                    'antes de rodar este teste. Sem isso a mensagem vai para um desconhecido.');
+  }
+  return CELULAR_DE_TESTE;
+}
+
 /**
- * Confere a ligação com o Chatwoot sem depender do sistema. Troque o número
- * abaixo por um de cliente que você sabe que já conversou com a gente — o log
- * deve dizer quantas vezes ele escreveu.
+ * Confere a ligação com o Chatwoot sem depender do sistema: tokens, caixas de
+ * entrada e o histórico de um número. Só lê — não manda nada.
  */
 function testarChatwoot() {
   Logger.log('Token do Chatwoot cadastrado? ' + (chatwootToken() ? 'sim' : 'NÃO — cadastre nas Propriedades do script'));
   Logger.log('Token da GhostAPIs cadastrado? ' + (ghostToken() ? 'sim' : 'NÃO — a consulta de CPF vai falhar'));
   Logger.log('Caixas de entrada: ' + JSON.stringify(listarInboxes()));
-  Logger.log('Verificação: ' + JSON.stringify(verificarNoChatwoot('27999887766'), null, 2));
+  Logger.log('Caixa usada nos disparos: ' + JSON.stringify(inboxDoWhatsApp()));
+  if (CELULAR_DE_TESTE) {
+    Logger.log('Verificação: ' + JSON.stringify(verificarNoChatwoot(CELULAR_DE_TESTE), null, 2));
+  } else {
+    Logger.log('Verificação de telefone: pulada — preencha CELULAR_DE_TESTE para conferir um número.');
+  }
 }
 
-/* Dispara o template para UM número, para conferir o caminho inteiro antes de
-   usar na ficha. Troque pelo seu próprio celular. */
+/* MANDA MENSAGEM DE VERDADE. Dispara o template para UM número, para conferir
+   o caminho inteiro antes de usar na ficha. Preencha CELULAR_DE_TESTE com o
+   seu próprio celular. */
 function testarDisparo() {
-  Logger.log(JSON.stringify(dispararAtendimento('27999887766', 'Teste LiveOps'), null, 2));
+  Logger.log(JSON.stringify(dispararAtendimento(_celularDeTeste(), 'Teste LiveOps'), null, 2));
 }
 
 function testarComprovante() {
