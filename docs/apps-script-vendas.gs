@@ -36,6 +36,23 @@ var ABA_VENDAS   = '';   // alternativa ao gid: o nome da aba
 // Token da GhostAPIs, usado só pela consulta de CPF
 var GHOST_TOKEN  = 'f8ee18bc4b133d6d7e2a6dc9cf62eb2b';
 
+/* ── Chatwoot ────────────────────────────────────────────────
+   Usado pelo Live CPF para descobrir quais telefones já falaram com a gente.
+   O token fica AQUI, no Apps Script, e não no index.html: o sistema é
+   publicado no GitHub Pages, então qualquer chave colada lá fica à vista de
+   quem abrir o código-fonte da página. Um token do Chatwoot dá acesso à conta
+   inteira — histórico de conversas de todos os clientes.
+
+   Onde achar cada coisa:
+   · CHATWOOT_URL        → o endereço que você usa para acessar (sem barra no
+                           fim). Ex.: https://app.chatwoot.com
+   · CHATWOOT_ACCOUNT_ID → o número que aparece na URL depois de /accounts/
+   · CHATWOOT_TOKEN      → Perfil → Configurações do perfil → Token de acesso
+                           (access token). Prefira um usuário só para isso. */
+var CHATWOOT_URL        = '';   // ex.: 'https://app.chatwoot.com'
+var CHATWOOT_ACCOUNT_ID = '';   // ex.: '1'
+var CHATWOOT_TOKEN      = '';
+
 // ─────────────────────────────────────────────────────────────
 // ENTRADA
 // ─────────────────────────────────────────────────────────────
@@ -89,6 +106,11 @@ function doGet(e) {
     } catch (err) {
       return _json({ status: false, erro: String(err) });
     }
+  }
+
+  // Live CPF: o telefone já conversou com a gente pelo Chatwoot?
+  if (acao === 'chatwoot') {
+    return _json(verificarNoChatwoot(p.fone || p.telefone || ''));
   }
 
   if (acao !== 'vendas') {
@@ -159,6 +181,117 @@ function abaDeVendas() {
   }
   if (ABA_VENDAS) return pl.getSheetByName(ABA_VENDAS);
   return pl.getSheets()[0];
+}
+
+// ─────────────────────────────────────────────────────────────
+// CHATWOOT — de quem é o telefone
+// ─────────────────────────────────────────────────────────────
+/**
+ * Responde uma pergunta só: este número já conversou com a gente?
+ *
+ * A prova forte é a mensagem que o cliente MANDOU (message_type 0, entrada).
+ * Se ele escreveu daquele número, o número é dele — não há como falsificar
+ * isso do nosso lado, e não custa uma mensagem sequer. Mensagem que nós
+ * enviamos não prova nada: dá para mandar para qualquer número errado.
+ *
+ * Por isso a verificação é de leitura pura. Disparar mensagem para número não
+ * confirmado, só para ver se responde, é o caminho curto para o WhatsApp
+ * marcar a conta como spam.
+ */
+function verificarNoChatwoot(fone) {
+  if (!CHATWOOT_URL || !CHATWOOT_ACCOUNT_ID || !CHATWOOT_TOKEN) {
+    return { ok: false, erro: 'Chatwoot não configurado no Apps Script' };
+  }
+  var num = String(fone || '').replace(/\D/g, '');
+  if (num.length < 10) return { ok: false, erro: 'Telefone inválido' };
+
+  try {
+    var contato = null;
+    var variantes = variacoesDeTelefone(num);
+    for (var i = 0; i < variantes.length && !contato; i++) {
+      contato = buscarContatoChatwoot(variantes[i]);
+    }
+    if (!contato) {
+      return { ok: true, achou: false, testados: variantes,
+               resumo: 'Nenhum contato com este número no Chatwoot' };
+    }
+
+    var conversas = _chatwoot('/contacts/' + contato.id + '/conversations');
+    var lista = (conversas && (conversas.payload || conversas.data && conversas.data.payload)) || [];
+    var entradas = 0, ultimaEntrada = 0, idConversa = 0;
+    lista.forEach(function (c) {
+      var msgs = _chatwoot('/conversations/' + c.id + '/messages');
+      var mm = (msgs && (msgs.payload || msgs)) || [];
+      mm.forEach(function (m) {
+        if (m && m.message_type === 0) {            // 0 = mensagem recebida
+          entradas++;
+          var ts = Number(m.created_at || 0);
+          if (ts > ultimaEntrada) { ultimaEntrada = ts; idConversa = c.id; }
+        }
+      });
+    });
+
+    return {
+      ok: true, achou: true,
+      contatoId: contato.id,
+      nome: contato.name || '',
+      telefone: contato.phone_number || '',
+      // O que decide a confirmação: houve mensagem VINDA deste número
+      recebemosMensagem: entradas > 0,
+      qtdRecebidas: entradas,
+      ultimaEntrada: ultimaEntrada ? new Date(ultimaEntrada * 1000).toISOString() : '',
+      link: CHATWOOT_URL + '/app/accounts/' + CHATWOOT_ACCOUNT_ID +
+            (idConversa ? ('/conversations/' + idConversa) : ('/contacts/' + contato.id)),
+      resumo: entradas > 0
+        ? ('O cliente escreveu ' + entradas + ' vez(es) deste número')
+        : 'Contato existe, mas nunca escreveu deste número'
+    };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, erro: String(err) };
+  }
+}
+
+/* O mesmo celular aparece escrito de várias formas: com e sem +55, com e sem
+   o nono dígito. Procurar de um jeito só é não achar. */
+function variacoesDeTelefone(num) {
+  var so = String(num).replace(/\D/g, '').replace(/^55/, '');
+  var ddd = so.slice(0, 2), resto = so.slice(2);
+  var restos = [resto];
+  if (resto.length === 9 && resto.charAt(0) === '9') restos.push(resto.slice(1));
+  if (resto.length === 8) restos.push('9' + resto);
+  var saida = [];
+  restos.forEach(function (r) {
+    saida.push('+55' + ddd + r);
+    saida.push('55' + ddd + r);
+    saida.push(ddd + r);
+  });
+  return saida;
+}
+
+function buscarContatoChatwoot(consulta) {
+  var r = _chatwoot('/contacts/search?q=' + encodeURIComponent(consulta));
+  var lista = (r && (r.payload || (r.data && r.data.payload))) || [];
+  var alvo = String(consulta).replace(/\D/g, '').replace(/^55/, '');
+  for (var i = 0; i < lista.length; i++) {
+    var tel = String(lista[i].phone_number || '').replace(/\D/g, '').replace(/^55/, '');
+    if (tel && tel === alvo) return lista[i];
+  }
+  return null;
+}
+
+function _chatwoot(caminho) {
+  var url = CHATWOOT_URL + '/api/v1/accounts/' + CHATWOOT_ACCOUNT_ID + caminho;
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'get',
+    muteHttpExceptions: true,
+    headers: { 'api_access_token': CHATWOOT_TOKEN }
+  });
+  var codigo = resp.getResponseCode();
+  if (codigo === 401 || codigo === 403) throw new Error('Chatwoot recusou o token (HTTP ' + codigo + ')');
+  if (codigo >= 400) throw new Error('Chatwoot respondeu HTTP ' + codigo + ' em ' + caminho);
+  try { return JSON.parse(resp.getContentText()); }
+  catch (err) { throw new Error('Resposta do Chatwoot não é JSON: ' + resp.getContentText().slice(0, 200)); }
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -635,6 +768,15 @@ function testarGravarVenda() {
       }
     }
   }
+}
+
+/**
+ * Confere a ligação com o Chatwoot sem depender do sistema. Troque o número
+ * abaixo por um de cliente que você sabe que já conversou com a gente — o log
+ * deve dizer quantas vezes ele escreveu.
+ */
+function testarChatwoot() {
+  Logger.log(JSON.stringify(verificarNoChatwoot('27999887766'), null, 2));
 }
 
 function testarComprovante() {

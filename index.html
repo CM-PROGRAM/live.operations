@@ -7391,7 +7391,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16k';
+const APP_VERSAO='2026.08.16l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11650,9 +11650,19 @@ function abrirFichaLiveCpf(id){
         title="Confirmado por ${esc(t.confirmadoPor||'—')}${t.confirmadoEm?(' em '+esc(t.confirmadoEm)):''}">✓ confirmado</span>`:''}
       ${t.foraDaBase?`<span style="font-size:9px;color:var(--text-muted);">(não veio na última consulta)</span>`:''}
       <div style="flex:1;"></div>
+      <button class="btn-link btn-sm" onclick="lcpfVerificarChatwoot('${esc(t.num)}')" ${t.checando?'disabled':''}
+        title="Procura no Chatwoot se o cliente já escreveu deste número">${t.checando?'…':'Chatwoot'}</button>
       <a href="https://wa.me/55${esc(t.num)}" target="_blank" rel="noopener" class="btn-link btn-sm"
-         style="border-color:rgba(34,197,94,.5);color:var(--green);">Testar no WhatsApp</a>
+         style="border-color:rgba(34,197,94,.5);color:var(--green);">WhatsApp</a>
       <button class="btn-link btn-sm" onclick="lcpfConfirmarTelefone('${esc(t.num)}')">${t.confirmado?'Desmarcar':'Confirmar'}</button>
+      ${t.chatwoot?`<div style="flex-basis:100%;font-size:10px;font-family:var(--font-mono);color:${t.chatwoot.erro?'var(--tom-vermelho)':(t.chatwoot.recebidas?'var(--green)':'var(--text-muted)')};">
+        ${t.chatwoot.erro
+          ? ('Chatwoot: '+esc(t.chatwoot.erro))
+          : (t.chatwoot.recebidas
+              ? ('✓ o cliente escreveu '+t.chatwoot.recebidas+'x deste número'+(t.chatwoot.ultima?(' · última em '+esc(String(t.chatwoot.ultima).slice(0,10).split('-').reverse().join('/'))):''))
+              : esc(t.chatwoot.resumo||'sem conversa deste número'))}
+        ${t.chatwoot.link?` · <a href="${esc(t.chatwoot.link)}" target="_blank" rel="noopener" style="color:var(--tom-aco);">abrir conversa</a>`:''}
+      </div>`:''}
     </div>`).join('')
     : '<div style="font-size:12px;color:var(--text-muted);">Nenhum telefone encontrado para este CPF.</div>';
 
@@ -11666,7 +11676,13 @@ function abrirFichaLiveCpf(id){
     + campo('CPF', esc(_lcpfFmtCpf(f.cpf)))
     + (f.nascimento?campo('Nascimento', esc(f.nascimento)):'')
     + `<div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">Telefones</div>${listaTels}`
-    + `<div style="font-size:10px;color:var(--text-muted);margin:2px 0 14px;line-height:1.5;">Abra o WhatsApp no número e, quando o cliente responder, marque <b>Confirmar</b> — é esse número que passa a aparecer na capa da ficha para todo mundo.</div>`
+    + (tels.length?`<div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px;">
+        <button class="btn btn-ghost btn-sm" style="width:auto;" onclick="lcpfVerificarTodos()">🔎 Verificar todos no Chatwoot</button>
+      </div>`:'')
+    + `<div style="font-size:10px;color:var(--text-muted);margin:2px 0 14px;line-height:1.5;">
+        <b>Chatwoot</b> confirma sozinho quando acha mensagem <b>vinda</b> daquele número — quem escreveu é o dono, e isso não custa nenhuma mensagem enviada.
+        Sem histórico, abra o <b>WhatsApp</b>, fale com o cliente e marque <b>Confirmar</b> quando ele responder.
+        O número confirmado é o que aparece na capa da ficha para toda a equipe.</div>`
     + `<div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">Endereço completo</div>${listaEnds}`
     + `<div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:14px;">Consultado por ${esc(f.criadoPor||'—')} · ${esc(f.criadoEm||'')}${f.atualizadoEm&&f.atualizadoEm!==f.criadoEm?(' · atualizado em '+esc(f.atualizadoEm)):''}</div>`;
   ov.style.display='flex';
@@ -11689,6 +11705,50 @@ function lcpfConfirmarTelefone(num){
   abrirFichaLiveCpf(f.id);
   renderLiveCpf();
   showToast(t.confirmado?('✓ '+t.vis+' confirmado como telefone do cliente'):'Confirmação removida','success');
+}
+
+/* Pergunta ao Chatwoot se o número já conversou com a gente. Mensagem que o
+   cliente MANDOU é prova: se ele escreveu daquele número, o número é dele.
+   Mensagem que nós enviamos não prova nada — dá para enviar para o número
+   errado. Por isso só a entrada confirma. */
+function lcpfVerificarChatwoot(num){
+  const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta); if(!f) return;
+  const t=(f.telefones||[]).find(x=>x.num===num); if(!t) return;
+  if(!PLANILHA_VENDAS_URL){ showToast('Integração não configurada','error'); return; }
+  t.checando=true; abrirFichaLiveCpf(f.id);
+  fetch(PLANILHA_VENDAS_URL+'?acao=chatwoot&fone='+encodeURIComponent(num)+'&t='+Date.now())
+    .then(r=>r.json())
+    .then(j=>{
+      t.checando=false;
+      if(!j || j.ok===false){
+        t.chatwoot={erro:(j&&j.erro)||'falha na consulta'};
+        showToast('Chatwoot: '+t.chatwoot.erro,'warn');
+      } else if(j.achou && j.recebemosMensagem){
+        // Prova encontrada: confirma sozinho, e diz de onde veio a certeza
+        (f.telefones||[]).forEach(x=>{ x.confirmado=false; });
+        t.confirmado=true;
+        t.confirmadoPor='Chatwoot';
+        t.confirmadoEm=_agoraCarimbo();
+        t.chatwoot={achou:true, recebidas:j.qtdRecebidas, ultima:j.ultimaEntrada, link:j.link, nome:j.nome};
+        showToast('✓ '+t.vis+' confirmado — o cliente escreveu deste número','success');
+      } else {
+        t.chatwoot={achou:!!j.achou, recebidas:0, link:j.link||'', resumo:j.resumo||''};
+        showToast(j.resumo||'Sem conversa deste número no Chatwoot','warn');
+      }
+      saveState(appState);
+      abrirFichaLiveCpf(f.id);
+      renderLiveCpf();
+    })
+    .catch(err=>{
+      t.checando=false; t.chatwoot={erro:String(err&&err.message||err)};
+      abrirFichaLiveCpf(f.id);
+      showToast('Não foi possível falar com o Chatwoot','error');
+    });
+}
+
+function lcpfVerificarTodos(){
+  const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta); if(!f) return;
+  (f.telefones||[]).forEach((t,i)=>setTimeout(()=>lcpfVerificarChatwoot(t.num), i*400));
 }
 
 function atualizarFichaLiveCpf(){
