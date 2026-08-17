@@ -7418,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17c';
+const APP_VERSAO='2026.08.17d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11602,10 +11602,19 @@ function _lcpfSalvar(novo){
   if(idx>-1){
     const antigo=lista[idx];
     const confirmados={};
-    (antigo.telefones||[]).forEach(t=>{ if(t.confirmado) confirmados[t.num]=t; });
+    /* O histórico de disparo de cada número precisa atravessar a reconsulta.
+       Sem isso, consultar o mesmo CPF de novo apagava a marca de "já mandamos"
+       e o contador de tentativas: o cliente voltaria à primeira tentativa e
+       receberia a mesma mensagem mais três vezes. */
+    const disparos={};
+    (antigo.telefones||[]).forEach(t=>{
+      if(t.confirmado) confirmados[t.num]=t;
+      if(t.disparo) disparos[t.num]=t.disparo;
+    });
     novo.telefones.forEach(t=>{
       const c=confirmados[t.num];
       if(c){ t.confirmado=true; t.confirmadoPor=c.confirmadoPor; t.confirmadoEm=c.confirmadoEm; }
+      if(disparos[t.num]) t.disparo=disparos[t.num];
     });
     // Número confirmado que a base parou de devolver não some da ficha
     Object.values(confirmados).forEach(c=>{
@@ -11822,8 +11831,15 @@ function lcpfDispararTodos(){
 
   alvos.forEach((t,i)=>setTimeout(()=>{
     t.disparando=true; abrirFichaLiveCpf(f.id);
+    /* Quem decide se já mandamos é a ficha, não o histórico do Chatwoot.
+       Se a ficha foi excluída e o CPF consultado de novo, não há registro
+       nenhum aqui — é recomeço, e o comando tem que sair outra vez mesmo que
+       o Chatwoot ainda tenha a conversa de ontem. O reenvio automático de 24h
+       continua valendo por cima do registro, e número confirmado nunca entra
+       nesta lista. */
+    const recomeco = t.disparo ? '' : '&forcar=1';
     fetch(PLANILHA_VENDAS_URL+'?acao=disparar&fone='+encodeURIComponent(t.num)
-          +'&nome='+encodeURIComponent(f.nome||'')+'&t='+Date.now())
+          +'&nome='+encodeURIComponent(f.nome||'')+recomeco+'&t='+Date.now())
       .then(r=>r.json())
       .then(j=>{
         t.disparando=false;
@@ -11929,12 +11945,17 @@ function excluirFichaLiveCpf(){
   if(!currentUser || !(currentUser.master || f.criadoPor===currentUser.name)){
     showToast('Apenas o master ou quem consultou pode excluir','warn'); return;
   }
-  if(!confirm('Excluir a ficha de "'+(f.nome||f.cpf)+'"?')) return;
+  const jaRespondeu=(f.telefones||[]).some(t=>t.confirmado);
+  if(!confirm('Excluir a ficha de "'+(f.nome||f.cpf)+'"?\n\n'
+    +'Consultar este CPF de novo recomeça do zero: o atendimento é enviado'
+    +' outra vez para os celulares'
+    +(jaRespondeu ? ', inclusive para o número que já respondeu.' : '.'))) return;
   appState.liveCpf=_lcpfLista().filter(x=>x&&x.id!==f.id);
   saveState(appState);
+  lcpfPararEspera();
   fecharLiveCpf();
   renderLiveCpf();
-  showToast('Ficha excluída','success');
+  showToast('Ficha excluída — nova consulta dispara o atendimento de novo','success');
 }
 
 // Consulta de CPF — os IDs vêm por prefixo para a mesma lógica servir

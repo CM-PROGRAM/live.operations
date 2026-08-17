@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.17c';
+var VERSAO_CODIGO = '2026.08.17d';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -147,7 +147,8 @@ function doGet(e) {
   }
   // Dispara o template no número, para descobrir qual responde
   if (acao === 'disparar') {
-    return _json(dispararAtendimento(p.fone || p.telefone || '', p.nome || ''));
+    var forcar = String(p.forcar || '') === '1' || String(p.forcar || '') === 'true';
+    return _json(dispararAtendimento(p.fone || p.telefone || '', p.nome || '', forcar));
   }
   // Diagnóstico: quais caixas de entrada existem
   if (acao === 'inboxes') {
@@ -355,7 +356,7 @@ function chatwootPronto() {
  *     reconsulta do CPF viraria uma nova rajada para as mesmas pessoas, e é
  *     assim que a conta do WhatsApp perde qualidade e cai.
  */
-function dispararAtendimento(fone, nome) {
+function dispararAtendimento(fone, nome, forcar) {
   if (!chatwootPronto()) {
     return { ok: false, erro: 'Chatwoot sem token — cadastre CHATWOOT_TOKEN nas Propriedades do script' };
   }
@@ -375,7 +376,12 @@ function dispararAtendimento(fone, nome) {
     if (!contato) return { ok: false, erro: 'Não foi possível criar o contato' };
 
     var conversa = conversaAberta(contato.id, inbox.id);
-    if (conversa && jaDisparouRecente(conversa.id)) {
+    /* "forcar" é o recomeço pedido pela tela: a ficha foi excluída e o CPF
+       consultado de novo, então do lado de cá não existe mais registro de
+       envio e o atendimento tem que sair outra vez. A trava das 24h continua
+       para o caminho normal — ela existe para reconsulta do mesmo cliente não
+       virar uma nova rajada, não para impedir um recomeço deliberado. */
+    if (conversa && !forcar && jaDisparouRecente(conversa.id)) {
       return { ok: true, jaEnviado: true, conversaId: conversa.id,
                link: linkConversa(conversa.id),
                resumo: 'Já enviamos para este número nas últimas 24h — aguardando resposta' };
