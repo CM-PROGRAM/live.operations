@@ -33,8 +33,12 @@ var PLANILHA_ID  = '15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY';
 var GID_VENDAS   = 1231262605;
 var ABA_VENDAS   = '';   // alternativa ao gid: o nome da aba
 
-// Token da GhostAPIs, usado só pela consulta de CPF
-var GHOST_TOKEN  = 'f8ee18bc4b133d6d7e2a6dc9cf62eb2b';
+/* Token da GhostAPIs (consulta de CPF). Como o do Chatwoot, vive nas
+   Propriedades do Script — este arquivo está num repositório PÚBLICO, e
+   token colado aqui fica à vista de qualquer pessoa que abrir o GitHub.
+   Cadastre em: Configurações do projeto → Propriedades do script →
+   nome GHOST_TOKEN, valor = o token. */
+function ghostToken() { return _propriedade('GHOST_TOKEN'); }
 
 /* ── Chatwoot ────────────────────────────────────────────────
    Usado pelo Live CPF para descobrir quais telefones já falaram com a gente.
@@ -115,7 +119,7 @@ function doGet(e) {
     if (cpf.length !== 11) return _json({ status: false, erro: 'CPF invalido — envie 11 digitos' });
     try {
       var resp = UrlFetchApp.fetch(
-        'https://ghostapis.com/api.php?token=' + GHOST_TOKEN + '&cpf_simples=' + cpf,
+        'https://ghostapis.com/api.php?token=' + ghostToken() + '&cpf_simples=' + cpf,
         { muteHttpExceptions: true, followRedirects: true });
       var texto = resp.getContentText();
       try { return _json(JSON.parse(texto)); }
@@ -947,7 +951,8 @@ function testarGravarVenda() {
  * deve dizer quantas vezes ele escreveu.
  */
 function testarChatwoot() {
-  Logger.log('Token cadastrado? ' + (chatwootToken() ? 'sim' : 'NÃO — cadastre nas Propriedades do script'));
+  Logger.log('Token do Chatwoot cadastrado? ' + (chatwootToken() ? 'sim' : 'NÃO — cadastre nas Propriedades do script'));
+  Logger.log('Token da GhostAPIs cadastrado? ' + (ghostToken() ? 'sim' : 'NÃO — a consulta de CPF vai falhar'));
   Logger.log('Caixas de entrada: ' + JSON.stringify(listarInboxes()));
   Logger.log('Verificação: ' + JSON.stringify(verificarNoChatwoot('27999887766'), null, 2));
 }
