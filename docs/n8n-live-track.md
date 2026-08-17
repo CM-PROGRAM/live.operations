@@ -551,6 +551,42 @@ Loggi                        →  método: ____  URL: ______________________
 Site Rastreio (Correios)     →  método: ____  URL: ______________________
 ```
 
+### 6.2.1 Manda Bem — descoberto
+
+Não precisa dos portais das transportadoras para o que sai pelo Manda Bem: o
+painel deles tem endpoint próprio de rastreio, um por transportadora.
+
+Ele aparece no HTML do detalhe do envio, no botão da lupa "Consultar":
+
+```html
+<a class="btn-get-status-objeto-envio"
+   data-path="https://painel.mandabem.com.br/acompanhamento/status_loggi_objeto/328080">
+```
+
+Então o padrão é:
+
+```
+https://painel.mandabem.com.br/acompanhamento/status_<transportadora>_objeto/<id>
+```
+
+Dois detalhes que mudam o desenho:
+
+1. **O id não é o código de rastreio.** É o número da etiqueta sem o prefixo:
+   `MB0000000328080` → `328080`. É esse id que o card precisa guardar no
+   campo `envioId` — sem ele, não há como consultar.
+2. **A resposta é HTML dentro de JSON** (`{"html": "<div>…</div>"}`), porque
+   o painel joga esse HTML num modal. O normalizador precisa de um adaptador
+   que leia os eventos do HTML, não de um JSON já estruturado.
+
+Falta confirmar, com a mesma captura: o nome do endpoint para **Correios** e
+**Jadlog** (provavelmente `status_correios_objeto` e `status_jadlog_objeto`,
+mas isso é suposição até alguém ver), o método (GET ou POST), se há token
+CSRF no cabeçalho, e como as movimentações estão marcadas dentro do HTML.
+
+> Note que isso também resolve o Jadlog do Manda Bem sem captcha: quem
+> consulta a Jadlog é o painel do Manda Bem, com o contrato deles. O captcha
+> de `jadlog.com.br` deixa de ser problema para esses envios.
+
 > Não vou inventar essas URLs neste documento. Endpoint interno não é
 > documentado nem estável, e escrever aqui um que eu não verifiquei faria o
 > workflow falhar em produção com a aparência de estar certo — o pior tipo de
