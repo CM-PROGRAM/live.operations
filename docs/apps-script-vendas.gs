@@ -117,6 +117,11 @@ function doGet(e) {
   if (acao === 'cpf' || p.cpf) {
     var cpf = String(p.cpf || '').replace(/\D/g, '');
     if (cpf.length !== 11) return _json({ status: false, erro: 'CPF invalido — envie 11 digitos' });
+    // Sem token a GhostAPIs devolve uma recusa generica, e na tela isso virava
+    // "sem retorno para este CPF" — parecia culpa do CPF. Avisa o que falta.
+    if (!ghostToken()) {
+      return _json({ status: false, erro: 'GHOST_TOKEN nao cadastrado — Configuracoes do projeto > Propriedades do script' });
+    }
     try {
       var resp = UrlFetchApp.fetch(
         'https://ghostapis.com/api.php?token=' + ghostToken() + '&cpf_simples=' + cpf,
