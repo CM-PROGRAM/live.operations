@@ -508,6 +508,14 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
        tela de quem só quer saber onde está a encomenda — então troca pelo
        motivo de verdade, que o extrator já apurou. */
     if (/ERR_INVALID_URL/.test(t)) {
+      /* Antes de repassar o motivo técnico, o caso mais comum e o único que
+         alguém pode resolver: o card não tem o id da coleta. A URL do painel
+         é get_envios_row/<id>; sem id ela vira um endereço sem fim, o painel
+         devolve vazio, e o erro parece do Manda Bem quando é campo em branco
+         no nosso lado. */
+      if (!card.envioId && !card.coletaId) {
+        return 'Preencha "Id no intermediador" no card — no Manda Bem é o número da coleta';
+      }
       try {
         var motivo = $('Extrai o data-path').item.json.trackUrlMotivo;
         if (motivo) return motivo;
