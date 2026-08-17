@@ -513,6 +513,45 @@ function testarPastaDoMes() {
   Logger.log('Mês: ' + mes + '\nPastas em "' + raiz.getName() + '":\n· ' + todas.join('\n· '));
 }
 
+/**
+ * Grava uma venda de mentira exatamente como o sistema grava — mesmo caminho,
+ * mesmo formato de dados. Serve para ver o erro: quando o LiveOps envia, a
+ * resposta se perde (o POST vai em no-cors), então nada aparece na tela.
+ * Aqui o erro aparece no log.
+ *
+ * A linha entra na aba do mês com o pedido 00000001. Depois de conferir,
+ * apague a linha na mão.
+ */
+function testarGravarVenda() {
+  var h = new Date();
+  var hoje = h.getFullYear() + '-' + ('0' + (h.getMonth() + 1)).slice(-2) + '-' + ('0' + h.getDate()).slice(-2);
+  var r = gravarNaPlanilha('criar', {
+    numPedido: '00000001',
+    valor: 123.45,
+    formaPagamento: 'Pix Manoel',
+    data: hoje,
+    registradoPor: 'Teste'
+  });
+  Logger.log(JSON.stringify(r));
+
+  // Mostra as opções que a coluna de origem aceita e qual seria escolhida
+  var aba = abaDoMes(hoje.slice(0, 7));
+  if (aba) {
+    var col = _mapaDeColunas(aba);
+    Logger.log('Colunas encontradas: ' + JSON.stringify(col));
+    if (col.origem) {
+      var ops = opcoesDaColuna(aba, Math.max(aba.getLastRow(), 2), col.origem);
+      Logger.log('Opções da coluna Origem: ' + (ops ? ops.join(' | ') : '(coluna sem lista de validação)'));
+      if (ops) {
+        ['Pix Manoel', 'Pix Vix Comercio', 'Pix 4Vita',
+         'C. de Crédito Infinity Pay', 'C. de Crédito Merc. Pago'].forEach(function (f) {
+          Logger.log('  ' + f + '  ->  ' + (escolherOpcao(ops, f) || '(NENHUMA — preencher à mão)'));
+        });
+      }
+    }
+  }
+}
+
 function testarComprovante() {
   var r = salvarComprovante({
     numPedido: '35353535',
