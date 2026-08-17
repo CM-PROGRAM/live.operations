@@ -356,11 +356,58 @@ function eventosDaFonte(fonte, resposta) {
       const aceito = resposta.data && resposta.data.accepted && resposta.data.accepted[0];
       return (aceito && aceito.track && aceito.track.z1) || [];
     }
+
+    /* Portais (rota B da seção 6). O JSON interno de cada um tem nome próprio
+       para a lista de eventos, e ninguém garante que continue o mesmo no mês
+       que vem — por isso a busca é por vários nomes, e não por um caminho
+       fixo. Se todos falharem, o último recurso varre o objeto atrás de
+       qualquer lista que pareça uma linha do tempo. */
+    case 'portal-correios':
+    case 'portal-loggi':
+    case 'portal-melhorrastreio': {
+      const candidatos = [
+        resposta.eventos, resposta.events, resposta.tracking, resposta.trackings,
+        resposta.historico, resposta.history, resposta.movimentacoes, resposta.checkpoints,
+        resposta.data && resposta.data.eventos,
+        resposta.data && resposta.data.events,
+        resposta.data && resposta.data.tracking,
+        resposta.result && resposta.result.eventos,
+        resposta.objeto && resposta.objeto.eventos,
+        // Nó HTML do n8n: as linhas já vêm quebradas em texto
+        resposta.linhas
+      ];
+      for (const c of candidatos) if (Array.isArray(c) && c.length) return c;
+      return acharListaDeEventos(resposta);
+    }
+
     default:
-      // Formato desconhecido: procura a primeira lista de objetos que existir
-      const lista = Object.values(resposta).find(v => Array.isArray(v) && v.length && typeof v[0] === 'object');
-      return lista || [];
+      return acharListaDeEventos(resposta);
   }
+}
+
+/* Último recurso: vasculha o objeto inteiro atrás da lista que mais parece
+   uma linha do tempo — a que tem mais itens com cara de data. Serve para
+   quando o portal troca o nome do campo sem avisar: em vez de devolver zero
+   evento e o card congelar, ainda se acerta o histórico. */
+function acharListaDeEventos(raiz) {
+  let melhor = [], nota = 0;
+  const parecemData = /^\d{4}-\d{2}-\d{2}|^\d{2}\/\d{2}\/\d{4}/;
+
+  (function varrer(o, nivel) {
+    if (!o || typeof o !== 'object' || nivel > 6) return;
+    if (Array.isArray(o)) {
+      if (o.length && typeof o[0] === 'object') {
+        const pontos = o.filter(e => e && Object.values(e).some(
+          v => typeof v === 'string' && parecemData.test(v))).length;
+        if (pontos > nota) { nota = pontos; melhor = o; }
+      }
+      o.forEach(v => varrer(v, nivel + 1));
+      return;
+    }
+    Object.values(o).forEach(v => varrer(v, nivel + 1));
+  })(raiz, 0);
+
+  return melhor;
 }
 
 // ── "Entregue" escrito de todo jeito ─────────────────────────
@@ -452,7 +499,144 @@ return saida;
 
 ---
 
-## 6. Antes de ligar em produção
+## 6. Rota B — consultar pelos portais
+
+O Manda Bem não expõe API. Para os envios criados lá, o jeito é o portal
+mesmo. Esta seção é o desenho dessa rota.
+
+### 6.1 Primeiro, o tamanho real do problema
+
+Vale medir antes de construir, porque a conta muda tudo:
+
+| Intermediador | Transportadoras | Como consultar |
+|---|---|---|
+| **Melhor Envio** | J&T, Loggi, Jadlog, Correios PAC/SEDEX, Azul | **API oficial** — resolve as seis |
+| **Manda Bem** | Loggi, Jadlog, Correios PAC/SEDEX | Portal |
+
+Ou seja: a rota dos portais não precisa cobrir seis transportadoras e quatro
+sites. Precisa cobrir **o que saiu pelo Manda Bem** — e só. Se hoje a maior
+parte do volume sai pelo Melhor Envio, a rota B fica pequena, e cada portal
+que sair dela é um a menos para consertar quando quebrar.
+
+Faça a contagem antes: quantos envios ativos são Manda Bem, e de quais
+transportadoras. Pode ser que sobre só Correios, e aí é um portal, não
+quatro.
+
+### 6.2 Capturar o endereço real de cada portal
+
+Os quatro sites são aplicações JavaScript: a página que você vê é montada no
+navegador a partir de uma chamada JSON por baixo. **Ler o HTML é o caminho
+frágil; chamar essa mesma chamada JSON é o caminho estável.** O layout muda
+toda semana; o JSON de dados muda raramente.
+
+Como achar, em cada portal (leva uns dois minutos):
+
+1. Abra o portal no Chrome e pressione **F12** → aba **Network**
+2. Marque o filtro **Fetch/XHR** e clique em **🚫** para limpar a lista
+3. Faça uma consulta normal, com um código de rastreio de verdade
+4. Na lista, procure a linha cuja resposta traz as movimentações — clique e
+   veja a aba **Response** até achar o JSON com as datas e status
+5. Clique com o botão direito nessa linha → **Copy** → **Copy as cURL**
+
+No n8n: novo nó **HTTP Request** → **Import cURL** → cole. Ele preenche URL,
+método, headers e corpo sozinho. Depois é só trocar o código de rastreio fixo
+por `{{ $json.codigo }}`.
+
+Faça isso uma vez para cada portal que sobrou na conta da seção 6.1 e anote
+aqui embaixo:
+
+```
+Melhor Rastreio (J&T, Azul) →  método: ____  URL: ______________________
+Loggi                        →  método: ____  URL: ______________________
+Site Rastreio (Correios)     →  método: ____  URL: ______________________
+```
+
+> Não vou inventar essas URLs neste documento. Endpoint interno não é
+> documentado nem estável, e escrever aqui um que eu não verifiquei faria o
+> workflow falhar em produção com a aparência de estar certo — o pior tipo de
+> erro, que é o que parece funcionar.
+
+### 6.3 Quando não houver JSON: ler o HTML
+
+Se algum portal montar tudo no servidor, use o nó **HTML** do n8n
+(*Extract HTML Content*) em vez de regex:
+
+- **Operation**: `Extract HTML Content`
+- **Source Data**: `JSON`, **JSON Property**: `data`
+- **Extraction Values**: chave `linhas`, **CSS Selector** da linha de evento
+  (ex.: `.tracking-event`), **Return Value**: `HTML`, **Return Array**: ligado
+
+Depois um Code Node quebra cada linha em data/status/local. Anote o seletor
+usado — quando o portal mudar o layout, é a única linha que precisa mudar.
+
+### 6.4 Jadlog: o captcha
+
+`jadlog.com.br/jadlog/captcha` tem captcha porque não quer robô. Só há três
+saídas honestas:
+
+1. **Não consultar Jadlog pelo portal.** O Jadlog que sai pelo Melhor Envio
+   já vem pela API. Sobra o Jadlog do Manda Bem — se for pouco volume, segue
+   manual e pronto.
+2. **Serviço de resolução de captcha** (2Captcha, Anti-Captcha). Custa
+   centavos por consulta, adiciona 10–30s por pacote e é mais uma peça para
+   quebrar.
+3. **Navegador como serviço** (Browserless, ScrapingBee, ScraperAPI). Renderiza
+   a página, resolve captcha e devolve o HTML pronto. É o caminho que menos
+   quebra, porque quem mantém a raspagem de pé é o fornecedor — mas é pago e
+   mensal.
+
+Minha recomendação: comece pela 1. Só pague pela 3 se a contagem da seção
+6.1 mostrar volume de Jadlog/Manda Bem que justifique.
+
+### 6.5 Higiene para não ser bloqueado
+
+Portal não é API: ele não espera robô, e reage.
+
+- **Um pacote de cada vez, com pausa.** `Split In Batches` de 5 + `Wait` de
+  3–5 segundos. Quarenta consultas em rajada de um IP só é o retrato de um
+  robô e leva bloqueio no primeiro dia.
+- **User-Agent de navegador de verdade** e `Accept-Language: pt-BR`.
+  Requisição sem User-Agent é recusada por padrão em vários portais.
+- **`Continue On Fail` ligado** em todos os nós de portal. Um site fora do ar
+  não pode derrubar a rodada dos outros.
+- **IP fixo ajuda e atrapalha.** Se o n8n estiver em nuvem, o IP é
+  compartilhado e já pode estar queimado por outros. Se estiver em servidor
+  próprio, o IP é seu — e o bloqueio também.
+- **Não paralelize.** Tentar acelerar com execuções simultâneas é o jeito
+  mais rápido de perder o acesso ao portal.
+
+### 6.6 O que muda no workflow
+
+Nada da estrutura. O `Switch` da seção 2.4 ganha as saídas por portal, e a
+fonte informada ao normalizador muda:
+
+| Saída do Switch | Condição | Fonte |
+|---|---|---|
+| 0 | `intermediador` = `Melhor Envio` | `melhor-envio` |
+| 1 | `transp` contém `Correios` | `portal-correios` |
+| 2 | `transp` = `Loggi` | `portal-loggi` |
+| 3 | `transp` = `J&T` ou `Azul Cargo` | `portal-melhorrastreio` |
+| Fallback | — | marca pendência no card |
+
+O normalizador da seção 5 já trata isso: os adaptadores `portal-*` estão em
+`eventosDaFonte`, e o resto do fluxo — comparar se mudou, backoff, marcar
+entregue — funciona igual, venha o dado de API ou de portal.
+
+### 6.7 O que esperar dessa rota, honestamente
+
+Vai funcionar, e vai quebrar de vez em quando — quando o portal mudar o
+layout ou o endereço da chamada interna. Quando quebrar, o sintoma é o
+`trackErro` no card e o contador de falhas subindo; conserta-se recapturando
+o endpoint pela seção 6.2.
+
+Por isso a seção 4 insiste no alerta: **o pior cenário não é o workflow
+falhar, é ele parar de trazer novidade sem ninguém perceber.** Com o
+`trackConsultadoEm` no card, qualquer pessoa vê que a última consulta foi há
+dois dias e sabe que tem algo errado.
+
+---
+
+## 7. Antes de ligar em produção
 
 1. **Rode com um pacote só.** Filtre a fila por um `nped` conhecido, deixe
    rodar uma hora e confira o card na tela.
