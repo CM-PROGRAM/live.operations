@@ -487,9 +487,14 @@ for (const item of $input.all()) {
     return t(b.data) - t(a.data);
   });
 
+  /* Sem evento datado, ainda pode haver recado: o painel do Manda Bem
+     responde "Objeto aguardando postagem." como texto solto, sem data. Jogar
+     isso fora e escrever "Sem movimentação" seria apagar a única informação
+     que veio. */
+  const recado = bruto && bruto.html ? (textoSemTags(bruto.html)[0] || '') : '';
   const status_atual = eventos.length
     ? eventos[0].status
-    : primeiro(bruto, 'status', 'situacao', 'current_status') || 'Sem movimentação';
+    : (primeiro(bruto, 'status', 'situacao', 'current_status') || recado || 'Sem movimentação');
 
   const padrao = {
     status_atual,
@@ -633,9 +638,37 @@ não por seletor de tabela: o painel mexe no layout com frequência, mas a data
 é o que dá sentido ao evento e não muda de formato sem quebrar a tela deles
 junto.
 
-Falta confirmar só o nome do endpoint para **Correios** e **Jadlog**
-(provavelmente `status_correios_objeto` e `status_jadlog_objeto`, mas é
-suposição até alguém abrir um envio de cada e ver o `data-path` da lupa).
+### O endpoint não confere a transportadora — e isso é uma armadilha
+
+Testando o mesmo objeto (`328080`, que é **Loggi**) contra os outros nomes:
+
+| URL | Resposta |
+|---|---|
+| `status_loggi_objeto/328080` | as movimentações certas |
+| `status_jadlog_objeto/328080` | `{"html":"Objeto aguardando postagem."}` |
+| `status_correios_objeto/328080` | `404 Não encontrado` |
+
+O Jadlog **respondeu 200** para um objeto que não é dele. Não é rastreio: é o
+que aquela rota diz quando não acha nada. Se o workflow apontar para o slug
+errado, o card vai mostrar "Objeto aguardando postagem" para sempre — uma
+resposta plausível, com cara de certa, e completamente falsa. É o pior tipo
+de erro, e é silencioso.
+
+**Portanto: o slug tem de casar com a transportadora do card.** Nada de
+tentar um e cair para o outro.
+
+O `404` do Correios provavelmente é só o nome diferente (`status_correio_objeto`
+no singular, ou outro), mas **não vale chutar** — pela tabela acima, chute
+errado dá resposta convincente. O jeito certo é ler o `data-path` da lupa num
+envio de Correios de verdade:
+
+1. No painel, expanda um envio cuja transportadora seja Correios
+2. Clique com o botão direito na lupa 🔍 → **Inspecionar**
+3. No HTML destacado, leia o `data-path="…"`
+
+Mesma coisa para um envio Jadlog de verdade, para confirmar que
+`status_jadlog_objeto` é mesmo o nome dele — o teste acima não prova isso,
+só provou que a rota existe.
 
 ### 6.2.2 A sessão do painel
 
