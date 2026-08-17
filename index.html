@@ -2447,12 +2447,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       }
     },
 
-    // Caminhos de integrações que ainda gravam sem autenticação. Quando o
-    // fluxo que usa esses caminhos passar a gravar com a conta de serviço,
-    // troque os "true" abaixo por false — a conta de serviço continua
-    // escrevendo, porque ela não passa pelas regras.
-    "produtos": { ".read": true, ".write": true },
-    "historico_produtos": { ".read": true, ".write": true }
+    // FECHADOS. Ficaram abertos enquanto alguma integração gravava sem
+    // autenticação — e aberto aqui significa aberto para a internet inteira,
+    // porque o endereço do banco está no index.html, que qualquer um baixa ao
+    // abrir o site. O n8n grava com conta de serviço, que não passa pelas
+    // regras, então continua funcionando com false.
+    "produtos": { ".read": false, ".write": false },
+    "historico_produtos": { ".read": false, ".write": false }
   }
 }</pre>
         <button class="btn btn-sm" onclick="copiarRegrasFirebase()" style="width:auto;">📋 Copiar regras</button>
@@ -7417,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16r';
+const APP_VERSAO='2026.08.16s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
