@@ -519,6 +519,16 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
   function textoDoErro(e) {
     if (!e) return '';
     var t = (typeof e === 'string') ? e : (e.message || e.description || e.reason || JSON.stringify(e));
+    /* 422 "orders.0 deve ter pelo menos 36 caracteres" quer dizer que mandamos
+       o id do pedido vazio — ou seja, a busca pelo código não achou o envio no
+       Melhor Envio. O texto original fala de um campo de API que o atendente
+       nunca viu; o que ele precisa saber é que o código do card não bate com
+       nenhum pedido de lá. */
+    if (/orders\.0/.test(t) || /36 caracteres/.test(t)) {
+      return 'Não achei este envio no Melhor Envio pelo código "' + (card.codigo || '') +
+             '" — confira o código ou preencha "Id no intermediador" no card';
+    }
+
     /* "ERR_INVALID_URL input:''" é o que sai quando o passo anterior não achou
        o endereço do rastreio. Do jeito que vem, é um erro de programador na
        tela de quem só quer saber onde está a encomenda — então troca pelo
@@ -576,9 +586,22 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
      isso fora e escrever "Sem movimentação" seria apagar a única informação
      que veio. */
   const recado = bruto && bruto.html ? (textoSemTags(bruto.html)[0] || '') : '';
+
+  /* Sem evento datado ainda há informação: o Melhor Envio devolve o estado do
+     pedido ({ "<id>": { status: "posted", ... } }), e "Sem movimentação" no
+     card seria jogar isso fora. O objeto do pedido está um nível abaixo — ler
+     "status" na raiz não acha nada. */
+  const objeto = (fonte === 'melhor-envio' && bruto) ? (Object.values(bruto)[0] || {}) : (bruto || {});
+  const ESTADOS = {
+    pending: 'Aguardando pagamento', paid: 'Pago, aguardando etiqueta',
+    generated: 'Etiqueta gerada', released: 'Etiqueta liberada',
+    posted: 'Postado', delivered: 'Entregue', canceled: 'Cancelado',
+    undelivered: 'Não entregue', returned: 'Devolvido', expired: 'Etiqueta expirada'
+  };
+  const cru = primeiro(objeto, 'status', 'situacao', 'current_status', 'tracking_status');
   const status_atual = eventos.length
     ? eventos[0].status
-    : (primeiro(bruto, 'status', 'situacao', 'current_status') || recado || 'Sem movimentação');
+    : ((ESTADOS[String(cru).toLowerCase()] || cru) || recado || 'Sem movimentação');
 
   const padrao = {
     status_atual,
