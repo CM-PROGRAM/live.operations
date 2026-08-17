@@ -46,6 +46,7 @@ function doPost(e) {
     var acao = String(d.acao || '');
 
     if (acao === 'comprovante') return _json(salvarComprovante(d));
+    if (acao === 'formas') return _json(sincronizarFormas(d.formas || [], d.mes || ''));
     if (acao === 'criar' || acao === 'editar' || acao === 'excluir') {
       return _json(gravarNaPlanilha(acao, d));
     }
@@ -402,6 +403,12 @@ function gravarNaPlanilha(acao, d) {
 
   var avisos = [];
   if (col.origem) {
+    // A venda traz a lista do sistema: forma criada lá passa a existir aqui
+    // antes de a origem ser gravada, senão a primeira venda dela ficaria vazia
+    if (d.formas && d.formas.length) {
+      try { sincronizarFormas(d.formas, String(d.data || '').slice(0, 7)); }
+      catch (err) { console.warn('Não foi possível sincronizar as formas: ' + err); }
+    }
     var av = gravarOrigem(aba, linha, col.origem, d.formaPagamento || '');
     if (av) avisos.push(av);
   }
@@ -423,6 +430,84 @@ function gravarNaPlanilha(acao, d) {
  * que importam estão lá ("de", "venda" e afins não contam).
  */
 var ORIGEM_PALAVRAS_IGNORADAS = { VENDA: 1, DE: 1, DA: 1, DO: 1, SUPLELIVE: 1, '': 1 };
+
+// Cores dos chips, tiradas do próprio nome: venda no Pix verde, venda no
+// cartão azul, compra cinza. Forma nova nasce colorida sem cadastrar cor.
+var CORES_ORIGEM = [
+  { teste: /^COMPRA/,          fundo: '#5f6368', texto: '#ffffff' },
+  { teste: /CREDITO|CARTAO/,   fundo: '#1a73e8', texto: '#ffffff' },
+  { teste: /./,                fundo: '#0f9d58', texto: '#ffffff' }
+];
+
+function corDaOrigem(nome) {
+  var n = String(nome || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase();
+  for (var i = 0; i < CORES_ORIGEM.length; i++) {
+    if (CORES_ORIGEM[i].teste.test(n)) return CORES_ORIGEM[i];
+  }
+  return CORES_ORIGEM[CORES_ORIGEM.length - 1];
+}
+
+/**
+ * Põe na planilha as formas de pagamento que existem no sistema: entram na
+ * lista do dropdown da coluna "Origem Recebimento" e ganham a cor pela regra
+ * acima. O que já existia na planilha é preservado — ninguém perde opção que
+ * tenha criado direto lá.
+ *
+ * Roda em todas as abas de mês, senão o dropdown novo só valeria no mês
+ * corrente e setembro nasceria sem as opções.
+ */
+function sincronizarFormas(formas, mes) {
+  if (!PLANILHA_ID) return { ok: false, erro: 'Planilha não configurada' };
+  formas = (formas || []).map(function (f) { return String(f || '').trim(); })
+                         .filter(function (f) { return f; });
+  if (!formas.length) return { ok: false, erro: 'Nenhuma forma recebida' };
+
+  var abas = mes ? [abaDoMes(mes)] : SpreadsheetApp.openById(PLANILHA_ID).getSheets();
+  var tocadas = [];
+  abas.forEach(function (aba) {
+    if (!aba) return;
+    var col = _mapaDeColunas(aba);
+    if (!col.origem) return;                     // aba que não é de vendas
+    var atuais = opcoesDaColuna(aba, Math.max(aba.getLastRow(), 2), col.origem) || [];
+    var lista = atuais.slice();
+    formas.forEach(function (f) {
+      var jaTem = lista.some(function (x) { return normalizar(x) === normalizar(f); });
+      if (!jaTem) lista.push(f);
+    });
+    aplicarListaEcores(aba, col.origem, lista);
+    tocadas.push(aba.getName() + ' (' + lista.length + ' opções)');
+  });
+  return { ok: true, acao: 'formas', abas: tocadas };
+}
+
+// Aplica a lista de validação na coluna inteira e recria as regras de cor
+function aplicarListaEcores(aba, coluna, lista) {
+  var ultima = Math.max(aba.getMaxRows(), 2);
+  var faixa = aba.getRange(2, coluna, ultima - 1, 1);
+
+  var regra = SpreadsheetApp.newDataValidation()
+    .requireValueInList(lista, true)
+    .setAllowInvalid(true)   // não recusa o que já estava escrito na planilha
+    .build();
+  faixa.setDataValidation(regra);
+
+  // Uma regra de cor por opção. As antigas desta mesma coluna saem, para não
+  // acumular regra repetida a cada sincronização.
+  var a1 = faixa.getA1Notation();
+  var mantidas = aba.getConditionalFormatRules().filter(function (r) {
+    return !r.getRanges().some(function (rg) { return rg.getA1Notation() === a1; });
+  });
+  lista.forEach(function (op) {
+    var cor = corDaOrigem(op);
+    mantidas.push(SpreadsheetApp.newConditionalFormatRule()
+      .whenTextEqualTo(op)
+      .setBackground(cor.fundo)
+      .setFontColor(cor.texto)
+      .setRanges([faixa])
+      .build());
+  });
+  aba.setConditionalFormatRules(mantidas);
+}
 
 function _palavrasDe(txt) {
   return String(txt || '')

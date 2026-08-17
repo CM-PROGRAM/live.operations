@@ -7367,7 +7367,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16i';
+const APP_VERSAO='2026.08.16j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7970,7 +7970,10 @@ function enviarVendaPlanilha(pedido, acao){
     formaPagamento: pedido.pag,
     data: pedido.data,
     hora: pedido.hora,
-    registradoPor: pedido.registradoPor || (currentUser && currentUser.name) || ''
+    registradoPor: pedido.registradoPor || (currentUser && currentUser.name) || '',
+    // A lista viaja junto: forma criada aqui passa a existir no dropdown da
+    // planilha na primeira venda, sem ninguém cadastrar de novo lá
+    formas: _pagFormasAtuais()
   };
   fetch(PLANILHA_VENDAS_URL, {
     method: 'POST',
@@ -7981,6 +7984,18 @@ function enviarVendaPlanilha(pedido, acao){
     console.error('Falha ao enviar venda para a planilha (Google Sheets):', err);
     showToast('⚠ Venda salva, mas falhou o envio para a planilha','warn');
   });
+}
+
+/* Manda a lista de formas de pagamento para a planilha criar/atualizar o
+   dropdown da coluna "Origem Recebimento" — verde para venda no Pix, azul
+   para cartão, cinza para compra. Chamado quando o master mexe na lista;
+   a venda também leva a lista junto, então a planilha nunca fica para trás. */
+function sincronizarFormasPlanilha(){
+  if(!PLANILHA_VENDAS_URL) return;
+  fetch(PLANILHA_VENDAS_URL,{method:'POST',mode:'no-cors',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify({acao:'formas', formas:_pagFormasAtuais()})})
+    .catch(err=>console.warn('[formas] não foi possível sincronizar com a planilha:',err));
 }
 
 function abrirModalVenda(){
@@ -8366,16 +8381,8 @@ function renderPedidosWpp(){
   }
   if(empty) empty.style.display='none';
 
-  const PAG_COLORS={
-    'Pix Manoel':               {bg:'rgba(143,168,216,.12)',   border:'rgba(143,168,216,0.4)',   color:'var(--green)'},
-    'Pix Vix Comercio':         {bg:'rgba(143,168,216,.12)',  border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'},
-    'Pix 4Vita':                {bg:'rgba(52,211,153,.12)',  border:'rgba(52,211,153,0.4)',  color:'#34d399'},
-    'C. de Crédito Infinity Pay':{bg:'rgba(59,130,246,.12)', border:'rgba(59,130,246,0.4)', color:'var(--blue)'},
-    'C. de Crédito Merc. Pago': {bg:'rgba(143,168,216,.12)', border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'}
-  };
-
   todayPeds.forEach((p,idx)=>{
-    const pc=PAG_COLORS[p.pag]||PAG_COLORS['Pix Manoel'];
+    const pc=_pagCor(p.pag);
     const row=document.createElement('div');
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--glass-border);transition:background .12s;';
     row.onmouseover=()=>row.style.background='rgba(255,255,255,0.04)';
@@ -8824,16 +8831,6 @@ function renderHistoricoWpp(){
     byDate[p.data].push(p);
   });
 
-  const PAG_COLORS = {
-    'Pix Manoel':               {bg:'rgba(143,168,216,.12)',   border:'rgba(143,168,216,0.4)',   color:'var(--green)'},
-    'Pix Vix Comercio':         {bg:'rgba(143,168,216,.12)',  border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'},
-    'Pix 4Vita':                {bg:'rgba(52,211,153,.12)',  border:'rgba(52,211,153,0.4)',  color:'#34d399'},
-    'C. de Crédito Infinity Pay':{bg:'rgba(59,130,246,.12)',border:'rgba(59,130,246,0.4)',  color:'var(--blue)'},
-    'C. de Crédito Merc. Pago': {bg:'rgba(143,168,216,.12)', border:'rgba(143,168,216,0.4)',  color:'#8fa8d8'},
-    'Pix':    {bg:'rgba(143,168,216,.12)', border:'rgba(143,168,216,0.4)', color:'var(--green)'},
-    'Crédito':{bg:'rgba(59,130,246,.12)',border:'rgba(59,130,246,0.4)',color:'var(--blue)'}
-  };
-
   const isMaster = currentUser && currentUser.master;
   const canWpp = isMaster || (currentUser && (currentUser.perms||[]).includes('whatsapp'));
 
@@ -8857,7 +8854,7 @@ function renderHistoricoWpp(){
 
     // Pedidos do dia
     dayPeds.forEach((p, idx) => {
-      const pc = PAG_COLORS[p.pag] || PAG_COLORS['Pix Manoel'] || {bg:'rgba(255,255,255,0.06)',border:'var(--glass-border)',color:'var(--text-secondary)'};
+      const pc = _pagCor(p.pag);
       const row = document.createElement('div');
       row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--linha-sutil);transition:background .12s;';
       row.onmouseover = () => row.style.background = 'rgba(255,255,255,0.03)';
@@ -14874,7 +14871,31 @@ function addRstTransp(){ addCustomOpt('rst-transp',RST_TRANSP_BASE,'customTransp
 function removeRstTransp(){ removeCustomOpt('rst-transp',RST_TRANSP_BASE,'customTransportadoraRst','transportadora',renderRstTranspOptions); }
 
 /* --- Forma de Pagamento (compartilhado entre Venda WhatsApp: Nova Venda, Confirmar Venda e Editar Venda) --- */
-const PAG_BASE=['Pix Manoel','Pix Vix Comercio','Pix 4Vita','C. de Crédito Infinity Pay','C. de Crédito Merc. Pago'];
+/* As formas de pagamento são as mesmas da planilha, escritas igual — é o que
+   permite a venda cair no chip certo da coluna "Origem Recebimento" sem
+   ninguém traduzir nada. Ao criar uma forma nova aqui, ela é criada lá também
+   (ver sincronizarFormasPlanilha). */
+const PAG_BASE=['Venda - Pix Manoel','Venda - Pix TRK Bit','Venda - Pix Bahia',
+  'Venda - C. Crédito Infinite Pay Suplelive','Venda - C. Crédito Merc. Pago Suplelive',
+  'Venda - C. Crédito Infinite Pay M. Rossoni',
+  'Compra - Manoel','Compra - TRK Bit','Compra - Bahia'];
+
+/* A cor sai do nome, não de uma lista fixa: venda no Pix é verde, venda no
+   cartão é azul e compra é cinza. Forma nova nasce colorida sozinha, sem
+   ninguém cadastrar cor nenhuma. */
+function _pagCor(nome){
+  const n=String(nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase();
+  if(/^COMPRA/.test(n))
+    return {bg:'rgba(148,163,184,.12)', border:'rgba(148,163,184,.42)', color:'#94a3b8'};
+  if(/CREDITO|CARTAO/.test(n))
+    return {bg:'rgba(59,130,246,.12)',  border:'rgba(59,130,246,.42)',  color:'var(--blue)'};
+  return {bg:'rgba(34,197,94,.12)',     border:'rgba(34,197,94,.42)',   color:'var(--green)'};
+}
+
+// A lista viva: as do sistema mais as criadas pelo master, menos as removidas
+function _pagFormasAtuais(){
+  try{ return getAllCustomOpts(PAG_BASE,PAG_STATE_KEY); }catch(e){ return PAG_BASE.slice(); }
+}
 const PAG_STATE_KEY='customFormasPag';
 // selectIds de todos os selects de forma de pagamento que devem ficar sincronizados
 const PAG_SELECT_IDS=['modal-ped-pag','edit-ped-pag'];
@@ -14892,11 +14913,13 @@ function addPagOpt(selectId){
       if(id===selectId) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY,novoSel);
       else renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY);
     });
+    sincronizarFormasPlanilha();
   });
 }
 function removePagOpt(selectId){
   removeCustomOpt(selectId,PAG_BASE,PAG_STATE_KEY,'forma de pagamento',()=>{
     PAG_SELECT_IDS.forEach(id=>{ if(document.getElementById(id)) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY); });
+    sincronizarFormasPlanilha();
   });
 }
 function renamePagOpt(selectId){
@@ -14925,6 +14948,7 @@ function renamePagOpt(selectId){
     if(id===selectId) renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY,novo);
     else renderCustomOpts(id,PAG_BASE,PAG_STATE_KEY);
   });
+  sincronizarFormasPlanilha();
 }
 
 function getAllAteMotivos(){
