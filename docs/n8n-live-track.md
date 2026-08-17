@@ -357,6 +357,10 @@ function eventosDaFonte(fonte, resposta) {
       return (aceito && aceito.track && aceito.track.z1) || [];
     }
 
+    // Painel do Manda Bem: {title, html} — as movimentações estão no HTML
+    case 'manda-bem-painel':
+      return eventosDoPainelMandaBem(resposta.html || resposta);
+
     /* Portais (rota B da seção 6). O JSON interno de cada um tem nome próprio
        para a lista de eventos, e ninguém garante que continue o mesmo no mês
        que vem — por isso a busca é por vários nomes, e não por um caminho
@@ -383,6 +387,37 @@ function eventosDaFonte(fonte, resposta) {
     default:
       return acharListaDeEventos(resposta);
   }
+}
+
+/* Manda Bem devolve HTML dentro de JSON: {title, html}. Cada movimentação
+   começa com "Em DD/MM/AAAA HH:MM:SS", seguida da descrição, e há uma coluna
+   "Local". A leitura é por essa marca de data, não por seletor de tabela —
+   o painel mexe no layout com frequência, mas a data é o que dá sentido ao
+   evento e não vai mudar de formato sem quebrar a tela deles também. */
+function textoSemTags(t) {
+  return String(t || '')
+    .replace(/<[^>]*>/g, '\n')
+    .replace(/&nbsp;/gi, ' ').replace(/&amp;/gi, '&')
+    .split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
+}
+
+function eventosDoPainelMandaBem(html) {
+  const texto = String(html || '');
+  const marca = /Em\s+(\d{2}\/\d{2}\/\d{4})\s+(\d{2}:\d{2})(?::\d{2})?/g;
+  const marcos = [];
+  let m;
+  while ((m = marca.exec(texto)) !== null) {
+    marcos.push({ inicio: m.index, fim: marca.lastIndex, data: m[1] + ', ' + m[2] });
+  }
+  return marcos.map((mk, i) => {
+    const trecho = texto.slice(mk.fim, i + 1 < marcos.length ? marcos[i + 1].inicio : texto.length);
+    const linhas = textoSemTags(trecho);
+    const iLocal = linhas.findIndex(l => /^local:?$/i.test(l));
+    // A primeira linha que não é o rótulo "Local" é a descrição do evento
+    const status = linhas.find((l, k) => k !== iLocal && !/^local:?$/i.test(l)) || '';
+    const local = iLocal >= 0 ? (linhas[iLocal + 1] || '') : '';
+    return { data: mk.data, status, local, detalhe: '' };
+  }).filter(e => e.status);
 }
 
 /* Último recurso: vasculha o objeto inteiro atrás da lista que mais parece
@@ -578,10 +613,46 @@ Dois detalhes que mudam o desenho:
    o painel joga esse HTML num modal. O normalizador precisa de um adaptador
    que leia os eventos do HTML, não de um JSON já estruturado.
 
-Falta confirmar, com a mesma captura: o nome do endpoint para **Correios** e
-**Jadlog** (provavelmente `status_correios_objeto` e `status_jadlog_objeto`,
-mas isso é suposição até alguém ver), o método (GET ou POST), se há token
-CSRF no cabeçalho, e como as movimentações estão marcadas dentro do HTML.
+**Confirmado**: o endpoint responde a `GET` simples, autenticado só pelo
+cookie de sessão do painel. Abrir a URL no navegador logado já devolve o
+JSON. A resposta tem esta cara:
+
+```json
+{
+  "title": "Movimentações do Objeto",
+  "html": "… <strong>Em 14/08/2026 18:06:30</strong><br> A etiqueta de envio
+           já foi criada e o pacote está pronto para a coleta. …
+           <strong>Local</strong><br> Palmas/TO …"
+}
+```
+
+Cada movimentação começa com **`Em DD/MM/AAAA HH:MM:SS`**, seguida da
+descrição, e o local vem sob o rótulo `Local`. O adaptador
+`manda-bem-painel` da seção 5 lê exatamente isso — por essa marca de data, e
+não por seletor de tabela: o painel mexe no layout com frequência, mas a data
+é o que dá sentido ao evento e não muda de formato sem quebrar a tela deles
+junto.
+
+Falta confirmar só o nome do endpoint para **Correios** e **Jadlog**
+(provavelmente `status_correios_objeto` e `status_jadlog_objeto`, mas é
+suposição até alguém abrir um envio de cada e ver o `data-path` da lupa).
+
+### 6.2.2 A sessão do painel
+
+O endpoint depende do cookie de login, e cookie expira. Dois caminhos:
+
+1. **Login programático no início da rodada** — um nó `HTTP Request` faz o
+   POST no login do painel, guarda o cookie da resposta e os nós seguintes o
+   reaproveitam. É o caminho estável, e funciona enquanto o login não tiver
+   captcha.
+2. **Cookie colado à mão numa credencial do n8n** — funciona hoje e quebra
+   quando expirar, virando tarefa recorrente para alguém.
+
+Comece pelo 1. Se o login tiver captcha, o 2 é o que sobra — e aí vale
+combinar com a equipe quem renova, para o rastreio não morrer em silêncio.
+O sintoma de cookie vencido é resposta de login no lugar do JSON: o
+normalizador cai no ramo de erro e o card mostra a falha, que é como isso
+tem de aparecer.
 
 > Note que isso também resolve o Jadlog do Manda Bem sem captcha: quem
 > consulta a Jadlog é o painel do Manda Bem, com o contrato deles. O captcha
@@ -646,13 +717,20 @@ Portal não é API: ele não espera robô, e reage.
 Nada da estrutura. O `Switch` da seção 2.4 ganha as saídas por portal, e a
 fonte informada ao normalizador muda:
 
-| Saída do Switch | Condição | Fonte |
-|---|---|---|
-| 0 | `intermediador` = `Melhor Envio` | `melhor-envio` |
-| 1 | `transp` contém `Correios` | `portal-correios` |
-| 2 | `transp` = `Loggi` | `portal-loggi` |
-| 3 | `transp` = `J&T` ou `Azul Cargo` | `portal-melhorrastreio` |
-| Fallback | — | marca pendência no card |
+| Saída do Switch | Condição | Fonte | Chamada |
+|---|---|---|---|
+| 0 | `intermediador` = `Melhor Envio` | `melhor-envio` | API oficial (seção 2.5) |
+| 1 | `intermediador` = `Manda Bem` | `manda-bem-painel` | `GET /acompanhamento/status_<transp>_objeto/{{ $json.envioId }}` |
+| Fallback | — | — | marca pendência no card |
+
+No ramo do Manda Bem, o trecho `<transp>` sai da transportadora do card:
+`loggi`, `correios` ou `jadlog` — dá para montar com uma expressão
+(`{{ $json.transp.toLowerCase().includes('correios') ? 'correios' : ... }}`)
+ou com um Switch interno, o que ficar mais legível para quem for manter.
+
+Repare que **não sobrou nenhum portal de transportadora**: o Melhor Envio
+responde pela API e o Manda Bem pelo painel dele. Os quatro sites da lista
+original saíram do desenho — inclusive o do captcha.
 
 O normalizador da seção 5 já trata isso: os adaptadores `portal-*` estão em
 `eventosDaFonte`, e o resto do fluxo — comparar se mudou, backoff, marcar
