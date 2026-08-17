@@ -51,7 +51,26 @@ var GHOST_TOKEN  = 'f8ee18bc4b133d6d7e2a6dc9cf62eb2b';
                            (access token). Prefira um usuário só para isso. */
 var CHATWOOT_URL        = 'https://chat.suplelive.com.br';
 var CHATWOOT_ACCOUNT_ID = '1';
-var CHATWOOT_TOKEN      = '';   // <<< FALTA ESTE: Perfil → Configurações do perfil → Token de acesso
+
+/* O TOKEN NÃO FICA NO CÓDIGO. Ele vive nas Propriedades do Script:
+   Apps Script → engrenagem (Configurações do projeto) → Propriedades do
+   script → Adicionar propriedade → nome CHATWOOT_TOKEN, valor = o token.
+
+   Dois motivos: este arquivo vai para o GitHub, e um token do Chatwoot dá
+   acesso ao histórico de conversas de todos os clientes; e assim ele
+   sobrevive a colar uma versão nova do código por cima — foi exatamente
+   esse tipo de descuido que apagou o proxy de CPF antes. */
+function _propriedade(nome) {
+  try { return (PropertiesService.getScriptProperties().getProperty(nome) || '').trim(); }
+  catch (err) { return ''; }
+}
+function chatwootToken() { return _propriedade('CHATWOOT_TOKEN'); }
+
+// Caixa de entrada do WhatsApp. Vazio = descobre sozinho (ver inboxDoWhatsApp)
+var CHATWOOT_INBOX_ID = '';
+
+// O comando que dispara o template aprovado, digitado pelo atendente hoje
+var CHATWOOT_COMANDO  = '/iniciar_atendimento';
 
 // ─────────────────────────────────────────────────────────────
 // ENTRADA
@@ -111,6 +130,14 @@ function doGet(e) {
   // Live CPF: o telefone já conversou com a gente pelo Chatwoot?
   if (acao === 'chatwoot') {
     return _json(verificarNoChatwoot(p.fone || p.telefone || ''));
+  }
+  // Dispara o template no número, para descobrir qual responde
+  if (acao === 'disparar') {
+    return _json(dispararAtendimento(p.fone || p.telefone || '', p.nome || ''));
+  }
+  // Diagnóstico: quais caixas de entrada existem
+  if (acao === 'inboxes') {
+    return _json(listarInboxes());
   }
 
   if (acao !== 'vendas') {
@@ -199,8 +226,8 @@ function abaDeVendas() {
  * marcar a conta como spam.
  */
 function verificarNoChatwoot(fone) {
-  if (!CHATWOOT_URL || !CHATWOOT_ACCOUNT_ID || !CHATWOOT_TOKEN) {
-    return { ok: false, erro: 'Chatwoot não configurado no Apps Script' };
+  if (!chatwootPronto()) {
+    return { ok: false, erro: 'Chatwoot sem token — cadastre CHATWOOT_TOKEN nas Propriedades do script' };
   }
   var num = String(fone || '').replace(/\D/g, '');
   if (num.length < 10) return { ok: false, erro: 'Telefone inválido' };
@@ -280,12 +307,156 @@ function buscarContatoChatwoot(consulta) {
   return null;
 }
 
+function chatwootPronto() {
+  return !!(CHATWOOT_URL && CHATWOOT_ACCOUNT_ID && chatwootToken());
+}
+
+/**
+ * Manda o comando que dispara o template aprovado para um número, criando o
+ * contato e a conversa se ainda não existirem. É o mesmo caminho que o
+ * atendente faz na mão hoje ao digitar "/iniciar_atendimento".
+ *
+ * Duas travas que não são frescura:
+ *   · só celular — template em telefone fixo é mensagem que nunca chega;
+ *   · nada de reenviar para quem já recebeu nas últimas 24h. Sem isso, cada
+ *     reconsulta do CPF viraria uma nova rajada para as mesmas pessoas, e é
+ *     assim que a conta do WhatsApp perde qualidade e cai.
+ */
+function dispararAtendimento(fone, nome) {
+  if (!chatwootPronto()) {
+    return { ok: false, erro: 'Chatwoot sem token — cadastre CHATWOOT_TOKEN nas Propriedades do script' };
+  }
+  var num = String(fone || '').replace(/\D/g, '').replace(/^55/, '');
+  if (num.length < 10) return { ok: false, erro: 'Telefone inválido' };
+  var local = num.slice(2);
+  if (!(local.length === 9 && local.charAt(0) === '9')) {
+    return { ok: false, pulou: true, motivo: 'Não é celular — o template não chega em telefone fixo' };
+  }
+  var e164 = '+55' + num;
+
+  try {
+    var inbox = inboxDoWhatsApp();
+    if (!inbox) return { ok: false, erro: 'Nenhuma caixa de WhatsApp encontrada no Chatwoot' };
+
+    var contato = buscarContatoChatwoot(e164) || criarContato(e164, nome);
+    if (!contato) return { ok: false, erro: 'Não foi possível criar o contato' };
+
+    var conversa = conversaAberta(contato.id, inbox.id);
+    if (conversa && jaDisparouRecente(conversa.id)) {
+      return { ok: true, jaEnviado: true, conversaId: conversa.id,
+               link: linkConversa(conversa.id),
+               resumo: 'Já enviamos para este número nas últimas 24h — aguardando resposta' };
+    }
+    if (!conversa) conversa = criarConversa(contato, inbox.id, e164);
+    if (!conversa) return { ok: false, erro: 'Não foi possível abrir a conversa' };
+
+    _chatwootPost('/conversations/' + conversa.id + '/messages', {
+      content: CHATWOOT_COMANDO,
+      message_type: 'outgoing'
+    });
+
+    return { ok: true, enviado: true, contatoId: contato.id, conversaId: conversa.id,
+             link: linkConversa(conversa.id), telefone: e164,
+             resumo: 'Template disparado — aguardando resposta' };
+  } catch (err) {
+    console.error(err);
+    return { ok: false, erro: String(err) };
+  }
+}
+
+function linkConversa(id) {
+  return CHATWOOT_URL + '/app/accounts/' + CHATWOOT_ACCOUNT_ID + '/conversations/' + id;
+}
+
+// A caixa configurada, ou a primeira de WhatsApp que existir
+function inboxDoWhatsApp() {
+  var r = _chatwoot('/inboxes');
+  var lista = (r && (r.payload || r.data)) || [];
+  if (CHATWOOT_INBOX_ID) {
+    for (var i = 0; i < lista.length; i++) {
+      if (String(lista[i].id) === String(CHATWOOT_INBOX_ID)) return lista[i];
+    }
+  }
+  for (var j = 0; j < lista.length; j++) {
+    var tipo = String(lista[j].channel_type || '');
+    if (/whatsapp/i.test(tipo) || /whatsapp/i.test(String(lista[j].name || ''))) return lista[j];
+  }
+  return lista[0] || null;
+}
+
+function listarInboxes() {
+  if (!chatwootPronto()) return { ok: false, erro: 'Chatwoot sem token' };
+  try {
+    var r = _chatwoot('/inboxes');
+    var lista = (r && (r.payload || r.data)) || [];
+    return { ok: true, inboxes: lista.map(function (i) {
+      return { id: i.id, nome: i.name, canal: i.channel_type };
+    }) };
+  } catch (err) { return { ok: false, erro: String(err) }; }
+}
+
+function criarContato(e164, nome) {
+  var r = _chatwootPost('/contacts', {
+    name: nome || e164,
+    phone_number: e164,
+    inbox_id: (inboxDoWhatsApp() || {}).id
+  });
+  return (r && (r.payload && (r.payload.contact || r.payload))) || null;
+}
+
+function conversaAberta(contatoId, inboxId) {
+  var r = _chatwoot('/contacts/' + contatoId + '/conversations');
+  var lista = (r && (r.payload || (r.data && r.data.payload))) || [];
+  for (var i = 0; i < lista.length; i++) {
+    if (String(lista[i].inbox_id) === String(inboxId)) return lista[i];
+  }
+  return lista[0] || null;
+}
+
+function criarConversa(contato, inboxId, e164) {
+  var r = _chatwootPost('/conversations', {
+    source_id: contato.source_id || e164,
+    inbox_id: inboxId,
+    contact_id: contato.id
+  });
+  return (r && (r.id ? r : (r.payload || null))) || null;
+}
+
+// Já mandamos o comando para esta conversa nas últimas 24h?
+function jaDisparouRecente(conversaId) {
+  var r = _chatwoot('/conversations/' + conversaId + '/messages');
+  var msgs = (r && (r.payload || r)) || [];
+  var limite = (Date.now() / 1000) - 24 * 3600;
+  for (var i = 0; i < msgs.length; i++) {
+    var m = msgs[i];
+    if (m && m.message_type === 1 && Number(m.created_at || 0) > limite) return true;
+  }
+  return false;
+}
+
+function _chatwootPost(caminho, corpo) {
+  var url = CHATWOOT_URL + '/api/v1/accounts/' + CHATWOOT_ACCOUNT_ID + caminho;
+  var resp = UrlFetchApp.fetch(url, {
+    method: 'post',
+    contentType: 'application/json',
+    payload: JSON.stringify(corpo),
+    muteHttpExceptions: true,
+    headers: { 'api_access_token': chatwootToken() }
+  });
+  var codigo = resp.getResponseCode();
+  if (codigo >= 400) {
+    throw new Error('Chatwoot respondeu HTTP ' + codigo + ' em ' + caminho + ': ' +
+                    resp.getContentText().slice(0, 200));
+  }
+  try { return JSON.parse(resp.getContentText()); } catch (err) { return {}; }
+}
+
 function _chatwoot(caminho) {
   var url = CHATWOOT_URL + '/api/v1/accounts/' + CHATWOOT_ACCOUNT_ID + caminho;
   var resp = UrlFetchApp.fetch(url, {
     method: 'get',
     muteHttpExceptions: true,
-    headers: { 'api_access_token': CHATWOOT_TOKEN }
+    headers: { 'api_access_token': chatwootToken() }
   });
   var codigo = resp.getResponseCode();
   if (codigo === 401 || codigo === 403) throw new Error('Chatwoot recusou o token (HTTP ' + codigo + ')');
@@ -776,7 +947,15 @@ function testarGravarVenda() {
  * deve dizer quantas vezes ele escreveu.
  */
 function testarChatwoot() {
-  Logger.log(JSON.stringify(verificarNoChatwoot('27999887766'), null, 2));
+  Logger.log('Token cadastrado? ' + (chatwootToken() ? 'sim' : 'NÃO — cadastre nas Propriedades do script'));
+  Logger.log('Caixas de entrada: ' + JSON.stringify(listarInboxes()));
+  Logger.log('Verificação: ' + JSON.stringify(verificarNoChatwoot('27999887766'), null, 2));
+}
+
+/* Dispara o template para UM número, para conferir o caminho inteiro antes de
+   usar na ficha. Troque pelo seu próprio celular. */
+function testarDisparo() {
+  Logger.log(JSON.stringify(dispararAtendimento('27999887766', 'Teste LiveOps'), null, 2));
 }
 
 function testarComprovante() {

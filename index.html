@@ -7391,7 +7391,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16m';
+const APP_VERSAO='2026.08.16n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11664,11 +11664,18 @@ function abrirFichaLiveCpf(id){
         title="Confirmado por ${esc(t.confirmadoPor||'—')}${t.confirmadoEm?(' em '+esc(t.confirmadoEm)):''}">✓ confirmado</span>`:''}
       ${t.foraDaBase?`<span style="font-size:9px;color:var(--text-muted);">(não veio na última consulta)</span>`:''}
       <div style="flex:1;"></div>
+      ${t.disparando?`<span style="font-size:10px;color:var(--tom-aco);font-family:var(--font-mono);">enviando…</span>`:''}
       <button class="btn-link btn-sm" onclick="lcpfVerificarChatwoot('${esc(t.num)}')" ${t.checando?'disabled':''}
         title="Procura no Chatwoot se o cliente já escreveu deste número">${t.checando?'…':'Chatwoot'}</button>
       <a href="https://wa.me/55${esc(t.num)}" target="_blank" rel="noopener" class="btn-link btn-sm"
          style="border-color:rgba(34,197,94,.5);color:var(--green);">WhatsApp</a>
       <button class="btn-link btn-sm" onclick="lcpfConfirmarTelefone('${esc(t.num)}')">${t.confirmado?'Desmarcar':'Confirmar'}</button>
+      ${t.disparo?`<div style="flex-basis:100%;font-size:10px;font-family:var(--font-mono);color:${t.disparo.erro?'var(--tom-vermelho)':'var(--tom-aco)'};">
+        ${t.disparo.erro
+          ? ('Envio: '+esc(t.disparo.erro))
+          : ('📨 '+(t.disparo.jaEnviado?'já enviado — aguardando resposta':'atendimento iniciado')+' · '+esc(t.disparo.em))}
+        ${t.disparo.link?` · <a href="${esc(t.disparo.link)}" target="_blank" rel="noopener" style="color:var(--tom-aco);">ver conversa</a>`:''}
+      </div>`:''}
       ${t.chatwoot?`<div style="flex-basis:100%;font-size:10px;font-family:var(--font-mono);color:${t.chatwoot.erro?'var(--tom-vermelho)':(t.chatwoot.recebidas?'var(--green)':'var(--text-muted)')};">
         ${t.chatwoot.erro
           ? ('Chatwoot: '+esc(t.chatwoot.erro))
@@ -11690,18 +11697,23 @@ function abrirFichaLiveCpf(id){
     + campo('CPF', esc(_lcpfFmtCpf(f.cpf)))
     + (f.nascimento?campo('Nascimento', esc(f.nascimento)):'')
     + `<div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">Telefones</div>${listaTels}`
-    + (tels.length?`<div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px;">
+    + (tels.length?`<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 4px;">
         <button class="btn btn-ghost btn-sm" style="width:auto;" onclick="lcpfVerificarTodos()">🔎 Verificar todos no Chatwoot</button>
+        <button class="btn btn-sm" style="width:auto;" onclick="lcpfDispararTodos()">📨 Iniciar atendimento nos celulares</button>
       </div>`:'')
     + `<div style="font-size:10px;color:var(--text-muted);margin:2px 0 14px;line-height:1.5;">
         <b>Chatwoot</b> confirma sozinho quando acha mensagem <b>vinda</b> daquele número — quem escreveu é o dono, e isso não custa nenhuma mensagem enviada.
-        Sem histórico, abra o <b>WhatsApp</b>, fale com o cliente e marque <b>Confirmar</b> quando ele responder.
+        Sem histórico, <b>Iniciar atendimento</b> dispara o template nos celulares e fica aguardando: quem responder é confirmado sozinho.
+        Dá para falar pelo <b>WhatsApp</b> e marcar <b>Confirmar</b> na mão também.
         O número confirmado é o que aparece na capa da ficha para toda a equipe.</div>`
     + `<div style="font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">Endereço completo</div>${listaEnds}`
     + `<div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:14px;">Consultado por ${esc(f.criadoPor||'—')} · ${esc(f.criadoEm||'')}${f.atualizadoEm&&f.atualizadoEm!==f.criadoEm?(' · atualizado em '+esc(f.atualizadoEm)):''}</div>`;
   ov.style.display='flex';
 }
-function fecharLiveCpf(){ const o=document.getElementById('lcpf-modal-overlay'); if(o) o.style.display='none'; }
+function fecharLiveCpf(){
+  const o=document.getElementById('lcpf-modal-overlay'); if(o) o.style.display='none';
+  lcpfPararEspera();
+}
 
 function lcpfConfirmarTelefone(num){
   const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta); if(!f) return;
@@ -11764,6 +11776,62 @@ function lcpfVerificarTodos(){
   const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta); if(!f) return;
   (f.telefones||[]).forEach((t,i)=>setTimeout(()=>lcpfVerificarChatwoot(t.num), i*400));
 }
+
+/* Dispara o "/iniciar_atendimento" nos celulares da ficha e fica esperando:
+   quem responder é o dono do número, e a resposta confirma sozinha.
+
+   Só vai template para celular ainda não confirmado — telefone fixo não
+   recebe, e número já confirmado não precisa ser incomodado de novo. */
+function lcpfDispararTodos(){
+  const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta); if(!f) return;
+  if(!PLANILHA_VENDAS_URL){ showToast('Integração não configurada','error'); return; }
+  const alvos=(f.telefones||[]).filter(t=>!t.confirmado && _lcpfTipo(t)==='CELULAR');
+  if(!alvos.length){ showToast('Nenhum celular pendente para disparar','warn'); return; }
+  if(!confirm('Enviar o atendimento para '+alvos.length+' número(s) deste cliente?\n\n'
+    +alvos.map(t=>'· '+t.vis).join('\n')
+    +'\n\nSão pessoas reais: se o número estiver errado, alguém vai receber a mensagem.')) return;
+
+  alvos.forEach((t,i)=>setTimeout(()=>{
+    t.disparando=true; abrirFichaLiveCpf(f.id);
+    fetch(PLANILHA_VENDAS_URL+'?acao=disparar&fone='+encodeURIComponent(t.num)
+          +'&nome='+encodeURIComponent(f.nome||'')+'&t='+Date.now())
+      .then(r=>r.json())
+      .then(j=>{
+        t.disparando=false;
+        t.disparo = (j && j.ok)
+          ? {em:_agoraCarimbo(), por:(currentUser&&currentUser.name)||'', link:j.link||'',
+             resumo:j.resumo||'', jaEnviado:!!j.jaEnviado}
+          : {em:_agoraCarimbo(), erro:(j&&(j.erro||j.motivo))||'falha no envio'};
+        saveState(appState); abrirFichaLiveCpf(f.id);
+      })
+      .catch(err=>{
+        t.disparando=false;
+        t.disparo={em:_agoraCarimbo(), erro:String(err&&err.message||err)};
+        abrirFichaLiveCpf(f.id);
+      });
+  }, i*900));
+
+  showToast('📨 Enviando para '+alvos.length+' número(s) — a resposta confirma sozinha','success');
+  lcpfIniciarEspera();
+}
+
+/* Enquanto a ficha estiver aberta com disparo pendente, pergunta ao Chatwoot
+   de tempos em tempos quem respondeu. Para sozinho quando alguém confirma,
+   quando a ficha fecha ou depois de 20 minutos — ninguém deixa a tela batendo
+   na API a noite toda. */
+let _lcpfEspera=null;
+function lcpfIniciarEspera(){
+  if(_lcpfEspera) return;
+  const fim=Date.now()+20*60*1000;
+  _lcpfEspera=setInterval(()=>{
+    const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta);
+    const modalAberto=(document.getElementById('lcpf-modal-overlay')||{}).style?.display==='flex';
+    const pendentes=(f&&f.telefones||[]).filter(t=>t.disparo && !t.disparo.erro && !t.confirmado);
+    if(!f || !modalAberto || !pendentes.length || Date.now()>fim){ lcpfPararEspera(); return; }
+    pendentes.forEach((t,i)=>setTimeout(()=>lcpfVerificarChatwoot(t.num), i*500));
+  }, 45000);
+}
+function lcpfPararEspera(){ if(_lcpfEspera){ clearInterval(_lcpfEspera); _lcpfEspera=null; } }
 
 function atualizarFichaLiveCpf(){
   const f=_lcpfLista().find(x=>x&&x.id===_lcpfAberta); if(!f) return;
