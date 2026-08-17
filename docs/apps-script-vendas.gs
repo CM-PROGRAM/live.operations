@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.17d';
+var VERSAO_CODIGO = '2026.08.17e';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -75,8 +75,14 @@ function _propriedade(nome) {
 }
 function chatwootToken() { return _propriedade('CHATWOOT_TOKEN'); }
 
-// Caixa de entrada do WhatsApp. Vazio = descobre sozinho (ver inboxDoWhatsApp)
-var CHATWOOT_INBOX_ID = '';
+/* Caixa de entrada do WhatsApp — FIXA de propósito.
+   A conta tem duas caixas (3 · "2. Antigo" e 9 · "1. Oficial"), as duas do
+   tipo Channel::Api e nenhuma com "whatsapp" no nome. A descoberta automática
+   pegaria a primeira da lista, que é a antiga: os atendimentos sairiam pelo
+   número desativado e ninguém perceberia — o disparo responderia "enviado"
+   do mesmo jeito. Se a caixa oficial mudar, troque o número aqui.
+   Vazio = volta a descobrir sozinho (ver inboxDoWhatsApp). */
+var CHATWOOT_INBOX_ID = '9';
 
 // O comando que dispara o template aprovado, digitado pelo atendente hoje
 var CHATWOOT_COMANDO  = '/iniciar_atendimento';
