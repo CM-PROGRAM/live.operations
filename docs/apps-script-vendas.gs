@@ -23,6 +23,11 @@
  *   index.html (constante PLANILHA_VENDAS_URL).
  */
 
+/* Marca de qual código está publicado. Só serve para /exec?acao=diag
+   responder "a implantação no ar é esta aqui" — sem isso, não há como saber
+   de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
+var VERSAO_CODIGO = '2026.08.17c';
+
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
 
@@ -147,6 +152,25 @@ function doGet(e) {
   // Diagnóstico: quais caixas de entrada existem
   if (acao === 'inboxes') {
     return _json(listarInboxes());
+  }
+
+  /* Diagnóstico do que ESTÁ NO AR. O editor mostra o código que você está
+     vendo; a implantação pode estar rodando outro, e as Propriedades do
+     script pertencem ao projeto — não ao arquivo aberto. Já perdemos tempo
+     com propriedade cadastrada no projeto errado, então esta rota responde
+     pela implantação: qual código ela roda e quais tokens ela enxerga.
+     Nunca devolve o token, só se existe e o tamanho. */
+  if (acao === 'diag') {
+    var g = ghostToken(), c = chatwootToken();
+    return _json({
+      ok: true,
+      versaoDoCodigo: VERSAO_CODIGO,
+      ghostTokenCadastrado: !!g,
+      ghostTokenTamanho: g ? String(g).length : 0,
+      chatwootTokenCadastrado: !!c,
+      propriedadesExistentes: Object.keys(
+        PropertiesService.getScriptProperties().getProperties() || {})
+    });
   }
 
   if (acao !== 'vendas') {

@@ -7418,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17b';
+const APP_VERSAO='2026.08.17c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11975,7 +11975,11 @@ async function consultarCpf(prefixo){
     if(!j || j.status!==true || !j.response){
       // "Sem retorno" escondia a causa: quase sempre é a GhostAPIs recusando o
       // token, e não um CPF que não existe. Mostra o que ela respondeu.
-      const motivo=(j&&(j.mensagem||j.message||j.msg||j.error))||'';
+      // A GhostAPIs devolve o motivo dentro de "response" quando é recusa
+      // ({"status":false,"response":"Token não fornecido"}) e dentro de um
+      // objeto quando é dado. Só serve como mensagem se vier como texto.
+      const resposta=(j && typeof j.response==='string') ? j.response : '';
+      const motivo=(j&&(j.mensagem||j.message||j.msg||j.error))||resposta||'';
       statusEl.style.color='var(--red)';
       statusEl.textContent='❌ '+(motivo ? 'A consulta falhou: '+motivo : 'Sem retorno para este CPF');
       console.warn('Live CPF · resposta do proxy:', j);
