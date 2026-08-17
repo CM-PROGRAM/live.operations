@@ -64,10 +64,12 @@ credencial só o que seriam seis integrações separadas:
 
 ### O que confirmar antes de construir
 
-- **Melhor Envio**: API oficial documentada, OAuth2. Ponto de atenção — o
-  rastreio é consultado pelo **id do pedido no Melhor Envio**, não pelo
-  código da transportadora. Ou seja: o card precisa guardar esse id no
-  momento em que a etiqueta é gerada, senão não há como consultar depois.
+- **Melhor Envio**: API oficial documentada, OAuth2. O rastreio é consultado
+  pelo **id do pedido no Melhor Envio**, não pelo código da transportadora —
+  e esse id é chato de pegar no painel, envio a envio. Por isso o workflow o
+  **descobre sozinho**: busca o pedido pelo código de rastreio que o card já
+  tem e, achando, grava o id no próprio card. Da segunda rodada em diante vai
+  direto, sem a busca.
 - **Manda Bem**: confirme com o suporte deles se o plano contratado expõe
   endpoint de rastreio e peça a documentação. Se não expuser, o caminho
   para os envios do Manda Bem é o item 2 ou 3 acima.
@@ -449,18 +451,23 @@ function acharListaDeEventos(raiz) {
 const PALAVRAS_ENTREGUE = /(entregue|delivered|entrega\s+realizada|objeto\s+entregue)/i;
 const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(insuficiente|incorreto|errado))/i;
 
-const saida = [];
-
-for (const item of $input.all()) {
-  const card  = item.json.card || item.json;          // o registro do LiveOps
-  const fonte = item.json.fonte || 'desconhecida';
-  const bruto = item.json.resposta;
+/* Este nó roda UMA VEZ POR ITEM. O card não vem no item: o nó HTTP anterior
+   substituiu o conteúdo pela resposta da API. Quem guarda o registro original
+   é o nó de lotes, e o n8n sabe casar cada resposta com a entrada que a
+   originou — é daí que o card é lido. */
+{
+  const card  = $('Lotes de 10').item.json;
+  const item  = { json: $json };
+  // A fonte se reconhece pela cara da resposta: o painel do Manda Bem devolve
+  // {title, html}; o Melhor Envio, um objeto por pedido
+  const fonte = ($json && $json.html !== undefined) ? 'manda-bem-painel' : 'melhor-envio';
+  const bruto = ($json && $json.error) ? null : $json;
 
   // Ramo de erro: o HTTP Request falhou (Continue On Fail preserva o item)
   if (item.json.error || !bruto) {
     const falhas = Number(card.trackFalhas || 0) + 1;
     const espera = [1, 3, 6, 12, 24][Math.min(falhas, 5) - 1] * 3600e3;
-    saida.push({ json: {
+    return { json: {
       chave: card.chave || card.id,
       mudou: true,
       patch: {
@@ -470,8 +477,7 @@ for (const item of $input.all()) {
         trackProximaConsulta: Date.now() + espera,
         _by: 'n8n'
       }
-    }});
-    continue;
+    }};
   }
 
   const eventos = eventosDaFonte(fonte, bruto)
@@ -531,10 +537,17 @@ for (const item of $input.all()) {
     patch.trackAlerta = status_atual;
   }
 
-  saida.push({ json: { chave: card.chave || card.id, mudou, patch, padrao } });
-}
+  /* O id do pedido no Melhor Envio é caro de descobrir (uma busca a mais).
+     Achado uma vez, é gravado no card — nas próximas rodadas vai direto. */
+  if (!card.envioId) {
+    try {
+      const achado = $('Id do pedido').item.json.envioId;
+      if (achado) patch.envioId = achado;
+    } catch (e) { /* rodada do Manda Bem: este nó não existe no caminho */ }
+  }
 
-return saida;
+  return { json: { chave: card.chave || card.id, mudou, patch, padrao } };
+}
 ```
 
 ---
@@ -866,7 +879,12 @@ São 15 nós, com todo o código já dentro. **Duas coisas ficam marcadas com
 | Nó | O que falta |
 |---|---|
 | `Login Manda Bem` | trocar `PREENCHER_A_SENHA_AQUI` pela senha do painel |
-| `Melhor Envio · rastreio` | escolher a credencial de cabeçalho criada com o token |
+| `Melhor Envio · rastreio` e `Melhor Envio · achar pedido` | escolher a credencial de cabeçalho criada com o token |
+| `Ler Live Track` e `Gravar no LiveOps` | escolher a credencial da conta de serviço do Google |
+
+E, nos cards do Live Track, preencher **Intermediador** — é ele que decide o
+caminho. Para o Manda Bem, preencher também o **Id no intermediador** com o
+número da coleta; para o Melhor Envio, deixar vazio que o robô descobre.
 
 ### Onde ficam as credenciais (sem plano pago)
 
