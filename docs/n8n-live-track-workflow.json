@@ -482,11 +482,6 @@
       "main": [
         [
           {
-            "node": "Ler Live Track",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Abrir tela de login",
             "type": "main",
             "index": 0
@@ -715,6 +710,17 @@
         [
           {
             "node": "Melhor Envio · rastreio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar cookie": {
+      "main": [
+        [
+          {
+            "node": "Ler Live Track",
             "type": "main",
             "index": 0
           }

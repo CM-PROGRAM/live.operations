@@ -84,6 +84,13 @@ credencial só o que seriam seis integrações separadas:
 ```
 [Schedule Trigger 1h]
         │
+[Abrir tela de login] → [Extrai o _token] → [Login] → [Guardar cookie]
+        │
+        │  Em fila, não em paralelo: o n8n não garante a ordem entre dois
+        │  ramos que saem do gatilho, e os nós do painel precisam do cookie
+        │  já pronto. Em paralelo, o rastreio corria antes do login e morria
+        │  com "o nó referenciado não foi executado".
+        │
 [HTTP GET rastreios do LiveOps]
         │
 [Code: fila de consulta]  ── descarta entregues, sem código, e quem ainda
