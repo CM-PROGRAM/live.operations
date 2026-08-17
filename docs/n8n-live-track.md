@@ -502,8 +502,19 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
      escondendo justamente o que a gente precisa ler para consertar. */
   function textoDoErro(e) {
     if (!e) return '';
-    if (typeof e === 'string') return e;
-    return e.message || e.description || e.reason || JSON.stringify(e);
+    var t = (typeof e === 'string') ? e : (e.message || e.description || e.reason || JSON.stringify(e));
+    /* "ERR_INVALID_URL input:''" é o que sai quando o passo anterior não achou
+       o endereço do rastreio. Do jeito que vem, é um erro de programador na
+       tela de quem só quer saber onde está a encomenda — então troca pelo
+       motivo de verdade, que o extrator já apurou. */
+    if (/ERR_INVALID_URL/.test(t)) {
+      try {
+        var motivo = $('Extrai o data-path').item.json.trackUrlMotivo;
+        if (motivo) return motivo;
+      } catch (err) { /* outro ramo: segue com o texto original */ }
+      return 'Não foi possível montar o endereço de consulta deste envio';
+    }
+    return t;
   }
 
   // Ramo de erro: o HTTP Request falhou (Continue On Fail preserva o item)
