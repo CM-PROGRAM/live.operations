@@ -852,7 +852,39 @@ dois dias e sabe que tem algo errado.
 
 ---
 
-## 7. Antes de ligar em produção
+## 7. O workflow pronto para importar
+
+`n8n-live-track-workflow.json`, ao lado deste arquivo. No n8n: menu **⋯** →
+**Import from File**.
+
+São 15 nós, com todo o código já dentro. **Duas coisas ficam marcadas com
+`PREENCHER`** — são as únicas que faltam descobrir:
+
+| Nó | O que falta |
+|---|---|
+| `Login Manda Bem` | a URL do POST de login (e o nome dos campos, se não forem `email` / `password`) |
+| `Manda Bem · detalhe` | a URL do endpoint que devolve o HTML do envio |
+
+As duas se capturam do mesmo jeito: DevTools → **Rede** → faça a ação (logar
+/ expandir um envio) → clique na linha → aba **Cabeçalhos** → *URL da
+solicitação*.
+
+Usuário, senha e token não ficam no arquivo — o workflow lê de variáveis de
+ambiente do n8n, que é onde segredo deve morar:
+
+```
+MANDABEM_USUARIO=...
+MANDABEM_SENHA=...
+MELHORENVIO_TOKEN=...
+```
+
+O login roda uma vez por rodada, em paralelo com a leitura dos cards, e o
+cookie fica guardado para os nós do painel. Como o login não tem captcha,
+isso se renova sozinho — ninguém precisa colar cookie quando expirar.
+
+---
+
+## 8. Antes de ligar em produção
 
 1. **Rode com um pacote só.** Filtre a fila por um `nped` conhecido, deixe
    rodar uma hora e confira o card na tela.

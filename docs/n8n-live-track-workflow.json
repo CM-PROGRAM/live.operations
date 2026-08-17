@@ -1,0 +1,532 @@
+{
+  "name": "LiveOps · Live Track (rastreio de hora em hora)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "name": "A cada 1 hora",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=PREENCHER_URL_DO_LOGIN",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "email",
+              "value": "={{ $env.MANDABEM_USUARIO }}"
+            },
+            {
+              "name": "password",
+              "value": "={{ $env.MANDABEM_SENHA }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "name": "Login Manda Bem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -520,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Guarda o cookie da sessão para os nós do painel reaproveitarem.\n   Sem captcha no login, o n8n renova sozinho a cada rodada — ninguém\n   precisa colar cookie à mão quando expirar. */\nconst h = $input.first().json.headers || {};\nconst bruto = h['set-cookie'] || h['Set-Cookie'] || [];\nconst cookie = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]).join('; ');\nif (!cookie) throw new Error('Login do Manda Bem não devolveu cookie — confira usuário e senha');\nreturn [{ json: { cookie } }];"
+      },
+      "name": "Guardar cookie",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/rastreios.json",
+        "options": {}
+      },
+      "name": "Ler Live Track",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -520,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Entrada: o objeto inteiro de rastreios. Saída: só o que vale consultar agora.\nconst todos = $input.first().json || {};\nconst agora = Date.now();\nconst DIAS_ATE_DESISTIR = 45;\n\nconst fila = Object.entries(todos).map(([chave, r]) => ({ chave, ...r })).filter(r => {\n  if (!r || !r.codigo) return false;                    // sem código não há o que consultar\n  if (r.status === 'Entregue') return false;            // trabalho encerrado\n  if (r.trackProximaConsulta && agora < r.trackProximaConsulta) return false; // backoff\n\n  // Pacote parado há mais de 45 dias não volta a andar porque perguntamos de\n  // novo. Sai da fila e vira problema humano, não de robô.\n  const nasceu = Number(r.ordemManual || 0);\n  if (nasceu && (agora - nasceu) > DIAS_ATE_DESISTIR * 864e5) return false;\n\n  return true;\n});\n\nreturn fila.map(json => ({ json }));\n"
+      },
+      "name": "Fila de consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "name": "Lotes de 10",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intermediador }}",
+                    "rightValue": "Melhor Envio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "Melhor Envio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.intermediador }}",
+                    "rightValue": "Manda Bem",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "Manda Bem"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Sem fonte"
+        }
+      },
+      "name": "Por intermediador",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://melhorenvio.com.br/api/v2/me/shipment/tracking",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.MELHORENVIO_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "LiveOps (contato@suplelive.com.br)"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ orders: [$json.envioId] }) }}",
+        "options": {}
+      },
+      "name": "Melhor Envio · rastreio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        140
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=PREENCHER_URL_DO_DETALHE/{{ $json.envioId || $json.coletaId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Guardar cookie').first().json.cookie }}"
+            },
+            {
+              "name": "X-Requested-With",
+              "value": "XMLHttpRequest"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Manda Bem · detalhe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// O HTML do detalhe traz o botão da lupa com o endereço do rastreio pronto.\n// Ler daqui vale mais que qualquer tabela de slugs: funciona para\n// transportadora que ainda nem existe no cadastro.\nconst html = $json.html || '';\nconst m = html.match(/class=\"btn-get-status-objeto-envio\"[^>]*data-path=\"([^\"]+)\"/)\n       || html.match(/data-path=\"([^\"]*status[^\"]*objeto[^\"]*)\"/);\nreturn { json: { ...$json, trackUrl: m ? m[1].replace(/\\\\\\//g, '/') : '' } };\n"
+      },
+      "name": "Extrai o data-path",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.trackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Guardar cookie').first().json.cookie }}"
+            },
+            {
+              "name": "X-Requested-With",
+              "value": "XMLHttpRequest"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Manda Bem · movimentações",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        820,
+        400
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// O HTML do detalhe traz o botão da lupa com o endereço do rastreio pronto.\n// Ler daqui vale mais que qualquer tabela de slugs: funciona para\n// transportadora que ainda nem existe no cadastro.\nconst html = $json.html || '';\nconst m = html.match(/class=\"btn-get-status-objeto-envio\"[^>]*data-path=\"([^\"]+)\"/)\n       || html.match(/data-path=\"([^\"]*status[^\"]*objeto[^\"]*)\"/);\nreturn [{ json: { ...$json, trackUrl: m ? m[1].replace(/\\\\\\//g, '/') : '' } }];\n"
+      },
+      "name": "Padroniza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1060,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mudou }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "name": "Mudou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1280,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/rastreios/{{ $json.chave }}.json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patch) }}",
+        "options": {}
+      },
+      "name": "Gravar no LiveOps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1500,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "name": "Pausa 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1720,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "A cada 1 hora": {
+      "main": [
+        [
+          {
+            "node": "Ler Live Track",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Login Manda Bem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login Manda Bem": {
+      "main": [
+        [
+          {
+            "node": "Guardar cookie",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Live Track": {
+      "main": [
+        [
+          {
+            "node": "Fila de consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila de consulta": {
+      "main": [
+        [
+          {
+            "node": "Lotes de 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lotes de 10": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Por intermediador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Por intermediador": {
+      "main": [
+        [
+          {
+            "node": "Melhor Envio · rastreio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Manda Bem · detalhe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Melhor Envio · rastreio": {
+      "main": [
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manda Bem · detalhe": {
+      "main": [
+        [
+          {
+            "node": "Extrai o data-path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrai o data-path": {
+      "main": [
+        [
+          {
+            "node": "Manda Bem · movimentações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manda Bem · movimentações": {
+      "main": [
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Padroniza": {
+      "main": [
+        [
+          {
+            "node": "Mudou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mudou?": {
+      "main": [
+        [
+          {
+            "node": "Gravar no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pausa 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Pausa 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa 2s": {
+      "main": [
+        [
+          {
+            "node": "Lotes de 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo",
+    "saveManualExecutions": true
+  },
+  "pinData": {}
+}
