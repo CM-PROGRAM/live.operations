@@ -167,7 +167,23 @@ if (semFonte) {
   console.log(semFonte + ' rastreio(s) fora da fila por não ter intermediador definido no card');
 }
 
-return fila.map(json => ({ json }));
+/* O id que o painel do Manda Bem entende é numérico, e ele já está dentro do
+   próprio código de rastreio: "MB0000000328080" carrega o 328080, o mesmo
+   número que aparece no data-path do botão de rastreio. Deduzir aqui evita
+   depender de alguém digitar certo — e o campo do card, quando preenchido com
+   número, continua mandando. Não-numérico ali (já colaram a chave do card,
+   "rst_1786…") é ignorado de propósito: id errado consulta o envio de outra
+   pessoa, o que é pior que não consultar. */
+function idDoMandaBem(r) {
+  const doCard = String(r.envioId || r.coletaId || '').trim();
+  if (/^\d+$/.test(doCard)) return doCard;
+  const doCodigo = String(r.codigo || '').replace(/\D/g, '').replace(/^0+/, '');
+  return doCodigo || '';
+}
+
+return fila.map(r => ({
+  json: r.intermediador === 'Manda Bem' ? { ...r, mbId: idDoMandaBem(r) } : r
+}));
 ```
 
 ### 2.4 Switch por intermediador
@@ -513,7 +529,7 @@ const PALAVRAS_PROBLEMA = /(extravi|roubo|avaria|devolu|recusad|endere[çc]o\s+(
          é get_envios_row/<id>; sem id ela vira um endereço sem fim, o painel
          devolve vazio, e o erro parece do Manda Bem quando é campo em branco
          no nosso lado. */
-      if (!card.envioId && !card.coletaId) {
+      if (!card.mbId && !card.envioId && !card.coletaId) {
         return 'Preencha "Id no intermediador" no card — no Manda Bem é o número da coleta';
       }
       try {
