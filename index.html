@@ -7391,7 +7391,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.16l';
+const APP_VERSAO='2026.08.16m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11456,6 +11456,20 @@ function _fmtFone(ddd,fone){
    número que aparece na capa, para toda a equipe. */
 const LCPF_ORDEM_TIPO={CELULAR:0,MOVEL:0,MÓVEL:0,WHATSAPP:0,FIXO:1,RESIDENCIAL:1,COMERCIAL:2};
 
+/* A base às vezes manda o tipo como código ("2", "3") em vez de palavra, e não
+   há documentação dizendo o que cada número significa. Chutar a tradução é
+   pior que não mostrar: rotularia de celular um fixo, e alguém tentaria mandar
+   mensagem para lá. Então código numérico é descartado e o tipo sai do próprio
+   número, que é verificável: 9 dígitos começando em 9 é celular, 8 é fixo. */
+function _lcpfTipo(t){
+  const bruto=String(t.tipo||'').trim();
+  if(bruto && !/^\d+$/.test(bruto)) return bruto.toUpperCase();
+  const local=String(t.num||'').slice(2);
+  if(local.length===9 && local.charAt(0)==='9') return 'CELULAR';
+  if(local.length===8) return 'FIXO';
+  return '';
+}
+
 function _lcpfLista(){
   if(!Array.isArray(appState.liveCpf)) appState.liveCpf=[];
   return appState.liveCpf;
@@ -11478,8 +11492,8 @@ function _lcpfTelefonePrincipal(f){
   const confirmado=tels.find(t=>t.confirmado);
   if(confirmado) return {...confirmado, certeza:'confirmado'};
   const ordenados=tels.slice().sort((a,b)=>{
-    const ta=LCPF_ORDEM_TIPO[String(a.tipo||'').toUpperCase()] ?? 3;
-    const tb=LCPF_ORDEM_TIPO[String(b.tipo||'').toUpperCase()] ?? 3;
+    const ta=LCPF_ORDEM_TIPO[_lcpfTipo(a)] ?? 3;
+    const tb=LCPF_ORDEM_TIPO[_lcpfTipo(b)] ?? 3;
     return ta-tb || String(b.desde||'').localeCompare(String(a.desde||''));
   });
   return {...ordenados[0], certeza:'provavel'};
@@ -11645,7 +11659,7 @@ function abrirFichaLiveCpf(id){
   const listaTels=tels.length ? tels.map(t=>`
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--bg-surface);border:1px solid ${t.confirmado?'rgba(34,197,94,.45)':'var(--border)'};border-radius:var(--radius);padding:8px 12px;margin-bottom:6px;">
       <span style="font-size:14px;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);">${esc(t.vis)}</span>
-      ${t.tipo?`<span style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${esc(t.tipo)}</span>`:''}
+      ${_lcpfTipo(t)?`<span style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${esc(_lcpfTipo(t))}</span>`:''}
       ${t.confirmado?`<span style="font-size:9px;font-weight:700;color:var(--green);background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.4);border-radius:999px;padding:2px 8px;"
         title="Confirmado por ${esc(t.confirmadoPor||'—')}${t.confirmadoEm?(' em '+esc(t.confirmadoEm)):''}">✓ confirmado</span>`:''}
       ${t.foraDaBase?`<span style="font-size:9px;color:var(--text-muted);">(não veio na última consulta)</span>`:''}

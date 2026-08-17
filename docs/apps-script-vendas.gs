@@ -49,9 +49,9 @@ var GHOST_TOKEN  = 'f8ee18bc4b133d6d7e2a6dc9cf62eb2b';
    · CHATWOOT_ACCOUNT_ID → o número que aparece na URL depois de /accounts/
    · CHATWOOT_TOKEN      → Perfil → Configurações do perfil → Token de acesso
                            (access token). Prefira um usuário só para isso. */
-var CHATWOOT_URL        = '';   // ex.: 'https://app.chatwoot.com'
-var CHATWOOT_ACCOUNT_ID = '';   // ex.: '1'
-var CHATWOOT_TOKEN      = '';
+var CHATWOOT_URL        = 'https://chat.suplelive.com.br';
+var CHATWOOT_ACCOUNT_ID = '1';
+var CHATWOOT_TOKEN      = '';   // <<< FALTA ESTE: Perfil → Configurações do perfil → Token de acesso
 
 // ─────────────────────────────────────────────────────────────
 // ENTRADA
