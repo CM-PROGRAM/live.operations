@@ -1287,6 +1287,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
              aba para ver os pedidos é quem vai lançar o próximo. -->
         <button class="btn btn-sm" id="btn-novo-pedido" onclick="abrirModalVenda()" style="width:auto;white-space:nowrap;margin-left:auto;">+ Registrar Venda</button>
       </div>
+      <!-- Registros (o que a equipe lança) / Base (o que veio do BaseLinker) -->
+      <div id="reg-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
+        <button class="atv-stab2 active" data-c="afazer" data-sub="registros" onclick="regSetSubTab('registros')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>Registros
+        </button>
+        <button class="atv-stab2" data-c="concluida" data-sub="base" onclick="regSetSubTab('base')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>Pedidos Base WhatsApp
+          <span id="reg-cnt-base" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
+        </button>
+      </div>
+
       <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
            uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
            chegar no que importa, que é o pedido em si. -->
@@ -1338,6 +1349,48 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
 
       </div><!-- /reg-registros -->
+
+      <!-- PEDIDOS BASE WHATSAPP — espelho do que a Base tem com canal WhatsApp.
+           Somente leitura: quem manda aqui é a Base; o LiveOps mostra. -->
+      <div id="reg-base" style="display:none;">
+        <div id="base-kpis" class="ped-kpis"></div>
+
+        <div class="ped-bloco" style="padding:14px 16px;margin-bottom:14px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:7px 14px;flex:1;min-width:220px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+              <span style="font-size:12px;color:var(--text-muted);">🔎</span>
+              <input id="base-busca" type="text" placeholder="Buscar por pedido, cliente, telefone ou status..." oninput="renderPedidosBase()"
+                style="background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);width:100%;">
+            </div>
+            <select id="base-f-status" onchange="renderPedidosBase()" title="Status na Base"
+              style="width:auto;min-width:170px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:8px 14px;cursor:pointer;outline:none;"></select>
+            <button class="btn btn-sm" onclick="renderPedidosBase()" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
+          </div>
+        </div>
+
+        <div class="ped-bloco" style="overflow:hidden;">
+          <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
+            <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);">Pedidos da Base · canal WhatsApp</span>
+            <span id="base-count" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            <div style="flex:1;"></div>
+            <span id="base-sync" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+            <span id="base-total" style="font-size:13px;font-weight:800;color:var(--green);font-family:var(--font-mono);">R$ 0,00</span>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="ped-tabela">
+              <thead>
+                <tr>
+                  <th>Pedido</th><th>Cliente</th><th>Telefone</th><th>Valor</th>
+                  <th>Status na Base</th><th>Data</th><th style="text-align:right;">Abrir</th>
+                </tr>
+              </thead>
+              <tbody id="base-rows"></tbody>
+            </table>
+          </div>
+          <div id="base-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+        </div>
+      </div>
+
     </div><!-- /tab-registrovendas -->
 
     <!-- FINANCEIRO -->
@@ -3835,6 +3888,7 @@ function defaultState(){
     weekHistory:{},
     vendasWpp:{},
     pedidosWpp:[],
+    pedidosBase:[],
     drogData:{pacheco:[],saopaulo:[]},
     conferencia:[],
     cnpjMkt:{},
@@ -3918,6 +3972,7 @@ function loadLocal(){
     if(!s.weekHistory) s.weekHistory={};
     if(!s.vendasWpp) s.vendasWpp={};
     if(!Array.isArray(s.pedidosWpp)) s.pedidosWpp=[];
+    if(!Array.isArray(s.pedidosBase)) s.pedidosBase=[];
     if(!s.tasks) s.tasks=defaultState().tasks;
     if(!s.tasks.devolucoes) s.tasks.devolucoes=[];
     if(!Array.isArray(s.tasks.atendimentos)) s.tasks.atendimentos=[];
@@ -5874,7 +5929,11 @@ const COLECOES_REG={
   rastreios:     {get:s=>(s.tasks||{}).rastreios,      set:(s,v)=>{(s.tasks=s.tasks||{}).rastreios=v;}},
   devolucoes:    {get:s=>(s.tasks||{}).devolucoes,     set:(s,v)=>{(s.tasks=s.tasks||{}).devolucoes=v;}},
   atendimentos:  {get:s=>(s.tasks||{}).atendimentos,   set:(s,v)=>{(s.tasks=s.tasks||{}).atendimentos=v;}},
-  liveCpf:       {get:s=>s.liveCpf,                    set:(s,v)=>{s.liveCpf=v;}}
+  liveCpf:       {get:s=>s.liveCpf,                    set:(s,v)=>{s.liveCpf=v;}},
+  /* Pedidos puxados da Base (BaseLinker) pelo n8n. Registro a registro pelo
+     mesmo motivo das vendas: o robô grava de hora em hora e não pode
+     reescrever a lista inteira por cima de quem está mexendo na tela. */
+  pedidosBase:   {get:s=>s.pedidosBase,                set:(s,v)=>{s.pedidosBase=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -6463,6 +6522,7 @@ function applyRemoteState(data){
   if(!data.weekHistory) data.weekHistory = {};
   if(!data.vendasWpp) data.vendasWpp = {};
   if(!Array.isArray(data.pedidosWpp)) data.pedidosWpp = [];
+  if(!Array.isArray(data.pedidosBase)) data.pedidosBase = [];
   if(!data.tasks) data.tasks = defaultState().tasks;
   if(!data.tasks.devolucoes) data.tasks.devolucoes = [];
   if(!Array.isArray(data.tasks.atendimentos)) data.tasks.atendimentos = [];
@@ -7656,7 +7716,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.18b';
+const APP_VERSAO='2026.08.18c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7836,7 +7896,7 @@ function buildTabs(){
 
   function fireTabHooks(id){
     if(id==='registrovendas'){
-      try{renderPedidos();}catch(e){console.warn('renderPedidos:',e);}
+      try{regSetSubTab(_regSubTab==='base'?'base':'registros');}catch(e){console.warn('regSetSubTab:',e);}
     }
     if(id==='financeiro'){ try{finSetSubTab('confvendas');}catch(e){console.warn('finSetSubTab:',e);} }
     if(id==='devolucoes'){ try{devSetSubTab('ativos');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
@@ -9078,8 +9138,118 @@ function finSetSubTab(qual){
   else renderConferenciaVendas();
 }
 
-// Nome antigo: a aba Pedidos ainda o chamava ao abrir
-function regSetSubTab(){ /* Pedidos não tem mais sub-abas */ }
+/* Pedidos tem duas sub-abas nas quais a origem do dado é diferente:
+   "Registros" é o que a equipe lançou à mão; "Pedidos Base WhatsApp" é o que
+   veio da Base. Misturar as duas listas seria o pior dos mundos — ninguém
+   saberia de onde veio cada linha nem qual delas corrigir. */
+function regSetSubTab(qual){
+  _regSubTab = qual || 'registros';
+  const reg=document.getElementById('reg-registros');
+  const base=document.getElementById('reg-base');
+  if(reg)  reg.style.display  = _regSubTab==='registros' ? 'block' : 'none';
+  if(base) base.style.display = _regSubTab==='base' ? 'block' : 'none';
+  document.querySelectorAll('#reg-subtabs .atv-stab2').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub===_regSubTab);
+  });
+  if(_regSubTab==='base') renderPedidosBase(); else renderPedidos();
+}
+
+/* ── Pedidos vindos da Base (BaseLinker) ──────────────────────
+   Somente leitura: quem escreve aqui é a integração, de fora. A tela nunca
+   altera um pedido da Base — corrigir pedido é na Base, senão os dois lados
+   passam a discordar e ninguém sabe qual está certo.
+
+   Formato de cada registro (é isto que a integração precisa gravar em
+   suplelive/reg/pedidosBase/<id>):
+     id            "base_<numero do pedido na Base>"
+     numero        nº do pedido na Base            ex "46659426"
+     externo       nº do pedido no canal, se houver
+     cliente       nome de quem comprou
+     telefone      só dígitos, com DDD
+     valor         número, em reais
+     status        status na Base, em texto        ex "Pago"
+     canal         origem da venda                 ex "WhatsApp"
+     data          "AAAA-MM-DD"
+     hora          "HH:MM"
+     link          URL do pedido no painel da Base
+     _by           "n8n"  (evita o eco da própria gravação)  */
+function renderPedidosBase(){
+  const tbody=document.getElementById('base-rows'); if(!tbody) return;
+  const todos=(appState.pedidosBase||[]).filter(Boolean);
+
+  const sel=document.getElementById('base-f-status');
+  if(sel){
+    const atual=sel.value;
+    const sts=[...new Set(todos.map(p=>p.status).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">Todos os status</option>'+sts.map(x=>`<option${x===atual?' selected':''}>${x}</option>`).join('');
+  }
+  const q=((document.getElementById('base-busca')||{}).value||'').toLowerCase().trim();
+  const fst=((document.getElementById('base-f-status')||{}).value||'');
+  const lista=todos.filter(p=>{
+    if(fst && p.status!==fst) return false;
+    if(!q) return true;
+    return [p.numero,p.externo,p.cliente,p.telefone,p.status].map(x=>String(x||'').toLowerCase()).join(' ').includes(q);
+  }).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))||String(b.hora||'').localeCompare(String(a.hora||'')));
+
+  const total=lista.reduce((a,p)=>a+(Number(p.valor)||0),0);
+  const cnt=document.getElementById('base-count'); if(cnt) cnt.textContent=lista.length;
+  const tot=document.getElementById('base-total'); if(tot) tot.textContent=_pedFmt(total);
+  const chip=document.getElementById('reg-cnt-base'); if(chip) chip.textContent=todos.length?('· '+todos.length):'';
+
+  // Quando a integração rodou pela última vez
+  const ultimo=todos.map(p=>p.sincronizadoEm).filter(Boolean).sort().pop();
+  const sync=document.getElementById('base-sync');
+  if(sync) sync.textContent=ultimo?('Base lida em '+ultimo):'';
+
+  // KPIs
+  const kp=document.getElementById('base-kpis');
+  if(kp){
+    const hoje=todayStr();
+    const doDia=todos.filter(p=>p.data===hoje);
+    const {start,end}=getWeekRange(0);
+    const daSemana=todos.filter(p=>p.data>=start&&p.data<=end);
+    const somar=arr=>arr.reduce((a,p)=>a+(Number(p.valor)||0),0);
+    const card=(rot,val,sub,cor)=>`<div class="ped-kpi" style="--kc:${cor};"><span class="val">${val}</span><span class="rot">${rot}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
+    kp.innerHTML = card('Pedidos hoje', doDia.length, _pedFmt(somar(doDia)), '#8fa8d8')
+      + card('Pedidos na semana', daSemana.length, _pedFmt(somar(daSemana)), 'var(--green)')
+      + card('Total puxado da Base', todos.length, todos.length?('mais antigo em '+_pedDataBR(todos.map(p=>p.data).filter(Boolean).sort()[0])):'', '#a78bfa');
+  }
+
+  const vazio=document.getElementById('base-vazio');
+  tbody.innerHTML='';
+  if(!lista.length){
+    if(vazio){
+      vazio.style.display='block';
+      vazio.innerHTML = todos.length
+        ? 'Nenhum pedido com esse filtro.'
+        : 'Nenhum pedido puxado da Base ainda.<br><span style="font-size:11px;">A integração com a Base (BaseLinker) precisa ser ligada: falta o token da API e a confirmação de qual origem de venda é o WhatsApp.</span>';
+    }
+    return;
+  }
+  if(vazio) vazio.style.display='none';
+
+  lista.forEach(p=>{
+    const tr=document.createElement('tr');
+    const fone=String(p.telefone||'').replace(/\D/g,'');
+    tr.innerHTML=`
+      <td style="font-weight:700;color:var(--text-primary);font-family:var(--font-mono);">${p.numero||'—'}${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">canal: ${p.externo}</div>`:''}</td>
+      <td style="color:var(--text-secondary);">${p.cliente||'—'}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted);">${fone?_fmtFoneVis(fone):'—'}</td>
+      <td style="font-weight:700;color:var(--green);font-family:var(--font-mono);">${_pedFmt(p.valor)}</td>
+      <td><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);color:#b8ccee;">${p.status||'—'}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(p.data)}${p.hora?(' · '+p.hora):''}</td>
+      <td style="text-align:right;">${p.link?`<a class="ped-acao" href="${p.link}" target="_blank" rel="noopener" style="text-decoration:none;">Abrir na Base ↗</a>`:''}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// Telefone só para exibição: (27) 99998-7802
+function _fmtFoneVis(num){
+  const n=String(num||'').replace(/\D/g,'').replace(/^55/,'');
+  if(n.length===11) return '('+n.slice(0,2)+') '+n.slice(2,7)+'-'+n.slice(7);
+  if(n.length===10) return '('+n.slice(0,2)+') '+n.slice(2,6)+'-'+n.slice(6);
+  return num;
+}
 
 function confTrocarAba(aba){
   _confAbaEscolhida=aba||'';
