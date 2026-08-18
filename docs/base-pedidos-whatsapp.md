@@ -137,3 +137,51 @@ ninguém saberia qual está certo.
 
 Falta só o que depende de vocês: **token**, **nome da origem WhatsApp** e
 **data de início**.
+
+---
+
+## 7. O fluxo do n8n
+
+`docs/n8n-base-pedidos-workflow.json` — sete nós:
+
+```
+[A cada 1 hora] → [Janela de leitura] → [Status da Base] → [Pedidos da Base]
+                                                                  │
+                                        [Só WhatsApp] ────────────┘
+                                              │
+                                     [Gravar no LiveOps]
+
+[Origens de venda (rodar uma vez)]   ← desligado; serve para descobrir o nome
+```
+
+**Credencial**: uma só, do tipo *Header Auth*, chamada `Base (BaseLinker)`,
+com **Name** = `X-BLToken` e **Value** = o token. O token não fica em nenhum
+arquivo — nem aqui, nem no `index.html`.
+
+### Por que uma janela e não paginação
+
+A Base devolve no máximo 100 pedidos por chamada. Em vez de montar um laço de
+páginas — mais nós, mais coisa para quebrar sem ninguém perceber — a leitura
+relê os últimos 3 dias a cada hora e regrava por cima. Regravar não custa:
+a gravação é por id, então o pedido só sobrescreve a si mesmo.
+
+Se uma rodada trouxer 100 pedidos, o log avisa: aí a janela precisa encurtar,
+senão os mais antigos ficam de fora em silêncio.
+
+Para trazer o histórico na primeira vez, aumente `DIAS` no nó *Janela de
+leitura*, rode à mão quantas vezes precisar, e devolva para 3.
+
+### O que ainda depende de confirmação
+
+No nó **Só WhatsApp** existe a lista `ORIGENS_WHATSAPP`. Ela está com um
+palpite (`whatsapp`, `personal`, `pessoal`) e **precisa ser confirmada** com a
+saída do nó *Origens de venda*. Com a lista errada, a aba passa a mostrar
+pedido de marketplace — pior do que não mostrar nada, porque a equipe age em
+cima de um dado que diz uma coisa e é outra.
+
+### Status e valor
+
+- O status vem como número na Base; o fluxo busca a lista de status uma vez
+  por rodada e grava o nome.
+- O total não vem pronto: é a soma dos produtos mais o frete. Somar no fluxo
+  evita que a tela mostre um valor diferente do que a Base mostra.
