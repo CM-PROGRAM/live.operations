@@ -7418,7 +7418,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17f';
+const APP_VERSAO='2026.08.17g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10907,6 +10907,45 @@ function reconcileAutoTasks(state){
     if(a && a.origemCancId)  return cancIds.has(a.origemCancId);
     if(a && a.origemCancNfId)return cancNfIds.has(a.origemCancNfId);
     return true; // tarefas manuais (sem origem) nunca são removidas aqui
+  });
+  return reconcileSolicitacoesConcluidas(state);
+}
+
+/* O caminho de volta: tarefa concluída fecha a solicitação que a originou.
+   Concluir uma tarefa já fazia isso, mas só desde que o vínculo passou a
+   existir, e apenas pelo caminho "→ Concluída": quem manda direto para
+   "Finalizada" nunca fechava a solicitação. O resultado era o que o Matheus
+   viu — solicitação eterna em "A Fazer" no painel de quem pediu, mesmo com a
+   tarefa resolvida há dias.
+
+   Aqui a tarefa é a fonte da verdade, e a conta é refeita a cada carga e a
+   cada gravação: acerta o passado sem ninguém precisar mexer card por card.
+   Só fecha o que tem tarefa concluída — solicitação cuja tarefa foi excluída
+   fica como está, porque excluir não é concluir. */
+const VINCULOS_SOLICITACAO = [
+  {lista:'integracoes',    campo:'origemIntegId'},
+  {lista:'excluirIntBase', campo:'origemExIntId'},
+  {lista:'entradas',       campo:'origemEntradaId'},
+  {lista:'imagensReq',     campo:'origemImgId'}
+];
+
+function reconcileSolicitacoesConcluidas(state){
+  if(!state) return state;
+  const feitas=new Map(); // id da solicitação -> tarefa que a resolveu
+  (state.atividades||[]).forEach(a=>{
+    if(!a || (a.status!=='concluida' && a.status!=='finalizada')) return;
+    VINCULOS_SOLICITACAO.forEach(v=>{ if(a[v.campo]) feitas.set(a[v.campo],a); });
+  });
+  if(!feitas.size) return state;
+  VINCULOS_SOLICITACAO.forEach(v=>{
+    (state[v.lista]||[]).forEach(it=>{
+      if(!it || it.status==='concluida') return;
+      const a=feitas.get(it.id);
+      if(!a) return;
+      it.status='concluida';
+      it.concluidoEm = it.concluidoEm || a.concluidoEm || a.finalizadoEm || '';
+      it.concluidoPor= it.concluidoPor|| a.concluidoPor|| a.finalizadoPor|| '';
+    });
   });
   return state;
 }
