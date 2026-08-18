@@ -164,11 +164,38 @@ Falta só o que depende de vocês: **token**, **nome da origem WhatsApp** e
 com **Name** = `X-BLToken` e **Value** = o token. O token não fica em nenhum
 arquivo — nem aqui, nem no `index.html`.
 
+### Tempo real
+
+O gatilho roda **de minuto em minuto**, e não de hora em hora: a equipe
+precisa ver o pedido assim que ele entra. Isso é barato porque a chamada já
+vai filtrada por origem — são duas requisições por volta, contra um limite de
+100 por minuto.
+
+Existe também um gatilho **por webhook** (`/webhook/base-pedidos`). Cadastrando
+essa URL na Base (Configurações da conta → Webhooks) nos eventos de pedido, a
+leitura acontece no instante do pedido, sem esperar o próximo minuto. O
+gatilho de tempo continua ligado como rede de segurança: webhook perdido não
+volta sozinho.
+
+Do LiveOps para a tela já era instantâneo — o card aparece assim que o
+registro chega ao Firebase, em todos os navegadores abertos. A demora estava
+só no trecho Base → Firebase.
+
+### Só grava o que mudou
+
+Rodando a cada minuto, regravar tudo a cada volta encheria o Firebase de
+escrita inútil e faria a tela piscar sozinha o dia inteiro. Antes de gravar, o
+fluxo lê o que já está no LiveOps e compara campo a campo — ignorando o
+carimbo de sincronização, senão todo pedido "mudaria" sempre.
+
+Se a leitura do Firebase falhar, ele grava tudo: melhor escrever demais do que
+perder uma atualização por causa de uma leitura que não respondeu.
+
 ### Por que uma janela e não paginação
 
 A Base devolve no máximo 100 pedidos por chamada. Em vez de montar um laço de
 páginas — mais nós, mais coisa para quebrar sem ninguém perceber — a leitura
-relê os últimos 3 dias a cada hora e regrava por cima. Regravar não custa:
+relê os últimos 7 dias a cada minuto e regrava por cima. Regravar não custa:
 a gravação é por id, então o pedido só sobrescreve a si mesmo.
 
 Se uma rodada trouxer 100 pedidos, o log avisa: aí a janela precisa encurtar,
