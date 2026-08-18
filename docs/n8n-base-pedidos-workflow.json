@@ -87,7 +87,7 @@
             },
             {
               "name": "parameters",
-              "value": "={{ JSON.stringify({ date_confirmed_from: $('Janela de leitura').first().json.desde, get_unconfirmed_orders: true, include_custom_extra_fields: true, filter_order_source: 'personal', filter_order_source_id: 0 }) }}"
+              "value": "={{ JSON.stringify({ date_from: $('Janela de leitura').first().json.desde, get_unconfirmed_orders: true, include_custom_extra_fields: true, filter_order_source: 'personal', filter_order_source_id: 0 }) }}"
             }
           ]
         },
@@ -106,7 +106,8 @@
           "id": "",
           "name": "Base (BaseLinker)"
         }
-      }
+      },
+      "notes": "date_from filtra pela data de CRIAÇÃO do pedido. date_confirmed_from, que estava aqui antes, ignora pedido não confirmado — a data de confirmação dele é zero, e some da janela. Se ainda vier vazio, apague a chave date_from para trazer os 100 mais recentes sem filtro de data."
     },
     {
       "parameters": {
