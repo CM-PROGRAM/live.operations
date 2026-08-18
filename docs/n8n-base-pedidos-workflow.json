@@ -140,7 +140,13 @@
       "position": [
         580,
         300
-      ]
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
     },
     {
       "parameters": {
@@ -218,7 +224,13 @@
       "position": [
         150,
         300
-      ]
+      ],
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
     }
   ],
   "connections": {
