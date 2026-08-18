@@ -1287,35 +1287,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
              aba para ver os pedidos é quem vai lançar o próximo. -->
         <button class="btn btn-sm" id="btn-novo-pedido" onclick="abrirModalVenda()" style="width:auto;white-space:nowrap;margin-left:auto;">+ Registrar Venda</button>
       </div>
-      <!-- Registros (o que é lançado aqui) / Conferência (o que está na planilha) -->
-      <div id="reg-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
-        <button class="atv-stab2 active" data-c="afazer" data-sub="registros" onclick="regSetSubTab('registros')">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>Pedidos
-        </button>
-        <button class="atv-stab2" data-c="concluida" data-sub="conferencia" onclick="regSetSubTab('conferencia')">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Conferência Vendas
-          <span id="reg-cnt-conf" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
-        </button>
-      </div>
-
-      <!-- CONFERÊNCIA — espelho da planilha de vendas -->
-      <div id="reg-conferencia" style="display:none;">
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
-          <input id="reg-conf-busca" type="text" placeholder="🔎 Buscar em qualquer coluna..." oninput="renderConferenciaVendas()"
-            style="flex:1;min-width:220px;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:10px 18px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
-          <select id="reg-conf-aba" onchange="confTrocarAba(this.value)" title="Mês da planilha"
-            style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:11.5px;font-family:var(--font-mono);padding:9px 14px;outline:none;cursor:pointer;"></select>
-          <button class="btn btn-sm" id="btn-conf-atualizar" onclick="carregarConferenciaVendas(true)" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
-          <a href="https://docs.google.com/spreadsheets/d/15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY/edit" target="_blank" rel="noopener"
-             class="btn btn-ghost btn-sm" style="width:auto;white-space:nowrap;text-decoration:none;">Abrir planilha</a>
-        </div>
-        <div id="reg-conf-info" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;"></div>
-        <div id="reg-conf-scroll" style="overflow-x:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);">
-          <table id="reg-conf-tabela" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
-        </div>
-        <div id="reg-conf-vazio" style="display:none;padding:40px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);"></div>
-      </div>
-
       <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
            uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
            chegar no que importa, que é o pedido em si. -->
@@ -1367,6 +1338,41 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
 
       </div><!-- /reg-registros -->
+    </div><!-- /tab-registrovendas -->
+
+    <!-- FINANCEIRO -->
+    <div class="tab-panel" id="tab-financeiro">
+      <div class="section-header">
+        <span class="section-title">Financeiro</span>
+        <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
+      </div>
+      <!-- Sub-abas: por ora só a conferência, mas o financeiro cresce por aqui -->
+      <div id="fin-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
+        <button class="atv-stab2 active" data-c="concluida" data-sub="confvendas" onclick="finSetSubTab('confvendas')">
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Conferência Vendas WhatsApp
+          <span id="reg-cnt-conf" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
+        </button>
+      </div>
+
+      <!-- CONFERÊNCIA — espelho da planilha de vendas -->
+      <div id="reg-conferencia">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+          <input id="reg-conf-busca" type="text" placeholder="🔎 Buscar em qualquer coluna..." oninput="renderConferenciaVendas()"
+            style="flex:1;min-width:220px;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:10px 18px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+          <select id="reg-conf-aba" onchange="confTrocarAba(this.value)" title="Mês da planilha"
+            style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:11.5px;font-family:var(--font-mono);padding:9px 14px;outline:none;cursor:pointer;"></select>
+          <button class="btn btn-sm" id="btn-conf-atualizar" onclick="carregarConferenciaVendas(true)" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
+          <a href="https://docs.google.com/spreadsheets/d/15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY/edit" target="_blank" rel="noopener"
+             class="btn btn-ghost btn-sm" style="width:auto;white-space:nowrap;text-decoration:none;">Abrir planilha</a>
+        </div>
+        <div id="reg-conf-info" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;"></div>
+        <div id="reg-conf-scroll" style="overflow-x:auto;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);">
+          <table id="reg-conf-tabela" style="width:100%;border-collapse:collapse;font-size:12px;"></table>
+        </div>
+        <div id="reg-conf-vazio" style="display:none;padding:40px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);"></div>
+      </div>
+
+    </div>
 
     <!-- PLATAFORMAS -->
     <div class="tab-panel" id="tab-plataformas">
@@ -7650,7 +7656,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.18a';
+const APP_VERSAO='2026.08.18b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7779,6 +7785,9 @@ function buildTabs(){
       {id:'atribuir',  label:'Atribuir Tarefa'},
       {id:'relatorio', label:'Relatório Entrega'}
     ]},
+    {type:'group', id:'grp-financeiro', icon:'💰', label:'Financeiro', perm:'whatsapp', children:[
+      {id:'financeiro', label:'Conferência Vendas WhatsApp'}
+    ]},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
     {id:'projnotas',  icon:'🗂', label:'Projetos',              perm:null},
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
@@ -7827,9 +7836,9 @@ function buildTabs(){
 
   function fireTabHooks(id){
     if(id==='registrovendas'){
-      try{renderHistoricoWpp();}catch(e){console.warn('renderHistoricoWpp:',e);}
-      try{regSetSubTab(_regSubTab||'registros');}catch(e){}
+      try{renderPedidos();}catch(e){console.warn('renderPedidos:',e);}
     }
+    if(id==='financeiro'){ try{finSetSubTab('confvendas');}catch(e){console.warn('finSetSubTab:',e);} }
     if(id==='devolucoes'){ try{devSetSubTab('ativos');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
@@ -9057,21 +9066,20 @@ function _confValor(v){
   return t;
 }
 
-function regSetSubTab(qual){
-  _regSubTab=qual;
-  const reg=document.getElementById('reg-registros');
-  const conf=document.getElementById('reg-conferencia');
-  if(reg)  reg.style.display  = qual==='registros' ? 'block' : 'none';
-  if(conf) conf.style.display = qual==='conferencia' ? 'block' : 'none';
-  document.querySelectorAll('#reg-subtabs .atv-stab2').forEach(b=>{
-    b.classList.toggle('active', b.dataset.sub===qual);
+/* A conferência saiu de Pedidos e virou sub-aba do Financeiro: ela olha o
+   dinheiro que entrou na conta, não o pedido que a equipe lançou. */
+function finSetSubTab(qual){
+  _regSubTab=qual||'confvendas';
+  document.querySelectorAll('#fin-subtabs .atv-stab2').forEach(b=>{
+    b.classList.toggle('active', b.dataset.sub===_regSubTab);
   });
-  if(qual==='conferencia'){
-    // Só busca uma vez por sessão; o botão Atualizar força de novo
-    if(!_confVendas && !_confCarregando) carregarConferenciaVendas(false);
-    else renderConferenciaVendas();
-  }
+  // Só busca uma vez por sessão; o botão Atualizar força de novo
+  if(!_confVendas && !_confCarregando) carregarConferenciaVendas(false);
+  else renderConferenciaVendas();
 }
+
+// Nome antigo: a aba Pedidos ainda o chamava ao abrir
+function regSetSubTab(){ /* Pedidos não tem mais sub-abas */ }
 
 function confTrocarAba(aba){
   _confAbaEscolhida=aba||'';
