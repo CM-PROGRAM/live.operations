@@ -38,16 +38,22 @@ O token **não vem para o repositório nem para o `index.html`** — este projet
 abrir o código-fonte da página. Ele vive numa credencial do n8n, como o
 Melhor Envio.
 
-### 2.2 Qual origem de venda é o "WhatsApp"
+### 2.2 Qual origem de venda é o "WhatsApp" — ✅ confirmado
 
-A Base separa os pedidos por **origem** (`order_source` / `order_source_id`).
-Marketplace tem origem própria; venda feita à mão costuma cair em "pessoal",
-e é aí que o WhatsApp normalmente vive — com um nome que vocês escolheram.
+O `getOrderSources` da conta, rodado em 18/08/2026, devolveu:
 
-Para descobrir o identificador certo, o método é `getOrderSources`. O que eu
-preciso saber é: **qual nome aparece na Base para os pedidos do WhatsApp**.
-Sem isso, filtrar por canal é chute — e chute aqui significa trazer pedido de
-marketplace para dentro de uma aba que diz WhatsApp.
+```
+personal   0       → WhatsApp     ← o nosso
+personal   32409   → SP
+shop       8005077 → LI (4VITA 0001) · 8005285 → Atacado
+amazon, melibr, shopeebr, magaluopenapi, raiadrogasil,
+viavarejo, omnik, tiktokbr, webcontinental → marketplaces
+```
+
+O filtro usa o **par** `order_source = "personal"` **e** `order_source_id = 0`.
+Travar os dois não é preciosismo: existe outra origem manual na mesma família
+(`SP`, id 32409), e filtrar só por "personal" traria os pedidos dela para
+dentro de uma aba que diz WhatsApp.
 
 ### 2.3 De quando para cá
 
@@ -171,13 +177,11 @@ senão os mais antigos ficam de fora em silêncio.
 Para trazer o histórico na primeira vez, aumente `DIAS` no nó *Janela de
 leitura*, rode à mão quantas vezes precisar, e devolva para 3.
 
-### O que ainda depende de confirmação
+### A origem, travada
 
-No nó **Só WhatsApp** existe a lista `ORIGENS_WHATSAPP`. Ela está com um
-palpite (`whatsapp`, `personal`, `pessoal`) e **precisa ser confirmada** com a
-saída do nó *Origens de venda*. Com a lista errada, a aba passa a mostrar
-pedido de marketplace — pior do que não mostrar nada, porque a equipe age em
-cima de um dado que diz uma coisa e é outra.
+No nó **Só WhatsApp**, `ORIGEM_WHATSAPP = { fonte: 'personal', id: '0' }`.
+Se um dia criarem outra origem manual e quiserem incluí-la, é aqui que se
+mexe — rodando o nó *Origens de venda* antes, para pegar o id certo.
 
 ### Status e valor
 

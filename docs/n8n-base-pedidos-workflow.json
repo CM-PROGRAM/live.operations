@@ -16,7 +16,10 @@
       "name": "A cada 1 hora",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [-620, 300]
+      "position": [
+        -620,
+        300
+      ]
     },
     {
       "parameters": {
@@ -26,7 +29,10 @@
       "name": "Janela de leitura",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-400, 300]
+      "position": [
+        -400,
+        300
+      ]
     },
     {
       "parameters": {
@@ -54,7 +60,10 @@
       "name": "Status da Base",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-180, 300],
+      "position": [
+        -180,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -88,7 +97,10 @@
       "name": "Pedidos da Base",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [40, 300],
+      "position": [
+        40,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -98,13 +110,16 @@
     },
     {
       "parameters": {
-        "jsCode": "/* Fica só o que é WhatsApp e traduz para o formato do LiveOps.\n\n   O nome da origem PRECISA ser confirmado antes de ligar isto em produção —\n   rode o nó \"Origens de venda\" uma vez e ponha aqui o que ele devolver. Com\n   a lista errada, a aba \"Pedidos Base WhatsApp\" passa a mostrar pedido de\n   marketplace, que é pior do que não mostrar nada: a equipe age em cima de\n   um dado que diz uma coisa e é outra. */\nconst ORIGENS_WHATSAPP = ['whatsapp', 'personal', 'pessoal'];  // ← confirmar\n\nconst resp = $input.first().json || {};\nif (resp.status && resp.status !== 'SUCCESS') {\n  throw new Error('A Base recusou a leitura: ' + (resp.error_message || resp.error_code || JSON.stringify(resp).slice(0, 200)));\n}\nconst pedidos = resp.orders || [];\n\n// Nome do status: a Base manda o número, e número não diz nada na tela\nconst nomeStatus = {};\ntry {\n  const lista = $('Status da Base').first().json.statuses || [];\n  lista.forEach(s => { nomeStatus[String(s.id)] = s.name || s.name_for_customer || ''; });\n} catch (e) { /* sem a lista, mostra o número mesmo */ }\n\nconst TZ = 'America/Sao_Paulo';\nfunction data(ts) {\n  if (!ts) return '';\n  const d = new Date(Number(ts) * 1000);\n  const p = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);\n  return p; // sv-SE já sai como AAAA-MM-DD\n}\nfunction hora(ts) {\n  if (!ts) return '';\n  return new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).format(new Date(Number(ts) * 1000));\n}\n\n/* O total não vem pronto: a Base entrega os produtos e o frete separados.\n   Somar aqui evita que a tela mostre um valor diferente do que a Base\n   mostra — que seria o tipo de divergência que ninguém consegue explicar\n   depois. */\nfunction total(p) {\n  const itens = (p.products || []).reduce((a, i) =>\n    a + (Number(i.price_brutto) || 0) * (Number(i.quantity) || 0), 0);\n  return Math.round((itens + (Number(p.delivery_price) || 0)) * 100) / 100;\n}\n\nconst carimbo = new Date().toLocaleString('pt-BR', {\n  timeZone: TZ, day: '2-digit', month: '2-digit', year: 'numeric',\n  hour: '2-digit', minute: '2-digit'\n});\n\nconst saida = [];\nlet doWhats = 0;\nfor (const p of pedidos) {\n  const origem = String(p.order_source || '').toLowerCase();\n  const nomeOrigem = String(p.order_source_info || '').toLowerCase();\n  const ehWhats = ORIGENS_WHATSAPP.some(o => origem === o || nomeOrigem.includes(o));\n  if (!ehWhats) continue;\n  doWhats++;\n\n  const quando = p.date_confirmed || p.date_add;\n  saida.push({ json: {\n    chave: 'base_' + p.order_id,\n    patch: {\n      id: 'base_' + p.order_id,\n      numero: String(p.order_id),\n      externo: String(p.external_order_id || p.shop_order_id || ''),\n      cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n      telefone: String(p.phone || '').replace(/\\D/g, ''),\n      valor: total(p),\n      status: nomeStatus[String(p.order_status_id)] || ('status ' + p.order_status_id),\n      canal: p.order_source_info || p.order_source || 'WhatsApp',\n      data: data(quando),\n      hora: hora(quando),\n      link: 'https://panel-u.baselinker.com/orders.php#order:' + p.order_id,\n      sincronizadoEm: carimbo,\n      _by: 'n8n'\n    }\n  }});\n}\n\nconsole.log(pedidos.length + ' pedido(s) na janela · ' + doWhats + ' do WhatsApp');\nif (pedidos.length >= 100) {\n  console.log('ATENÇÃO: a Base devolveu 100, que é o máximo por chamada. Encurte DIAS na Janela de leitura, senão os mais antigos ficam de fora.');\n}\nreturn saida;"
+        "jsCode": "/* Fica só o que é WhatsApp e traduz para o formato do LiveOps.\n\n   Confirmado pelo getOrderSources da conta em 18/08/2026:\n\n     personal   0      → WhatsApp     ← o nosso\n     personal   32409  → SP\n     shop, amazon, melibr, shopeebr, magaluopenapi, raiadrogasil,\n     viavarejo, omnik, tiktokbr, webcontinental → marketplaces\n\n   O par (fonte + id) é travado de propósito. Filtrar só por \"personal\"\n   traria também a origem \"SP\", que é manual mas não é WhatsApp — e um pedido\n   de outra origem dentro de uma aba que diz WhatsApp é pior do que aba\n   vazia: a equipe agiria em cima de um dado que diz uma coisa e é outra. */\nconst ORIGEM_WHATSAPP = { fonte: 'personal', id: '0' };\n\nconst resp = $input.first().json || {};\nif (resp.status && resp.status !== 'SUCCESS') {\n  throw new Error('A Base recusou a leitura: ' + (resp.error_message || resp.error_code || JSON.stringify(resp).slice(0, 200)));\n}\nconst pedidos = resp.orders || [];\n\n// Nome do status: a Base manda o número, e número não diz nada na tela\nconst nomeStatus = {};\ntry {\n  const lista = $('Status da Base').first().json.statuses || [];\n  lista.forEach(s => { nomeStatus[String(s.id)] = s.name || s.name_for_customer || ''; });\n} catch (e) { /* sem a lista, mostra o número mesmo */ }\n\nconst TZ = 'America/Sao_Paulo';\nfunction data(ts) {\n  if (!ts) return '';\n  const d = new Date(Number(ts) * 1000);\n  const p = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);\n  return p; // sv-SE já sai como AAAA-MM-DD\n}\nfunction hora(ts) {\n  if (!ts) return '';\n  return new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).format(new Date(Number(ts) * 1000));\n}\n\n/* O total não vem pronto: a Base entrega os produtos e o frete separados.\n   Somar aqui evita que a tela mostre um valor diferente do que a Base\n   mostra — que seria o tipo de divergência que ninguém consegue explicar\n   depois. */\nfunction total(p) {\n  const itens = (p.products || []).reduce((a, i) =>\n    a + (Number(i.price_brutto) || 0) * (Number(i.quantity) || 0), 0);\n  return Math.round((itens + (Number(p.delivery_price) || 0)) * 100) / 100;\n}\n\nconst carimbo = new Date().toLocaleString('pt-BR', {\n  timeZone: TZ, day: '2-digit', month: '2-digit', year: 'numeric',\n  hour: '2-digit', minute: '2-digit'\n});\n\nconst saida = [];\nlet doWhats = 0;\nfor (const p of pedidos) {\n  const fonte = String(p.order_source || '').toLowerCase();\n  const idFonte = String(p.order_source_id === undefined || p.order_source_id === null ? '' : p.order_source_id);\n  if (fonte !== ORIGEM_WHATSAPP.fonte || idFonte !== ORIGEM_WHATSAPP.id) continue;\n  doWhats++;\n\n  const quando = p.date_confirmed || p.date_add;\n  saida.push({ json: {\n    chave: 'base_' + p.order_id,\n    patch: {\n      id: 'base_' + p.order_id,\n      numero: String(p.order_id),\n      externo: String(p.external_order_id || p.shop_order_id || ''),\n      cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n      telefone: String(p.phone || '').replace(/\\D/g, ''),\n      valor: total(p),\n      status: nomeStatus[String(p.order_status_id)] || ('status ' + p.order_status_id),\n      canal: 'WhatsApp',\n      data: data(quando),\n      hora: hora(quando),\n      link: 'https://panel-u.baselinker.com/orders.php#order:' + p.order_id,\n      sincronizadoEm: carimbo,\n      _by: 'n8n'\n    }\n  }});\n}\n\nconsole.log(pedidos.length + ' pedido(s) na janela · ' + doWhats + ' do WhatsApp');\nif (pedidos.length >= 100) {\n  console.log('ATENÇÃO: a Base devolveu 100, que é o máximo por chamada. Encurte DIAS na Janela de leitura, senão os mais antigos ficam de fora.');\n}\nreturn saida;"
       },
       "id": "so-whats",
       "name": "Só WhatsApp",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [260, 300]
+      "position": [
+        260,
+        300
+      ]
     },
     {
       "parameters": {
@@ -121,7 +136,10 @@
       "name": "Gravar no LiveOps",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 300]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -149,7 +167,10 @@
       "name": "Origens de venda (rodar uma vez)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [40, 520],
+      "position": [
+        40,
+        520
+      ],
       "disabled": true,
       "credentials": {
         "httpHeaderAuth": {
@@ -161,12 +182,65 @@
     }
   ],
   "connections": {
-    "A cada 1 hora": { "main": [[{ "node": "Janela de leitura", "type": "main", "index": 0 }]] },
-    "Janela de leitura": { "main": [[{ "node": "Status da Base", "type": "main", "index": 0 }]] },
-    "Status da Base": { "main": [[{ "node": "Pedidos da Base", "type": "main", "index": 0 }]] },
-    "Pedidos da Base": { "main": [[{ "node": "Só WhatsApp", "type": "main", "index": 0 }]] },
-    "Só WhatsApp": { "main": [[{ "node": "Gravar no LiveOps", "type": "main", "index": 0 }]] }
+    "A cada 1 hora": {
+      "main": [
+        [
+          {
+            "node": "Janela de leitura",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Janela de leitura": {
+      "main": [
+        [
+          {
+            "node": "Status da Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status da Base": {
+      "main": [
+        [
+          {
+            "node": "Pedidos da Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedidos da Base": {
+      "main": [
+        [
+          {
+            "node": "Só WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Só WhatsApp": {
+      "main": [
+        [
+          {
+            "node": "Gravar no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1", "timezone": "America/Sao_Paulo" },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Sao_Paulo"
+  },
   "pinData": {}
 }
