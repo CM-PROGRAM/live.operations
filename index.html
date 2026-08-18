@@ -470,6 +470,38 @@ html{overflow-x:hidden;}
 .atv-stab2[data-c="adm"]{--sc-border:rgba(143,168,216,.35);--sc-bg:rgba(143,168,216,.08);--sc-text:#b8ccee;}
 .atv-stab2[data-c="adm"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);
   box-shadow:0 4px 16px rgba(143,168,216,.35),inset 0 1px 0 rgba(255,255,255,.15);}
+/* ── Pedidos: números do topo e tabela ─────────────────────────
+   A aba era um gráfico de barras, uma barra de meta e uma lista dobrável.
+   Quem trabalha aqui quer ver o pedido — então a tabela é o painel, e os
+   números viram cartões que respondem antes de rolar a tela. */
+.ped-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px;}
+.ped-kpi{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;
+  display:flex;flex-direction:column;gap:3px;}
+.ped-kpi .val{font-size:22px;font-weight:800;font-family:var(--font-mono);color:var(--kc,var(--text-primary));line-height:1.15;letter-spacing:-.02em;}
+.ped-kpi .rot{font-size:11px;color:var(--text-muted);font-family:var(--font-sans);}
+.ped-kpi .sub{font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;}
+.ped-kpi.clicavel{cursor:pointer;transition:border-color .15s,transform .15s;text-align:left;width:100%;font:inherit;}
+.ped-kpi.clicavel:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.16);}
+.ped-meta-barra{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px;position:relative;}
+.ped-meta-barra>i{display:block;height:100%;border-radius:99px;transition:width .5s ease;}
+.ped-meta-barra>b{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.85);}
+
+.ped-bloco{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);}
+.ped-tabela{width:100%;border-collapse:collapse;font-size:12.5px;}
+.ped-tabela th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  color:var(--text-muted);font-family:var(--font-mono);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.ped-tabela td{padding:11px 16px;border-bottom:1px solid var(--linha-sutil);vertical-align:middle;white-space:nowrap;}
+.ped-tabela tbody tr:last-child td{border-bottom:none;}
+.ped-tabela tbody tr:hover{background:rgba(255,255,255,.03);}
+.ped-chip{font-size:11px;font-weight:600;font-family:var(--font-sans);padding:5px 13px;border-radius:20px;cursor:pointer;
+  border:1px solid var(--glass-border);background:var(--grad-vidro);color:var(--text-secondary);transition:all .15s;}
+.ped-chip:hover{border-color:rgba(143,168,216,.5);color:var(--text-primary);}
+.ped-chip.on{border-color:rgba(143,168,216,.6);background:rgba(143,168,216,.18);color:#b8ccee;}
+.ped-acao{background:none;border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);cursor:pointer;
+  font-size:10.5px;padding:3px 11px;transition:all .15s;}
+.ped-acao:hover{color:var(--text-primary);border-color:rgba(143,168,216,.55);background:rgba(143,168,216,.12);}
+.ped-acao.perigo:hover{color:#fca5a5;border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.12);}
+
 /* ── Adm. Master: dobra e cartões de situação ──────────────────
    O painel do master acumulou instrução longa, JSON de regras e fileiras de
    botões perigosos ao lado dos do dia a dia. A dobra guarda o que é raro sem
@@ -810,8 +842,7 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .tab-panel.active{display:block;}
 @media(max-width:700px){.sidebar{width:180px;min-width:180px;}.tab-btn{font-size:13px;}}
 .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px;}
-/* Registro de Vendas: painel ocupa a altura restante da tela (abaixo do gráfico) */
-#tab-registrovendas #historico-wpp-list{max-height:calc(100vh - 545px) !important;min-height:260px;}
+
 /* WhatsApp: grupos esticam para preencher a altura da tela (sem espaço vazio embaixo) */
 #wpp-tasks{display:flex;flex-direction:column;min-height:calc(100vh - 205px);}
 .section-title{font-family:var(--font-sans);font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--text-muted);}
@@ -1250,13 +1281,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- REGISTRO DE VENDAS -->
     <div class="tab-panel" id="tab-registrovendas">
       <div class="section-header">
-        <span class="section-title">Registro de Vendas</span>
+        <span class="section-title">Pedidos</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
+        <!-- Registrar venda só existia dentro da tarefa diária. Quem abre esta
+             aba para ver os pedidos é quem vai lançar o próximo. -->
+        <button class="btn btn-sm" id="btn-novo-pedido" onclick="abrirModalVenda()" style="width:auto;white-space:nowrap;margin-left:auto;">+ Registrar Venda</button>
       </div>
       <!-- Registros (o que é lançado aqui) / Conferência (o que está na planilha) -->
       <div id="reg-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
         <button class="atv-stab2 active" data-c="afazer" data-sub="registros" onclick="regSetSubTab('registros')">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>Registros
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>Pedidos
         </button>
         <button class="atv-stab2" data-c="concluida" data-sub="conferencia" onclick="regSetSubTab('conferencia')">
           <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Conferência Vendas
@@ -1282,52 +1316,55 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="reg-conf-vazio" style="display:none;padding:40px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);"></div>
       </div>
 
-      <!-- REGISTROS -->
+      <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
+           uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
+           chegar no que importa, que é o pedido em si. -->
       <div id="reg-registros">
-      <!-- GRÁFICO DE VENDAS POR DIA -->
-      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),var(--realce-topo);">
-        <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border-bottom:1px solid var(--glass-border);padding:11px 16px;display:flex;align-items:center;gap:10px;">
-          <div style="width:26px;height:26px;border-radius:6px;background:rgba(143,168,216,0.2);border:1px solid rgba(143,168,216,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;">📊</div>
-          <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">VENDAS POR DIA</span>
-          <span id="reg-chart-periodo" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">esta semana</span>
-        </div>
-        <div id="reg-vendas-chart" style="display:flex;align-items:flex-end;gap:6px;height:190px;padding:18px 16px 8px;"></div>
-      </div>
-      <!-- META SEMANAL -->
-      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-bottom:14px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),var(--realce-topo);">
-        <div style="padding:11px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-          <div style="width:26px;height:26px;border-radius:6px;background:rgba(143,168,216,0.15);border:1px solid rgba(143,168,216,0.35);display:flex;align-items:center;justify-content:center;font-size:13px;">🎯</div>
-          <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;white-space:nowrap;">META SEMANAL</span>
-          <div style="flex:1;min-width:180px;background:var(--bg-active);border-radius:8px;height:14px;overflow:hidden;position:relative;">
-            <div id="meta-vendas-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#8fa8d8,#9db8e8);border-radius:8px;transition:width .6s ease;box-shadow:0 0 10px rgba(74,222,128,0.35);"></div>
-            <div id="meta-vendas-marker" title="Meta" style="display:none;position:absolute;top:0;bottom:0;width:2px;background:rgba(255,255,255,0.85);box-shadow:0 0 6px rgba(255,255,255,0.6);"></div>
+
+        <!-- Números do período escolhido nos filtros -->
+        <div id="ped-kpis" class="ped-kpis"></div>
+
+        <!-- Busca e filtros -->
+        <div class="ped-bloco" style="padding:14px 16px;margin-bottom:14px;">
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:10px;">Busca &amp; Filtros</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:7px 14px;flex:1;min-width:220px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+              <span style="font-size:12px;color:var(--text-muted);">🔎</span>
+              <input id="ped-busca" type="text" placeholder="Buscar por nº do pedido, forma de pagamento ou quem registrou..." oninput="renderPedidos()"
+                style="background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);width:100%;">
+            </div>
+            <select id="ped-f-pag" onchange="renderPedidos()" title="Forma de pagamento"
+              style="width:auto;min-width:170px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:8px 14px;cursor:pointer;outline:none;"></select>
           </div>
-          <span id="meta-vendas-label" style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-secondary);white-space:nowrap;">—</span>
-          <span id="meta-vendas-pct" style="font-size:12px;font-weight:800;font-family:var(--font-mono);color:#8fa8d8;white-space:nowrap;">0%</span>
-          <button id="meta-vendas-edit" onclick="editarMetaVendas()" title="Definir meta semanal (somente master)" style="display:none;background:none;border:1px solid rgba(143,168,216,0.4);border-radius:50px;color:#8fa8d8;cursor:pointer;font-size:11px;padding:3px 12px;font-weight:700;transition:all .15s;" onmouseover="this.style.background='rgba(143,168,216,0.18)'" onmouseout="this.style.background='none'">✎ Editar Meta</button>
+          <div id="ped-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;"></div>
         </div>
-      </div>
-      <!-- HISTÓRICO DE VENDAS -->
-      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:var(--radius-lg);margin-top:0;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.3),var(--realce-topo);">
-        <div onclick="toggleHistoricoWpp()" style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));border-bottom:1px solid var(--glass-border);padding:11px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;cursor:pointer;user-select:none;">
-          <div style="width:26px;height:26px;border-radius:6px;background:rgba(143,168,216,0.2);border:1px solid rgba(143,168,216,0.3);display:flex;align-items:center;justify-content:center;font-size:13px;">📅</div>
-          <span style="font-size:13px;font-weight:700;color:var(--text-primary);letter-spacing:-0.02em;flex:1;">HISTÓRICO DE VENDAS</span>
-          <span id="historico-wpp-total" style="font-size:12px;font-weight:700;color:#8fa8d8;font-family:var(--font-mono);">R$ 0,00</span>
-          <span id="historico-wpp-periodo-label" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">60 dias</span>
-          <span id="historico-wpp-chevron" style="color:var(--text-muted);font-size:14px;transition:transform .2s;margin-left:4px;">▾</span>
-        </div>
-        <div id="historico-wpp-body">
-          <div style="padding:10px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-            <button onclick="filtroHistoricoWpp('semana-atual')" id="hist-f-semana-atual" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(143,168,216,0.5);background:rgba(143,168,216,0.2);color:#8fa8d8;cursor:pointer;">Esta semana</button>
-            <button onclick="filtroHistoricoWpp('semana-passada')" id="hist-f-semana-passada" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(143,168,216,0.5);background:rgba(143,168,216,0.2);color:#8fa8d8;cursor:pointer;">Semana passada</button>
-            <button onclick="filtroHistoricoWpp('30dias')" id="hist-f-30dias" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(143,168,216,0.5);background:rgba(143,168,216,0.2);color:#8fa8d8;cursor:pointer;">Últimos 30 dias</button>
-            <button onclick="filtroHistoricoWpp('todos')" id="hist-f-todos" style="font-size:11px;font-weight:600;font-family:var(--font-sans);padding:4px 12px;border-radius:20px;border:1px solid rgba(143,168,216,0.5);background:rgba(143,168,216,0.2);color:#8fa8d8;cursor:pointer;">60 dias</button>
+
+        <!-- Tabela -->
+        <div class="ped-bloco" style="overflow:hidden;">
+          <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
+            <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);">Pedidos</span>
+            <span id="ped-count" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+            <div style="flex:1;"></div>
+            <span id="ped-total" style="font-size:13px;font-weight:800;color:var(--green);font-family:var(--font-mono);">R$ 0,00</span>
           </div>
-          <div id="historico-wpp-list" style="max-height:480px;overflow-y:auto;"></div>
-          <div id="historico-wpp-empty" style="display:none;padding:24px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhuma venda encontrada neste período.</div>
+          <div style="overflow-x:auto;">
+            <table class="ped-tabela">
+              <thead>
+                <tr>
+                  <th>Nº do Pedido</th>
+                  <th>Valor</th>
+                  <th>Forma de pagamento</th>
+                  <th>Data</th>
+                  <th>Hora</th>
+                  <th>Registrado por</th>
+                  <th style="text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="ped-rows"></tbody>
+            </table>
+          </div>
+          <div id="ped-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhum pedido neste período.</div>
         </div>
-      </div>
-    </div>
 
       </div><!-- /reg-registros -->
 
@@ -2779,6 +2816,45 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <!-- MODAL NOVA TAREFA -->
+<!-- MODAL META DA SEMANA — fora das abas pelo mesmo motivo do de venda -->
+<div id="meta-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;overflow-y:auto;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:26px;width:460px;max-width:96vw;box-shadow:var(--sombra-painel),var(--realce-topo);backdrop-filter:blur(24px);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
+      <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,rgba(143,168,216,0.3),rgba(143,168,216,0.1));border:1px solid rgba(143,168,216,0.4);display:flex;align-items:center;justify-content:center;font-size:18px;">🎯</div>
+      <div>
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Meta da semana</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Baseada no que a equipe já vendeu</div>
+      </div>
+    </div>
+    <div style="height:1px;background:var(--glass-border);margin:16px 0;"></div>
+
+    <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Últimas semanas fechadas</div>
+    <div id="meta-historico" style="margin-bottom:16px;"></div>
+
+    <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;">Sugestões</div>
+    <div id="meta-sugestoes" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;"></div>
+
+    <div class="input-group" style="margin-bottom:12px;">
+      <label>Meta (R$)</label>
+      <input type="text" id="meta-input" inputmode="decimal" placeholder="Ex: 25000" oninput="_metaAtualizarPrevia()">
+    </div>
+    <div class="input-group" style="margin-bottom:12px;">
+      <label>Super meta (R$) <span style="color:var(--text-muted);font-weight:400;">— opcional, acima da meta</span></label>
+      <input type="text" id="meta-super-input" inputmode="decimal" placeholder="Ex: 30000">
+    </div>
+
+    <div style="background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:var(--radius);padding:11px 13px;margin-bottom:18px;">
+      <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">O que isso exige</div>
+      <div id="meta-previa" style="font-size:11.5px;color:var(--text-secondary);font-family:var(--font-mono);line-height:1.6;">—</div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-ghost btn-sm" style="width:auto;" onclick="fecharMetaPedidos()">Cancelar</button>
+      <button class="btn btn-sm" style="width:auto;" onclick="salvarMetaPedidos()">Salvar meta</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL REGISTRO DE VENDA — fora das abas: dentro do painel ele sumia junto com a aba -->
 <div id="modal-venda-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:3000;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:28px;width:360px;max-width:94vw;box-shadow:var(--sombra-painel),var(--realce-topo);backdrop-filter:blur(24px);">
@@ -7574,7 +7650,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17i';
+const APP_VERSAO='2026.08.18a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7692,7 +7768,7 @@ function buildTabs(){
     ]},
     {type:'group', id:'grp-vendas', icon:'🛍', label:'Vendas', perm:null, children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
-      {id:'registrovendas', label:'Registro de Vendas', perm:'whatsapp'},
+      {id:'registrovendas', label:'Pedidos', perm:'whatsapp'},
       {id:'envios',    label:'Live Track', perm:'envios'},
       // Live CPF é de todo mundo: quem atende cliente precisa do telefone,
       // e trancar isso só criava pedido de liberação para o master
@@ -8675,33 +8751,13 @@ function concludeDay(){showToast('Dia concluído! Dados arquivados.','success');
 /* ===== HISTÓRICO DE VENDAS ===== */
 let _historicoFiltro = 'semana-atual';
 
-function toggleHistoricoWpp(){
-  const body = document.getElementById('historico-wpp-body');
-  const chevron = document.getElementById('historico-wpp-chevron');
-  if(!body) return;
-  const open = body.style.display !== 'none';
-  body.style.display = open ? 'none' : 'block';
-  if(chevron) chevron.style.transform = open ? 'rotate(-90deg)' : '';
-  if(!open) renderHistoricoWpp();
-}
+/* A lista não dobra mais — ela É a aba. A função continua porque a tarefa
+   diária ainda tem um botão que chamava isso. */
+function toggleHistoricoWpp(){ renderPedidos(); }
 
 function filtroHistoricoWpp(periodo){
   _historicoFiltro = periodo;
-  // Reset estilos — todos ficam no modelo roxo, o ativo com mais destaque
-  ['semana-atual','semana-passada','30dias','todos'].forEach(id=>{
-    const btn = document.getElementById('hist-f-'+id);
-    if(!btn) return;
-    if(id === periodo){
-      btn.style.background = 'rgba(143,168,216,0.35)';
-      btn.style.borderColor = 'rgba(143,168,216,0.8)';
-      btn.style.color = '#c4b5fd';
-    } else {
-      btn.style.background = 'rgba(143,168,216,0.2)';
-      btn.style.borderColor = 'rgba(143,168,216,0.5)';
-      btn.style.color = '#8fa8d8';
-    }
-  });
-  renderHistoricoWpp();
+  renderPedidos();   // os chips se repintam sozinhos no render
 }
 
 function getWeekRange(offsetWeeks){
@@ -8718,143 +8774,267 @@ function getWeekRange(offsetWeeks){
 
 // Gráfico de vendas por dia (segue o filtro do Histórico) — aba Registro de Vendas
 // ── Meta semanal de vendas (edição somente master) ──
-function renderMetaVendas(){
-  const fill=document.getElementById('meta-vendas-fill');
-  const lbl=document.getElementById('meta-vendas-label');
-  const pctEl=document.getElementById('meta-vendas-pct');
-  const editBtn=document.getElementById('meta-vendas-edit');
-  if(!fill||!lbl||!pctEl) return;
-  if(editBtn) editBtn.style.display=(currentUser&&currentUser.master)?'inline-block':'none';
-  const marker=document.getElementById('meta-vendas-marker');
+/* ===== PEDIDOS =====
+   Um render só desenha a aba inteira: cartões do topo, filtros e tabela.
+   Antes eram três funções desencontradas (gráfico, meta e histórico), cada
+   uma relendo os mesmos pedidos e chamando as outras — mexer numa quebrava a
+   contagem das outras. */
+
+const PED_PERIODOS=[
+  {id:'hoje',           label:'Hoje'},
+  {id:'semana-atual',   label:'Esta semana'},
+  {id:'semana-passada', label:'Semana passada'},
+  {id:'30dias',         label:'30 dias'},
+  {id:'todos',          label:'60 dias'}
+];
+
+function _pedFmt(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+// Pedidos do período escolhido, já filtrados por busca e forma de pagamento
+function _pedFiltrados(){
+  const peds=appState.pedidosWpp||[];
+  let base=[];
+  if(_historicoFiltro==='hoje'){ const h=todayStr(); base=peds.filter(p=>p.data===h); }
+  else if(_historicoFiltro==='semana-atual'){ const {start,end}=getWeekRange(0); base=peds.filter(p=>p.data>=start&&p.data<=end); }
+  else if(_historicoFiltro==='semana-passada'){ const {start,end}=getWeekRange(1); base=peds.filter(p=>p.data>=start&&p.data<=end); }
+  else if(_historicoFiltro==='30dias'){
+    const c=new Date(); c.setDate(c.getDate()-30);
+    const cs=c.getFullYear()+'-'+String(c.getMonth()+1).padStart(2,'0')+'-'+String(c.getDate()).padStart(2,'0');
+    base=peds.filter(p=>p.data>=cs);
+  } else base=peds.slice();
+
+  const q=((document.getElementById('ped-busca')||{}).value||'').toLowerCase().trim();
+  const fpag=((document.getElementById('ped-f-pag')||{}).value||'');
+  return base.filter(p=>{
+    if(fpag && p.pag!==fpag) return false;
+    if(!q) return true;
+    return [p.num,p.pag,p.registradoPor].map(x=>String(x||'').toLowerCase()).join(' ').includes(q);
+  }).sort((a,b)=>String(b.data).localeCompare(String(a.data))||String(b.hora||'').localeCompare(String(a.hora||'')));
+}
+
+/* Quanto foi vendido em cada uma das últimas N semanas fechadas. É daqui que
+   sai a sugestão de meta: número tirado da realidade da equipe, não do
+   chute de quem está preenchendo o campo. */
+function _pedSemanas(n){
+  const out=[];
+  for(let i=1;i<=n;i++){
+    const {start,end}=getWeekRange(i);
+    const total=(appState.pedidosWpp||[]).filter(p=>p.data>=start&&p.data<=end).reduce((a,p)=>a+(p.valor||0),0);
+    out.push({start,end,total});
+  }
+  return out;
+}
+
+// Dias úteis (seg–sex) que ainda restam nesta semana, contando hoje
+function _pedDiasUteisRestantes(){
+  const hoje=new Date(); const dow=hoje.getDay(); // 0 dom … 6 sáb
+  if(dow===0) return 5;
+  if(dow===6) return 0;
+  return 6-dow; // seg(1)→5 … sex(5)→1
+}
+
+function renderPedidosKpis(lista){
+  const alvo=document.getElementById('ped-kpis'); if(!alvo) return;
+  const total=lista.reduce((a,p)=>a+(p.valor||0),0);
+  const ticket=lista.length?total/lista.length:0;
+  const {start,end}=getWeekRange(0);
+  const semana=(appState.pedidosWpp||[]).filter(p=>p.data>=start&&p.data<=end).reduce((a,p)=>a+(p.valor||0),0);
   const meta=Number(appState.metaVendasSemana||0);
   const superMeta=Number(appState.superMetaVendasSemana||0);
-  const {start,end}=getWeekRange(0);
-  const totalSemana=(appState.pedidosWpp||[]).filter(p=>p.data>=start&&p.data<=end).reduce((a,p)=>a+(p.valor||0),0);
-  const fmtR=v=>'R$ '+v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  if(!meta){
-    lbl.textContent=fmtR(totalSemana)+' esta semana · meta não definida';
-    pctEl.textContent='—';
-    fill.style.width='0%';
-    if(marker) marker.style.display='none';
-    return;
-  }
-  const pct=Math.round((totalSemana/meta)*100); // % da meta (pode passar de 100)
-  const temSuper=superMeta>meta;
-  // Escala da barra: se houver super meta, a barra vai até a super meta (marcador branco = meta)
-  const escala=temSuper?superMeta:meta;
-  const fillPct=Math.min(100,Math.round((totalSemana/escala)*100));
-  const atingiuSuper=temSuper&&totalSemana>=superMeta;
-  lbl.textContent=fmtR(totalSemana)+' de '+fmtR(meta)+(temSuper?' · Super: '+fmtR(superMeta):'');
-  pctEl.textContent=pct+'%'+(atingiuSuper?' 🏆':'');
-  // Cores: <50% vermelho · 50–59% roxo · 60–99% âmbar · ≥100% verde · super meta dourado
-  const cor=atingiuSuper?'#b0bfd8':(pct>=100?'var(--green)':(pct>=60?'var(--amber)':(pct>=50?'#8fa8d8':'#ef4444')));
-  pctEl.style.color=cor;
-  if(pct<50){
-    fill.style.background='linear-gradient(90deg,#7f1d1d,#ef4444)';
-    fill.style.boxShadow='0 0 10px rgba(239,68,68,0.4)';
-  } else if(atingiuSuper){
-    fill.style.background='linear-gradient(90deg,#9db8e8,#b0bfd8)';
-    fill.style.boxShadow='0 0 12px rgba(251,191,36,0.5)';
+  const periodoLbl=(PED_PERIODOS.find(x=>x.id===_historicoFiltro)||{}).label||'período';
+
+  const card=(rot,val,sub,cor)=>`<div class="ped-kpi" style="--kc:${cor||'var(--text-primary)'};">
+      <span class="val">${val}</span><span class="rot">${rot}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
+
+  let html =
+    card('Pedidos · '+periodoLbl, lista.length, lista.length?('último em '+_pedDataBR(lista[0].data)):'nenhum lançamento','#8fa8d8')
+  + card('Receita · '+periodoLbl, _pedFmt(total), '', 'var(--green)')
+  + card('Ticket médio', _pedFmt(ticket), lista.length?('sobre '+lista.length+' pedido(s)'):'', '#a78bfa');
+
+  // Meta da semana — sempre da SEMANA, mesmo com outro período filtrado,
+  // porque meta semanal medida em "últimos 30 dias" não quer dizer nada
+  if(meta>0){
+    const pct=Math.round(semana/meta*100);
+    const falta=Math.max(0,meta-semana);
+    const dias=_pedDiasUteisRestantes();
+    const escala=superMeta>meta?superMeta:meta;
+    const cor=semana>=(superMeta>meta?superMeta:meta)?'#b0bfd8':(pct>=100?'var(--green)':(pct>=60?'var(--amber)':(pct>=50?'#8fa8d8':'#ef4444')));
+    html+=`<button class="ped-kpi clicavel" style="--kc:${cor};" onclick="abrirMetaPedidos()" title="Definir meta">
+        <span class="val">${pct}%${semana>=escala?' 🏆':''}</span>
+        <span class="rot">Meta da semana · ${_pedFmt(meta)}</span>
+        <span class="sub">${_pedFmt(semana)} feitos</span>
+        <span class="ped-meta-barra"><i style="width:${Math.min(100,Math.round(semana/escala*100))}%;background:${cor};"></i>${
+          superMeta>meta?`<b style="left:${Math.round(meta/superMeta*100)}%"></b>`:''}</span>
+      </button>`;
+    html+=card('Ritmo para bater',
+      falta>0&&dias>0?_pedFmt(falta/dias):(falta>0?'—':'✓ batida'),
+      falta>0&&dias>0?('por dia útil · faltam '+dias+' dia(s) e '+_pedFmt(falta))
+        :(falta>0?'a semana acabou · faltaram '+_pedFmt(falta):'meta da semana alcançada'),
+      falta>0?(dias>0?'var(--amber)':'#ef4444'):'var(--green)');
   } else {
-    fill.style.background='linear-gradient(90deg,#8fa8d8,#9db8e8)';
-    fill.style.boxShadow='0 0 10px rgba(74,222,128,0.35)';
+    html+=`<button class="ped-kpi clicavel" style="--kc:#8fa8d8;" onclick="abrirMetaPedidos()">
+        <span class="val">definir</span><span class="rot">Meta da semana</span>
+        <span class="sub">${_pedFmt(semana)} vendidos esta semana</span></button>`;
   }
-  fill.style.width=fillPct+'%';
-  if(marker){
-    if(temSuper){
-      marker.style.display='block';
-      marker.style.left=Math.round((meta/superMeta)*100)+'%';
-      marker.title='Meta: '+fmtR(meta);
-    } else marker.style.display='none';
-  }
+  alvo.innerHTML=html;
 }
-function editarMetaVendas(){
-  if(!currentUser||!currentUser.master){ showToast('Somente o master pode editar a meta','error'); return; }
-  const atual=Number(appState.metaVendasSemana||0);
-  const resp=window.prompt('Meta semanal de vendas (R$):', atual?String(atual).replace('.',','):'');
-  if(resp===null) return;
-  const val=parseFloat(String(resp).replace(/\./g,'').replace(',','.'));
-  if(isNaN(val)||val<0){ showToast('Valor inválido','error'); return; }
-  // Super meta (sempre solicitada junto): valor acima da meta
-  const atualSuper=Number(appState.superMetaVendasSemana||0);
-  const sugestao=atualSuper>val?String(atualSuper).replace('.',','):String(Math.round(val*1.2)).replace('.',',');
-  const respSuper=window.prompt('🏆 Super meta semanal (R$) — deve ser acima da meta de R$ '+val.toLocaleString('pt-BR')+':', sugestao);
-  let superVal=0;
-  if(respSuper!==null&&String(respSuper).trim()!==''){
-    superVal=parseFloat(String(respSuper).replace(/\./g,'').replace(',','.'));
-    if(isNaN(superVal)||superVal<=val){ showToast('Super meta deve ser maior que a meta — não foi salva','error'); superVal=0; }
-  }
-  appState.metaVendasSemana=val;
-  appState.superMetaVendasSemana=superVal;
-  saveState(appState);
-  renderMetaVendas();
-  showToast(superVal?'🎯 Meta e 🏆 super meta atualizadas':'🎯 Meta semanal atualizada','success');
+
+function _pedDataBR(iso){
+  const m=String(iso||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?(m[3]+'/'+m[2]+'/'+m[1]):String(iso||'');
 }
-function renderVendasChart(){
-  const chart=document.getElementById('reg-vendas-chart');
-  if(!chart) return;
-  const perLbl=document.getElementById('reg-chart-periodo');
-  const labels={'semana-atual':'esta semana','semana-passada':'semana passada','30dias':'últimos 30 dias','todos':'60 dias'};
-  if(perLbl) perLbl.textContent=labels[_historicoFiltro]||'60 dias';
 
-  // Intervalo de dias conforme o filtro
-  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  let startD, endD;
-  if(_historicoFiltro==='semana-atual'||_historicoFiltro==='semana-passada'){
-    const r=getWeekRange(_historicoFiltro==='semana-atual'?0:1);
-    startD=new Date(r.start+'T12:00:00'); endD=new Date(r.end+'T12:00:00');
-  } else {
-    endD=new Date();
-    startD=new Date(); startD.setDate(startD.getDate()-(_historicoFiltro==='30dias'?29:59));
+function renderPedidos(){
+  const tbody=document.getElementById('ped-rows');
+  if(!tbody) return;
+
+  // Chips de período
+  const chips=document.getElementById('ped-chips');
+  if(chips) chips.innerHTML=PED_PERIODOS.map(p=>
+    `<button class="ped-chip${_historicoFiltro===p.id?' on':''}" onclick="filtroHistoricoWpp('${p.id}')">${p.label}</button>`).join('');
+
+  // Formas de pagamento existentes nos lançamentos
+  const sel=document.getElementById('ped-f-pag');
+  if(sel){
+    const atual=sel.value;
+    const formas=[...new Set((appState.pedidosWpp||[]).map(p=>p.pag).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">Todas as formas</option>'+formas.map(f=>`<option${f===atual?' selected':''}>${f}</option>`).join('');
   }
-  const dias=[];
-  for(let d=new Date(startD); d<=endD; d.setDate(d.getDate()+1)) dias.push(fmt(d));
 
-  // Somar vendas por dia
-  const peds=appState.pedidosWpp||[];
-  const porDia={}; dias.forEach(dt=>porDia[dt]={total:0,qtd:0});
-  peds.forEach(p=>{ if(porDia[p.data]!==undefined){ porDia[p.data].total+=(p.valor||0); porDia[p.data].qtd++; } });
-  const max=Math.max(1,...dias.map(dt=>porDia[dt].total));
-  const hojeStr=fmt(new Date());
-  const compacto=dias.length>10; // 30/60 dias: barras finas, sem valor em cima
+  const lista=_pedFiltrados();
+  renderPedidosKpis(lista);
 
-  chart.innerHTML='';
-  const totalPeriodo=dias.reduce((soma,dt)=>soma+porDia[dt].total,0);
-  if(!totalPeriodo){
-    chart.innerHTML='<div style="flex:1;display:flex;align-items:center;justify-content:center;'
-      +'font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);text-align:center;line-height:1.7;">'
-      +'Nenhuma venda lançada '+(labels[_historicoFiltro]||'no período')+'.<br>'
-      +'O gráfico se monta com os pedidos de "Registro de Vendas".</div>';
-    return;
-  }
-  dias.forEach(dt=>{
-    const info=porDia[dt];
-    const pct=Math.round((info.total/max)*100);
-    const isHoje=dt===hojeStr;
-    // Dias com venda abaixo de R$500 → vermelho leve; hoje verde; demais violeta
-    const abaixo500=info.total>0&&info.total<500;
-    const c=abaixo500?'#f87171':(isHoje?'#9db8e8':'#8fa8d8');
-    const dataObj=new Date(dt+'T12:00:00');
-    const lblCurta=compacto
-      ? String(dataObj.getDate()).padStart(2,'0')
-      : dataObj.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','')+' '+String(dataObj.getDate()).padStart(2,'0');
-    const col=document.createElement('div');
-    col.style.cssText='flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px;';
-    col.title=dataObj.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'2-digit'})+' — '+info.qtd+' venda'+(info.qtd===1?'':'s')+' · R$ '+info.total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-    const val=document.createElement('div');
-    val.style.cssText=`font-size:${compacto?'0':'10px'};font-family:var(--font-mono);font-weight:700;color:${c};white-space:nowrap;`;
-    if(!compacto&&info.total>0) val.textContent='R$ '+Math.round(info.total).toLocaleString('pt-BR');
-    col.appendChild(val);
-    const bar=document.createElement('div');
-    bar.style.cssText=`width:${compacto?'70%':'46%'};max-width:46px;height:${Math.max(info.total>0?4:2,pct)}%;background:linear-gradient(180deg,${c},${_hexA(c,0.35)});border:1px solid ${_hexA(c,0.6)};border-radius:6px 6px 2px 2px;box-shadow:0 0 10px ${_hexA(c,0.35)};transition:height .4s ease;${info.total===0?'opacity:.25;':''}`;
-    col.appendChild(bar);
-    const lbl=document.createElement('div');
-    lbl.style.cssText=`font-size:9px;color:${isHoje?'var(--green)':'var(--text-muted)'};font-family:var(--font-mono);text-transform:capitalize;white-space:nowrap;${compacto&&dias.length>35?'transform:rotate(0);':''}`;
-    lbl.textContent=(compacto && dias.length>31 && (dataObj.getDate()%2===0)) ? '' : lblCurta;
-    col.appendChild(lbl);
-    chart.appendChild(col);
+  const total=lista.reduce((a,p)=>a+(p.valor||0),0);
+  const cnt=document.getElementById('ped-count'); if(cnt) cnt.textContent=lista.length;
+  const tot=document.getElementById('ped-total'); if(tot) tot.textContent=_pedFmt(total);
+  const vazio=document.getElementById('ped-vazio'); if(vazio) vazio.style.display=lista.length?'none':'block';
+
+  const podeEditar = currentUser && (currentUser.master || (currentUser.perms||[]).includes('whatsapp'));
+  const hoje=todayStr();
+  tbody.innerHTML='';
+  lista.forEach(p=>{
+    const pc=_pagCor(p.pag);
+    const u=Object.values(appState.users||{}).find(x=>x.name===p.registradoPor);
+    const iniciais=u?getUserInitials(u):String(p.registradoPor||'?').substring(0,2).toUpperCase();
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="font-weight:700;color:var(--text-primary);font-family:var(--font-mono);">${p.num||'—'}</td>
+      <td style="font-weight:700;color:var(--green);font-family:var(--font-mono);">${_pedFmt(p.valor)}</td>
+      <td><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${pc.bg};border:1px solid ${pc.border};color:${pc.color};">${p.pag||'—'}</span></td>
+      <td style="font-family:var(--font-mono);color:${p.data===hoje?'var(--green)':'var(--text-secondary)'};">${_pedDataBR(p.data)}${p.data===hoje?' · hoje':''}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted);">${p.hora||'—'}</td>
+      <td><span title="${p.registradoPor||''}" style="display:inline-flex;align-items:center;gap:7px;">
+            <span style="width:20px;height:20px;border-radius:50%;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);color:${u?(u.color||'#8fa8d8'):'#6d7580'};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;">${iniciais}</span>
+            <span style="font-size:11.5px;color:var(--text-secondary);">${p.registradoPor||'—'}</span></span></td>
+      <td style="text-align:right;"></td>`;
+    if(podeEditar){
+      const td=tr.lastElementChild;
+      const ed=document.createElement('button');
+      ed.className='ped-acao'; ed.textContent='Editar';
+      ed.onclick=()=>abrirModalEditarVenda(p);
+      const ex=document.createElement('button');
+      ex.className='ped-acao perigo'; ex.textContent='Excluir'; ex.style.marginLeft='6px';
+      ex.onclick=()=>{ deletePedidoWpp(p.id); renderPedidos(); };
+      td.appendChild(ed); td.appendChild(ex);
+    }
+    tbody.appendChild(tr);
   });
 }
+
+/* A meta deixou de ser dois window.prompt em sequência. O problema não era o
+   visual: era não ter referência nenhuma na hora de escolher o número — e
+   meta escolhida no escuro ou é fácil demais ou desanima na terça-feira.
+   Aqui a tela mostra as últimas quatro semanas, sugere valores a partir
+   delas e traduz a meta no que ela exige por dia útil. */
+function abrirMetaPedidos(){
+  if(!currentUser||!currentUser.master){ showToast('Somente o master define a meta','warn'); return; }
+  const ov=document.getElementById('meta-modal-overlay'); if(!ov) return;
+  const semanas=_pedSemanas(4).filter(s=>s.total>0);
+  const media=semanas.length?semanas.reduce((a,s)=>a+s.total,0)/semanas.length:0;
+  const melhor=semanas.length?Math.max(...semanas.map(s=>s.total)):0;
+
+  const hist=document.getElementById('meta-historico');
+  if(hist){
+    hist.innerHTML = semanas.length
+      ? _pedSemanas(4).map((s,i)=>`
+          <div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--linha-sutil);">
+            <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">${i===0?'semana passada':(i+1)+' semanas atrás'}</span>
+            <span style="font-size:11.5px;color:var(--text-primary);font-family:var(--font-mono);">${_pedFmt(s.total)}</span>
+          </div>`).join('')
+        + `<div style="display:flex;justify-content:space-between;gap:10px;padding:7px 0 0;">
+             <span style="font-size:11px;color:#8fa8d8;font-family:var(--font-mono);font-weight:700;">média</span>
+             <span style="font-size:11.5px;color:#8fa8d8;font-family:var(--font-mono);font-weight:700;">${_pedFmt(media)}</span>
+           </div>`
+      : `<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Ainda não há semanas fechadas com vendas para servir de referência.</div>`;
+  }
+
+  const sug=document.getElementById('meta-sugestoes');
+  if(sug){
+    const opcoes=[];
+    if(media>0){
+      opcoes.push({t:'Repetir a média',v:Math.round(media)});
+      opcoes.push({t:'Média +10%',v:Math.round(media*1.1)});
+      opcoes.push({t:'Média +20%',v:Math.round(media*1.2)});
+    }
+    if(melhor>media) opcoes.push({t:'Bater a melhor semana',v:Math.round(melhor)});
+    sug.innerHTML=opcoes.map(o=>
+      `<button class="ped-chip" onclick="_metaSugerir(${o.v})">${o.t} · ${_pedFmt(o.v)}</button>`).join('')
+      || '<span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Sem histórico para sugerir — defina o valor à mão.</span>';
+  }
+
+  const mi=document.getElementById('meta-input');
+  const si=document.getElementById('meta-super-input');
+  if(mi) mi.value=Number(appState.metaVendasSemana||0)?String(appState.metaVendasSemana):'';
+  if(si) si.value=Number(appState.superMetaVendasSemana||0)?String(appState.superMetaVendasSemana):'';
+  _metaAtualizarPrevia();
+  ov.style.display='flex';
+}
+
+function fecharMetaPedidos(){ const ov=document.getElementById('meta-modal-overlay'); if(ov) ov.style.display='none'; }
+function _metaSugerir(v){ const mi=document.getElementById('meta-input'); if(mi) mi.value=String(v); _metaAtualizarPrevia(); }
+
+// Traduz o número digitado no que ele exige por dia útil — é isso que mostra
+// se a meta é ambiciosa ou fantasiosa, antes de salvar
+function _metaAtualizarPrevia(){
+  const alvo=document.getElementById('meta-previa'); if(!alvo) return;
+  const v=parseFloat(String((document.getElementById('meta-input')||{}).value||'').replace(/\./g,'').replace(',','.'))||0;
+  if(!v){ alvo.textContent='—'; return; }
+  const {start,end}=getWeekRange(0);
+  const feito=(appState.pedidosWpp||[]).filter(p=>p.data>=start&&p.data<=end).reduce((a,p)=>a+(p.valor||0),0);
+  const falta=Math.max(0,v-feito), dias=_pedDiasUteisRestantes();
+  alvo.innerHTML = falta<=0
+    ? `Esta semana já soma ${_pedFmt(feito)} — a meta estaria batida.`
+    : (dias>0
+        ? `Faltariam ${_pedFmt(falta)} em ${dias} dia(s) útil(eis): <b style="color:var(--text-primary);">${_pedFmt(falta/dias)} por dia</b>.`
+        : `A semana já acabou; a meta valeria para a próxima.`);
+}
+
+function salvarMetaPedidos(){
+  if(!currentUser||!currentUser.master){ showToast('Somente o master define a meta','warn'); return; }
+  const v=parseFloat(String((document.getElementById('meta-input')||{}).value||'').replace(/\./g,'').replace(',','.'));
+  if(isNaN(v)||v<0){ showToast('Valor inválido','error'); return; }
+  const sv=parseFloat(String((document.getElementById('meta-super-input')||{}).value||'').replace(/\./g,'').replace(',','.'));
+  let superVal=0;
+  if(!isNaN(sv)&&sv>0){
+    if(sv<=v){ showToast('A super meta precisa ser maior que a meta — não foi salva','warn'); }
+    else superVal=sv;
+  }
+  appState.metaVendasSemana=v;
+  appState.superMetaVendasSemana=superVal;
+  saveState(appState);
+  fecharMetaPedidos();
+  renderPedidos();
+  showToast(superVal?'🎯 Meta e 🏆 super meta atualizadas':'🎯 Meta da semana atualizada','success');
+}
+
+/* Nomes antigos continuam existindo: eles são chamados de vários pontos do
+   sistema (ao registrar venda, ao excluir, ao abrir a aba) e não vale
+   caçar todos para trocar por um nome novo. */
+function renderHistoricoWpp(){ renderPedidos(); }
+function renderMetaVendas(){ renderPedidos(); }
+function renderVendasChart(){ /* o gráfico saiu da aba */ }
+function editarMetaVendas(){ abrirMetaPedidos(); }
+
 
 /* ═══════════ CONFERÊNCIA DE VENDAS ═══════════
    Espelho da planilha "Registro de Vendas WhatsApp", para conferir sem sair
@@ -8989,157 +9169,6 @@ function renderConferenciaVendas(){
     ).join('')+'</tbody>';
 }
 
-function renderHistoricoWpp(){
-  const list = document.getElementById('historico-wpp-list');
-  const empty = document.getElementById('historico-wpp-empty');
-  const totalEl = document.getElementById('historico-wpp-total');
-  if(!list) return;
-
-  const peds = appState.pedidosWpp || [];
-
-  // Filtrar por período
-  let filtrados = [];
-  const hoje = todayStr();
-  if(_historicoFiltro === 'semana-atual'){
-    const {start, end} = getWeekRange(0);
-    filtrados = peds.filter(p => p.data >= start && p.data <= end);
-  } else if(_historicoFiltro === 'semana-passada'){
-    const {start, end} = getWeekRange(1);
-    filtrados = peds.filter(p => p.data >= start && p.data <= end);
-  } else if(_historicoFiltro === '30dias'){
-    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
-    const cutStr = cutoff.getFullYear()+'-'+String(cutoff.getMonth()+1).padStart(2,'0')+'-'+String(cutoff.getDate()).padStart(2,'0');
-    filtrados = peds.filter(p => p.data >= cutStr);
-  } else {
-    filtrados = [...peds];
-  }
-
-  // Total e rótulo do período refletem o filtro selecionado
-  const totalFiltrado = filtrados.reduce((a,p) => a + (p.valor||0), 0);
-  if(totalEl) totalEl.textContent = 'R$ ' + totalFiltrado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  try{ renderVendasChart(); }catch(e){}
-  try{ renderMetaVendas(); }catch(e){}
-  const periodoLabelEl = document.getElementById('historico-wpp-periodo-label');
-  if(periodoLabelEl){
-    const labels = {'semana-atual':'esta semana','semana-passada':'semana passada','30dias':'30 dias','todos':'60 dias'};
-    periodoLabelEl.textContent = labels[_historicoFiltro] || '60 dias';
-  }
-
-  filtrados.sort((a,b) => b.data.localeCompare(a.data) || (b.hora||'').localeCompare(a.hora||''));
-
-  list.innerHTML = '';
-  if(filtrados.length === 0){
-    if(empty) empty.style.display = 'block';
-    return;
-  }
-  if(empty) empty.style.display = 'none';
-
-  // Agrupar por data
-  const byDate = {};
-  filtrados.forEach(p => {
-    if(!byDate[p.data]) byDate[p.data] = [];
-    byDate[p.data].push(p);
-  });
-
-  const isMaster = currentUser && currentUser.master;
-  const canWpp = isMaster || (currentUser && (currentUser.perms||[]).includes('whatsapp'));
-
-  Object.keys(byDate).sort((a,b)=>b.localeCompare(a)).forEach(data => {
-    const dayPeds = byDate[data];
-    const dayTotal = dayPeds.reduce((a,p)=>a+(p.valor||0),0);
-    const dateObj = new Date(data+'T12:00:00');
-    const isToday = data === hoje;
-    const dayLabel = isToday ? 'Hoje' : dateObj.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});
-
-    // Header do dia
-    const dayHeader = document.createElement('div');
-    dayHeader.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 16px;background:#141a2a;border-bottom:1px solid var(--glass-border);position:sticky;top:0;z-index:2;box-shadow:0 2px 8px rgba(0,0,0,0.45);';
-    dayHeader.innerHTML = `
-      <span style="font-size:11px;font-weight:700;color:${isToday?'var(--green)':'#8fa8d8'};font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.5px;">${dayLabel}</span>
-      <div style="flex:1;height:1px;background:var(--glass-border);"></div>
-      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">${dayPeds.length} venda${dayPeds.length!==1?'s':''}</span>
-      <span style="font-size:12px;font-weight:700;color:var(--green);font-family:var(--font-mono);">R$ ${dayTotal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-    `;
-    list.appendChild(dayHeader);
-
-    // Pedidos do dia
-    dayPeds.forEach((p, idx) => {
-      const pc = _pagCor(p.pag);
-      const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--linha-sutil);transition:background .12s;';
-      row.onmouseover = () => row.style.background = 'rgba(255,255,255,0.03)';
-      row.onmouseout  = () => row.style.background = '';
-
-      const idxEl = document.createElement('div');
-      idxEl.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:var(--font-mono);min-width:20px;text-align:center;font-weight:700;';
-      idxEl.textContent = '#'+(dayPeds.length - idx);
-
-      const numEl2 = document.createElement('div');
-      numEl2.style.cssText = 'font-size:12px;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-      numEl2.textContent = p.num;
-
-      const valEl = document.createElement('div');
-      valEl.style.cssText = 'font-size:12px;font-weight:700;color:var(--green);font-family:var(--font-mono);white-space:nowrap;';
-      valEl.textContent = 'R$ '+p.valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-
-      const pagBadge = document.createElement('span');
-      pagBadge.style.cssText = `font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:${pc.bg};border:1px solid ${pc.border};color:${pc.color};white-space:nowrap;max-width:130px;overflow:hidden;text-overflow:ellipsis;`;
-      pagBadge.textContent = p.pag;
-      pagBadge.title = p.pag;
-
-      const horaEl = document.createElement('div');
-      horaEl.style.cssText = 'font-size:10px;color:var(--text-muted);font-family:var(--font-mono);white-space:nowrap;';
-      horaEl.textContent = p.hora||'';
-
-      // Badge do usuário que registrou
-      const userBadge = document.createElement('div');
-      const _uEntry = Object.values(appState.users||{}).find(u=>u.name===p.registradoPor);
-      const initials = _uEntry ? getUserInitials(_uEntry) : (p.registradoPor||'?').substring(0,2).toUpperCase();
-      const uColor = _uEntry ? (_uEntry.color||'#6d7580') : '#6d7580';
-      userBadge.style.cssText = `width:20px;height:20px;border-radius:50%;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);color:${uColor};font-size:8px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 8px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);`;
-      userBadge.textContent = initials;
-      userBadge.title = p.registradoPor||'Desconhecido';
-
-      row.appendChild(idxEl);
-      row.appendChild(numEl2);
-      row.appendChild(valEl);
-      row.appendChild(pagBadge);
-      row.appendChild(userBadge);
-      row.appendChild(horaEl);
-
-      if(canWpp){
-        const editBtn = document.createElement('button');
-        editBtn.style.cssText = 'background:none;border:1px solid rgba(59,130,246,0.3);border-radius:50px;color:var(--text-muted);cursor:pointer;font-size:10px;padding:2px 8px;transition:all .15s;flex-shrink:0;';
-        editBtn.textContent = '✎'; editBtn.title = 'Editar';
-        editBtn.onmouseover = () => { editBtn.style.background='rgba(59,130,246,0.15)';editBtn.style.borderColor='var(--blue)';editBtn.style.color='#93c5fd'; };
-        editBtn.onmouseout  = () => { editBtn.style.background='none';editBtn.style.borderColor='rgba(59,130,246,0.3)';editBtn.style.color='var(--text-muted)'; };
-        const pedit = p; editBtn.onclick = () => abrirModalEditarVenda(pedit);
-        row.appendChild(editBtn);
-
-        const delBtn = document.createElement('button');
-        delBtn.style.cssText = 'background:none;border:1px solid rgba(239,68,68,0.3);border-radius:50px;color:var(--text-muted);cursor:pointer;font-size:10px;padding:2px 8px;transition:all .15s;flex-shrink:0;';
-        delBtn.textContent = '✕'; delBtn.title = 'Excluir';
-        delBtn.onmouseover = () => { delBtn.style.background='rgba(239,68,68,0.15)';delBtn.style.borderColor='var(--red)';delBtn.style.color='#fca5a5'; };
-        delBtn.onmouseout  = () => { delBtn.style.background='none';delBtn.style.borderColor='rgba(239,68,68,0.3)';delBtn.style.color='var(--text-muted)'; };
-        const pid = p.id; delBtn.onclick = () => { deletePedidoWpp(pid); renderHistoricoWpp(); };
-        row.appendChild(delBtn);
-      }
-
-
-
-      list.appendChild(row);
-    });
-  });
-
-  // Totalizador no rodapé
-  const footer = document.createElement('div');
-  footer.style.cssText = 'padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--glass-border);background:var(--veu-suave);';
-  footer.innerHTML = `
-    <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;">${filtrados.length} venda${filtrados.length!==1?'s':''} no período</span>
-    <span style="font-size:13px;font-weight:700;color:var(--green);font-family:var(--font-mono);">R$ ${totalFiltrado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>
-  `;
-  list.appendChild(footer);
-}
 
 /* ===== PLT ===== */
 
