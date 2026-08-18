@@ -470,6 +470,31 @@ html{overflow-x:hidden;}
 .atv-stab2[data-c="adm"]{--sc-border:rgba(143,168,216,.35);--sc-bg:rgba(143,168,216,.08);--sc-text:#b8ccee;}
 .atv-stab2[data-c="adm"].active{background:linear-gradient(135deg,#9db8e8,#5876b8);
   box-shadow:0 4px 16px rgba(143,168,216,.35),inset 0 1px 0 rgba(255,255,255,.15);}
+/* ── Adm. Master: dobra e cartões de situação ──────────────────
+   O painel do master acumulou instrução longa, JSON de regras e fileiras de
+   botões perigosos ao lado dos do dia a dia. A dobra guarda o que é raro sem
+   escondê-lo do sistema, e os cartões respondem de cara a única pergunta que
+   se faz ao abrir esta tela: tem algo precisando de mim? */
+.adm-dobra{border:1px solid var(--linha-sutil);border-radius:var(--radius);background:var(--veu-fraco,rgba(255,255,255,.02));margin-top:12px;}
+.adm-dobra>summary{cursor:pointer;list-style:none;padding:10px 13px;display:flex;align-items:center;gap:8px;
+  font-size:11.5px;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);user-select:none;}
+.adm-dobra>summary::-webkit-details-marker{display:none;}
+.adm-dobra>summary::before{content:'▸';font-size:10px;color:var(--text-muted);transition:transform .15s;}
+.adm-dobra[open]>summary::before{transform:rotate(90deg);}
+.adm-dobra>summary:hover{background:var(--veu-medio);border-radius:var(--radius);}
+.adm-dobra .adm-dobra-corpo{padding:2px 13px 13px;}
+.adm-dobra summary .hint{margin-left:auto;font-size:10px;font-weight:400;color:var(--text-muted);}
+
+.adm-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;}
+.adm-card{background:var(--bg-surface);border:1px solid var(--border);border-left:3px solid var(--ec,#4ade80);
+  border-radius:var(--radius-lg);padding:14px 16px;display:flex;flex-direction:column;gap:6px;text-align:left;
+  cursor:pointer;transition:border-color .15s,transform .15s;font:inherit;width:100%;}
+.adm-card:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.16);border-left-color:var(--ec,#4ade80);}
+.adm-card .rot{font-size:9.5px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);}
+.adm-card .val{font-size:19px;font-weight:800;color:var(--ec,#4ade80);font-family:var(--font-mono);line-height:1.15;}
+.adm-card .exp{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.5;}
+.adm-zona-risco{border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.05);border-radius:var(--radius);padding:12px 14px;margin-top:14px;}
+
 /* Campo de senha com o botão de mostrar/ocultar dentro */
 .pw-wrap{position:relative;display:flex;align-items:center;}
 .pw-wrap input{padding-right:46px;}
@@ -2390,10 +2415,23 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       <!-- Seções: evita empilhar tudo e carrega só o que está aberto -->
       <div id="adm-nav" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 20px;">
-        <button class="atv-stab2 active" data-c="adm" data-alvo="desempenho" onclick="admAbrirSecao('desempenho')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>Desempenho</button>
+        <button class="atv-stab2 active" data-c="adm" data-alvo="visao" onclick="admAbrirSecao('visao')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Visão geral</button>
+        <button class="atv-stab2" data-c="adm" data-alvo="desempenho" onclick="admAbrirSecao('desempenho')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>Desempenho</button>
         <button class="atv-stab2" data-c="adm" data-alvo="equipe" onclick="admAbrirSecao('equipe')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/></svg></span>Equipe</button>
         <button class="atv-stab2" data-c="adm" data-alvo="seguranca" onclick="admAbrirSecao('seguranca')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>Segurança</button>
         <button class="atv-stab2" data-c="adm" data-alvo="dados" onclick="admAbrirSecao('dados')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>Dados &amp; Backup</button>
+      </div>
+
+      <!-- VISÃO GERAL — a resposta rápida para "tem algo precisando de mim?" -->
+      <div class="admin-panel adm-sec" data-sec="visao" id="visao-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">⬡ Situação do sistema</div>
+          <button class="btn btn-sm" onclick="renderVisaoGeral()" style="width:auto;">↻ Verificar</button>
+        </div>
+        <div id="visao-cards" class="adm-cards"></div>
+        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:12px;line-height:1.6;">
+          Cada cartão leva para a seção onde o assunto se resolve. Verde é "nada a fazer".
+        </div>
       </div>
 
       <!-- SEGURANÇA — estado do acesso ao banco -->
@@ -2403,7 +2441,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
         </div>
         <div id="seg-status" style="margin-bottom:14px;"></div>
-        <div style="margin-bottom:14px;">
+        <!-- Derruba a equipe inteira: fica marcado como tal, e não solto no
+             meio da tela ao lado de um botão de conferência. -->
+        <div class="adm-zona-risco" style="margin-bottom:14px;margin-top:0;">
+          <div style="font-size:11px;font-weight:800;color:var(--tom-vermelho);font-family:var(--font-mono);letter-spacing:.5px;margin-bottom:8px;">
+            ⚠ INTERROMPE A EQUIPE
+          </div>
           <button class="btn btn-danger btn-sm" onclick="forcarResetSenhaTodos()" style="width:auto;">
             🔑 Forçar todos a criar senha nova
           </button>
@@ -2414,6 +2457,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
         </div>
         <div id="seg-acessos" style="margin-bottom:14px;"></div>
+
+        <!-- As regras são coladas no Firebase uma vez e revisadas de tempos em
+             tempos. Deixá-las abertas fazia 40 linhas de JSON dominarem a tela
+             toda vez que alguém entrava aqui só para aprovar um acesso. -->
+        <details class="adm-dobra">
+          <summary>Regras do Firebase<span class="hint">para colar em Realtime Database → Regras</span></summary>
+          <div class="adm-dobra-corpo">
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;line-height:1.6;">
           Regras finais — liberam apenas quem está na <b>lista de aprovados</b>. Estar autenticado
           deixa de ser suficiente. Cole em <b>Realtime Database → Regras</b>:
@@ -2470,6 +2520,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           do projeto → Contas de serviço), ele deixa de depender disso e você pode fechar esses caminhos.
           Nada a fazer agora.
         </div>
+          </div>
+        </details>
       </div>
 
       <!-- BACKUP — cópias automáticas diárias -->
@@ -2527,27 +2579,37 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="saude-resumo" style="margin-bottom:12px;"></div>
         <div id="saude-detalhe" style="margin-bottom:14px;"></div>
+        <!-- O que é do dia a dia fica à mão; a rotina de compactação e o que
+             mexe na sessão dos outros ficam guardados. Antes eram cinco botões
+             lado a lado, com "Desconectar todos" com o mesmo peso visual de
+             "Baixar backup" — e a ordem 1-2-3 parecia decoração. -->
         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
           <button class="btn" id="btn-backup" onclick="baixarBackupCompleto()" style="width:auto;">
             💾 Baixar backup (.zip)
           </button>
-          <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
-            🛠 1. Desconectar todos
-          </button>
-          <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
-            🗜 2. Compactar imagens
-          </button>
-          <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
-            📤 3. Tirar imagens do pacote
-          </button>
-          <button class="btn btn-danger" id="btn-recuperar-img" onclick="recuperarImagensPerdidas()" style="width:auto;">
-            🔧 Recuperar imagens
-          </button>
         </div>
-        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
-          Desconecte todos antes de compactar: sessões abertas ainda têm os dados antigos em memória
-          e podem regravá-los por cima. Você continua conectado; os demais entram de novo em seguida.
-        </div>
+
+        <details class="adm-dobra">
+          <summary>Rotina de compactação<span class="hint">quando o peso passar de 5 MB</span></summary>
+          <div class="adm-dobra-corpo">
+            <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;line-height:1.6;">
+              Os três passos, nesta ordem. Desconectar vem primeiro porque sessão aberta ainda tem os
+              dados antigos em memória e regrava por cima do que você acabou de compactar. Você
+              continua conectado; os demais entram de novo em seguida.
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
+                🛠 1. Desconectar todos
+              </button>
+              <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
+                🗜 2. Compactar imagens
+              </button>
+              <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
+                📤 3. Tirar imagens do pacote
+              </button>
+            </div>
+          </div>
+        </details>
 
         <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--linha-sutil);">
           <div class="admin-title" style="margin-bottom:8px;">🩹 Reparos</div>
@@ -2562,6 +2624,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               <button class="btn btn-ghost" onclick="cancelarReparo()" style="width:auto;">Cancelar</button>
             </div>
           </div>
+          <!-- "Reparar tudo" resolve o caso comum e é o único que precisa estar
+               à mão. Os passos isolados e o que apaga registro ficam guardados:
+               cinco botões na mesma linha faziam parecer que era preciso
+               escolher entre eles. -->
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn" id="btn-reparar-tudo" onclick="repararTudo()" style="width:auto;--bc: var(--rgb-teal);">
               🧰 Reparar tudo
@@ -2569,28 +2635,52 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <button class="btn" id="btn-diagnosticar-reparos" onclick="diagnosticarReparos()" style="width:auto;">
               🔎 Verificar
             </button>
-            <button class="btn" id="btn-recuperar-historico" onclick="recuperarPeloHistorico()" style="width:auto;">
-              🕘 Recuperar pelo histórico
-            </button>
-            <button class="btn" id="btn-restaurar-conclusoes" onclick="restaurarConclusoesPerdidas()" style="width:auto;">
-              ↩ Devolver às Concluídas
-            </button>
-            <button class="btn btn-danger" id="btn-limpar-sem-resp" onclick="excluirSolicitacoesSemResponsavel()" style="width:auto;">
-              🗑 Excluir solicitações sem responsável
-            </button>
           </div>
           <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
             <b>Reparar tudo</b> faz os três passos na ordem certa, de uma vez: recupera as imagens,
             devolve o que o histórico dá como concluído e recoloca em Concluídas o que tem prova.
-            É o botão do dia a dia — os outros ficam para quando você quiser rodar um passo isolado.<br>
-            <b>Recuperar pelo histórico</b> lê o registro de alterações, que fica fora da tarefa e não
-            se perde numa regravação. É o único caminho para as tarefas concluídas sem print, como a
-            revisão diária dos marketplaces. Tarefa reaberta de propósito não volta: vale o último
-            movimento de status.<br>
-            <b>Devolver às Concluídas</b> procura tarefas que guardam prova (print, data, quem concluiu
-            ou comentário) mas voltaram para aberto. <b>Excluir sem responsável</b> apaga as
-            solicitações que ficaram sem colaborador — elas nunca notificaram ninguém. Tudo vai para o
-            arquivo e pode ser recuperado.
+            É o botão do dia a dia.
+          </div>
+
+          <details class="adm-dobra">
+            <summary>Passos isolados<span class="hint">quando quiser rodar um de cada vez</span></summary>
+            <div class="adm-dobra-corpo">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button class="btn" id="btn-recuperar-historico" onclick="recuperarPeloHistorico()" style="width:auto;">
+                  🕘 Recuperar pelo histórico
+                </button>
+                <button class="btn" id="btn-restaurar-conclusoes" onclick="restaurarConclusoesPerdidas()" style="width:auto;">
+                  ↩ Devolver às Concluídas
+                </button>
+                <button class="btn" id="btn-recuperar-img" onclick="recuperarImagensPerdidas()" style="width:auto;">
+                  🔧 Recuperar imagens
+                </button>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
+                <b>Recuperar pelo histórico</b> lê o registro de alterações, que fica fora da tarefa e não
+                se perde numa regravação. É o único caminho para as tarefas concluídas sem print, como a
+                revisão diária dos marketplaces. Tarefa reaberta de propósito não volta: vale o último
+                movimento de status.<br>
+                <b>Devolver às Concluídas</b> procura tarefas que guardam prova (print, data, quem concluiu
+                ou comentário) mas voltaram para aberto. <b>Recuperar imagens</b> lê os prints guardados
+                fora do pacote e devolve cada um ao seu registro.
+              </div>
+            </div>
+          </details>
+
+          <div class="adm-zona-risco">
+            <div style="font-size:11px;font-weight:800;color:var(--tom-vermelho);font-family:var(--font-mono);letter-spacing:.5px;margin-bottom:8px;">
+              ⚠ APAGA REGISTRO
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-danger" id="btn-limpar-sem-resp" onclick="excluirSolicitacoesSemResponsavel()" style="width:auto;">
+                🗑 Excluir solicitações sem responsável
+              </button>
+            </div>
+            <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
+              <b>Excluir sem responsável</b> apaga as solicitações que ficaram sem colaborador — elas
+              nunca notificaram ninguém. Tudo vai para o arquivo e pode ser recuperado de lá.
+            </div>
           </div>
         </div>
       </div>
@@ -5055,9 +5145,9 @@ Total de imagens neste backup: ${imagens.length}
 // Seções do Adm. Master. Além de organizar, carrega só o que está aberto —
 // antes, entrar na aba disparava auditoria, backups, arquivo e diagnóstico
 // de uma vez.
-let _admSecao='desempenho';
+let _admSecao='visao';
 function admAbrirSecao(sec){
-  _admSecao=sec||'desempenho';
+  _admSecao=sec||'visao';
   document.querySelectorAll('#adm-nav button').forEach(b=>{
     b.classList.toggle('active', b.dataset.alvo===_admSecao);
   });
@@ -5066,6 +5156,7 @@ function admAbrirSecao(sec){
   });
   // Carrega o conteúdo apenas da seção aberta
   const carregar={
+    visao:()=>{ try{renderVisaoGeral();}catch(e){} },
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{carregarAuditoriaGeral();}catch(e){} },
     equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} },
@@ -5074,6 +5165,71 @@ function admAbrirSecao(sec){
                 try{diagnosticarReparos();}catch(e){} }
   }[_admSecao];
   if(carregar) carregar();
+}
+
+/* Visão geral: os sinais que o master precisa ver ao abrir a tela, cada um
+   levando para onde o assunto se resolve. Antes era preciso passar pelas
+   quatro seções para descobrir que estava tudo bem — e, pior, dava para
+   trabalhar semanas sem notar que o backup .zip nunca foi baixado. */
+function renderVisaoGeral(){
+  const alvo=document.getElementById('visao-cards');
+  if(!alvo) return;
+  const cards=[];
+  const add=(cor,rot,val,exp,secao)=>cards.push(
+    `<button class="adm-card" style="--ec:${cor};" onclick="admAbrirSecao('${secao}')">
+       <span class="rot">${rot}</span><span class="val">${val}</span><span class="exp">${exp}</span>
+     </button>`);
+  const VERDE='#4ade80', AMBAR='#f59e0b', VERMELHO='#ef4444';
+
+  // 1. Nuvem e acesso
+  const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
+  if(!fbConnected)          add(VERMELHO,'Nuvem','Sem conexão','As alterações ficam neste computador até voltar.','seguranca');
+  else if(!autenticado)     add(AMBAR,'Nuvem','Sem autenticar','Conectado, mas sem conta autenticada.','seguranca');
+  else if(_souAutorizado===false) add(VERMELHO,'Nuvem','Fora da lista','Este acesso ainda não foi aprovado.','seguranca');
+  else                      add(VERDE,'Nuvem','Conectada','Autenticada e aprovada na lista.','seguranca');
+
+  // 2. Backup .zip — a única cópia que sobrevive a um problema na conta
+  let dias=null; try{ dias=_diasDesdeUltimoZip(); }catch(e){}
+  if(dias===null)          add(VERMELHO,'Backup .zip','Nunca baixado','É a única cópia fora da nuvem. Baixe hoje.','dados');
+  else if(dias>=(typeof BACKUP_LEMBRETE_DIAS!=='undefined'?BACKUP_LEMBRETE_DIAS:7))
+                           add(AMBAR,'Backup .zip','Há '+dias+' dias','Vale baixar uma cópia nova.','dados');
+  else                     add(VERDE,'Backup .zip',dias===0?'Hoje':'Há '+dias+' dia(s)','Cópia recente guardada.','dados');
+
+  // 3. Peso por gravação — passar de 16 MB faz a nuvem recusar tudo
+  try{
+    const mb=diagnosticarEstado().totalBytes/1048576;
+    if(mb>=16)      add(VERMELHO,'Peso por gravação',mb.toFixed(2)+' MB','No limite: a nuvem já recusa gravações.','dados');
+    else if(mb>=5)  add(AMBAR,'Peso por gravação',mb.toFixed(2)+' MB','Perto do limite de 16 MB — compacte as imagens.','dados');
+    else            add(VERDE,'Peso por gravação',mb.toFixed(2)+' MB','Folgado: o limite é 16 MB.','dados');
+  }catch(e){}
+
+  // 4. Reparos pendentes
+  try{
+    const n=_conclusoesPerdidas().length+_solicitacoesSemResponsavel().length;
+    if(n) add(AMBAR,'Reparos',n+' pendência(s)','Tarefas ou solicitações fora do lugar.','dados');
+    else  add(VERDE,'Reparos','Nada pendente','Nenhuma tarefa concluída fora do lugar.','dados');
+  }catch(e){}
+
+  // 5. Equipe
+  const users=Object.entries(appState.users||{});
+  const semEmail=users.filter(([,u])=>!(u&&_emailValido(u.email))).length;
+  if(semEmail) add(AMBAR,'Equipe',semEmail+' sem e-mail','Sem e-mail, o colaborador não autentica na nuvem.','equipe');
+  else         add(VERDE,'Equipe',users.length+' pessoa(s)','Todos com e-mail de login cadastrado.','equipe');
+
+  alvo.innerHTML=cards.join('');
+
+  // 6. Pedidos de acesso — vem da nuvem, então entra depois, sem travar a tela
+  if(currentUser && currentUser.master && db){
+    db.ref(FB_SOLICITACOES).once('value').then(s=>{
+      const n=Object.keys(s.val()||{}).length;
+      if(!n || document.getElementById('visao-cards')!==alvo) return;
+      alvo.insertAdjacentHTML('afterbegin',
+        `<button class="adm-card" style="--ec:#f59e0b;" onclick="admAbrirSecao('seguranca')">
+           <span class="rot">Pedidos de acesso</span><span class="val">${n} aguardando</span>
+           <span class="exp">Alguém pediu acesso e está esperando aprovação.</span>
+         </button>`);
+    }).catch(()=>{});
+  }
 }
 
 // Estado da proteção: senhas protegidas e quem já tem conta de acesso
@@ -7418,7 +7574,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17g';
+const APP_VERSAO='2026.08.17h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
