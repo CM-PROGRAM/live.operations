@@ -7574,7 +7574,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.17h';
+const APP_VERSAO='2026.08.17i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19373,6 +19373,18 @@ function renderAtribuir(){
     (t.arr()||[]).forEach(it=>{ if(it) itens.push({...it,_tipoTarefa:t.id,_tipoLabel:t.label}); });
   });
   itens.sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0));
+
+  /* Solicitação viva cuja tarefa sumiu do quadro. Ela não fecha sozinha — a
+     regra é de propósito: se "tarefa excluída" contasse como concluída,
+     bastaria apagar a tarefa para a solicitação desaparecer como se tivesse
+     sido feita. Mas também não pode ficar parecendo pendência normal: ninguém
+     vai executá-la, porque não existe tarefa para ninguém pegar. */
+  const comTarefa=new Set();
+  (appState.atividades||[]).forEach(a=>{
+    if(!a) return;
+    VINCULOS_SOLICITACAO.forEach(v=>{ if(a[v.campo]) comTarefa.add(a[v.campo]); });
+  });
+
   let nA=0,nC=0;
   itens.forEach(it=>{
     if(q){
@@ -19390,8 +19402,9 @@ function renderAtribuir(){
         <span style="font-size:13.5px;font-weight:800;color:var(--text-primary);">${it.variacao||it.marketplace}</span>
         ${_statusBadgeHtml(it.status)}
       </div>
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
         <span style="font-size:9px;font-weight:700;letter-spacing:.3px;color:var(--tom-indigo);background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.4);border-radius:999px;padding:2px 8px;">${it._tipoLabel}</span>
+        ${(it.status!=='concluida' && !comTarefa.has(it.id)) ? `<span title="Não existe tarefa correspondente na Central de Tarefas — ela foi excluída ou nunca chegou a ser criada. Abra o card para concluir ou excluir esta solicitação." style="font-size:9px;font-weight:700;letter-spacing:.3px;color:var(--amber);background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:999px;padding:2px 8px;">⚠ sem tarefa no quadro</span>` : ''}
       </div>
       <div style="font-size:11px;color:var(--text-muted);">${_mktCodigoLabel(it)} · Responsável: ${_mktResponsavelHtml(it)}</div>
       <div style="font-size:9.5px;color:var(--text-muted);margin-top:4px;">Solicitado por ${it.criadoPor||'—'} · ${it.criadoEm||''}</div>`;
