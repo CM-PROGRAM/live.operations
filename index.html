@@ -912,6 +912,10 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-saudacao h2{font-family:var(--font-sans);font-size:24px;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;margin:0 0 4px;}
 .ini-saudacao p{font-size:13px;color:var(--text-muted);margin:0;}
 .ini-quadros{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+/* Duas colunas fixas: com quatro cartões o auto-fit encaixaria três por
+   linha e eles ficariam mais estreitos que os da Página inicial. */
+.ini-quadros.duas-colunas{grid-template-columns:repeat(2,minmax(0,1fr));}
+@media(max-width:760px){.ini-quadros.duas-colunas{grid-template-columns:1fr;}}
 .ini-quadro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
   min-height:230px;padding:32px 24px;cursor:pointer;text-align:center;
   background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015));
@@ -2543,17 +2547,37 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="master-badge">MASTER ONLY</span>
       </div>
 
-      <!-- Seções: evita empilhar tudo e carrega só o que está aberto -->
-      <div id="adm-nav" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 20px;">
-        <button class="atv-stab2 active" data-c="adm" data-alvo="visao" onclick="admAbrirSecao('visao')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/></svg></span>Visão geral</button>
-        <button class="atv-stab2" data-c="adm" data-alvo="desempenho" onclick="admAbrirSecao('desempenho')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></span>Desempenho</button>
-        <button class="atv-stab2" data-c="adm" data-alvo="equipe" onclick="admAbrirSecao('equipe')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/></svg></span>Equipe</button>
-        <button class="atv-stab2" data-c="adm" data-alvo="seguranca" onclick="admAbrirSecao('seguranca')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></span>Segurança</button>
-        <button class="atv-stab2" data-c="adm" data-alvo="dados" onclick="admAbrirSecao('dados')"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>Dados &amp; Backup</button>
-      </div>
+      <!-- A barra de pílulas virou uma página de cartões, no mesmo desenho
+           da Página inicial. A "Visão geral" não virou cartão: ela É esta
+           página — a situação do sistema fica logo abaixo dos quadros, que é
+           onde ela responde à única pergunta que se faz ao abrir esta tela.
+           As quatro seções continuam carregando só quando abertas. -->
+      <div id="adm-inicio" class="ini-wrap" style="padding:6px 0 10px;">
+        <div class="ini-quadros duas-colunas">
+          <div class="ini-quadro" onclick="admAbrirSecao('desempenho')">
+            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+            <div class="ini-tit">Desempenho</div>
+            <div class="ini-sub">Quanto cada um entregou e o histórico do que foi criado, editado e apagado no sistema.</div>
+          </div>
+          <div class="ini-quadro" onclick="admAbrirSecao('equipe')">
+            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/></svg></div>
+            <div class="ini-tit">Equipe</div>
+            <div class="ini-sub">Quem entra no sistema e quais abas cada um enxerga. É a permissão que monta o menu da pessoa.</div>
+          </div>
+          <div class="ini-quadro" onclick="admAbrirSecao('seguranca')">
+            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></div>
+            <div class="ini-tit">Segurança</div>
+            <div class="ini-sub">Estado do acesso à nuvem e os pedidos de liberação de navegador novo, esperando aprovação.</div>
+          </div>
+          <div class="ini-quadro" onclick="admAbrirSecao('dados')">
+            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
+            <div class="ini-tit">Dados &amp; Backup</div>
+            <div class="ini-sub">A cópia .zip, o arquivo do que foi excluído e os reparos do que ficou fora do lugar.</div>
+          </div>
+        </div>
 
-      <!-- VISÃO GERAL — a resposta rápida para "tem algo precisando de mim?" -->
-      <div class="admin-panel adm-sec" data-sec="visao" id="visao-panel">
+        <!-- A situação do sistema, que antes era a aba "Visão geral" -->
+      <div class="admin-panel" id="visao-panel" style="margin-top:18px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
           <div class="admin-title" style="margin-bottom:0;">⬡ Situação do sistema</div>
           <button class="btn btn-sm" onclick="renderVisaoGeral()" style="width:auto;">↻ Verificar</button>
@@ -2563,6 +2587,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           Cada cartão leva para a seção onde o assunto se resolve. O ponto verde é "nada a fazer".
         </div>
       </div>
+      </div>
+      <button class="ini-voltar" id="adm-voltar" style="display:none;" onclick="admAbrirSecao('inicio')">← Administrador</button>
 
       <!-- SEGURANÇA — estado do acesso ao banco -->
       <div class="admin-panel adm-sec" data-sec="seguranca" style="display:none;" id="seguranca-panel">
@@ -5357,18 +5383,20 @@ Total de imagens neste backup: ${imagens.length}
 // Seções do Adm. Master. Além de organizar, carrega só o que está aberto —
 // antes, entrar na aba disparava auditoria, backups, arquivo e diagnóstico
 // de uma vez.
-let _admSecao='visao';
+let _admSecao='inicio';
 function admAbrirSecao(sec){
-  _admSecao=sec||'visao';
-  document.querySelectorAll('#adm-nav button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.alvo===_admSecao);
-  });
+  _admSecao=sec||'inicio';
+  const naPagina = _admSecao==='inicio';
+  const inicio=document.getElementById('adm-inicio');
+  if(inicio) inicio.style.display = naPagina ? '' : 'none';
+  const voltar=document.getElementById('adm-voltar');
+  if(voltar) voltar.style.display = naPagina ? 'none' : '';
   document.querySelectorAll('.adm-sec').forEach(p=>{
-    p.style.display = p.dataset.sec===_admSecao ? '' : 'none';
+    p.style.display = (!naPagina && p.dataset.sec===_admSecao) ? '' : 'none';
   });
   // Carrega o conteúdo apenas da seção aberta
   const carregar={
-    visao:()=>{ try{renderVisaoGeral();}catch(e){} },
+    inicio:()=>{ try{renderVisaoGeral();}catch(e){} },
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{carregarAuditoriaGeral();}catch(e){} },
     equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} },
@@ -7792,7 +7820,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20h';
+const APP_VERSAO='2026.08.20i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8290,7 +8318,7 @@ const MANUAL_ABAS=[
   {icone:'admin', aba:'Administrador', perm:'admin',
    paraQue:'Painel do master: quem entra, o que cada um enxerga e a saúde dos dados.',
    passos:[
-     '<b>Visão geral</b> resume a situação da nuvem, do backup, do peso dos dados e dos pedidos de acesso pendentes.',
+     'A tela de entrada tem um quadro por assunto e, logo abaixo, a <b>situação do sistema</b>: nuvem, backup, peso dos dados e reparos pendentes.',
      '<b>Equipe</b> cria usuário e marca as permissões — é a permissão que define quais abas aparecem para a pessoa.',
      '<b>Segurança</b> aprova os pedidos de acesso de navegador novo.',
      '<b>Backup</b> baixa o .zip com tudo. Faça antes de qualquer mudança grande.'
