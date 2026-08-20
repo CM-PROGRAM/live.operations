@@ -7779,7 +7779,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20b';
+const APP_VERSAO='2026.08.20c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8170,7 +8170,8 @@ const MANUAL_ABAS=[
    passos:[
      'Em <b>Lançamentos</b>, crie o card com plataforma, motivo e o número do pedido.',
      'Escreva o andamento dentro do próprio card e anexe os prints da conversa — é o que sustenta a nossa versão se o caso virar reclamação.',
-     'O card do dia aparece também em <b>Tarefas Diárias</b>, para não ficar esquecido.'
+     'Na <b>Data Retorno</b>, o atendimento vira uma tarefa em <b>Tarefas Diárias</b>. O card do quadro já mostra a última tratativa e quantos prints ela tem; clicar abre o atendimento com o histórico inteiro.',
+     'Ao concluir o atendimento (Status → <b>Concluído</b>), não é preciso marcar uma nova Data Retorno nem anexar print: o caso está encerrado.'
    ],
    atencao:'Motivo e plataforma vêm de listas fechadas. Se faltar uma opção, use o botão <b>✎ editar lista</b> ao lado do campo em vez de escrever por fora.'},
 
@@ -15823,7 +15824,7 @@ function renderDevStats(){
 }
 
 /* ===== ATENDIMENTOS GERAL ===== */
-const ATE_PLATAFORMAS=['Melhor Envio','Manda Bem','Base','LOJA INTEGRADA','SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE'];
+const ATE_PLATAFORMAS=['Melhor Envio','Manda Bem','Base','LOJA INTEGRADA','SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','MAGALU VIXSUPPS','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE'];
 const ATE_RASTREIO_PLTS=['Manda Bem','Melhor Envio'];
 
 const ATE_STATUS_CONFIG={
@@ -16124,12 +16125,27 @@ function getAllCustomOpts(baseList, stateKey){
   const custom=(appState[stateKey]||[]);
   return baseAtivos.concat(custom.filter(m=>!baseAtivos.some(b=>b.toLowerCase()===m.toLowerCase())));
 }
+/* Um registro antigo pode carregar uma opção que já saiu da lista — alguém
+   apagou "Troca" do gerenciador e os cards que usavam "Troca" continuam lá.
+   Sem esta salvaguarda o <select> voltava para vazio ao abrir o card, e o
+   salvar era recusado por "campo obrigatório" sem ninguém entender o motivo:
+   o campo parecia preenchido na memória da pessoa, mas estava vazio na tela.
+   Agora o valor volta para a lista, marcado como fora dela. */
+function _optsComValorAtual(opcoes, val){
+  const lista=opcoes.slice();
+  if(val && !lista.some(m=>String(m).toLowerCase()===String(val).toLowerCase())) lista.push(val);
+  return lista.map(m=>{
+    const foraDaLista = m===val && !opcoes.some(o=>String(o).toLowerCase()===String(val).toLowerCase());
+    const rotulo=String(m).replace(/</g,'&lt;')+(foraDaLista?' (fora da lista)':'');
+    return `<option value="${String(m).replace(/"/g,'&quot;')}">${rotulo}</option>`;
+  }).join('');
+}
 function renderCustomOpts(selectId, baseList, stateKey, selected){
   const sel=document.getElementById(selectId);
   if(!sel) return;
   const val=selected!==undefined?selected:sel.value;
   sel.innerHTML='<option value="">— Selecionar —</option>'+
-    getAllCustomOpts(baseList,stateKey).map(m=>`<option value="${m}">${m}</option>`).join('');
+    _optsComValorAtual(getAllCustomOpts(baseList,stateKey), val);
   sel.value=val||'';
 }
 function addCustomOpt(selectId, baseList, stateKey, label, renderFn){
@@ -16477,7 +16493,7 @@ document.addEventListener('click',function(e){
 });
 
 /* --- Atendimentos: Plataforma (nomes padronizados iguais à aba "Central de Tarefas") --- */
-const ATE_PLT_BASE=['Melhor Envio','Manda Bem','Base','SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE','WhatsApp (ChatWoot)'];
+const ATE_PLT_BASE=['Melhor Envio','Manda Bem','Base','SHP SUPLENIUM','SHP PRIMEVITAMINAS','M.L VITALIFE','M.L VXSHOP','MAGALU 4VITA','MAGALU VIXSUPPS','DROG. S. PAULO','DROG. PACHECO','WEB CONTINENTAL','RD MARKETPLACE','WhatsApp (ChatWoot)'];
 // Migração dos nomes antigos (formato livre) para o novo padrão — usada para registros já salvos
 const ATE_PLT_MIGRACAO={
   'Shopee Suplenium':'SHP SUPLENIUM',
@@ -16625,7 +16641,7 @@ function renderAteMotivoOptions(selected){
   if(!sel) return;
   const val=selected!==undefined?selected:sel.value;
   sel.innerHTML='<option value="">— Selecionar —</option>'+
-    getAllAteMotivos().map(m=>`<option value="${m}">${m}</option>`).join('');
+    _optsComValorAtual(getAllAteMotivos(), val);
   sel.value=val||'';
 }
 
@@ -17014,8 +17030,20 @@ function saveAte(){
   const motivo=document.getElementById('ate-motivo').value;
   const status=document.getElementById('ate-status')?.value||'atendimento';
   const novoComentarioTexto=(document.getElementById('ate-ultima-desc')?.value||'').trim().slice(0,500);
-  if(!plt||!cliente||!data||!motivo||!prazo){
-    showToast('Todos os campos são obrigatórios (exceto Link Pedido Base, N°, Link Atendimento e Comentário)','error');return;
+  // "Todos os campos são obrigatórios" fazia a pessoa caçar qual faltava.
+  // Dizer o nome do campo é a diferença entre corrigir em cinco segundos e
+  // desistir de salvar.
+  const faltando=[];
+  if(!data)    faltando.push('Data Abertura');
+  if(!motivo)  faltando.push('Motivo');
+  if(!cliente) faltando.push('Nome Cliente');
+  if(!prazo)   faltando.push('Data Retorno');
+  if(!plt)     faltando.push('Plataforma');
+  if(faltando.length){
+    showToast(faltando.length===1
+      ? 'Falta preencher: '+faltando[0]
+      : 'Faltam preencher: '+faltando.join(', '),'error');
+    return;
   }
   if(!appState.tasks.atendimentos) appState.tasks.atendimentos=[];
   const editId=document.getElementById('ate-edit-id').value;
@@ -17030,10 +17058,15 @@ function saveAte(){
   const descMudou = !!novoComentarioTexto;
   // Regra: se um novo comentário do dia foi incluído, é obrigatório informar uma
   // nova "Data Retorno" e anexar ao menos uma imagem da tratativa feita hoje
-  if(descMudou && prazo===prazoAnterior){
+  // As duas exigências existem para cobrar retorno: comentou hoje, marque
+  // quando volta e mostre o print da tratativa. Quem está CONCLUINDO o
+  // atendimento não tem próximo retorno para marcar — exigir uma data
+  // futura ali era o que travava o fechamento do caso.
+  const estaConcluindo = status==='finalizado';
+  if(descMudou && !estaConcluindo && prazo===prazoAnterior){
     showToast('Você incluiu um novo comentário — informe uma nova "Data Retorno" para salvar','error');return;
   }
-  if(descMudou && !_atePendingFotos.length){
+  if(descMudou && !estaConcluindo && !_atePendingFotos.length){
     showToast('Anexe ao menos uma imagem da tratativa feita hoje para salvar','error');return;
   }
   const comentarios = descMudou
@@ -17064,7 +17097,7 @@ function saveAte(){
       rec.alertaPrazoEnviado=prazoMudou?false:prev.alertaPrazoEnviado;
       rec.tarefaAutoCriada=prazoMudou?false:prev.tarefaAutoCriada;
       if(prazoMudou && Array.isArray(appState.atividades)){
-        appState.atividades=appState.atividades.filter(a=>a.origemAteId!==editId);
+        _ateEncerrarTarefaDoDia(editId);
       }
       // controla registro de finalização conforme o novo status escolhido
       if(status==='finalizado'){
@@ -17083,6 +17116,46 @@ function saveAte(){
   try{renderAte();}catch(e){console.warn('renderAte error:',e);}
   setTimeout(()=>{try{renderAteStats();}catch(e){}},80);
   showToast('Atendimento salvo','success');
+}
+
+/* Antes, trocar a "Data Retorno" apagava a tarefa vinculada em Tarefas
+   Diárias. Como a própria regra do comentário obriga a informar uma nova
+   Data Retorno, na prática TODA tratativa fazia o card sumir do quadro no
+   mesmo dia em que ele subiu — junto com o caminho para ver o comentário e
+   o print que a pessoa acabara de anexar. Era isso que o pessoal via como
+   "editei e sumiu".
+
+   Agora: se a tarefa já subiu ao quadro (vence hoje ou antes) e ainda está
+   aberta, ela é CONCLUÍDA — o trabalho do dia foi feito, e o card continua
+   ali, em Concluídas, com o caminho de volta para o atendimento. Se a
+   tarefa era para um dia que ainda não chegou, ela some mesmo: nunca
+   apareceu para ninguém.
+
+   O id muda porque `ateVerificarTarefaAutomatica` cria sempre
+   'atv_ate_<id>'; sem trocar, a nova tarefa colidiria com esta. Nada
+   depende desse formato — o vínculo é pelo campo origemAteId. */
+function _ateEncerrarTarefaDoDia(ateId){
+  if(!Array.isArray(appState.atividades)) return;
+  const hoje=new Date().toISOString().slice(0,10);
+  const restantes=[];
+  appState.atividades.forEach(a=>{
+    if(!a || a.origemAteId!==ateId){ restantes.push(a); return; }
+    const jaSubiu = !a.vencimento || a.vencimento<=hoje;
+    const aindaAberta = a.status!=='concluida' && a.status!=='finalizada';
+    if(jaSubiu && aindaAberta){
+      a.id='atv_ate_'+ateId+'_'+Date.now().toString(36);
+      a.status='concluida';
+      a.concluidoEm=_agoraCarimbo();
+      a.concluidoPor=currentUser?currentUser.name:'Sistema';
+      a.concluidoPorKey=currentUser?currentUser.key:'sistema';
+      a.concluidoTs=Date.now();
+      restantes.push(a);
+      return;
+    }
+    if(!jaSubiu) return;      // tarefa de um dia futuro: nunca apareceu, pode sair
+    restantes.push(a);        // já estava concluída/finalizada: fica como está
+  });
+  appState.atividades=restantes;
 }
 
 function deleteAteById(id){
@@ -17908,7 +17981,7 @@ function renderAtividades(){
     card.onmouseover=()=>{card.style.transform='translateY(-3px)';card.style.boxShadow='var(--sombra-card-alta)';};
     card.onmouseout=()=>{card.style.transform='';card.style.boxShadow='var(--sombra-card)';};
     // Info de frente do card: código (MLB/SKU/ID Anúncio) + quem solicitou
-    let codigoLabel='', solicitadoPor='';
+    let codigoLabel='', solicitadoPor='', extraFrente='';
     if(a.origemIntegId){
       const it=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId);
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
@@ -17923,7 +17996,10 @@ function renderAtividades(){
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
     } else if(a.origemAteId){
       const it=(appState.tasks && appState.tasks.atendimentos ? appState.tasks.atendimentos : []).find(x=>x.id===a.origemAteId);
-      if(it){ codigoLabel=(it.plataforma||it.cliente||it.nped||''); solicitadoPor=it.criadoPor||'—'; }
+      if(it){
+        codigoLabel=(it.plataforma||it.cliente||it.nped||''); solicitadoPor=it.criadoPor||'—';
+        extraFrente=_atvResumoAtendimento(it);
+      }
     } else if(a.origemCancId || a.origemCancNfId){
       const lista=a.origemCancId?(appState.canceladas||[]):(appState.canceladasNF||[]);
       const it=lista.find(x=>x.id===(a.origemCancId||a.origemCancNfId));
@@ -17950,6 +18026,7 @@ function renderAtividades(){
         </div>
         <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${a.titulo||'Sem título'}</div>
         ${codigoLabel?`<div style="font-size:10.5px;color:var(--text-secondary);font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
+        ${extraFrente}
         ${a.prazoHoras?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Prazo: <span style="color:var(--text-secondary);font-weight:600;">${a.prazoHoras}h</span></div>`:''}
         <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Solicitado por: <span style="color:var(--text-secondary);font-weight:600;">${solicitadoPor||'—'}</span></div>
         ${a.criadoEm?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:${(a.status==='andamento'&&a.pendencia)?'6':(carimboSaida?'2':'8')}px;">Criada em: <span style="color:var(--text-secondary);font-weight:600;font-family:var(--font-mono);">${_carimboHoraNaFrente(a.criadoEm)}</span></div>`:''}
@@ -18054,6 +18131,35 @@ function renderAtividades(){
       ? 'Nenhuma tarefa encontrada para \u201c'+fBusca.value.trim()+'\u201d.'
       : 'Nenhuma tarefa cadastrada ainda.';
   }
+}
+
+/* Tarefa vinda de um Atendimento: a última tratativa vai na frente do card.
+   Antes era preciso clicar, cair na aba Atendimentos e abrir o modal só para
+   descobrir se alguém já tinha respondido o cliente — e quem estava só
+   conferindo o quadro não fazia esse caminho. O histórico completo continua
+   no card do atendimento, a um clique daqui. */
+function _atvResumoAtendimento(it){
+  if(!it) return '';
+  const hist = Array.isArray(it.comentarios) ? it.comentarios
+    : (it.ultimaDesc ? [{texto:it.ultimaDesc,autor:it.criadoPor,em:it.ultimaData,fotos:it.ultimaFoto?[it.ultimaFoto]:[]}] : []);
+  if(!hist.length) return '';
+  const c=hist[0]||{};
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const texto=String(c.texto||'').trim();
+  const corte=texto.length>110?texto.slice(0,110)+'…':texto;
+  const nFotos=Array.isArray(c.fotos)?c.fotos.length:0;
+  const nTotal=hist.length;
+  return `<div style="margin:6px 0 4px;padding:6px 8px;border-radius:8px;background:var(--veu-suave);border:1px solid var(--linha-sutil);">
+    <div style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px;white-space:nowrap;">
+      <span>💬 Tratativa</span>
+      <span style="margin-left:auto;font-family:var(--font-mono);display:flex;gap:7px;">
+        ${nTotal>1?`<span title="${nTotal} comentários no histórico">💬 ${nTotal}</span>`:''}
+        ${nFotos?`<span title="${nFotos} imagem(ns) nesta tratativa">📎 ${nFotos}</span>`:''}
+      </span>
+    </div>
+    ${corte?`<div style="font-size:10.5px;color:var(--text-secondary);line-height:1.45;">${esc(corte)}</div>`:''}
+    <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;">${esc(c.autor||'—')}${c.em?' · '+esc(c.em):''}</div>
+  </div>`;
 }
 
 /* A busca das tarefas diárias procura no que a pessoa realmente lembra:
