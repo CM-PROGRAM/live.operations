@@ -7768,7 +7768,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20d';
+const APP_VERSAO='2026.08.20e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7900,7 +7900,9 @@ function buildTabs(){
       {id:'financeiro', label:'Conferência Vendas WhatsApp'}
     ]},
     {id:'plataformas',icon:'🛒', label:'Marketplaces',          perm:'plataformas'},
-    {id:'projnotas',  icon:'🗂', label:'Projetos',              perm:null},
+    // Projetos saiu do menu a pedido. O painel (tab-projnotas) e as notas
+    // gravadas continuam no lugar: para trazer a aba de volta, basta
+    // devolver esta linha. Apagar o painel apagaria o que já foi escrito.
     {type:'group', id:'grp-devolucoes', icon:'↩', label:'Devoluções', perm:'devolucoes', children:[
       {id:'devolucoes', label:'Lançamentos'},
       {id:'canceladasnf', label:'Canceladas com NF'}
@@ -7965,7 +7967,6 @@ function buildTabs(){
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
     if(id==='tarefas'){ try{renderAtividades();}catch(e){console.warn('renderAtividades:',e);} }
     if(id==='projetos'){ try{renderProjetos();}catch(e){console.warn('renderProjetos:',e);} }
-    if(id==='projnotas'){ try{renderProjNotas();}catch(e){console.warn('renderProjNotas:',e);} }
     if(id==='plataformas'){ try{renderMktLinks();}catch(e){console.warn('renderMktLinks:',e);} }
     if(id==='entrada'){ try{renderEntradas();}catch(e){console.warn('renderEntradas:',e);} }
     if(id==='integracao'){ try{renderIntegracoes();}catch(e){console.warn('renderIntegracoes:',e);} }
@@ -8218,10 +8219,6 @@ const MANUAL_ABAS=[
      'Clique no marketplace para abrir o painel dele.',
      'As rotinas do dia aparecem como tarefas; marque conforme executar.'
    ]},
-
-  {icone:'🗂', aba:'Projetos', perm:null,
-   paraQue:'Anotações e acompanhamento dos projetos em andamento.',
-   passos:['Cada projeto tem suas notas e o andamento; escreva ali em vez de mandar por mensagem, para não se perder.']},
 
   {icone:'↩', aba:'Devoluções', perm:'devolucoes',
    paraQue:'Registro das devoluções, do pedido do cliente até a baixa.',
