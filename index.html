@@ -6679,6 +6679,53 @@ function carryOverTaskConfig(oldTasks, newTasks){
 }
 
 // ── FIREBASE LISTENER (tempo real) ───────────────────────────
+/* As listas de opções (customTransportadoraRst, customMotivosDev, o
+   Intermediador, os títulos de tarefa…) são dados SOMADOS, nunca
+   substituídos. Duas pessoas podem acrescentar opções diferentes na mesma
+   hora, em navegadores diferentes, e as duas têm razão.
+
+   O que acontecia: o pacote que chega da nuvem substituía o estado inteiro.
+   Se ele viesse sem a chave — porque a outra sessão nunca gravou aquela
+   lista, ou gravou uma cópia anterior à sua inclusão — a opção recém-criada
+   desaparecia da tela sem ninguém ter excluído nada. Era isso que sumia.
+
+   Agora as duas versões se juntam. Só sai da lista o que alguém excluiu de
+   fato, e a exclusão de uma opção padrão viaja na própria lista de removidos
+   (__removedBase), que também se junta.
+
+   O preço: excluir uma opção CRIADA à mão pode ser desfeito por outra sessão
+   que ainda esteja com a lista antiga aberta — basta excluir de novo. Perder
+   trabalho por sincronismo é bem pior do que uma opção teimosa. */
+function _fundirListasDeOpcoes(novo, atual){
+  if(!novo || !atual) return;
+  const ehLista = k => /^custom/.test(k) || /__removedBase$/.test(k);
+  const chaves = new Set(Object.keys(atual).concat(Object.keys(novo)).filter(ehLista));
+  chaves.forEach(k=>{
+    const daNuvem = Array.isArray(novo[k])  ? novo[k]  : [];
+    const daqui   = Array.isArray(atual[k]) ? atual[k] : [];
+    const vistos=new Set(); const uniao=[];
+    daNuvem.concat(daqui).forEach(v=>{
+      const c=String(v==null?'':v).trim().toLowerCase();
+      if(!c || vistos.has(c)) return;
+      vistos.add(c); uniao.push(v);
+    });
+    if(uniao.length) novo[k]=uniao; else delete novo[k];
+  });
+
+  /* Mesmo risco, outros dados: o pacote que chega sem "baseInfo" ou sem
+     "extLinks" zerava os avisos publicados e os links configurados. Aqui não
+     dá para somar — são registros, não opções — então a regra é mais simples
+     e mais conservadora: pacote sem nada não apaga o que existe. O preço é
+     que apagar o ÚLTIMO item de uma dessas listas pode não chegar às outras
+     sessões na hora; apagar de novo resolve, e é melhor do que ver os avisos
+     da equipe sumirem sozinhos. */
+  if(!Array.isArray(novo.baseInfo) || !novo.baseInfo.length){
+    if(Array.isArray(atual.baseInfo) && atual.baseInfo.length) novo.baseInfo=atual.baseInfo;
+  }
+  const semLinks = !novo.extLinks || typeof novo.extLinks!=='object' || !Object.keys(novo.extLinks).length;
+  if(semLinks && atual.extLinks && Object.keys(atual.extLinks).length) novo.extLinks=atual.extLinks;
+}
+
 function applyRemoteState(data){
   if(!data) return;
   // Verifica novo dia
@@ -7011,6 +7058,10 @@ function startFirebaseSync(){
       // Nada em memória ainda: só aceita o pacote se ele realmente trouxer algo
       if(!Array.isArray(vindo)) acc.set(patched, Array.isArray(atual)?atual:[]);
     });
+
+    // Antes de trocar o estado: as listas de opções se somam, não se
+    // substituem — ver _fundirListasDeOpcoes
+    try{ _fundirListasDeOpcoes(patched, appState); }catch(e){ console.warn('[SYNC] listas de opções:',e); }
 
     appState = patched;
     // O que acabou de chegar já está na nuvem: não precisa voltar para lá
@@ -7895,7 +7946,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20l';
+const APP_VERSAO='2026.08.20m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
