@@ -720,8 +720,8 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.4;transform:scale(.7);}}
 
 /* SIDEBAR NAV */
-.app-body{display:flex;height:calc(100vh - 68px);overflow:hidden;}
-.sidebar{width:232px;min-width:232px;background:linear-gradient(180deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.98) 100%);border-right:1px solid var(--glass-border);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;backdrop-filter:blur(20px);}
+.app-body{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:232px;min-width:232px;background:linear-gradient(180deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.98) 100%);border-right:1px solid var(--glass-border);display:flex;flex-direction:column;overflow-x:hidden;overflow-y:auto;flex-shrink:0;backdrop-filter:blur(20px);transition:width .18s ease,min-width .18s ease;}
 .sidebar::-webkit-scrollbar{width:4px;}
 .sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
 .sidebar-section-label{padding:20px 8px 10px;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);font-family:var(--font-mono);text-align:center;}
@@ -848,8 +848,84 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .tab-sub-btn.active{background:linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03));border-color:rgba(255,255,255,0.22);color:var(--text-primary);}
 .tab-btn:hover{background:#0d1220;border-color:rgba(255,255,255,0.4);color:var(--text-primary);box-shadow:0 10px 26px -6px rgba(255,255,255,0.22),0 0 16px rgba(255,255,255,0.15),inset 0 1px 0 rgba(255,255,255,0.1);}
 .tab-btn.active{background:#0d1220;border-color:rgba(255,255,255,0.75);color:#fff;font-weight:600;box-shadow:0 0 3px #fff,0 12px 32px -6px rgba(255,255,255,0.3),0 0 22px rgba(255,255,255,0.2),inset 0 1px 0 rgba(255,255,255,0.15);}
-.tab-btn .tab-icon{display:none;}
+.tab-btn .tab-icon{display:inline-flex;align-items:center;justify-content:center;width:20px;flex-shrink:0;font-size:15px;line-height:1;}
+.tab-sub-btn{padding-left:16px;}
 .tab-btn .tab-label{flex:1;overflow:hidden;text-overflow:ellipsis;}
+
+/* ── Barra lateral no estilo da Base ──────────────────────────────
+   Marca no alto da própria barra (não há mais faixa no topo da tela) e
+   um botão para recolher. Recolhida, sobra o emoji: é por ele que a
+   pessoa acha a aba, e é por isso que todo item do menu tem um. */
+.sb-topo{display:flex;align-items:center;gap:8px;padding:12px 10px 10px;border-bottom:1px solid var(--glass-border);}
+.sb-marca{flex:1;min-width:0;height:30px;background:var(--logo-liveops) left center/contain no-repeat;
+  filter:brightness(1.2) contrast(1.12) saturate(1.25) drop-shadow(0 0 8px rgba(232,50,42,0.3));}
+.sb-recolher{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
+  border:1px solid var(--glass-border);border-radius:10px;color:var(--text-secondary);cursor:pointer;
+  font-size:15px;line-height:1;transition:all .18s ease;}
+.sb-recolher:hover{border-color:rgba(255,255,255,0.32);color:var(--text-primary);}
+body.menu-oculto .sidebar{width:66px;min-width:66px;}
+body.menu-oculto .sb-marca,
+body.menu-oculto .sidebar-search,
+body.menu-oculto .sb-user-info,
+body.menu-oculto .sb-inbox-txt,
+body.menu-oculto .sb-tema-txt,
+body.menu-oculto .sb-sair,
+body.menu-oculto #sb-versao,
+body.menu-oculto .tab-label,
+body.menu-oculto .tab-group-chevron{display:none;}
+body.menu-oculto .sb-topo{justify-content:center;padding:12px 6px 10px;}
+body.menu-oculto .tab-btn{justify-content:center;padding:10px 0;width:calc(100% - 16px);}
+body.menu-oculto .sidebar-inbox,
+body.menu-oculto .sidebar-user{justify-content:center;padding-left:0;padding-right:0;}
+body.menu-oculto .sidebar-inbox::after{left:14px;right:14px;}
+body.menu-oculto .tab-group-children{display:none !important;}
+body.menu-oculto .sidebar-footer{padding:10px 6px;}
+body.menu-oculto #btn-atualizar-sistema{padding:2px 8px;}
+body.menu-oculto .sb-atu-txt{display:none;}
+
+/* ── Página inicial: os dois quadros do meio ──────────────────────── */
+.ini-wrap{max-width:980px;margin:0 auto;padding:26px 0 40px;}
+.ini-wrap.ini-centro{display:flex;flex-direction:column;justify-content:center;min-height:calc(100vh - 120px);}
+.ini-saudacao{text-align:center;margin-bottom:26px;}
+.ini-saudacao h2{font-family:var(--font-sans);font-size:24px;font-weight:800;color:var(--text-primary);letter-spacing:-0.02em;margin:0 0 4px;}
+.ini-saudacao p{font-size:13px;color:var(--text-muted);margin:0;}
+.ini-quadros{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px;}
+.ini-quadro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+  min-height:230px;padding:32px 24px;cursor:pointer;text-align:center;
+  background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015));
+  border:1px solid var(--glass-border);border-radius:20px;
+  transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;}
+.ini-quadro:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.3);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.6);}
+.ini-quadro .ini-ic{font-size:40px;line-height:1;}
+.ini-quadro .ini-tit{font-family:var(--font-sans);font-size:20px;font-weight:800;color:var(--text-primary);letter-spacing:-0.01em;}
+.ini-quadro .ini-sub{font-size:12.5px;color:var(--text-muted);line-height:1.55;max-width:280px;}
+.ini-voltar{background:none;border:1px solid var(--glass-border);border-radius:999px;color:var(--text-secondary);
+  cursor:pointer;font-family:var(--font-sans);font-size:12px;font-weight:600;padding:6px 14px;margin-bottom:16px;}
+.ini-voltar:hover{border-color:rgba(255,255,255,.35);color:var(--text-primary);}
+/* Manual */
+.man-item{border:1px solid var(--glass-border);border-radius:14px;margin-bottom:12px;overflow:hidden;background:var(--veu-suave);}
+.man-cab{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;}
+.man-cab .man-ic{font-size:18px;line-height:1;}
+.man-cab .man-nome{flex:1;font-family:var(--font-sans);font-size:14.5px;font-weight:700;color:var(--text-primary);}
+.man-cab .man-seta{font-size:15px;color:var(--text-muted);transition:transform .15s;}
+.man-item.aberto .man-cab .man-seta{transform:rotate(90deg);}
+.man-corpo{display:none;padding:0 18px 16px;border-top:1px solid var(--linha-sutil);}
+.man-item.aberto .man-corpo{display:block;}
+.man-corpo h4{font-family:var(--font-sans);font-size:11px;font-weight:800;letter-spacing:1.1px;text-transform:uppercase;
+  color:var(--text-muted);margin:14px 0 6px;}
+.man-corpo p{font-size:13px;color:var(--text-secondary);line-height:1.65;margin:0;}
+.man-corpo ol{margin:0;padding-left:20px;}
+.man-corpo li{font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:3px;}
+.man-aviso{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.6;
+  background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.3);color:var(--text-secondary);}
+/* Base Informações */
+.bi-card{border:1px solid var(--glass-border);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--veu-suave);}
+.bi-card h3{font-family:var(--font-sans);font-size:15px;font-weight:700;color:var(--text-primary);margin:0 0 6px;}
+.bi-card .bi-txt{font-size:13px;color:var(--text-secondary);line-height:1.65;white-space:pre-wrap;}
+.bi-card .bi-pe{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;}
+.bi-meta{font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);}
 .sidebar-search{padding:7px 10px;margin:8px 8px 4px;display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:50px;transition:border-color .2s;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);}
 .sidebar-search:focus-within{border-color:rgba(59,130,246,0.6);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25),0 0 12px rgba(59,130,246,0.15);}
 .sidebar-search input{background:none;border:none;outline:none;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);width:100%;}
@@ -1264,26 +1340,24 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <button class="btn-link btn-sm" style="flex-shrink:0;" onclick="reverificarAcesso()">Verificar de novo</button>
     </div>
   </div>
-  <header style="justify-content:space-between;padding:0 20px;">
-    <div style="width:38px;"></div>
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="display:flex;flex-direction:column;align-items:center;gap:1px;">
-        <div class="header-brand-logo" role="img" aria-label="LiveOps" title="LiveOps"></div>
-        <div style="font-size:11px;background:linear-gradient(90deg,rgba(148,163,184,0.3),rgba(148,163,184,0.8),rgba(148,163,184,0.3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;letter-spacing:6px;padding-left:6px;text-align:center;text-transform:uppercase;font-family:var(--font-mono);font-weight:400;">Live Operations</div>
-      </div>
-    </div>
-    <div style="width:38px;"></div>
-  </header>
+  <!-- A marca saiu da faixa do topo e foi para o alto da barra lateral,
+       como na Base: a faixa ocupava 68px de altura em toda a tela para
+       mostrar só o logotipo. -->
   <div class="app-body">
     <!-- SIDEBAR -->
     <nav class="sidebar" id="tabs-nav">
       <!-- tab buttons + footer rendered by buildTabs() -->
     </nav>
     <!-- SEARCH RESULTS DROPDOWN -->
-    <div id="search-dropdown" style="display:none;position:fixed;top:52px;left:232px;width:340px;max-height:480px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,.45);z-index:400;overflow-y:auto;"></div>
+    <div id="search-dropdown" style="display:none;position:fixed;top:96px;left:232px;width:340px;max-height:480px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,.45);z-index:400;overflow-y:auto;"></div>
     <!-- MAIN CONTENT -->
     <div class="content-area">
       <div class="content">
+
+    <!-- PÁGINA INICIAL -->
+    <div class="tab-panel" id="tab-inicio">
+      <div id="inicio-conteudo"></div>
+    </div>
 
     <!-- WHATSAPP -->
     <div class="tab-panel" id="tab-whatsapp">
@@ -2525,7 +2599,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ADMIN -->
     <div class="tab-panel" id="tab-admin">
       <div class="section-header">
-        <span class="section-title">Adm. Master</span>
+        <span class="section-title">Administrador</span>
         <span class="master-badge">MASTER ONLY</span>
       </div>
 
@@ -3959,6 +4033,7 @@ function defaultState(){
     imagensReq:[],
     entradas:[],
     extLinks:{},
+    baseInfo:[],
     lastReset:todayStr()
   };
 }
@@ -4048,6 +4123,7 @@ function loadLocal(){
     _semearEmails(s);
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
+    if(!Array.isArray(s.baseInfo)) s.baseInfo=[];
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
     if(s.tasks.plataformas && Array.isArray(s.tasks.plataformas)){
       s.tasks.plataformas.forEach(g=>{
@@ -6004,7 +6080,7 @@ function _mensagemDeErroDaNuvem(err){
   const t=String((err&&err.message)||err||'');
   if(/PERMISSION_DENIED|Permission denied/i.test(t)){
     return 'Sem permissão para gravar na nuvem. Peça ao master para liberar seu acesso '
-         + '(Adm. Master → Segurança). Suas alterações continuam salvas neste navegador '
+         + '(Administrador → Segurança). Suas alterações continuam salvas neste navegador '
          + 'e sobem sozinhas assim que o acesso for liberado.';
   }
   if(/network|offline|unavailable|disconnect/i.test(t)){
@@ -6122,18 +6198,18 @@ function diagnosticarBloqueio(){
         // Autenticado e aprovado: o problema é outro (regra ou caminho)
         _mostrarBloqueio('A nuvem recusou a gravação',
           'Seu acesso está aprovado, então provavelmente as regras do banco ainda não foram publicadas. '
-        + 'Avise o master para conferir em Adm. Master → Segurança.', uid);
+        + 'Avise o master para conferir em Administrador → Segurança.', uid);
       } else {
         _mostrarBloqueio('Seu acesso ainda não foi aprovado',
           'Já pedimos a liberação ao master. Passe o código abaixo para ele aprovar em '
-        + 'Adm. Master → Segurança. Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
+        + 'Administrador → Segurança. Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
         try{ _pedirAcesso(); }catch(e){}
       }
     })
     .catch(()=>{
       // Nem ler a lista foi permitido: é o caso clássico de não aprovado
       _mostrarBloqueio('Seu acesso ainda não foi aprovado',
-        'Passe o código abaixo ao master para ele aprovar em Adm. Master → Segurança. '
+        'Passe o código abaixo ao master para ele aprovar em Administrador → Segurança. '
       + 'Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
       try{ _pedirAcesso(); }catch(e){}
     });
@@ -6605,6 +6681,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
+  if(!Array.isArray(data.baseInfo)) data.baseInfo = [];
   // Firebase omite arrays vazios — restaurar execs:[] para tasks com repeats>1
   if(data.tasks.plataformas && Array.isArray(data.tasks.plataformas)){
     data.tasks.plataformas.forEach(g=>{
@@ -7700,7 +7777,7 @@ function initApp(){
   // todos os registros já existentes como "criado"
   try{ logSincronizarSnapshot(appState); }catch(e){}
   // buildTabs() cria o footer com avatar/nome/relógio/sair dinamicamente
-  buildTabs();renderAll();startClock();startFirebaseSync();initActivityListener();
+  buildTabs();restaurarMenuOculto();renderAll();startClock();startFirebaseSync();initActivityListener();
   // Cards de revisão dos marketplaces do dia
   try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
   // Atendimento sem resposta há 24h volta a ser enviado, com a tela aberta
@@ -7775,7 +7852,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.18e';
+const APP_VERSAO='2026.08.20a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7884,6 +7961,7 @@ function verificarVersaoPublicada(noLogin){
 
 function buildTabs(){
   const tabs=[
+    {id:'inicio', icon:'🏠', label:'Página inicial', perm:null},
     {type:'group', id:'grp-tarefas', icon:'📌', label:'Central de Tarefas', perm:'tarefas', children:[
       {id:'tarefas',   label:'Tarefas Diárias'},
       {id:'criar-tarefa', label:'Criar Tarefa', panel:'criartarefa'}
@@ -7914,12 +7992,23 @@ function buildTabs(){
       {id:'canceladasnf', label:'Canceladas com NF'}
     ]},
     {id:'cnpjs',      icon:'🏢', label:'CNPJs Suplelive', perm:'cnpjs'},
-    {id:'admin',      icon:'⚙', label:'Adm. Master',           perm:'admin'}
+    {id:'admin',      icon:'⚙', label:'Administrador',         perm:'admin'}
   ];
   const nav=document.getElementById('tabs-nav');
   // keep search box, clear the rest
   const searchEl=nav.querySelector('.sidebar-search');
   nav.innerHTML='';
+
+  // Marca no alto da barra, com o botão de esconder o menu ao lado
+  const topo=document.createElement('div');
+  topo.className='sb-topo';
+  topo.innerHTML=`
+    <div class="sb-marca" role="img" aria-label="LiveOps" title="LiveOps"></div>
+    <button type="button" class="sb-recolher" id="btn-esconder-menu"
+            title="Esconder menu" aria-label="Esconder menu">☰</button>`;
+  nav.appendChild(topo);
+  topo.querySelector('#btn-esconder-menu').onclick=()=>alternarMenu();
+
   if(searchEl) nav.appendChild(searchEl);
 
   // section label
@@ -7978,6 +8067,7 @@ function buildTabs(){
     if(id==='canceladasnf'){ try{initCanceladaForm('cancnf');}catch(e){console.warn('initCanceladaForm:',e);} }
     if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
     if(id==='notificacoes'){ try{ renderNotifPagina(); }catch(e){ console.warn('renderNotifPagina:',e); } }
+    if(id==='inicio'){ try{ renderInicio(); }catch(e){ console.warn('renderInicio:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -7999,12 +8089,16 @@ function buildTabs(){
 
       const head=document.createElement('button');
       head.type='button';head.className='tab-btn tab-group-head';
+      head.title=tb.label;
       head.innerHTML=`<span class="tab-icon">${tb.icon}</span><span class="tab-label">${tb.label}</span><span class="tab-group-chevron" style="margin-left:auto;font-size:9px;transition:transform .15s;transform:${isOpen?'rotate(90deg)':'none'};">▸</span>`;
 
       const childrenWrap=document.createElement('div');childrenWrap.className='tab-group-children';
       childrenWrap.style.cssText='display:'+(isOpen?'flex':'none')+';flex-direction:column;margin:2px 0 4px 14px;border-left:1px solid var(--glass-border);padding-left:6px;';
 
       head.onclick=()=>{
+        // Com o menu recolhido não há espaço para a sublista: abrir o grupo
+        // significa primeiro trazer o menu de volta
+        if(document.body.classList.contains('menu-oculto')) alternarMenu(false);
         const nowOpen=childrenWrap.style.display==='flex';
         // Sanfona: fecha todos antes de decidir o que abrir — nunca mais de
         // um grupo aberto na lateral ao mesmo tempo
@@ -8043,7 +8137,7 @@ function buildTabs(){
     }
     if((tb.perm===null||currentUser.master||currentUser.perms.includes(tb.perm)) && !(tb.hideFromMaster && currentUser.master)){
       const btn=document.createElement('button');
-      btn.className='tab-btn';btn.dataset.tab=tb.id;
+      btn.className='tab-btn';btn.dataset.tab=tb.id;btn.title=tb.label;
       btn.innerHTML=`<span class="tab-icon">${tb.icon}</span><span class="tab-label">${tb.label}</span>`;
       btn.onclick=()=>{ switchTab(tb.id); fireTabHooks(tb.id); };
       nav.appendChild(btn);
@@ -8066,7 +8160,7 @@ function buildTabs(){
               title="Buscar a versão publicada e recarregar o sistema"
               style="background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:999px;color:var(--text-muted);
                      font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:2px 9px;cursor:pointer;line-height:1.6;">
-        ⟳ Atualizar
+        ⟳<span class="sb-atu-txt"> Atualizar</span>
       </button>
     </div>`;
   nav.appendChild(footer);
@@ -8094,6 +8188,347 @@ function navExternalLink(e,key,label,fallbackUrl){
     }
   }
   window.open(url,'_blank','noopener');
+}
+
+/* Esconder / mostrar o menu lateral, como na Base. A escolha fica neste
+   navegador: é preferência de quem está na frente da tela, não do sistema —
+   e vale para todas as abas, senão o conteúdo pularia de largura a cada
+   troca. */
+function alternarMenu(forcar){
+  const esconder = (typeof forcar==='boolean') ? forcar : !document.body.classList.contains('menu-oculto');
+  document.body.classList.toggle('menu-oculto', esconder);
+  try{ localStorage.setItem('liveops_menu_oculto', esconder?'1':'0'); }catch(e){}
+  const bt=document.getElementById('btn-esconder-menu');
+  if(bt){
+    bt.title = esconder ? 'Mostrar menu' : 'Esconder menu';
+    bt.setAttribute('aria-label', bt.title);
+  }
+  // A caixa de busca é ancorada na largura da barra
+  const dd=document.getElementById('search-dropdown');
+  if(dd) dd.style.left = esconder ? '66px' : '232px';
+}
+function restaurarMenuOculto(){
+  let v='0';
+  try{ v=localStorage.getItem('liveops_menu_oculto')||'0'; }catch(e){}
+  if(v==='1') alternarMenu(true);
+}
+
+/* ===== PÁGINA INICIAL ============================================
+   Dois quadros no meio da tela: "Base Informações" (o mural da equipe)
+   e "Manual Sistema" (como cada aba funciona). O manual só mostra as
+   abas que a pessoa enxerga — explicar uma aba que ela não tem só
+   gera pedido de acesso e confusão. */
+
+function _iniEsc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function _iniPode(perm){
+  if(perm===null||perm===undefined) return true;
+  if(currentUser && currentUser.master) return true;
+  return !!(currentUser && Array.isArray(currentUser.perms) && currentUser.perms.includes(perm));
+}
+
+const MANUAL_ABAS=[
+  {icone:'📌', aba:'Central de Tarefas', perm:'tarefas',
+   paraQue:'O quadro do dia. Tudo que precisa ser feito aparece aqui, seja criado à mão ou vindo de uma solicitação de outra aba.',
+   passos:[
+     'As tarefas ficam separadas por situação: <b>A Fazer</b>, <b>Com Pendência</b>, <b>Atrasadas</b>, <b>Concluídas</b> e <b>Finalizadas</b>. Clique na seta ao lado do título para abrir ou fechar cada bloco.',
+     'Abra a tarefa para escrever o que foi feito, anexar print e trocar a situação. O que você escreve fica registrado com seu nome e a hora.',
+     'Marque como <b>Concluída</b> quando terminar. Quem solicitou vê a baixa na aba de origem — e a solicitação sai da lista dela sozinha.',
+     'Use <b>Com Pendência</b> quando depender de outra pessoa: assim a tarefa não se perde no meio das concluídas.'
+   ],
+   atencao:'Tarefa não some do quadro por causa da data. Se ficou atrasada, ela continua visível até alguém dar baixa.'},
+
+  {icone:'📞', aba:'Atendimentos', perm:'atendimentos',
+   paraQue:'Registro dos atendimentos abertos nos canais e marketplaces, com o motivo e o desfecho de cada um.',
+   passos:[
+     'Em <b>Lançamentos</b>, crie o card com plataforma, motivo e o número do pedido.',
+     'Escreva o andamento dentro do próprio card e anexe os prints da conversa — é o que sustenta a nossa versão se o caso virar reclamação.',
+     'O card do dia aparece também em <b>Tarefas Diárias</b>, para não ficar esquecido.'
+   ],
+   atencao:'Motivo e plataforma vêm de listas fechadas. Se faltar uma opção, use o botão <b>✎ editar lista</b> ao lado do campo em vez de escrever por fora.'},
+
+  {icone:'💬', aba:'Vendas → WhatsApp (Chatwoot)', perm:'whatsapp',
+   paraQue:'O quadro de tarefas do atendimento por WhatsApp, ligado ao Chatwoot.',
+   passos:[
+     'As tarefas do dia aparecem agrupadas; marque a execução conforme for atendendo.',
+     'O que precisa de registro de venda vai para <b>Pedidos</b>, não fica só aqui.'
+   ]},
+
+  {icone:'🧾', aba:'Vendas → Pedidos', perm:'whatsapp',
+   paraQue:'Onde ficam as vendas do WhatsApp: o que foi vendido, por quem, e o quanto falta para a meta.',
+   passos:[
+     'Em <b>Registros</b>, lance a venda com data, valor e responsável. Os cartões do topo somam sozinhos o dia, a semana e o mês.',
+     'A <b>Meta</b> é definida no botão do topo: escolha o valor do mês e o sistema divide pelos dias úteis que ainda restam, mostrando quanto precisa sair por dia.',
+     'Em <b>Pedidos Base WhatsApp</b> ficam os pedidos que a automação lê direto da Base, com canal WhatsApp. Essa lista é só leitura: corrigir pedido é na Base.'
+   ],
+   atencao:'Se um pedido não aparecer em <b>Pedidos Base WhatsApp</b>, quase sempre a origem de venda dele na Base não é o WhatsApp. Confira lá antes de lançar à mão.'},
+
+  {icone:'🚚', aba:'Vendas → Live Track', perm:'envios',
+   paraQue:'Acompanhamento dos envios. A automação consulta a transportadora e escreve o status no card.',
+   passos:[
+     'Crie o card preenchendo o essencial: <b>código de rastreio</b> (ou o código do envio no Melhor Envio) e a <b>transportadora</b>. Sem esses dois, a automação não tem o que consultar.',
+     'O status aparece na frente do card, com o texto exato que a transportadora devolveu — "Entregue", "Em trânsito", "No centro de distribuição de…".',
+     'O botão <b>Verificações</b> abre o histórico de cada consulta da automação: quando rodou, o que voltou e, se deu erro, qual foi.'
+   ],
+   atencao:'Não reescreva o status à mão. Ele é sobrescrito na próxima verificação, e aí ninguém sabe mais qual é o verdadeiro.'},
+
+  {icone:'🪪', aba:'Vendas → Live CPF', perm:null,
+   paraQue:'Consulta do CPF para achar o telefone do cliente e abrir o atendimento no WhatsApp.',
+   passos:[
+     'Digite o CPF e consulte. A ficha traz nome, telefone e os dados de cadastro.',
+     'Com a ficha na tela, o botão de atendimento dispara o comando <b>/iniciar_atendimento</b> no WhatsApp oficial e cria a conversa no Chatwoot.',
+     'Se o cliente não responder, o sistema reenvia o comando uma vez por dia, no máximo três vezes. Quem respondeu não recebe mais nada.',
+     'Excluindo o card do cliente e consultando de novo, o comando é enviado na hora — mesmo que já tenha sido enviado antes.'
+   ],
+   atencao:'"Sem retorno para este CPF" costuma ser o serviço de consulta fora do ar ou sem token, não CPF inexistente. Avise o master.'},
+
+  {icone:'🔗', aba:'Anúncios', perm:'integracoes',
+   paraQue:'Onde se pede trabalho para a equipe de anúncios: integração, exclusão na Base, entrada de produto e imagem.',
+   passos:[
+     'Em <b>Criar Tarefa</b>, escolha o tipo de solicitação e descreva o que precisa. Cada solicitação vira uma tarefa no quadro de quem executa.',
+     'A solicitação fica em <b>Em andamento</b> até a tarefa correspondente ser concluída no quadro — aí ela sai da lista sozinha.',
+     'Se aparecer o aviso <b>⚠ sem tarefa no quadro</b>, a tarefa foi apagada e a solicitação ficou órfã: crie de novo ou peça ao master para encerrar.'
+   ]},
+
+  {icone:'💰', aba:'Financeiro', perm:'whatsapp',
+   paraQue:'Conferência das vendas do WhatsApp contra o que efetivamente entrou.',
+   passos:[
+     'Em <b>Conferência Vendas WhatsApp</b>, confira pedido a pedido e marque o que já bateu.',
+     'O que não bater fica destacado até alguém resolver — a lista serve justamente para não deixar diferença passar.'
+   ]},
+
+  {icone:'🛒', aba:'Marketplaces', perm:'plataformas',
+   paraQue:'Os acessos e links de cada plataforma, e as rotinas que precisam ser feitas em cada uma.',
+   passos:[
+     'Clique no marketplace para abrir o painel dele.',
+     'As rotinas do dia aparecem como tarefas; marque conforme executar.'
+   ]},
+
+  {icone:'🗂', aba:'Projetos', perm:null,
+   paraQue:'Anotações e acompanhamento dos projetos em andamento.',
+   passos:['Cada projeto tem suas notas e o andamento; escreva ali em vez de mandar por mensagem, para não se perder.']},
+
+  {icone:'↩', aba:'Devoluções', perm:'devolucoes',
+   paraQue:'Registro das devoluções, do pedido do cliente até a baixa.',
+   passos:[
+     'Em <b>Lançamentos</b>, abra o card com plataforma, motivo e situação.',
+     'Em <b>Canceladas com NF</b> ficam as que já tinham nota emitida — o tratamento é diferente, por isso a lista é separada.'
+   ]},
+
+  {icone:'🏢', aba:'CNPJs Suplelive', perm:'cnpjs',
+   paraQue:'Os dados de cada CNPJ do grupo e em quais marketplaces ele está ativo.',
+   passos:[
+     'A tabela traz razão social, CNPJ e os dados que a gente sempre precisa copiar para cadastro.',
+     'O painel de situação mostra, por CNPJ, onde está ativo e onde falta.'
+   ]},
+
+  {icone:'⚙', aba:'Administrador', perm:'admin',
+   paraQue:'Painel do master: quem entra, o que cada um enxerga e a saúde dos dados.',
+   passos:[
+     '<b>Visão geral</b> resume a situação da nuvem, do backup, do peso dos dados e dos pedidos de acesso pendentes.',
+     '<b>Equipe</b> cria usuário e marca as permissões — é a permissão que define quais abas aparecem para a pessoa.',
+     '<b>Segurança</b> aprova os pedidos de acesso de navegador novo.',
+     '<b>Backup</b> baixa o .zip com tudo. Faça antes de qualquer mudança grande.'
+   ],
+   atencao:'Só o master vê esta aba. Apagar usuário não apaga o que ele registrou.'}
+];
+
+let _iniVista='home';
+
+function renderInicio(){
+  const el=document.getElementById('inicio-conteudo');
+  if(!el) return;
+  if(_iniVista==='baseinfo') return renderBaseInfo();
+  if(_iniVista==='manual')   return renderManual();
+
+  const nome=(currentUser&&currentUser.name)?currentUser.name.split(' ')[0]:'';
+  el.innerHTML=`
+    <div class="ini-wrap ini-centro">
+      <div class="ini-saudacao">
+        <h2>Olá, ${_iniEsc(nome)}</h2>
+        <p>Escolha por onde começar.</p>
+      </div>
+      <div class="ini-quadros">
+        <div class="ini-quadro" onclick="inicioIr('baseinfo')">
+          <div class="ini-ic">📚</div>
+          <div class="ini-tit">Base Informações</div>
+          <div class="ini-sub">Os avisos, procedimentos e links que a equipe precisa ter à mão.</div>
+        </div>
+        <div class="ini-quadro" onclick="inicioIr('manual')">
+          <div class="ini-ic">📖</div>
+          <div class="ini-tit">Manual Sistema</div>
+          <div class="ini-sub">Como cada aba funciona e como ela deve ser usada — só as abas que são suas.</div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function inicioIr(vista){ _iniVista=vista||'home'; renderInicio(); }
+
+function renderManual(){
+  const el=document.getElementById('inicio-conteudo');
+  if(!el) return;
+  const meus=MANUAL_ABAS.filter(m=>_iniPode(m.perm));
+  const corpo = meus.length===0
+    ? `<p style="font-size:13px;color:var(--text-muted);">Você ainda não tem nenhuma aba liberada. Peça ao master em Administrador → Equipe.</p>`
+    : meus.map((m,i)=>`
+      <div class="man-item" id="man-${i}">
+        <div class="man-cab" onclick="manualAlternar(${i})">
+          <span class="man-ic">${m.icone}</span>
+          <span class="man-nome">${_iniEsc(m.aba)}</span>
+          <span class="man-seta">▸</span>
+        </div>
+        <div class="man-corpo">
+          <h4>Para que serve</h4>
+          <p>${m.paraQue}</p>
+          <h4>Como usar</h4>
+          <ol>${(m.passos||[]).map(p=>`<li>${p}</li>`).join('')}</ol>
+          ${m.atencao?`<div class="man-aviso"><b>Atenção:</b> ${m.atencao}</div>`:''}
+        </div>
+      </div>`).join('');
+  el.innerHTML=`
+    <div class="ini-wrap">
+      <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
+      <div class="section-header"><span class="section-title">📖 Manual Sistema</span></div>
+      <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 18px;line-height:1.6;">
+        Estão listadas apenas as abas liberadas para o seu acesso. Clique em cada uma para abrir a explicação.</p>
+      ${corpo}
+    </div>`;
+}
+
+function manualAlternar(i){
+  const it=document.getElementById('man-'+i);
+  if(it) it.classList.toggle('aberto');
+}
+
+/* ── Base Informações ────────────────────────────────────────────
+   Mural da equipe: o master escreve, todo mundo lê. É o lugar de
+   procedimento e aviso que hoje vive em conversa de WhatsApp e some. */
+function _baseInfoLista(){
+  if(!Array.isArray(appState.baseInfo)) appState.baseInfo=[];
+  return appState.baseInfo;
+}
+
+function renderBaseInfo(){
+  const el=document.getElementById('inicio-conteudo');
+  if(!el) return;
+  const lista=_baseInfoLista();
+  const master=!!(currentUser&&currentUser.master);
+  const cards = lista.length===0
+    ? `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+         Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`
+    : lista.map(it=>`
+      <div class="bi-card">
+        <h3>${_iniEsc(it.titulo)}</h3>
+        <div class="bi-txt">${_iniEsc(it.texto)}</div>
+        <div class="bi-pe">
+          ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Abrir link ↗</a>`:''}
+          <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
+          ${master?(_biExcluindo===it.id
+            ?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+                <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
+                <button class="btn btn-danger btn-sm" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
+                <button class="btn btn-ghost btn-sm" onclick="baseInfoExcluirCancelar()">Não</button>
+              </span>`
+            :`<span style="margin-left:auto;display:flex;gap:6px;">
+                <button class="btn btn-ghost btn-sm" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
+                <button class="btn btn-danger btn-sm" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
+              </span>`):''}
+        </div>
+      </div>`).join('');
+
+  el.innerHTML=`
+    <div class="ini-wrap">
+      <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
+      <div class="section-header">
+        <span class="section-title">📚 Base Informações</span>
+        ${master?`<button class="btn btn-sm" onclick="baseInfoNovo()">+ Nova informação</button>`:''}
+      </div>
+      ${master?`
+      <div id="bi-form" style="display:none;border:1px solid var(--glass-border);border-radius:14px;padding:16px;margin-bottom:16px;background:var(--veu-medio);">
+        <input type="hidden" id="bi-id" value="">
+        <div class="input-group" style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);">Título</label>
+          <input type="text" id="bi-titulo" placeholder="Ex.: Como pedir integração de anúncio">
+        </div>
+        <div class="input-group" style="margin-bottom:10px;">
+          <label style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);">Conteúdo</label>
+          <textarea id="bi-texto" rows="5" placeholder="Escreva o procedimento ou o aviso."></textarea>
+        </div>
+        <div class="input-group" style="margin-bottom:12px;">
+          <label style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);">Link (opcional)</label>
+          <input type="text" id="bi-link" placeholder="https://…">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-sm" onclick="baseInfoSalvar()">Salvar</button>
+          <button class="btn btn-ghost btn-sm" onclick="baseInfoCancelar()">Cancelar</button>
+        </div>
+      </div>`:''}
+      ${cards}
+    </div>`;
+}
+
+function baseInfoNovo(){
+  const f=document.getElementById('bi-form'); if(!f) return;
+  f.style.display='block';
+  document.getElementById('bi-id').value='';
+  document.getElementById('bi-titulo').value='';
+  document.getElementById('bi-texto').value='';
+  document.getElementById('bi-link').value='';
+  document.getElementById('bi-titulo').focus();
+}
+function baseInfoCancelar(){
+  const f=document.getElementById('bi-form'); if(f) f.style.display='none';
+}
+function baseInfoEditar(id){
+  const it=_baseInfoLista().find(x=>x.id===id); if(!it) return;
+  const f=document.getElementById('bi-form'); if(!f) return;
+  f.style.display='block';
+  document.getElementById('bi-id').value=it.id;
+  document.getElementById('bi-titulo').value=it.titulo||'';
+  document.getElementById('bi-texto').value=it.texto||'';
+  document.getElementById('bi-link').value=it.link||'';
+  f.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function baseInfoSalvar(){
+  if(!currentUser||!currentUser.master) return;
+  const id=(document.getElementById('bi-id').value||'').trim();
+  const titulo=(document.getElementById('bi-titulo').value||'').trim();
+  const texto=(document.getElementById('bi-texto').value||'').trim();
+  const link=(document.getElementById('bi-link').value||'').trim();
+  if(!titulo){ showToast('Dê um título à informação.','warn'); return; }
+  const lista=_baseInfoLista();
+  const carimbo=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  if(id){
+    const it=lista.find(x=>x.id===id);
+    if(it){ it.titulo=titulo; it.texto=texto; it.link=link; it.em=carimbo; it.por=currentUser.name; }
+  } else {
+    lista.unshift({id:'bi_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+                   titulo, texto, link, em:carimbo, por:currentUser.name});
+  }
+  saveState(appState);
+  showToast('Informação salva','success');
+  renderBaseInfo();
+}
+/* Confirmação na própria linha: prompt() e confirm() ficam bloqueados
+   em alguns navegadores da equipe, e o clique simplesmente não fazia nada */
+let _biExcluindo=null;
+function baseInfoExcluir(id){
+  if(!currentUser||!currentUser.master) return;
+  _biExcluindo=id;
+  renderBaseInfo();
+}
+function baseInfoExcluirCancelar(){ _biExcluindo=null; renderBaseInfo(); }
+function baseInfoExcluirConfirmar(id){
+  if(!currentUser||!currentUser.master) return;
+  const lista=_baseInfoLista();
+  const i=lista.findIndex(x=>x.id===id);
+  if(i>=0) lista.splice(i,1);
+  _biExcluindo=null;
+  saveState(appState);
+  showToast('Informação excluída','success');
+  renderBaseInfo();
 }
 
 function switchTab(id, panelId){
@@ -13848,7 +14283,7 @@ function renderUsersGrid(){
     {id:'plataformas',label:'🛒 Marketplaces'},
     {id:'devolucoes',label:'↩ Devoluções'},
     {id:'cnpjs',label:'🏢 CNPJs Suplelive'},
-    {id:'admin',label:'⚙ Adm. Master'}
+    {id:'admin',label:'⚙ Administrador'}
   ];
 
   const users = Object.entries(appState.users);
