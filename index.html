@@ -495,6 +495,40 @@ html{overflow-x:hidden;}
    Quem trabalha aqui quer ver o pedido — então a tabela é o painel, e os
    números viram cartões que respondem antes de rolar a tela. */
 .ped-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px;}
+
+/* ── Vendas → Clientes ────────────────────────────────────────────
+   Um cartão por pessoa, não por pedido: quem atende procura o cliente,
+   não a venda. O histórico fica atrás de um clique porque a maioria das
+   consultas termina no telefone. */
+.cli-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;}
+.cli-card{background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015));
+  border:1px solid var(--glass-border);border-radius:14px;padding:14px 15px;
+  display:flex;flex-direction:column;gap:9px;transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;}
+.cli-card:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.24);box-shadow:0 14px 30px -16px rgba(0,0,0,.6);}
+.cli-nome{font-family:var(--font-sans);font-size:14px;font-weight:700;color:var(--text-primary);
+  letter-spacing:-.01em;line-height:1.3;overflow-wrap:anywhere;}
+.cli-linha{display:flex;align-items:center;gap:7px;font-size:11.5px;font-family:var(--font-mono);color:var(--text-secondary);}
+.cli-linha .rot{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);
+  min-width:34px;flex-shrink:0;}
+.cli-linha .vazio{color:var(--text-muted);opacity:.7;}
+.cli-pe{display:flex;align-items:center;gap:8px;padding-top:9px;border-top:1px solid var(--linha-sutil);margin-top:2px;}
+.cli-pe .resumo{font-size:10px;font-family:var(--font-mono);color:var(--text-muted);line-height:1.45;flex:1;min-width:0;}
+.cli-logs{flex-shrink:0;background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:999px;
+  color:var(--text-secondary);cursor:pointer;font-family:var(--font-sans);font-size:11px;font-weight:700;padding:5px 12px;
+  transition:border-color .15s,color .15s;}
+.cli-logs:hover{border-color:rgba(255,255,255,.3);color:var(--text-primary);}
+.cli-copiar{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px;padding:1px 4px;
+  border-radius:6px;line-height:1;}
+.cli-copiar:hover{color:var(--text-primary);background:var(--veu-suave);}
+/* Histórico do cliente */
+.cli-log-linha{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+  padding:9px 2px;border-bottom:1px solid var(--linha-sutil);}
+.cli-log-linha:last-child{border-bottom:none;}
+.cli-log-num{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-primary);}
+.cli-log-quando{font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);}
+.cli-log-valor{font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--text-secondary);text-align:right;}
+.cli-log-status{font-size:9px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--text-muted);
+  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:999px;padding:2px 8px;white-space:nowrap;}
 .ped-kpi{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;
   display:flex;flex-direction:column;gap:3px;}
 .ped-kpi .val{font-size:22px;font-weight:800;font-family:var(--font-mono);color:var(--kc,var(--text-primary));line-height:1.15;letter-spacing:-.02em;}
@@ -1576,7 +1610,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ENVIOS -->
     <div class="tab-panel" id="tab-envios">
       <div class="section-header">
-        <span class="section-title">Live Track</span>
+        <span class="section-title">Rastreador de Encomendas</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
       <div class="date-header" id="env-date"></div>
@@ -2363,9 +2397,33 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <!-- CONSULTA CPF — CPF CLIENTE -->
+    <!-- VENDAS — CLIENTES -->
+    <div class="tab-panel" id="tab-clientes">
+      <div class="section-header">
+        <span class="section-title">Clientes</span>
+        <span id="cli-sync" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);"></span>
+      </div>
+      <div id="cli-kpis" class="ped-kpis" style="margin-bottom:14px;"></div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="atv-busca">
+          <span class="atv-busca-ic">&#128270;</span>
+          <input type="search" id="cli-busca" oninput="renderClientes()" autocomplete="off"
+                 placeholder="Buscar por nome, CPF, telefone ou n&ordm; do pedido&hellip;">
+          <button type="button" class="atv-busca-x" title="Limpar busca" onclick="cliLimparBusca()">&#10005;</button>
+        </div>
+        <select id="cli-ordem" onchange="renderClientes()" style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
+          <option value="recente">Compra mais recente</option>
+          <option value="pedidos">Quem mais comprou</option>
+          <option value="nome">Nome (A&ndash;Z)</option>
+        </select>
+      </div>
+      <div id="cli-cards" class="cli-cards"></div>
+      <div id="cli-vazio" style="display:none;"></div>
+    </div>
+
     <div class="tab-panel" id="tab-consultacpf">
       <div class="section-header">
-        <span class="section-title">Live CPF</span>
+        <span class="section-title">Consulta CPF</span>
       </div>
       <div style="max-width:560px;margin-bottom:22px;">
         <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:16px;box-shadow:var(--sombra-card);">
@@ -2395,7 +2453,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- VENDAS — CANCELADAS -->
     <div class="tab-panel" id="tab-canceladas">
       <div class="section-header">
-        <span class="section-title">Canceladas</span>
+        <span class="section-title">Pedidos Cancelados</span>
       </div>
       <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
       <div style="max-width:620px;margin-bottom:24px;">
@@ -3607,7 +3665,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   </div>
 </div>
 
-<!-- HISTÓRICO DE RASTREIO (Live Track) -->
+<!-- HISTÓRICO DE RASTREIO (Rastreador de Encomendas) -->
 <!-- GERENCIADOR DE LISTA — um só para todas as listas editáveis do sistema -->
 <div id="gl-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:3200;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:22px;width:420px;max-width:96vw;max-height:86vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
@@ -3629,6 +3687,25 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <!-- REGISTRO DAS VERIFICAÇÕES — o que a automação fez, e quando -->
+<!-- HISTÓRICO DE PEDIDOS DO CLIENTE (Vendas → Clientes) -->
+<div id="clilog-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:560px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:4px;">
+      <div style="flex:1;min-width:0;">
+        <div id="clilog-nome" style="font-size:15px;font-weight:700;color:var(--text-primary);"></div>
+        <div id="clilog-sub" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;"></div>
+      </div>
+      <button class="btn-link btn-sm" onclick="fecharLogCliente()">Fechar</button>
+    </div>
+    <div style="height:1px;background:var(--glass-border);margin:14px 0;"></div>
+    <div id="clilog-corpo"></div>
+    <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:14px;line-height:1.6;">
+      O hist&oacute;rico vem dos pedidos que a integra&ccedil;&atilde;o l&ecirc; da Base pelo canal
+      WhatsApp. Corrigir pedido &eacute; l&aacute; &mdash; aqui &eacute; s&oacute; leitura.
+    </div>
+  </div>
+</div>
+
 <div id="rstlog-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:520px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
@@ -3663,7 +3740,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   </div>
 </div>
 
-<!-- FICHA DO CLIENTE (Live CPF) -->
+<!-- FICHA DO CLIENTE (Consulta CPF) -->
 <div id="lcpf-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:var(--sombra-painel),var(--realce-topo);max-width:560px;width:100%;margin:0 auto;position:relative;">
     <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#9db8e8,#8fa8d8,#5876b8);border-radius:var(--radius-lg) var(--radius-lg) 0 0;"></div>
@@ -7820,7 +7897,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20i';
+const APP_VERSAO='2026.08.20j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7966,13 +8043,17 @@ function buildTabs(){
       {id:'atendimentos', label:'Lançamentos'}
     ]},
     {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
+      // Os ids não mudam junto com os nomes: eles aparecem em vínculo já
+      // gravado (tarefa, notificação, permissão) e trocá-los quebraria
+      // registro antigo sem ganho nenhum.
+      {id:'clientes', label:'Clientes', perm:'whatsapp'},
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       {id:'registrovendas', label:'Pedidos', perm:'whatsapp'},
-      {id:'envios',    label:'Live Track', perm:'envios'},
-      // Live CPF é de todo mundo: quem atende cliente precisa do telefone,
-      // e trancar isso só criava pedido de liberação para o master
-      {id:'consultacpf', label:'Live CPF', perm:null},
-      {id:'canceladas', label:'Canceladas'}
+      {id:'canceladas', label:'Pedidos Cancelados'},
+      {id:'envios',    label:'Rastreador de Encomendas', perm:'envios'},
+      // A consulta de CPF é de todo mundo: quem atende cliente precisa do
+      // telefone, e trancar isso só criava pedido de liberação para o master
+      {id:'consultacpf', label:'Consulta CPF', perm:null}
     ]},
     {type:'group', id:'grp-integracoes', icon:'anuncios', label:'Anúncios', perm:'integracoes', children:[
       {id:'atribuir',  label:'Criar Tarefa'}
@@ -8057,6 +8138,7 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='consultacpf'){ try{renderLiveCpf();}catch(e){console.warn('renderLiveCpf:',e);} }
+    if(id==='clientes'){ try{renderClientes();}catch(e){console.warn('renderClientes:',e);} }
     if(id==='canceladas'){ try{initCanceladaForm('canc');}catch(e){console.warn('initCanceladaForm:',e);} }
     if(id==='canceladasnf'){ try{initCanceladaForm('cancnf');}catch(e){console.warn('initCanceladaForm:',e);} }
     if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
@@ -8244,6 +8326,15 @@ const MANUAL_ABAS=[
    ],
    atencao:'Motivo e plataforma vêm de listas fechadas. Se faltar uma opção, use o botão <b>✎ editar lista</b> ao lado do campo em vez de escrever por fora.'},
 
+  {icone:'cpf', aba:'Vendas → Clientes', perm:'whatsapp',
+   paraQue:'A base de clientes do WhatsApp: quem já comprou, como falar com a pessoa e tudo o que ela já pediu.',
+   passos:[
+     'Cada cartão é uma pessoa, não um pedido. Traz <b>nome</b>, <b>CPF</b> e <b>telefone</b>, e o ⧉ ao lado copia o número sem precisar selecionar.',
+     'O botão <b>Logs</b> abre todo o histórico de compras: nº do pedido na Base, dia, hora, valor, situação e o link para abrir o pedido lá.',
+     'A busca aceita nome (sem se importar com acento), CPF com ou sem pontuação, telefone e o nº do pedido.'
+   ],
+   atencao:'A lista se monta sozinha a partir dos pedidos que a automação lê da Base pelo canal WhatsApp — não há cadastro manual. Cliente sem CPF na Base aparece agrupado pelo telefone.'},
+
   {icone:'chat', aba:'Vendas → WhatsApp (Chatwoot)', perm:'whatsapp',
    paraQue:'O quadro de tarefas do atendimento por WhatsApp, ligado ao Chatwoot.',
    passos:[
@@ -8260,7 +8351,7 @@ const MANUAL_ABAS=[
    ],
    atencao:'Se um pedido não aparecer em <b>Pedidos Base WhatsApp</b>, quase sempre a origem de venda dele na Base não é o WhatsApp. Confira lá antes de lançar à mão.'},
 
-  {icone:'track', aba:'Vendas → Live Track', perm:'envios',
+  {icone:'track', aba:'Vendas → Rastreador de Encomendas', perm:'envios',
    paraQue:'Acompanhamento dos envios. A automação consulta a transportadora e escreve o status no card.',
    passos:[
      'Crie o card preenchendo o essencial: <b>código de rastreio</b> (ou o código do envio no Melhor Envio) e a <b>transportadora</b>. Sem esses dois, a automação não tem o que consultar.',
@@ -8269,7 +8360,7 @@ const MANUAL_ABAS=[
    ],
    atencao:'Não reescreva o status à mão. Ele é sobrescrito na próxima verificação, e aí ninguém sabe mais qual é o verdadeiro.'},
 
-  {icone:'cpf', aba:'Vendas → Live CPF', perm:null,
+  {icone:'cpf', aba:'Vendas → Consulta CPF', perm:null,
    paraQue:'Consulta do CPF para achar o telefone do cliente e abrir o atendimento no WhatsApp.',
    passos:[
      'Digite o CPF e consulte. A ficha traz nome, telefone e os dados de cadastro.',
@@ -9659,6 +9750,205 @@ function regSetSubTab(qual){
      hora          "HH:MM"
      link          URL do pedido no painel da Base
      _by           "n8n"  (evita o eco da própria gravação)  */
+/* ===== VENDAS → CLIENTES ==========================================
+   A base de clientes não é uma lista à parte: ela é a leitura dos
+   pedidos que a integração já traz da Base pelo canal WhatsApp,
+   agrupados por pessoa. Manter uma segunda lista significaria decidir,
+   toda vez, qual das duas está certa quando divergissem — e elas
+   divergem sempre. Assim o cliente aparece no mesmo instante em que o
+   pedido cai no Firebase, sem nenhum passo a mais.
+
+   A chave do agrupamento é o CPF. Sem CPF, o telefone; sem os dois, o
+   nome. Nessa ordem porque é a ordem da confiança: cliente troca de
+   telefone, escreve o nome de três jeitos, mas o CPF é um só. */
+
+function _cliSoDigitos(v){ return String(v==null?'':v).replace(/\D/g,''); }
+
+function _cliFmtCpf(v){
+  const n=_cliSoDigitos(v);
+  if(n.length===11) return n.slice(0,3)+'.'+n.slice(3,6)+'.'+n.slice(6,9)+'-'+n.slice(9);
+  if(n.length===14) return n.slice(0,2)+'.'+n.slice(2,5)+'.'+n.slice(5,8)+'/'+n.slice(8,12)+'-'+n.slice(12);
+  return String(v||'');
+}
+
+function _cliSemAcento(t){
+  return String(t==null?'':t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+
+/* Um registro por pessoa, montado na hora a partir de appState.pedidosBase */
+function agruparClientes(){
+  const porChave=new Map();
+  (appState.pedidosBase||[]).filter(Boolean).forEach(p=>{
+    const cpf=_cliSoDigitos(p.cpf);
+    const fone=_cliSoDigitos(p.telefone);
+    const nome=String(p.cliente||'').trim();
+    const chave = cpf ? ('cpf:'+cpf) : (fone ? ('fone:'+fone) : (nome ? ('nome:'+_cliSemAcento(nome)) : null));
+    if(!chave) return;
+    let c=porChave.get(chave);
+    if(!c){
+      c={chave, nome, cpf:p.cpf||'', telefone:p.telefone||'', pedidos:[]};
+      porChave.set(chave,c);
+    }
+    // O cadastro mais completo ganha: um pedido antigo pode ter vindo sem
+    // CPF, e não é motivo para o cliente ficar sem ele na tela
+    if(!c.cpf && p.cpf) c.cpf=p.cpf;
+    if(!c.telefone && p.telefone) c.telefone=p.telefone;
+    if(nome && nome.length>String(c.nome||'').length) c.nome=nome;
+    c.pedidos.push(p);
+  });
+  const lista=[...porChave.values()];
+  lista.forEach(c=>{
+    c.pedidos.sort((a,b)=>
+      String(b.data||'').localeCompare(String(a.data||'')) ||
+      String(b.hora||'').localeCompare(String(a.hora||'')));
+    c.ultimo=c.pedidos[0]||null;
+    c.total=c.pedidos.reduce((a,p)=>a+(Number(p.valor)||0),0);
+  });
+  return lista;
+}
+
+function cliLimparBusca(){
+  const el=document.getElementById('cli-busca');
+  if(!el) return;
+  el.value=''; renderClientes(); el.focus();
+}
+
+function renderClientes(){
+  const alvo=document.getElementById('cli-cards');
+  if(!alvo) return;
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const todos=agruparClientes();
+  const bq=document.getElementById('cli-busca');
+  const termo=_cliSemAcento((bq?bq.value:'').trim());
+  if(bq && bq.parentElement) bq.parentElement.classList.toggle('tem-texto', !!termo);
+
+  // Quem digita CPF ou telefone escreve com ponto, traço e parêntese, ou
+  // não escreve nenhum: a segunda comparação é só de dígitos. Ela só entra
+  // quando o termo tem dígito — senão "" casaria com tudo.
+  const termoDigitos=_cliSoDigitos(termo);
+  const lista = !termo ? todos.slice() : todos.filter(c=>{
+    const campos=[c.nome, c.cpf, c.telefone];
+    c.pedidos.forEach(p=>{ campos.push(p.numero); campos.push(p.externo); });
+    const texto=_cliSemAcento(campos.filter(Boolean).join(' '));
+    if(texto.includes(termo)) return true;
+    if(!termoDigitos) return false;
+    return _cliSoDigitos(campos.filter(Boolean).join(' ')).includes(termoDigitos);
+  });
+
+  const ordem=((document.getElementById('cli-ordem')||{}).value)||'recente';
+  lista.sort((a,b)=>{
+    if(ordem==='pedidos') return b.pedidos.length-a.pedidos.length || String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
+    if(ordem==='nome')    return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
+    const da=(a.ultimo&&a.ultimo.data)||'', db=(b.ultimo&&b.ultimo.data)||'';
+    return String(db).localeCompare(String(da))
+        || String((b.ultimo&&b.ultimo.hora)||'').localeCompare(String((a.ultimo&&a.ultimo.hora)||''));
+  });
+
+  // Cartões de resumo
+  const kp=document.getElementById('cli-kpis');
+  if(kp){
+    const nPedidos=todos.reduce((a,c)=>a+c.pedidos.length,0);
+    const recorrentes=todos.filter(c=>c.pedidos.length>1).length;
+    const card=(rot,val,sub,cor)=>`<div class="ped-kpi" style="--kc:${cor};"><span class="val">${val}</span><span class="rot">${rot}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
+    kp.innerHTML = card('Clientes', todos.length, todos.length?(nPedidos+' pedido(s) no total'):'', '#8fa8d8')
+      + card('Compraram mais de uma vez', recorrentes,
+             todos.length?Math.round(recorrentes*100/todos.length)+'% da base':'', 'var(--green)')
+      + card('Na busca', lista.length, termo?('filtrando por “'+esc(bq.value.trim())+'”'):'sem filtro', '#a78bfa');
+  }
+
+  const sync=document.getElementById('cli-sync');
+  if(sync){
+    const ultimo=(appState.pedidosBase||[]).map(p=>p&&p.sincronizadoEm).filter(Boolean).sort().pop();
+    sync.textContent=ultimo?('Base lida em '+ultimo):'';
+  }
+
+  const vazio=document.getElementById('cli-vazio');
+  if(lista.length===0){
+    alvo.innerHTML='';
+    if(vazio){
+      vazio.style.display='block';
+      vazio.innerHTML = todos.length===0
+        ? `<div style="padding:34px 24px;border:1px dashed var(--glass-border);border-radius:14px;text-align:center;">
+             <div style="font-size:13px;color:var(--text-secondary);font-weight:600;margin-bottom:6px;">Nenhum cliente ainda</div>
+             <div style="font-size:12px;color:var(--text-muted);line-height:1.65;max-width:520px;margin:0 auto;">
+               A lista se monta sozinha a partir dos pedidos que a integração lê da Base
+               pelo canal WhatsApp. Enquanto o fluxo da Base não estiver ativo, ela fica vazia
+               — confira em <b>Pedidos → Pedidos Base WhatsApp</b>.
+             </div>
+           </div>`
+        : `<div style="padding:28px;text-align:center;color:var(--text-muted);font-size:13px;">
+             Nenhum cliente encontrado para “${esc(bq.value.trim())}”.
+           </div>`;
+    }
+    return;
+  }
+  if(vazio) vazio.style.display='none';
+
+  alvo.innerHTML=lista.map(c=>{
+    const fone=_cliSoDigitos(c.telefone);
+    const ult=c.ultimo||{};
+    const quando=ult.data?(_pedDataBR(ult.data)+(ult.hora?(' às '+ult.hora):'')):'—';
+    return `<div class="cli-card">
+      <div class="cli-nome">${esc(c.nome||'Sem nome')}</div>
+      <div class="cli-linha"><span class="rot">CPF</span>
+        ${c.cpf?`<span>${esc(_cliFmtCpf(c.cpf))}</span>
+                 <button class="cli-copiar" title="Copiar CPF" onclick="cliCopiar('${esc(_cliSoDigitos(c.cpf))}','CPF')">⧉</button>`
+               :'<span class="vazio">não informado</span>'}</div>
+      <div class="cli-linha"><span class="rot">Fone</span>
+        ${fone?`<span>${esc(_fmtFoneVis(c.telefone))}</span>
+                <button class="cli-copiar" title="Copiar telefone" onclick="cliCopiar('${esc(fone)}','Telefone')">⧉</button>`
+              :'<span class="vazio">não informado</span>'}</div>
+      <div class="cli-pe">
+        <span class="resumo">${c.pedidos.length} pedido(s) · ${_pedFmt(c.total)}<br>último em ${esc(quando)}</span>
+        <button class="cli-logs" onclick="abrirLogCliente('${esc(c.chave)}')">Logs (${c.pedidos.length})</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cliCopiar(valor,rotulo){
+  try{
+    navigator.clipboard.writeText(valor);
+    showToast(rotulo+' copiado','success');
+  }catch(e){ showToast('Não consegui copiar','warn'); }
+}
+
+function abrirLogCliente(chave){
+  const c=agruparClientes().find(x=>x.chave===chave);
+  if(!c){ showToast('Cliente não encontrado','warn'); return; }
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const nomeEl=document.getElementById('clilog-nome');
+  const subEl=document.getElementById('clilog-sub');
+  const corpo=document.getElementById('clilog-corpo');
+  if(nomeEl) nomeEl.textContent=c.nome||'Sem nome';
+  if(subEl){
+    const partes=[];
+    if(c.cpf) partes.push('CPF '+_cliFmtCpf(c.cpf));
+    if(c.telefone) partes.push(_fmtFoneVis(c.telefone));
+    partes.push(c.pedidos.length+' pedido(s) · '+_pedFmt(c.total));
+    subEl.textContent=partes.join(' · ');
+  }
+  if(corpo){
+    corpo.innerHTML=c.pedidos.map(p=>{
+      const quando=(p.data?_pedDataBR(p.data):'—')+(p.hora?(' · '+p.hora):'');
+      const num=p.numero?('#'+p.numero):(p.externo?esc(p.externo):'—');
+      const link=p.link?` <a href="${esc(p.link)}" target="_blank" rel="noopener" class="btn-link btn-sm" style="font-size:10px;">Base ↗</a>`:'';
+      return `<div class="cli-log-linha">
+        <span class="cli-log-num">${esc(num)}${link}</span>
+        <span class="cli-log-quando">${esc(quando)}${p.status?` <span class="cli-log-status">${esc(p.status)}</span>`:''}</span>
+        <span class="cli-log-valor">${_pedFmt(Number(p.valor)||0)}</span>
+      </div>`;
+    }).join('');
+  }
+  const ov=document.getElementById('clilog-modal-overlay');
+  if(ov) ov.style.display='flex';
+}
+function fecharLogCliente(){
+  const ov=document.getElementById('clilog-modal-overlay');
+  if(ov) ov.style.display='none';
+}
+
 function renderPedidosBase(){
   const tbody=document.getElementById('base-rows'); if(!tbody) return;
   const todos=(appState.pedidosBase||[]).filter(Boolean);
@@ -12850,7 +13140,7 @@ function excluirFichaLiveCpf(){
 }
 
 // Consulta de CPF — os IDs vêm por prefixo para a mesma lógica servir
-// a aba "Live CPF" e o modal legado
+// a aba "Consulta CPF" e o modal legado
 function consultarCpfPagina(){ return consultarCpf('cpfpg'); }
 async function consultarCpf(prefixo){
   const ids = prefixo==='cpfpg'
@@ -12862,7 +13152,7 @@ async function consultarCpf(prefixo){
   const fonesEl=document.getElementById(ids.fones);
   const nomeEl=document.getElementById(ids.nome);
   const btn=document.getElementById(ids.btn);
-  // Na aba Live CPF o resultado virou ficha: não há mais lista solta na tela
+  // Na aba Consulta CPF o resultado virou ficha: não há mais lista solta na tela
   const ehFicha = prefixo==='cpfpg';
   if(!inp||!statusEl) return;
   if(!ehFicha && (!resEl||!fonesEl||!nomeEl)) return;
@@ -12894,7 +13184,7 @@ async function consultarCpf(prefixo){
       const motivo=(j&&(j.mensagem||j.message||j.msg||j.error))||resposta||'';
       statusEl.style.color='var(--red)';
       statusEl.textContent='❌ '+(motivo ? 'A consulta falhou: '+motivo : 'Sem retorno para este CPF');
-      console.warn('Live CPF · resposta do proxy:', j);
+      console.warn('Consulta CPF · resposta do proxy:', j);
       return;
     }
     const resp=j.response;
@@ -14269,7 +14559,7 @@ function renderUsersGrid(){
     {id:'atendimentos',label:'Atendimentos'},
     {id:'whatsapp',label:'Vendas · WhatsApp'},
     {id:'envios',label:'Vendas · Rastreios'},
-    {id:'consultacpf',label:'Live CPF (dentro de Vendas)'},
+    {id:'consultacpf',label:'Consulta CPF (dentro de Vendas)'},
     {id:'base',label:'Base (links dentro de Marketplaces)'},
     {id:'integracoes',label:'Anúncios'},
     {id:'plataformas',label:'Marketplaces'},

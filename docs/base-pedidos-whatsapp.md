@@ -116,6 +116,8 @@ Um registro por pedido, em `suplelive/reg/pedidosBase/<id>`:
 | `externo`        | `W-8812`                                             | nº no canal, quando houver |
 | `cliente`        | `ALFREDO ALVES DA SILVA`                             | |
 | `telefone`       | `27999987802`                                        | só dígitos, com DDD |
+| `cpf`            | `12345678909`                                        | vem do `invoice_nip`; é a chave da aba Clientes |
+| `email`          | `cliente@email.com`                                  | quando houver |
 | `valor`          | `219.90`                                             | número, não texto |
 | `status`         | `Pago`                                               | status como está na Base |
 | `canal`          | `WhatsApp`                                           | o que motivou a inclusão |
@@ -216,3 +218,56 @@ mexe — rodando o nó *Origens de venda* antes, para pegar o id certo.
   por rodada e grava o nome.
 - O total não vem pronto: é a soma dos produtos mais o frete. Somar no fluxo
   evita que a tela mostre um valor diferente do que a Base mostra.
+
+---
+
+## 8. A aba Vendas → Clientes
+
+A base de clientes **não é uma segunda lista**: é a leitura destes mesmos
+registros, agrupados por pessoa. Manter duas listas significaria decidir,
+toda vez que divergissem, qual das duas está certa — e elas divergem sempre.
+Assim o cliente aparece no mesmo instante em que o pedido cai no Firebase,
+sem nenhum passo a mais na automação.
+
+A chave do agrupamento é o **CPF**; sem CPF, o **telefone**; sem os dois, o
+nome. Nessa ordem porque é a ordem da confiança: cliente troca de telefone e
+escreve o nome de três jeitos, mas o CPF é um só.
+
+Por isso o `cpf` passou a ser gravado. Ele vem do campo `invoice_nip` do
+pedido na Base. Pedido sem NIP preenchido continua entrando — só cai para o
+agrupamento por telefone.
+
+---
+
+## 9. O que falta para "2026 inteiro"
+
+Duas coisas, e as duas dependem de uma informação que só a Base responde.
+
+### 9.1 O limite de 100 por chamada
+
+Hoje a leitura é uma janela de 7 dias, relida a cada minuto. Para trazer o ano
+inteiro isso não serve: `getOrders` devolve no máximo **100 pedidos por
+chamada**, então uma janela de 365 dias traria 100 e calaria sobre o resto.
+
+O caminho documentado para varrer tudo é paginar por **`id_from`**: cada
+chamada devolve até 100 pedidos com `order_id` maior que o informado, e a
+próxima chamada usa o maior id recebido. Isso é um laço no fluxo (um nó de
+repetição), não um ajuste de parâmetro — é a mudança maior das duas.
+
+### 9.2 Os pedidos do Arquivo
+
+Em **Pedidos → Lista de Pedidos → Arquivo** a Base guarda pedidos que não
+aparecem na listagem normal, e a API se comporta do mesmo jeito: `getOrders`
+sem mais nada **não devolve pedido arquivado**.
+
+Não vou inventar o nome do parâmetro que os traz — parâmetro errado na
+BaseLinker não dá erro, devolve lista vazia, e a aba ficaria em silêncio
+parecendo certa. Para fechar isso preciso de uma destas duas:
+
+- a página do manual da BaseLinker de `getOrders` (Configurações da conta →
+  API → documentação), ou
+- o retorno de uma chamada de teste com um pedido que você saiba que está no
+  Arquivo — o `order_id` dele já ajuda.
+
+Com isso o Arquivo entra como uma segunda passada da mesma leitura, e a lista
+de clientes passa a cobrir o ano inteiro.
