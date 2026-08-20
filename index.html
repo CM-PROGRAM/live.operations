@@ -878,9 +878,19 @@ body.menu-oculto .tab-label,
 body.menu-oculto .tab-group-chevron{display:none;}
 body.menu-oculto .sb-topo{justify-content:center;padding:12px 6px 10px;}
 body.menu-oculto .tab-btn{justify-content:center;padding:10px 0;width:calc(100% - 16px);}
-body.menu-oculto .sidebar-inbox,
 body.menu-oculto .sidebar-user{justify-content:center;padding-left:0;padding-right:0;}
-body.menu-oculto .sidebar-inbox::after{left:14px;right:14px;}
+/* Caixa de entrada recolhida: o contador ficava em linha com o envelope e
+   espremia os dois dentro de 50px — o ícone saía do centro e o número
+   vazava pela borda. Recolhido, ele vira o que já é em qualquer aplicativo:
+   uma bolinha no canto do botão, com um anel da cor da barra para se
+   destacar do envelope. */
+body.menu-oculto .sidebar-inbox{
+  justify-content:center;padding:0;min-height:42px;position:relative;margin-bottom:10px;
+  border-radius:999px;}
+body.menu-oculto .sidebar-inbox::after{display:none;}
+body.menu-oculto .sb-inbox-badge{
+  position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;line-height:17px;
+  padding:0 4px;font-size:9.5px;box-shadow:0 0 0 2px #0d1220;}
 body.menu-oculto .tab-group-children{display:none !important;}
 body.menu-oculto .sidebar-footer{padding:10px 6px;}
 body.menu-oculto #btn-atualizar-sistema{padding:2px 8px;}
@@ -7773,7 +7783,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20f';
+const APP_VERSAO='2026.08.20g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
