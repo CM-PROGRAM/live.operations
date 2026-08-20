@@ -950,6 +950,8 @@ body.menu-oculto .sb-atu-txt{display:none;}
    linha e eles ficariam mais estreitos que os da Página inicial. */
 .ini-quadros.duas-colunas{grid-template-columns:repeat(2,minmax(0,1fr));}
 @media(max-width:760px){.ini-quadros.duas-colunas{grid-template-columns:1fr;}}
+.ini-quadros.tres-colunas{grid-template-columns:repeat(3,minmax(0,1fr));}
+@media(max-width:900px){.ini-quadros.tres-colunas{grid-template-columns:1fr;}}
 .ini-quadro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
   min-height:230px;padding:32px 24px;cursor:pointer;text-align:center;
   background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.015));
@@ -1444,8 +1446,33 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
 
-      <div class="date-header" id="wpp-date"></div>
-      <div id="wpp-tasks"></div>
+      <!-- Três frentes, três quadros, no mesmo desenho da Página inicial.
+           Antes os três grupos vinham empilhados na mesma tela e a pessoa
+           rolava por tudo para chegar no que queria. -->
+      <!-- 1460px e não 980: com três quadros numa linha, a faixa estreita
+           os deixaria menores que os da Página inicial. -->
+      <div id="wpp-inicio" class="ini-wrap" style="max-width:1460px;padding:6px 0 10px;">
+        <div class="ini-quadros tres-colunas">
+          <div class="ini-quadro" onclick="wppAbrirFrente('wpp_atend')">
+            <div class="ini-ic" data-icone="atendimentos"></div>
+            <div class="ini-tit">Atendimento</div>
+            <div class="ini-sub">Orçamento, cotação de frete e a cobrança — o que se resolve antes de o pedido existir.</div>
+          </div>
+          <div class="ini-quadro" onclick="wppAbrirFrente('wpp_pedido')">
+            <div class="ini-ic" data-icone="vendas"></div>
+            <div class="ini-tit">Pedido</div>
+            <div class="ini-sub">Cadastrar o pedido na Base e gerar a etiqueta de envio.</div>
+          </div>
+          <div class="ini-quadro" onclick="wppAbrirFrente('wpp_comp')">
+            <div class="ini-ic" data-icone="pedidos"></div>
+            <div class="ini-tit">Registro</div>
+            <div class="ini-sub">Registrar a venda, guardar o comprovante e alimentar a conferência.</div>
+          </div>
+        </div>
+      </div>
+      <button class="ini-voltar" id="wpp-voltar" style="display:none;" onclick="wppAbrirFrente('')">← WhatsApp</button>
+      <div class="date-header" id="wpp-date" style="display:none;"></div>
+      <div id="wpp-tasks" style="display:none;"></div>
 
     </div>
 
@@ -4223,12 +4250,21 @@ function loadLocal(){
     }
     // Migrate whatsapp if structure is outdated
     if(s.tasks&&s.tasks.whatsapp&&Array.isArray(s.tasks.whatsapp)){
+      /* "SUBIR PEDIDO" virou "PEDIDO" e "COMPROVANTE" virou "REGISTRO".
+         Renomear aqui, antes da checagem abaixo, evita que a mudança de nome
+         seja lida como estado corrompido e dispare o initWpp() — que
+         devolveria os grupos ao padrão e apagaria o que a equipe marcou. */
+      s.tasks.whatsapp.forEach(g=>{
+        if(!g) return;
+        if(g.id==='wpp_pedido' && g.group==='SUBIR PEDIDO') g.group='PEDIDO';
+        if(g.id==='wpp_comp'   && g.group==='COMPROVANTE')  g.group='REGISTRO';
+      });
       const needsMigration=!s.tasks.whatsapp[0]?.items
         || !s.tasks.whatsapp.some(g=>g.id==='wpp_atend')
         || !s.tasks.whatsapp.some(g=>g.id==='wpp_pedido')
         || !s.tasks.whatsapp.some(g=>g.id==='wpp_comp')
-        || s.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='SUBIR PEDIDO')
-        || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='COMPROVANTE')
+        || s.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='PEDIDO')
+        || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='REGISTRO')
         || s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&!g.items?.some(i=>i.id==='wpp_a2'&&i.text==='Orçamentos'))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c1'&&i.text==='Registro de Vendas'))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
@@ -6829,12 +6865,21 @@ function applyRemoteState(data){
         }
       });
     }
+    /* "SUBIR PEDIDO" virou "PEDIDO" e "COMPROVANTE" virou "REGISTRO".
+       Renomear antes da checagem evita que a mudança de nome seja lida como
+       estado corrompido e dispare o initWpp(), que devolveria os grupos ao
+       padrão e apagaria o que a equipe marcou. */
+    data.tasks.whatsapp.forEach(g=>{
+      if(!g) return;
+      if(g.id==='wpp_pedido' && g.group==='SUBIR PEDIDO') g.group='PEDIDO';
+      if(g.id==='wpp_comp'   && g.group==='COMPROVANTE')  g.group='REGISTRO';
+    });
     const nm=!data.tasks.whatsapp[0]?.items
       ||!data.tasks.whatsapp.some(g=>g.id==='wpp_atend')
       ||!data.tasks.whatsapp.some(g=>g.id==='wpp_pedido')
       ||!data.tasks.whatsapp.some(g=>g.id==='wpp_comp')
-      ||data.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='SUBIR PEDIDO')
-      ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='COMPROVANTE')
+      ||data.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='PEDIDO')
+      ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='REGISTRO')
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&!g.items?.some(i=>i.id==='wpp_a2'&&i.text==='Orçamentos'))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c1'&&i.text==='Registro de Vendas'))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
@@ -7249,11 +7294,11 @@ function initWpp(){return[
           {label:'Cotação',action:'cotacaoFrete'}
         ]
       },
-      {id:'wpp_c3',text:'Pagamento Crédito',sub:'',link:'https://app.infinitepay.io/?from=%2Finvoices%2Fcreate%2Fsuccess%3Fslug%3D7hre8RC30z',linkLabel:'Link',done:false,doneBy:null,doneAt:null,owner:'cmandrade'}
+      {id:'wpp_c3',text:'Gerar PIX/Link Crédito',sub:'',link:'https://app.infinitepay.io/?from=%2Finvoices%2Fcreate%2Fsuccess%3Fslug%3D7hre8RC30z',linkLabel:'Link',done:false,doneBy:null,doneAt:null,owner:'cmandrade'}
     ]
   },
   {
-    id:'wpp_pedido', group:'SUBIR PEDIDO', icon:'wpp-logo',
+    id:'wpp_pedido', group:'PEDIDO', icon:'wpp-logo',
     link:'',
     linkLabel:'',
     items:[
@@ -7273,7 +7318,7 @@ function initWpp(){return[
     ]
   },
   {
-    id:'wpp_comp', group:'COMPROVANTE', icon:'wpp-logo',
+    id:'wpp_comp', group:'REGISTRO', icon:'wpp-logo',
     link:'',
     linkLabel:'',
     items:[
@@ -7946,7 +7991,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20m';
+const APP_VERSAO='2026.08.20n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8170,6 +8215,7 @@ function buildTabs(){
   nav.appendChild(lbl);
 
   function fireTabHooks(id){
+    if(id==='whatsapp'){ try{ wppAbrirFrente(_wppFrente); }catch(e){ console.warn('wppAbrirFrente:',e); } }
     if(id==='registrovendas'){
       try{regSetSubTab(_regSubTab==='base'?'base':'registros');}catch(e){console.warn('regSetSubTab:',e);}
     }
@@ -8385,10 +8431,12 @@ const MANUAL_ABAS=[
    atencao:'A lista se monta sozinha a partir dos pedidos que a automação lê da Base pelo canal WhatsApp — não há cadastro manual. Cliente sem CPF na Base aparece agrupado pelo telefone.'},
 
   {icone:'chat', aba:'Vendas → WhatsApp (Chatwoot)', perm:'whatsapp',
-   paraQue:'O quadro de tarefas do atendimento por WhatsApp, ligado ao Chatwoot.',
+   paraQue:'As três frentes do atendimento por WhatsApp, cada uma com os atalhos que ela usa.',
    passos:[
-     'As tarefas do dia aparecem agrupadas; marque a execução conforme for atendendo.',
-     'O que precisa de registro de venda vai para <b>Pedidos</b>, não fica só aqui.'
+     '<b>Atendimento</b> — o que se resolve antes de o pedido existir: Orçamentos, Cotação Frete e <b>Gerar PIX/Link Crédito</b>.',
+     '<b>Pedido</b> — cadastrar o pedido na Base e gerar a etiqueta de envio.',
+     '<b>Registro</b> — registrar a venda, guardar o comprovante e alimentar a conferência.',
+     'Clique no quadro para abrir a frente; o botão <b>← WhatsApp</b> volta para os três.'
    ]},
 
   {icone:'pedidos', aba:'Vendas → Pedidos', perm:'whatsapp',
@@ -8684,9 +8732,42 @@ function renderAll(){
 }
 
 /* ===== WPP ===== */
+/* Qual das três frentes está aberta. Vazio = a página com os três quadros.
+   Fica na memória da sessão, não no estado: é escolha de navegação de quem
+   está na frente da tela, não dado do sistema. */
+let _wppFrente='';
+
+function wppAbrirFrente(id){
+  _wppFrente=id||'';
+  const inicio=document.getElementById('wpp-inicio');
+  const voltar=document.getElementById('wpp-voltar');
+  const data=document.getElementById('wpp-date');
+  const tarefas=document.getElementById('wpp-tasks');
+  const napagina=!_wppFrente;
+  if(inicio)  inicio.style.display  = napagina ? '' : 'none';
+  if(voltar)  voltar.style.display  = napagina ? 'none' : '';
+  if(data)    data.style.display    = napagina ? 'none' : '';
+  if(tarefas) tarefas.style.display = napagina ? 'none' : '';
+  try{ preencherIconesDeclarados(document.getElementById('tab-whatsapp')); }catch(e){}
+  if(!napagina) renderWpp();
+}
+
+/* Os ícones dos quadros são os mesmos desenhos de traço do menu — sem emoji
+   colorido e sem animação, como o resto do sistema. */
+function preencherIconesDeclarados(raiz){
+  (raiz||document).querySelectorAll('[data-icone]').forEach(el=>{
+    if(el.dataset.iconeFeito==='1') return;
+    const svg=iconeMenu(el.dataset.icone);
+    if(!svg) return;
+    el.innerHTML=svg;
+    el.dataset.iconeFeito='1';
+  });
+}
+
 function renderWpp(){
   const container=document.getElementById('wpp-tasks');
   if(!container) return;
+  try{ preencherIconesDeclarados(document.getElementById('tab-whatsapp')); }catch(e){}
   const groups=appState.tasks.whatsapp;
   if(!Array.isArray(groups)||groups.length===0){ container.innerHTML=''; return; }
   container.innerHTML='';
@@ -8709,6 +8790,11 @@ function renderWpp(){
     });
     // Patch pontual: garante o botão "Precificação Pix" e remove o antigo link direto, mesmo em estados antigos já salvos
     if(g.id==='wpp_atend'){
+      // "Pagamento Crédito" virou "Gerar PIX/Link Crédito". O nome também
+      // está no estado já gravado de quem usa o sistema há tempo, e sem este
+      // remendo só quem entrasse com o estado zerado veria o nome novo.
+      const pag=g.items.find(i=>i.id==='wpp_c3');
+      if(pag && pag.text==='Pagamento Crédito') pag.text='Gerar PIX/Link Crédito';
       const orc=g.items.find(i=>i.id==='wpp_a2');
       if(orc && Array.isArray(orc.btns)){
         // migra do modelo antigo (PIX + Cartão de Crédito) para botão único "Valores"
@@ -8761,6 +8847,8 @@ function renderWpp(){
 
   groups.forEach(g=>{
     if(!g||!Array.isArray(g.items)||g.items.length===0) return;
+    // Só a frente aberta é desenhada — ver wppAbrirFrente
+    if(_wppFrente && g.id!==_wppFrente) return;
     try{
     const allDone=g.items.every(i=>i.done);
     const card=document.createElement('div');card.className='task-group';
