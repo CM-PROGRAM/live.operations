@@ -1064,3 +1064,36 @@ que o login virou uma fila antes do rastreio, e não um ramo paralelo
 Dentro de um nó Code a regra é outra — lá dá para se defender com
 `try { $('Nó').item } catch (e) {}`, que é como o `Padroniza` lê o `envioId`
 sem se importar com qual dos dois caminhos o item tomou.
+
+---
+
+## Intermediador: quem tem consulta automática
+
+O campo **Intermediador** do card diz de onde a automação pergunta pelo
+rastreio. Hoje o fluxo sabe consultar dois:
+
+| Intermediador | Consulta automática | Como |
+|---|---|---|
+| Melhor Envio | sim | API do Melhor Envio, pelo id do envio |
+| Manda Bem | sim | painel do Manda Bem, pelo número da coleta |
+| **Mercado Envios** | **não** | acompanhamento manual |
+
+"Mercado Envios" existe na lista porque a equipe precisa registrar por onde a
+etiqueta saiu, mesmo sem robô consultando. O nó *Fila de consulta* deixa esses
+cards de fora de propósito, e o log da rodada diz quantos ficaram:
+
+```
+N rastreio(s) fora da fila por não ter intermediador definido no card
+```
+
+Isso **não é um defeito a corrigir com um jeitinho**. Se o card passasse pelo
+Switch, cairia na saída "Sem fonte" e chegaria ao normalizador como card cru —
+que leria o campo `status` do próprio card e o gravaria de volta como se fosse
+resposta da transportadora. O rastreio pareceria atualizado de hora em hora
+sem nunca ter sido consultado, que é pior do que não consultar.
+
+Para ligar a consulta do Mercado Envios seria preciso: credencial da API do
+Mercado Livre (`shipments/{id}`), uma terceira saída no Switch *Por
+intermediador*, o nó HTTP correspondente, o dicionário de estados do ML no
+*Padroniza*, e `'Mercado Envios'` entrando na constante `FONTES` da *Fila de
+consulta*. É trabalho de um fluxo novo, não de um parâmetro.

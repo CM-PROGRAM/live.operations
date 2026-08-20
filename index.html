@@ -1610,7 +1610,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ENVIOS -->
     <div class="tab-panel" id="tab-envios">
       <div class="section-header">
-        <span class="section-title">Rastreador de Encomendas</span>
+        <span class="section-title">Rastreador Live</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
       <div class="date-header" id="env-date"></div>
@@ -1704,11 +1704,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                 <option value="">— Selecionar —</option>
               </select>
             </div>
-            <div class="input-group"><label>Intermediador</label>
+            <div class="input-group"><label style="display:flex;align-items:center;justify-content:space-between;"><span>Intermediador</span><button type="button" class="lista-editar" title="Gerenciar os intermediadores" onclick="abrirGerenciarLista('rst-intermediador')">✎ editar lista</button></label>
               <select id="rst-intermediador">
                 <option value="">— Selecionar —</option>
-                <option value="Melhor Envio">Melhor Envio</option>
-                <option value="Manda Bem">Manda Bem</option>
               </select>
             </div>
             <div class="input-group"><label>Id no intermediador <span style="color:var(--text-muted);font-weight:400;">(rastreio automático)</span></label><input type="text" id="rst-envioid" placeholder="Melhor Envio: id do pedido · Manda Bem: 4600136" title="É por este id que o robô consulta o rastreio. No Manda Bem é o número da coleta — o mesmo que aparece na lista de etiquetas geradas." autocomplete="new-password" data-lpignore="true"></div>
@@ -3665,7 +3663,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   </div>
 </div>
 
-<!-- HISTÓRICO DE RASTREIO (Rastreador de Encomendas) -->
+<!-- HISTÓRICO DE RASTREIO (Rastreador Live) -->
 <!-- GERENCIADOR DE LISTA — um só para todas as listas editáveis do sistema -->
 <div id="gl-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:3200;align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:22px;width:420px;max-width:96vw;max-height:86vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
@@ -7897,7 +7895,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20j';
+const APP_VERSAO='2026.08.20k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8050,7 +8048,7 @@ function buildTabs(){
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       {id:'registrovendas', label:'Pedidos', perm:'whatsapp'},
       {id:'canceladas', label:'Pedidos Cancelados'},
-      {id:'envios',    label:'Rastreador de Encomendas', perm:'envios'},
+      {id:'envios',    label:'Rastreador Live', perm:'envios'},
       // A consulta de CPF é de todo mundo: quem atende cliente precisa do
       // telefone, e trancar isso só criava pedido de liberação para o master
       {id:'consultacpf', label:'Consulta CPF', perm:null}
@@ -8351,10 +8349,11 @@ const MANUAL_ABAS=[
    ],
    atencao:'Se um pedido não aparecer em <b>Pedidos Base WhatsApp</b>, quase sempre a origem de venda dele na Base não é o WhatsApp. Confira lá antes de lançar à mão.'},
 
-  {icone:'track', aba:'Vendas → Rastreador de Encomendas', perm:'envios',
+  {icone:'track', aba:'Vendas → Rastreador Live', perm:'envios',
    paraQue:'Acompanhamento dos envios. A automação consulta a transportadora e escreve o status no card.',
    passos:[
      'Crie o card preenchendo o essencial: <b>código de rastreio</b> (ou o código do envio no Melhor Envio) e a <b>transportadora</b>. Sem esses dois, a automação não tem o que consultar.',
+     'O <b>Intermediador</b> diz de onde vem a consulta. Só <b>Melhor Envio</b> e <b>Manda Bem</b> têm consulta automática hoje; card marcado como <b>Mercado Envios</b> fica de fora da fila e o rastreio é acompanhado à mão.',
      'O status aparece na frente do card, com o texto exato que a transportadora devolveu — "Entregue", "Em trânsito", "No centro de distribuição de…".',
      'O botão <b>Verificações</b> abre o histórico de cada consulta da automação: quando rodou, o que voltou e, se deu erro, qual foi.'
    ],
@@ -15955,6 +15954,7 @@ function openRstModal(id){
   const rstObsCnt=document.getElementById('rst-obs-count'); if(rstObsCnt) rstObsCnt.textContent='150 restantes';
   renderRstStatusOptions('');
   renderRstTranspOptions('');
+  renderRstPltOptions('');
 
   if(titleEl) titleEl.textContent='Rastreio';
   if(id){
@@ -15967,7 +15967,7 @@ function openRstModal(id){
       document.getElementById('rst-previsao').value = r.previsao||'';
       document.getElementById('rst-codigo').value = r.codigo||'';
       document.getElementById('rst-link').value   = r.link||'';
-      const _inter=document.getElementById('rst-intermediador'); if(_inter) _inter.value=r.intermediador||'';
+      renderRstPltOptions(r.intermediador||'');
       const _envid=document.getElementById('rst-envioid'); if(_envid) _envid.value=r.envioId||'';
       document.getElementById('rst-obs').value    = r.obs||'';
       const rstObsCntE=document.getElementById('rst-obs-count'); if(rstObsCntE) rstObsCntE.textContent=(150-(r.obs||'').length)+' restantes';
@@ -16361,7 +16361,7 @@ function _listasEditaveis(){
   const r = {
     'rst-status':      {titulo:'Status do rastreio',        base:RST_STATUS_BASE,   chave:'customStatusRst',          render:renderRstStatusOptions},
     'rst-transp':      {titulo:'Transportadora',            base:RST_TRANSP_BASE,   chave:'customTransportadoraRst',  render:renderRstTranspOptions},
-    'rst-plt':         {titulo:'Plataforma da etiqueta',    base:RST_PLT_BASE,      chave:'customPltEtiquetaRst',     render:renderRstPltOptions},
+    'rst-intermediador':{titulo:'Intermediador da etiqueta', base:RST_PLT_BASE,     chave:'customPltEtiquetaRst',     render:renderRstPltOptions},
     'rst-marketplace': {titulo:'Marketplace',               base:RST_MKTP_BASE,     chave:'customMktpsRst',           render:renderRstMktpOptions},
     'dev-status':      {titulo:'Status da devolução',       base:DEV_STATUS_BASE,   chave:'customStatusDev',          render:renderDevStatusOptions},
     'dev-motivo':      {titulo:'Motivo da devolução',       base:DEV_MOTIVO_BASE,   chave:'customMotivosDev',         render:renderDevMotivoOptions},
@@ -16882,10 +16882,16 @@ function addDevPlataforma(){ addCustomOpt('dev-plataforma',DEV_PLT_BASE,'customP
 function removeDevPlataforma(){ removeCustomOpt('dev-plataforma',DEV_PLT_BASE,'customPlataformasDev','plataforma',renderDevPlataformaOptions); }
 
 /* --- Rastreio: Plataforma Etiqueta, Plataformas MKTPs, Status, Transportadora --- */
-const RST_PLT_BASE=['Manda Bem','Melhor Envio'];
-function renderRstPltOptions(sel){ renderCustomOpts('rst-plt',RST_PLT_BASE,'customPltEtiquetaRst',sel); }
-function addRstPlt(){ addCustomOpt('rst-plt',RST_PLT_BASE,'customPltEtiquetaRst','plataforma etiqueta',renderRstPltOptions); }
-function removeRstPlt(){ removeCustomOpt('rst-plt',RST_PLT_BASE,'customPltEtiquetaRst','plataforma etiqueta',renderRstPltOptions); }
+/* Intermediadores da etiqueta. Atenção ao acrescentar: só "Melhor Envio" e
+   "Manda Bem" têm consulta automática no fluxo do n8n. Card marcado com
+   qualquer outro fica de fora da fila de consulta de propósito — e é assim
+   que tem de ser: perguntar a um lugar que não sabe responder devolveria o
+   próprio status do card como se fosse resposta da transportadora, e o
+   rastreio pareceria atualizado sem nunca ter sido consultado. */
+const RST_PLT_BASE=['Manda Bem','Melhor Envio','Mercado Envios'];
+function renderRstPltOptions(sel){ renderCustomOpts('rst-intermediador',RST_PLT_BASE,'customPltEtiquetaRst',sel); }
+function addRstPlt(){ addCustomOpt('rst-intermediador',RST_PLT_BASE,'customPltEtiquetaRst','intermediador',renderRstPltOptions); }
+function removeRstPlt(){ removeCustomOpt('rst-intermediador',RST_PLT_BASE,'customPltEtiquetaRst','intermediador',renderRstPltOptions); }
 
 const RST_MKTP_BASE=['SHOPEE - Suplenium','SHOPEE - Primevitaminas','MERC. LIVRE - Vitalife','MERC. LIVRE - VXShop','DROG. SÃO PAULO - ForVita','DROG. PACHECO - ForVita','MAGALU - 4Vita','WEB CONTINENTAL - 4Vita','RD MARKETPLACE - Vix Suplementos','ATACADO - Suplelive'];
 function renderRstMktpOptions(sel){ renderCustomOpts('rst-marketplace',RST_MKTP_BASE,'customMktpsRst',sel); }
