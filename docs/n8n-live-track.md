@@ -1077,9 +1077,10 @@ rastreio. Hoje o fluxo sabe consultar dois:
 | Melhor Envio | sim | API do Melhor Envio, pelo id do envio |
 | Manda Bem | sim | painel do Manda Bem, pelo número da coleta |
 | **Mercado Envios** | **não** | acompanhamento manual |
+| **Shopee Xpress** | **não** | acompanhamento manual |
 
-"Mercado Envios" existe na lista porque a equipe precisa registrar por onde a
-etiqueta saiu, mesmo sem robô consultando. O nó *Fila de consulta* deixa esses
+"Mercado Envios" e "Shopee Xpress" existem na lista porque a equipe precisa
+registrar por onde a etiqueta saiu, mesmo sem robô consultando. O nó *Fila de consulta* deixa esses
 cards de fora de propósito, e o log da rodada diz quantos ficaram:
 
 ```
@@ -1092,8 +1093,10 @@ que leria o campo `status` do próprio card e o gravaria de volta como se fosse
 resposta da transportadora. O rastreio pareceria atualizado de hora em hora
 sem nunca ter sido consultado, que é pior do que não consultar.
 
-Para ligar a consulta do Mercado Envios seria preciso: credencial da API do
-Mercado Livre (`shipments/{id}`), uma terceira saída no Switch *Por
-intermediador*, o nó HTTP correspondente, o dicionário de estados do ML no
-*Padroniza*, e `'Mercado Envios'` entrando na constante `FONTES` da *Fila de
-consulta*. É trabalho de um fluxo novo, não de um parâmetro.
+Para ligar a consulta de um deles seria preciso, em cada caso: a credencial
+da API (Mercado Livre `shipments/{id}`; Shopee Open Platform, que exige app
+aprovado e assinatura por chamada), mais uma saída no Switch *Por
+intermediador*, o nó HTTP correspondente, o dicionário de estados daquela
+transportadora no *Padroniza*, e o nome entrando na constante `FONTES` da
+*Fila de consulta*. É trabalho de um fluxo novo, não de um parâmetro — e o
+da Shopee é o mais caro dos dois, por causa da aprovação do app.

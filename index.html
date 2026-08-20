@@ -7895,7 +7895,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20k';
+const APP_VERSAO='2026.08.20l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8353,7 +8353,7 @@ const MANUAL_ABAS=[
    paraQue:'Acompanhamento dos envios. A automação consulta a transportadora e escreve o status no card.',
    passos:[
      'Crie o card preenchendo o essencial: <b>código de rastreio</b> (ou o código do envio no Melhor Envio) e a <b>transportadora</b>. Sem esses dois, a automação não tem o que consultar.',
-     'O <b>Intermediador</b> diz de onde vem a consulta. Só <b>Melhor Envio</b> e <b>Manda Bem</b> têm consulta automática hoje; card marcado como <b>Mercado Envios</b> fica de fora da fila e o rastreio é acompanhado à mão.',
+     'O <b>Intermediador</b> diz de onde vem a consulta. Só <b>Melhor Envio</b> e <b>Manda Bem</b> têm consulta automática hoje; card marcado como <b>Mercado Envios</b> ou <b>Shopee Xpress</b> fica de fora da fila e o rastreio é acompanhado à mão.',
      'O status aparece na frente do card, com o texto exato que a transportadora devolveu — "Entregue", "Em trânsito", "No centro de distribuição de…".',
      'O botão <b>Verificações</b> abre o histórico de cada consulta da automação: quando rodou, o que voltou e, se deu erro, qual foi.'
    ],
@@ -16888,7 +16888,7 @@ function removeDevPlataforma(){ removeCustomOpt('dev-plataforma',DEV_PLT_BASE,'c
    que tem de ser: perguntar a um lugar que não sabe responder devolveria o
    próprio status do card como se fosse resposta da transportadora, e o
    rastreio pareceria atualizado sem nunca ter sido consultado. */
-const RST_PLT_BASE=['Manda Bem','Melhor Envio','Mercado Envios'];
+const RST_PLT_BASE=['Manda Bem','Melhor Envio','Mercado Envios','Shopee Xpress'];
 function renderRstPltOptions(sel){ renderCustomOpts('rst-intermediador',RST_PLT_BASE,'customPltEtiquetaRst',sel); }
 function addRstPlt(){ addCustomOpt('rst-intermediador',RST_PLT_BASE,'customPltEtiquetaRst','intermediador',renderRstPltOptions); }
 function removeRstPlt(){ removeCustomOpt('rst-intermediador',RST_PLT_BASE,'customPltEtiquetaRst','intermediador',renderRstPltOptions); }
