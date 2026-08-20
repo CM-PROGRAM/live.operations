@@ -1194,7 +1194,23 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .atv-colhead .ic svg{width:100%;height:100%;}
 .atv-colhead .lbl{font-size:12px;font-weight:700;letter-spacing:.2px;flex:1;color:var(--hc-text);}
 .atv-colhead .cnt{border-radius:999px;font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:2px 10px;background:var(--hc-bg2);color:var(--hc-text);}
-.atv-colhead .atv-colchev{font-size:10px;color:var(--hc-text);transition:transform .15s;display:inline-flex;flex-shrink:0;}
+.atv-colhead .atv-colchev{font-size:15px;line-height:1;color:var(--hc-text);transition:transform .15s,background .15s;
+  display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;
+  width:24px;height:24px;border-radius:50%;border:1px solid var(--hc-border);background:var(--hc-bg2);}
+.atv-colhead:hover .atv-colchev{filter:brightness(1.3);}
+/* Busca das tarefas diárias */
+.atv-busca{display:flex;align-items:center;gap:6px;padding:3px 6px 3px 12px;border-radius:50px;
+  background:var(--grad-vidro);border:1px solid var(--glass-border);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);
+  min-width:240px;max-width:340px;flex:0 1 320px;}
+.atv-busca:focus-within{border-color:rgba(59,130,246,0.6);}
+.atv-busca-ic{font-size:12px;line-height:1;opacity:.7;flex-shrink:0;}
+.atv-busca input{background:none;border:none;outline:none;box-shadow:none;padding:4px 0;width:100%;
+  font-family:var(--font-sans);font-size:12px;color:var(--text-primary);}
+.atv-busca input::-webkit-search-cancel-button{display:none;}
+.atv-busca-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;
+  padding:2px 6px;border-radius:50px;flex-shrink:0;visibility:hidden;}
+.atv-busca.tem-texto .atv-busca-x{visibility:visible;}
+.atv-busca-x:hover{color:var(--text-primary);background:var(--veu-suave);}
 .atv-colhead .atv-colchev.closed{transform:rotate(-90deg);}
 .atv-colhead[data-c="afazer"]{--hc-border:rgba(125,148,196,.4);--hc-bg:rgba(125,148,196,.10);--hc-bg2:rgba(125,148,196,.18);--hc-text:#b0bfd8;}
 .atv-colhead[data-c="atrasada"]{--hc-border:rgba(248,113,113,.45);--hc-bg:rgba(248,113,113,.10);--hc-bg2:rgba(248,113,113,.20);--hc-text:#fca5a5;}
@@ -1831,10 +1847,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       <!-- Filtros de colaborador/prioridade -->
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <select id="atv-filter-colab" onchange="renderAtividades()" style="background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
+        <div class="atv-busca">
+          <span class="atv-busca-ic">🔎</span>
+          <input type="search" id="atv-filter-busca" oninput="renderAtividades()"
+                 placeholder="Buscar por título, código, responsável…" autocomplete="off">
+          <button type="button" class="atv-busca-x" title="Limpar busca" onclick="atvLimparBusca()">✕</button>
+        </div>
+        <select id="atv-filter-colab" onchange="renderAtividades()" style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
           <option value="">Todos os colaboradores</option>
         </select>
-        <select id="atv-filter-prior" onchange="renderAtividades()" style="background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
+        <select id="atv-filter-prior" onchange="renderAtividades()" style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
           <option value="">Todas prioridades</option>
           <option value="urgente">🔴 Urgente</option>
           <option value="alta">🟡 Alta</option>
@@ -2500,101 +2522,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <!-- CENTRAL DE TAREFAS — CRIAR TAREFA -->
-    <div class="tab-panel" id="tab-criartarefa">
-      <div class="section-header">
-        <span class="section-title">Criar Tarefa</span>
-      </div>
-      <div style="max-width:620px;">
-        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
-          <div class="input-group">
-            <label style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Título da tarefa</span>
-              <span style="display:flex;gap:4px;">
-                <button type="button" title="Adicionar título à lista" class="btn-orb v-add" style="width:20px;height:20px;"
-                  onclick="criatarAddTitulo()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                <button type="button" title="Excluir o título selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"
-                  onclick="criatarRemoveTitulo()"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-              </span>
-            </label>
-            <select id="criatar-titulo-sel" onchange="criatarTituloChanged()"></select>
-            <div id="criatar-titulo-add" style="display:none;align-items:center;gap:6px;margin-top:6px;">
-              <input type="text" maxlength="120" placeholder="Nome do novo título" style="flex:1;">
-              <button type="button" class="btn btn-sm" data-acao="ok" style="width:auto;">Adicionar</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-acao="cancelar" style="width:auto;">Cancelar</button>
-            </div>
-            <!-- "Outro" mantém a liberdade de escrever um título avulso, que
-                 era como o campo funcionava antes de virar lista -->
-            <input type="text" id="criatar-titulo" maxlength="120" placeholder="Escreva o título" style="display:none;margin-top:6px;">
-          </div>
-          <div class="input-group">
-            <label>Colaborador(es) responsável(is)</label>
-            <div id="criatar-resp-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
-          </div>
-          <div class="input-group">
-            <label style="display:flex;align-items:center;justify-content:space-between;">
-              <span>Identificação</span>
-              <span style="display:flex;gap:4px;">
-                <button type="button" title="Adicionar tipo de identificação" class="btn-orb v-add" style="width:20px;height:20px;"
-                  onclick="criatarAddCodigoTipo()"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-                <button type="button" title="Excluir o tipo selecionado" class="btn-orb v-danger" style="width:20px;height:20px;"
-                  onclick="criatarRemoveCodigoTipo()"><svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
-              </span>
-            </label>
-            <div id="criatar-codigo-add" style="display:none;align-items:center;gap:6px;margin-bottom:6px;">
-              <input type="text" maxlength="30" placeholder="Ex: EAN, GTIN, Nº Pedido" style="flex:1;">
-              <button type="button" class="btn btn-sm" data-acao="ok" style="width:auto;">Adicionar</button>
-              <button type="button" class="btn btn-ghost btn-sm" data-acao="cancelar" style="width:auto;">Cancelar</button>
-            </div>
-            <div style="display:flex;gap:8px;">
-              <select id="criatar-codigo-tipo" onchange="codigoTipoChanged('criatar')" style="flex:0 0 130px;"></select>
-              <div style="flex:1;position:relative;">
-                <span id="criatar-codigo-mlb-prefix" style="display:none;position:absolute;left:10px;top:50%;transform:translateY(-50%);font-family:var(--font-mono);font-size:12px;color:var(--text-muted);pointer-events:none;">MLB</span>
-                <input type="text" id="criatar-codigo-num" oninput="codigoNumInput('criatar')" placeholder="Número" style="width:100%;box-sizing:border-box;">
-              </div>
-            </div>
-          </div>
-          <div class="input-group">
-            <label style="display:flex;justify-content:space-between;"><span>Considerações</span></label>
-            <div style="display:flex;gap:8px;">
-              <textarea id="criatar-cons-input" maxlength="250" rows="2" placeholder="Escreva uma consideração..." style="flex:1;"></textarea>
-              <button type="button" class="btn btn-sm" onclick="considAdd('criatar')" style="flex:0 0 auto;align-self:flex-end;">Salvar</button>
-            </div>
-            <div id="criatar-cons-list"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="input-group" style="position:relative;">
-              <label>Prazo conclusão</label>
-              <input type="hidden" id="criatar-vencimento">
-              <button type="button" id="criatar-venc-trigger" onclick="vencOpenCal('criatar')" style="width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-                <span id="criatar-venc-label" style="color:var(--text-muted);">Selecionar data</span>
-                <span style="font-size:14px;">📅</span>
-              </button>
-              <div id="criatar-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
-            </div>
-            <div class="input-group">
-              <label>Prioridade</label>
-              <div class="atv-prior-select" id="criatar-prioridade-wrap">
-                <button type="button" class="atv-prior-trigger" id="criatar-prioridade-trigger" onclick="prioToggleMenu('criatar')">
-                  <span class="atv-prior-dot gray" id="criatar-prioridade-dot"></span>
-                  <span id="criatar-prioridade-label">Normal</span>
-                  <span class="chev">▾</span>
-                </button>
-                <div class="atv-prior-menu" id="criatar-prioridade-menu" style="display:none;">
-                  <div class="atv-prior-opt" onclick="prioSelect('criatar','normal')"><span class="atv-prior-dot gray"></span>Normal</div>
-                  <div class="atv-prior-opt" onclick="prioSelect('criatar','alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
-                  <div class="atv-prior-opt" onclick="prioSelect('criatar','urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
-                </div>
-                <input type="hidden" id="criatar-prioridade" value="normal">
-              </div>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:6px;">
-            <button class="btn btn-ghost" onclick="limparCriarTarefa()" style="flex:1;">Limpar</button>
-            <button class="btn" onclick="salvarCriarTarefa()" style="flex:1;">Criar Tarefa</button>
-          </div>
-        </div>
-      </div>
-    </div>
 
     <!-- ADMIN -->
     <div class="tab-panel" id="tab-admin">
@@ -7852,7 +7779,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20a';
+const APP_VERSAO='2026.08.20b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -7963,8 +7890,7 @@ function buildTabs(){
   const tabs=[
     {id:'inicio', icon:'🏠', label:'Página inicial', perm:null},
     {type:'group', id:'grp-tarefas', icon:'📌', label:'Central de Tarefas', perm:'tarefas', children:[
-      {id:'tarefas',   label:'Tarefas Diárias'},
-      {id:'criar-tarefa', label:'Criar Tarefa', panel:'criartarefa'}
+      {id:'tarefas',   label:'Tarefas Diárias'}
     ]},
     {type:'group', id:'grp-atendimentos', icon:'📞', label:'Atendimentos', perm:'atendimentos', children:[
       {id:'atendimentos', label:'Lançamentos'}
@@ -8062,7 +7988,6 @@ function buildTabs(){
     if(id==='notas'){ try{initNotas();}catch(e){console.warn('initNotas:',e);} }
     if(id==='cnpjs'){ try{renderCnpjTable();renderCnpjStatusPanel();}catch(e){console.warn('renderCnpjTable:',e);} }
     if(id==='consultacpf'){ try{renderLiveCpf();}catch(e){console.warn('renderLiveCpf:',e);} }
-    if(id==='criar-tarefa'){ try{initCriarTarefaForm();}catch(e){console.warn('initCriarTarefaForm:',e);} }
     if(id==='canceladas'){ try{initCanceladaForm('canc');}catch(e){console.warn('initCanceladaForm:',e);} }
     if(id==='canceladasnf'){ try{initCanceladaForm('cancnf');}catch(e){console.warn('initCanceladaForm:',e);} }
     if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
@@ -8233,6 +8158,7 @@ const MANUAL_ABAS=[
    paraQue:'O quadro do dia. Tudo que precisa ser feito aparece aqui, seja criado à mão ou vindo de uma solicitação de outra aba.',
    passos:[
      'As tarefas ficam separadas por situação: <b>A Fazer</b>, <b>Com Pendência</b>, <b>Atrasadas</b>, <b>Concluídas</b> e <b>Finalizadas</b>. Clique na seta ao lado do título para abrir ou fechar cada bloco.',
+     'A <b>busca</b> no alto acha por título, código do anúncio/pedido, texto da consideração ou nome do responsável. Acento não atrapalha: "devolucao" acha "devolução".',
      'Abra a tarefa para escrever o que foi feito, anexar print e trocar a situação. O que você escreve fica registrado com seu nome e a hora.',
      'Marque como <b>Concluída</b> quando terminar. Quem solicitou vê a baixa na aba de origem — e a solicitação sai da lista dela sozinha.',
      'Use <b>Com Pendência</b> quando depender de outra pessoa: assim a tarefa não se perde no meio das concluídas.'
@@ -17883,6 +17809,9 @@ function renderAtividades(){
 
   const filterColab=fColab?fColab.value:'';
   const filterPrior=fPrior?fPrior.value:'';
+  const fBusca=document.getElementById('atv-filter-busca');
+  const termo=(fBusca?fBusca.value:'').trim().toLowerCase();
+  if(fBusca && fBusca.parentElement) fBusca.parentElement.classList.toggle('tem-texto', !!termo);
 
   atvAtualizarAbasKanban();
 
@@ -17904,6 +17833,7 @@ function renderAtividades(){
     // ao master ou ao colaborador responsável (canAct / permissões do modal).
     if(filterColab && !getAtvResponsaveis(a).includes(filterColab)) return;
     if(filterPrior && a.prioridade!==filterPrior) return;
+    if(termo && !_atvCasaBusca(a,termo)) return;
 
     const user=appState.users[a.responsavel];
     const prior=ATV_PRIOR[a.prioridade]||ATV_PRIOR.normal;
@@ -18118,7 +18048,39 @@ function renderAtividades(){
     const el=document.getElementById('atv-count-'+s);if(el)el.textContent=n;
   });
   const empty=document.getElementById('atv-empty');
-  if(empty) empty.style.display=total===0?'block':'none';
+  if(empty){
+    empty.style.display=total===0?'block':'none';
+    empty.textContent = termo
+      ? 'Nenhuma tarefa encontrada para \u201c'+fBusca.value.trim()+'\u201d.'
+      : 'Nenhuma tarefa cadastrada ainda.';
+  }
+}
+
+/* A busca das tarefas diárias procura no que a pessoa realmente lembra:
+   o título, o código do anúncio/pedido, o texto das considerações, quem é
+   responsável e quem criou. Acento não atrapalha — "devolucao" acha
+   "devolução", que é como todo mundo digita com pressa. */
+function _atvSemAcento(t){
+  return String(t==null?'':t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function _atvCasaBusca(a,termo){
+  const alvo=_atvSemAcento(termo);
+  if(!alvo) return true;
+  const partes=[a.titulo,a.sku,a.skuTipo,a.descricao,a.criadoPor,a.marketplace];
+  try{
+    getAtvResponsaveis(a).forEach(k=>{
+      const u=appState.users[k];
+      if(u&&u.name) partes.push(u.name);
+    });
+  }catch(e){}
+  return _atvSemAcento(partes.filter(Boolean).join(' ')).includes(alvo);
+}
+function atvLimparBusca(){
+  const el=document.getElementById('atv-filter-busca');
+  if(!el) return;
+  el.value='';
+  renderAtividades();
+  el.focus();
 }
 
 // Descrição curta de um item para usar no texto da notificação. Tarefas/projetos
@@ -19113,7 +19075,7 @@ function vencRenderCal(prefix){
   pop.innerHTML=html;
 }
 document.addEventListener('click',function(e){
-  ['entrada','integ','img','venda','criatar','atrib'].forEach(prefix=>{
+  ['entrada','integ','img','venda','atrib'].forEach(prefix=>{
     const pop=document.getElementById(prefix+'-cal-popover');
     const trig=document.getElementById(prefix+'-venc-trigger');
     if(pop&&pop.style.display==='block'&&!_cliqueVeioDe(pop)&&trig&&!_cliqueVeioDe(trig)) pop.style.display='none';
@@ -19336,140 +19298,6 @@ function openIntegModal(mkt,id,ctx){
 function closeIntegModal(){ document.getElementById('integ-modal-overlay').style.display='none'; }
 document.getElementById('integ-modal-overlay').onclick=e=>{if(e.target===e.currentTarget)closeIntegModal();};
 
-// ── Central de Tarefas → Criar Tarefa ──────────────────────────────
-// Cria uma tarefa avulsa em Tarefas Diárias com: Título, Colaborador(es)
-// responsável(is), SKU, Considerações, Prazo de conclusão e Prioridade.
-function limparCriarTarefa(){
-  const t=document.getElementById('criatar-titulo'); if(t) t.value='';
-  try{ renderCriatarTitulos(''); }catch(e){}
-  const cons=document.getElementById('criatar-cons-input'); if(cons) cons.value='';
-  try{ considSet('criatar',[]); }catch(e){}
-  try{ respSetSel('criatar',[]); }catch(e){}
-  try{ codigoSetValue('criatar','SKU',''); }catch(e){}
-  const venc=document.getElementById('criatar-vencimento'); if(venc) venc.value='';
-  try{ vencSyncDisplay('criatar'); }catch(e){}
-  try{ prioSelect('criatar','normal'); }catch(e){}
-}
-
-/* ── Criar Tarefa: listas de Título e de Identificação ── */
-const CRIATAR_TITULO_OUTRO='__outro__';
-
-function renderCriatarTitulos(selecionado){
-  const sel=document.getElementById('criatar-titulo-sel');
-  if(!sel) return;
-  const val = selecionado!==undefined ? selecionado : sel.value;
-  // A lista é a mesma dos títulos da tarefa, para os dois lados do sistema
-  // falarem a mesma língua
-  sel.innerHTML='<option value="">— Selecionar —</option>'
-    + getAllCustomOpts(ATV_TITULO_BASE,'customTitulosAtv').map(t=>`<option value="${t}">${t}</option>`).join('')
-    + `<option value="${CRIATAR_TITULO_OUTRO}">✎ Outro (escrever)</option>`;
-  sel.value=val||'';
-  criatarTituloChanged();
-}
-
-// "Outro" revela o campo de texto — é como o título funcionava antes de virar
-// lista, e continua servindo para um título que só vale uma vez
-function criatarTituloChanged(){
-  const sel=document.getElementById('criatar-titulo-sel');
-  const livre=document.getElementById('criatar-titulo');
-  if(!sel||!livre) return;
-  const outro = sel.value===CRIATAR_TITULO_OUTRO;
-  livre.style.display = outro ? 'block' : 'none';
-  if(outro) setTimeout(()=>livre.focus(),20); else livre.value='';
-}
-
-function _criatarTituloValor(){
-  const sel=document.getElementById('criatar-titulo-sel');
-  const livre=document.getElementById('criatar-titulo');
-  if(sel && sel.value && sel.value!==CRIATAR_TITULO_OUTRO) return sel.value.trim();
-  return ((livre||{}).value||'').trim();
-}
-
-function criatarAddTitulo(){
-  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar os títulos','warn'); return; }
-  _optAbrirInclusao('criatar-titulo-add', nome=>{
-    _optIncluir(ATV_TITULO_BASE,'customTitulosAtv','Título',nome, n=>{
-      renderCriatarTitulos(n);
-      try{ renderAtvTituloOptions(document.getElementById('atv-titulo').value); }catch(e){}
-    });
-  });
-}
-function criatarRemoveTitulo(){
-  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar os títulos','warn'); return; }
-  const sel=document.getElementById('criatar-titulo-sel');
-  if(sel && sel.value===CRIATAR_TITULO_OUTRO){ showToast('"Outro" faz parte da tela e não pode ser excluído','warn'); return; }
-  _optExcluir('criatar-titulo-sel',ATV_TITULO_BASE,'customTitulosAtv','Título', ()=>{
-    renderCriatarTitulos('');
-    try{ renderAtvTituloOptions(document.getElementById('atv-titulo').value); }catch(e){}
-  });
-}
-
-function criatarAddCodigoTipo(){
-  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar a identificação','warn'); return; }
-  _optAbrirInclusao('criatar-codigo-add', nome=>{
-    _optIncluir(CODIGO_TIPOS_BASE,'customCodigoTipos','Tipo de identificação',nome,
-      n=>renderCodigoTipos('criatar',n));
-  });
-}
-function criatarRemoveCodigoTipo(){
-  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode gerenciar a identificação','warn'); return; }
-  if(codigoTiposAtuais().length<=1){ showToast('Tem de sobrar ao menos um tipo de identificação','warn'); return; }
-  _optExcluir('criatar-codigo-tipo',CODIGO_TIPOS_BASE,'customCodigoTipos','Tipo de identificação',
-    ()=>renderCodigoTipos('criatar'));
-}
-
-function initCriarTarefaForm(){
-  try{ renderCriatarTitulos(); }catch(e){}
-  try{ renderCodigoTipos('criatar'); }catch(e){}
-  try{ respRenderGrid('criatar'); }catch(e){}
-  try{ considRenderList('criatar'); }catch(e){}
-  try{ vencSyncDisplay('criatar'); }catch(e){}
-  try{ codigoTipoChanged('criatar'); }catch(e){}
-}
-
-function salvarCriarTarefa(){
-  if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
-  const titulo=_criatarTituloValor();
-  if(!titulo){ showToast('Informe o título da tarefa','warn'); return; }
-  const responsaveis=respGetSel('criatar');
-  if(!responsaveis.length){ showToast('Selecione ao menos um colaborador responsável','warn'); return; }
-  const vencimento=(document.getElementById('criatar-vencimento')||{}).value||'';
-  if(!vencimento){ showToast('Informe o prazo de conclusão','warn'); return; }
-
-  const codigo=codigoGetValue('criatar');
-  const consideracoes=considGet('criatar');
-  const prioridade=(document.getElementById('criatar-prioridade')||{}).value||'normal';
-
-  if(!Array.isArray(appState.atividades)) appState.atividades=[];
-  const id='atv_nova_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-  appState.atividades.push({
-    id, titulo,
-    sku:codigo.exibicao, skuTipo:codigo.tipo,
-    descricao:consideracoes.map(c=>(c&&c.texto)?c.texto:String(c||'')).join(' | ').slice(0,1000),
-    responsaveis, responsavel:responsaveis[0],
-    vencimento, prioridade, status:'aberta',
-    criadoEm:_agoraCarimbo(),
-    criadoPor:currentUser.name, criadoPorKey:currentUser.key,
-    ordemManual:appState.atividades.length
-  });
-  saveState(appState);
-
-  // Notifica os responsáveis, com link direto para o card
-  responsaveis.forEach(respKey=>{
-    if(respKey===currentUser.key) return;
-    if(db && fbConnected){
-      db.ref('suplelive/notificacoes/'+respKey).push({
-        msg:`📌 Nova tarefa atribuída por ${currentUser.name}: "${titulo}"`,
-        ts:Date.now(), lida:false, tipo:'tarefa', de:currentUser.name,
-        alvoTipo:'tarefa', alvoId:id
-      });
-    }
-  });
-
-  limparCriarTarefa();
-  try{ renderAtividades(); }catch(e){}
-  showToast('✓ Tarefa criada em Tarefas Diárias','success');
-}
 
 // ══════════════════════════════════════════════════════════════════
 // VENDAS — CANCELADAS / CANCELADAS COM NF
