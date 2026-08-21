@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.21b';
+var VERSAO_CODIGO = '2026.08.21c';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -186,6 +186,14 @@ function doGet(e) {
      acontecer fora do navegador: a chave da Base ficaria à vista no código
      da página (o repositório é público) e nem a BaseLinker nem o site
      autorizam a chamada vinda de outro endereço. */
+  /* Sondagem da API da Base, para descobrir o que ela responde sem precisar
+     adivinhar. A lista de metodos e FECHADA e so de leitura: esta URL /exec
+     e publica, e um "chame qualquer metodo" aqui daria a quem tivesse o
+     endereco o poder de apagar pedido da conta. */
+  if (acao === 'basesonda') {
+    return _json(sondarBase(p.metodo || '', p.parametros || '{}'));
+  }
+
   if (acao === 'produto') {
     return _json(buscarProduto(p.sku || '', String(p.diag || '') === '1'));
   }
@@ -1270,4 +1278,42 @@ function buscarProduto(sku, diag) {
   }
   if (diag) saida.passos = passos;
   return saida;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════
+   SONDAGEM DA BASE — descobrir o que a API responde
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Só leitura, e só o que interessa ao rastreio. Nenhum metodo que altere ou
+   apague nada entra nesta lista, por mais util que pareca: a rota e publica. */
+var BASE_METODOS_SONDA = [
+  'getOrders',                        // um pedido, para ver os campos de envio
+  'getOrderPackages',                 // pacotes do pedido: transportador e codigo
+  'getCourierPackagesStatusHistory',  // historico de status do pacote
+  'getCouriersList',                  // transportadores ligados na conta
+  'getOrderSources',
+  'getInventories',
+  'getOrderStatusList'
+];
+
+function sondarBase(metodo, parametrosJson) {
+  metodo = String(metodo || '').trim();
+  if (BASE_METODOS_SONDA.indexOf(metodo) < 0) {
+    return {
+      ok: false,
+      erro: 'Metodo nao liberado nesta rota',
+      liberados: BASE_METODOS_SONDA
+    };
+  }
+  var params;
+  try { params = JSON.parse(parametrosJson || '{}'); }
+  catch (e) { return { ok: false, erro: 'parametros nao e JSON valido: ' + parametrosJson }; }
+
+  try {
+    var resposta = _baseChamar(metodo, params);
+    return { ok: true, metodo: metodo, parametros: params, resposta: resposta };
+  } catch (err) {
+    return { ok: false, metodo: metodo, parametros: params, erro: String(err) };
+  }
 }
