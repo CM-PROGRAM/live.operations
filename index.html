@@ -957,6 +957,18 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-quadros.quadros-maiores .ini-ic{width:56px;height:56px;}
 .ini-quadros.quadros-maiores .ini-tit{font-size:23px;}
 .ini-quadros.quadros-maiores .ini-sub{font-size:13px;max-width:300px;}
+/* Opções de conta no modal de Pagamento */
+.pag-opcao{width:100%;text-align:left;padding:12px 14px;border-radius:12px;cursor:pointer;
+  background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015));
+  border:1px solid var(--glass-border);color:var(--text-primary);
+  font-family:var(--font-sans);font-size:13px;font-weight:600;transition:all .15s;}
+.pag-opcao:hover{border-color:rgba(255,255,255,.32);transform:translateY(-1px);}
+.pag-opcao.escolhida{border-color:rgba(74,222,128,.55);box-shadow:0 0 0 1px rgba(74,222,128,.25);}
+/* Barra do topo do Atendimento: o rascunho e os três fechamentos */
+.atd-barra{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:11px 14px;
+  border-radius:14px;background:var(--veu-suave);border:1px solid var(--glass-border);}
+.atd-barra .atd-res{flex:1;min-width:200px;font-size:11.5px;font-family:var(--font-mono);color:var(--text-secondary);line-height:1.5;}
+.atd-barra .btn{width:auto;}
 @media(max-width:900px){.ini-quadros.tres-colunas{grid-template-columns:1fr;}}
 .ini-quadro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
   min-height:230px;padding:32px 24px;cursor:pointer;text-align:center;
@@ -1477,6 +1489,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
       <button class="ini-voltar" id="wpp-voltar" style="display:none;" onclick="wppAbrirFrente('')">← WhatsApp</button>
+      <!-- Fechamento do orçamento: junta o que os quadros preencheram.
+           Só aparece na frente Atendimento, que é onde o rascunho é montado. -->
+      <div class="atd-barra" id="atd-barra" style="display:none;">
+        <span class="atd-res" id="atd-resumo"></span>
+        <button class="btn btn-sm" onclick="gerarTextoPix()">PIX</button>
+        <button class="btn btn-sm" onclick="gerarTextoCartao()">Cartão</button>
+        <button class="btn btn-sm" onclick="gerarTextoBoleto()">Boleto</button>
+        <button class="btn btn-ghost btn-sm" onclick="atdLimpar()" title="Começar outro orçamento">Limpar</button>
+      </div>
       <div class="date-header" id="wpp-date" style="display:none;"></div>
       <div id="wpp-tasks" style="display:none;"></div>
 
@@ -3719,6 +3740,92 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
 <!-- REGISTRO DAS VERIFICAÇÕES — o que a automação fez, e quando -->
 <!-- HISTÓRICO DE PEDIDOS DO CLIENTE (Vendas → Clientes) -->
+<!-- ORÇAMENTO: SKU + QUANTIDADE (WhatsApp → Atendimento) -->
+<div id="modal-orcamento-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:460px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Or&ccedil;amento</div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">SKU e quantidade</div>
+      </div>
+      <button class="btn-link btn-sm" onclick="fecharModalOrcamento()">Fechar</button>
+    </div>
+    <div class="input-group" style="margin-bottom:10px;">
+      <label>SKU</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="orc-sku" placeholder="C&oacute;digo do produto na Base" style="flex:1;"
+               onkeydown="if(event.key==='Enter')buscarSkuNaBase()">
+        <button class="btn btn-sm" id="orc-buscar" onclick="buscarSkuNaBase()" style="width:auto;white-space:nowrap;">Buscar</button>
+      </div>
+    </div>
+    <div id="orc-achado" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;background:var(--veu-suave);border:1px solid var(--linha-sutil);">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:3px;">Produto</div>
+      <div id="orc-produto" style="font-size:13px;color:var(--text-primary);font-weight:600;line-height:1.4;"></div>
+    </div>
+    <div class="input-group" style="margin-bottom:10px;">
+      <label>Pre&ccedil;o do site, sem desconto (R$)</label>
+      <input type="text" id="orc-preco" inputmode="decimal" placeholder="Ex: 110,00">
+    </div>
+    <div class="input-group" style="margin-bottom:14px;">
+      <label>Quantidade (und.)</label>
+      <input type="text" id="orc-qtd" inputmode="numeric" placeholder="Ex: 1"
+             onkeydown="if(event.key==='Enter')salvarOrcamento()">
+    </div>
+    <div id="orc-erro" style="display:none;font-size:11.5px;color:var(--tom-vermelho);margin-bottom:10px;line-height:1.5;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-sm" onclick="salvarOrcamento()" style="flex:1;">Salvar</button>
+      <button class="btn btn-ghost btn-sm" onclick="fecharModalOrcamento()" style="flex:0 0 auto;">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAGAMENTO: escolher a conta (WhatsApp → Atendimento) -->
+<div id="modal-pagamento-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:420px;max-width:96vw;box-shadow:var(--sombra-painel),var(--realce-topo);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);"><span id="pag-titulo"></span></div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">Onde a cobran&ccedil;a ser&aacute; gerada</div>
+      </div>
+      <button class="btn-link btn-sm" onclick="fecharPagamento()">Fechar</button>
+    </div>
+    <div id="pag-lista" style="display:flex;flex-direction:column;gap:8px;"></div>
+  </div>
+</div>
+
+<!-- SCRIPT: texto padrão por meio de pagamento -->
+<div id="modal-script-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:560px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);" id="scr-titulo"></div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;" id="scr-aviso"></div>
+      </div>
+      <button class="btn-link btn-sm" onclick="fecharScript()">Fechar</button>
+    </div>
+    <textarea id="scr-texto" rows="14" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;resize:vertical;"></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn btn-sm" onclick="copiarScript()" style="flex:1;">Copiar</button>
+      <button class="btn btn-ghost btn-sm" id="scr-salvar" onclick="salvarScript()" style="flex:0 0 auto;">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEXTO GERADO (PIX / Cartão / Boleto) -->
+<div id="modal-atd-texto-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:600px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <div style="flex:1;">
+        <div style="font-size:15px;font-weight:700;color:var(--text-primary);"><span id="atd-texto-titulo"></span></div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">Pronto para colar na conversa</div>
+      </div>
+      <button class="btn-link btn-sm" onclick="fecharAtdTexto()">Fechar</button>
+    </div>
+    <textarea id="atd-texto-corpo" rows="16" readonly style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;resize:vertical;"></textarea>
+    <button class="btn btn-sm" onclick="copiarAtdTexto()" style="width:100%;margin-top:12px;">Copiar para o WhatsApp</button>
+  </div>
+</div>
+
 <!-- FRETE ESCOLHIDO (WhatsApp → Atendimento → Frete) -->
 <div id="modal-frete-escolhido-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:460px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
@@ -4140,6 +4247,7 @@ function defaultState(){
     entradas:[],
     extLinks:{},
     baseInfo:[],
+    scriptsPagamento:{},
     lastReset:todayStr()
   };
 }
@@ -4230,6 +4338,7 @@ function loadLocal(){
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     if(!Array.isArray(s.baseInfo)) s.baseInfo=[];
+    if(!s.scriptsPagamento || typeof s.scriptsPagamento!=='object') s.scriptsPagamento={};
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
     if(s.tasks.plataformas && Array.isArray(s.tasks.plataformas)){
       s.tasks.plataformas.forEach(g=>{
@@ -6795,6 +6904,8 @@ function _fundirListasDeOpcoes(novo, atual){
   }
   const semLinks = !novo.extLinks || typeof novo.extLinks!=='object' || !Object.keys(novo.extLinks).length;
   if(semLinks && atual.extLinks && Object.keys(atual.extLinks).length) novo.extLinks=atual.extLinks;
+  const semScripts = !novo.scriptsPagamento || typeof novo.scriptsPagamento!=='object' || !Object.keys(novo.scriptsPagamento).length;
+  if(semScripts && atual.scriptsPagamento && Object.keys(atual.scriptsPagamento).length) novo.scriptsPagamento=atual.scriptsPagamento;
 }
 
 function applyRemoteState(data){
@@ -6843,6 +6954,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
   if(!Array.isArray(data.baseInfo)) data.baseInfo = [];
+  if(!data.scriptsPagamento || typeof data.scriptsPagamento!=='object') data.scriptsPagamento = {};
   // Firebase omite arrays vazios — restaurar execs:[] para tasks com repeats>1
   if(data.tasks.plataformas && Array.isArray(data.tasks.plataformas)){
     data.tasks.plataformas.forEach(g=>{
@@ -7316,7 +7428,9 @@ function initWpp(){return[
     items:[
       {id:'wpp_a0',text:'Script',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
-          {label:'Abrir',action:'script'}
+          {label:'Pagamento PIX',    action:'scriptPix'},
+          {label:'Pagamento Cartão', action:'scriptCartao'},
+          {label:'Pagamento Boleto', action:'scriptBoleto'}
         ]
       },
       {id:'wpp_a2',text:'Orçamentos',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
@@ -7331,7 +7445,13 @@ function initWpp(){return[
           {label:'Frete Escolhido',action:'freteEscolhido'}
         ]
       },
-      {id:'wpp_c3',text:'Pagamento',sub:'',link:'https://app.infinitepay.io/?from=%2Finvoices%2Fcreate%2Fsuccess%3Fslug%3D7hre8RC30z',linkLabel:'Link',done:false,doneBy:null,doneAt:null,owner:'cmandrade'}
+      {id:'wpp_c3',text:'Pagamento',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+        btns:[
+          {label:'PIX',    action:'pagPix'},
+          {label:'Cartão', action:'pagCartao'},
+          {label:'Boleto', action:'pagBoleto'}
+        ]
+      }
     ]
   },
   {
@@ -8028,7 +8148,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20o';
+const APP_VERSAO='2026.08.20p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8471,7 +8591,9 @@ const MANUAL_ABAS=[
    paraQue:'As três frentes do atendimento por WhatsApp, cada uma com os atalhos que ela usa.',
    passos:[
      '<b>Atendimento</b> — o que se resolve antes de o pedido existir: <b>Script</b>, <b>Orçamentos</b>, <b>Frete</b> e <b>Pagamento</b>.',
-     'Em <b>Frete</b>, "Manda Bem" e "Melhor Envio" abrem os calculadores; <b>Frete Escolhido</b> registra o que o cliente aceitou — valor e transportadora, com o sufixo MB ou ME dizendo por onde a etiqueta sai.',
+     'Os quadros preenchem um mesmo rascunho: <b>Orçamentos</b> (SKU, preço e quantidade), <b>Frete Escolhido</b> (valor e transportadora) e <b>Pagamento</b> (a conta onde a cobrança sai).',
+     'Com o rascunho pronto, os botões <b>PIX</b>, <b>Cartão</b> e <b>Boleto</b> no alto da tela montam o texto para colar na conversa. A barra ao lado deles mostra o que já foi preenchido.',
+     'O quadro <b>Script</b> guarda a explicação padrão de cada meio de pagamento. O master edita e salva para toda a equipe.',
      '<b>Pedido</b> — cadastrar o pedido na Base e gerar a etiqueta de envio.',
      '<b>Registro</b> — registrar a venda, guardar o comprovante e alimentar a conferência.',
      'Clique no quadro para abrir a frente; o botão <b>← WhatsApp</b> volta para os três.'
@@ -8786,7 +8908,10 @@ function wppAbrirFrente(id){
   if(voltar)  voltar.style.display  = napagina ? 'none' : '';
   if(data)    data.style.display    = napagina ? 'none' : '';
   if(tarefas) tarefas.style.display = napagina ? 'none' : '';
+  const barra=document.getElementById('atd-barra');
+  if(barra) barra.style.display = (_wppFrente==='wpp_atend') ? 'flex' : 'none';
   try{ preencherIconesDeclarados(document.getElementById('tab-whatsapp')); }catch(e){}
+  try{ atdAtualizarBarra(); }catch(e){}
   if(!napagina) renderWpp();
 }
 
@@ -8828,8 +8953,22 @@ function _wppRemendarAtendimento(g){
 
   if(!g.items.some(i=>i.id==='wpp_a0')){
     g.items.unshift({id:'wpp_a0',text:'Script',sub:'',link:'',linkLabel:'',
-      done:false,doneBy:null,doneAt:null,owner:'cmandrade',
-      btns:[{label:'Abrir',action:'script'}]});
+      done:false,doneBy:null,doneAt:null,owner:'cmandrade',btns:[]});
+  }
+  const script=g.items.find(i=>i.id==='wpp_a0');
+  if(script){
+    if(!Array.isArray(script.btns)) script.btns=[];
+    // O botão único "Abrir" virou um por meio de pagamento
+    script.btns=script.btns.filter(b=>b && b.action!=='script');
+    [['Pagamento PIX','scriptPix'],['Pagamento Cartão','scriptCartao'],['Pagamento Boleto','scriptBoleto']]
+      .forEach(([label,action])=>{ if(!script.btns.some(b=>b.action===action)) script.btns.push({label,action}); });
+  }
+  if(pag){
+    if(!Array.isArray(pag.btns)) pag.btns=[];
+    // O link solto do InfinitePay virou a escolha da conta, por meio
+    pag.link=''; pag.linkLabel='';
+    [['PIX','pagPix'],['Cartão','pagCartao'],['Boleto','pagBoleto']]
+      .forEach(([label,action])=>{ if(!pag.btns.some(b=>b.action===action)) pag.btns.push({label,action}); });
   }
   // A ordem pedida: Script, Orçamentos, Frete, Pagamento. Estado antigo tem
   // outra, e ordenar aqui evita depender de o item ter nascido no lugar certo.
@@ -22323,14 +22462,17 @@ function salvarEdicaoVenda(){
 /* ===== Dispatcher genérico para botões de "ação" (não-link) nos cards de tarefas ===== */
 function executarAcaoBotao(action){
   if(action==='registrarVenda') abrirModalVenda();
-  if(action==='valores') abrirModalValores();
+  if(action==='valores') abrirModalOrcamento();
   if(action==='precificacaoPix') abrirModalPrecificacaoPix();
   if(action==='valoresCredito') abrirModalValoresCredito();
   if(action==='cotacaoFrete') abrirModalCotacaoFrete();
   if(action==='freteEscolhido') abrirFreteEscolhido();
-  // "Script" ainda não tem conteúdo definido — o quadro existe para o próximo
-  // passo. Sem esta mensagem, o clique não faria nada e pareceria defeito.
-  if(action==='script') showToast('O Script ainda não foi montado — em breve.','warn');
+  if(action==='scriptPix')    abrirScript('pix');
+  if(action==='scriptCartao') abrirScript('cartao');
+  if(action==='scriptBoleto') abrirScript('boleto');
+  if(action==='pagPix')    abrirPagamento('pix');
+  if(action==='pagCartao') abrirPagamento('cartao');
+  if(action==='pagBoleto') abrirPagamento('boleto');
   if(action==='dadosCliente') abrirModalDadosCliente();
   if(action==='envioRastreio') abrirModalEnvioRastreio();
   if(action==='baixasPacheco') openDrogariaScoped('pacheco');
@@ -23118,6 +23260,346 @@ function renderCotfreteForm(){
   `).join('');
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   ATENDIMENTO POR WHATSAPP — o orçamento montado em passos
+
+   Os quatro quadros preenchem um mesmo rascunho, e os três botões do topo
+   transformam esse rascunho em texto pronto para colar na conversa. Antes
+   cada botão gerava um texto isolado e quem atendia juntava as partes na
+   mão, o que fazia o frete entrar num texto e sumir do outro.
+
+   Vive só na sessão: é o rascunho de UM atendimento, não dado do sistema.
+   Recarregou a página, começa outro. */
+const _atd = { sku:'', produto:'', precoSite:0, qtd:0, frete:null, pagamento:null };
+
+function _atdFmt(n){ return 'R$ '+Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function _atdMoeda(txt){
+  const n=parseFloat(String(txt==null?'':txt).replace(/[^\d,.-]/g,'').replace(/\./g,'').replace(',','.'));
+  return isFinite(n)?n:0;
+}
+
+/* Faixa de desconto para a quantidade. A tabela é a mesma que o master já
+   edita na engrenagem da precificação — não é uma segunda regra escondida
+   aqui, que passaria a divergir da outra no primeiro ajuste. */
+function _atdFaixas(){
+  return getRegraDescontoPix().faixas.slice().sort((a,b)=>a.qtd-b.qtd);
+}
+function _atdDescontoDe(qtd){
+  const faixas=_atdFaixas();
+  let pct=0;
+  faixas.forEach(f=>{ if(qtd>=f.qtd) pct=f.pct; });
+  return pct || (faixas[0]?faixas[0].pct:0);
+}
+
+/* ── Orçamentos: SKU + quantidade ────────────────────────────────── */
+
+function abrirModalOrcamento(){
+  const ov=document.getElementById('modal-orcamento-overlay');
+  if(!ov) return;
+  document.getElementById('orc-sku').value=_atd.sku||'';
+  document.getElementById('orc-qtd').value=_atd.qtd||'';
+  document.getElementById('orc-preco').value=_atd.precoSite?String(_atd.precoSite).replace('.',','):'';
+  const ach=document.getElementById('orc-achado');
+  if(ach) ach.style.display=_atd.produto?'block':'none';
+  const nome=document.getElementById('orc-produto');
+  if(nome) nome.textContent=_atd.produto||'';
+  const err=document.getElementById('orc-erro'); if(err) err.style.display='none';
+  ov.style.display='flex';
+  setTimeout(()=>{ try{ document.getElementById('orc-sku').focus(); }catch(e){} },60);
+}
+function fecharModalOrcamento(){
+  const ov=document.getElementById('modal-orcamento-overlay');
+  if(ov) ov.style.display='none';
+}
+
+/* A busca do SKU passa pelo Apps Script, não pelo navegador: a chave da Base
+   ficaria à vista no código da página (o repositório é público) e a API da
+   BaseLinker não autoriza chamada vinda de outro endereço. É o mesmo caminho
+   da consulta de CPF.
+
+   Enquanto o endpoint não estiver publicado, o campo de preço continua
+   aberto para digitar à mão — a tela não pode ficar refém de uma integração
+   que ainda não subiu. */
+function buscarSkuNaBase(){
+  const sku=(document.getElementById('orc-sku').value||'').trim();
+  const err=document.getElementById('orc-erro');
+  const ach=document.getElementById('orc-achado');
+  const nome=document.getElementById('orc-produto');
+  const btn=document.getElementById('orc-buscar');
+  if(!sku){ if(err){ err.textContent='Informe o SKU.'; err.style.display='block'; } return; }
+  if(err) err.style.display='none';
+  if(btn){ btn.disabled=true; btn.textContent='Buscando…'; }
+
+  const url=CPF_PROXY_URL+(CPF_PROXY_URL.includes('?')?'&':'?')+'acao=produto&sku='+encodeURIComponent(sku);
+  fetch(url).then(r=>r.json()).then(j=>{
+    if(!j || j.ok===false || (!j.preco && !j.nome)){
+      throw new Error((j&&(j.erro||j.response))||'não encontrei este SKU');
+    }
+    _atd.sku=sku;
+    _atd.produto=j.nome||sku;
+    if(j.preco) document.getElementById('orc-preco').value=String(j.preco).replace('.',',');
+    if(nome) nome.textContent=_atd.produto;
+    if(ach) ach.style.display='block';
+    showToast('Produto encontrado','success');
+  }).catch(e=>{
+    console.warn('[orçamento] busca de SKU:',e);
+    if(err){
+      err.innerHTML='Não consegui buscar o SKU ('+String(e.message||e).replace(/</g,'&lt;')+').<br>'+
+        'Digite o preço do site à mão para seguir.';
+      err.style.display='block';
+    }
+    if(ach) ach.style.display='none';
+    try{ document.getElementById('orc-preco').focus(); }catch(x){}
+  }).finally(()=>{
+    if(btn){ btn.disabled=false; btn.textContent='Buscar'; }
+  });
+}
+
+function salvarOrcamento(){
+  const err=document.getElementById('orc-erro');
+  const sku=(document.getElementById('orc-sku').value||'').trim();
+  const preco=_atdMoeda(document.getElementById('orc-preco').value);
+  const qtd=parseInt((document.getElementById('orc-qtd').value||'').replace(/\D/g,''),10)||0;
+  const falta=[];
+  if(!sku) falta.push('o SKU');
+  if(!(preco>0)) falta.push('o preço do site');
+  if(!(qtd>0)) falta.push('a quantidade');
+  if(falta.length){
+    if(err){ err.textContent='Informe '+falta.join(', ')+'.'; err.style.display='block'; }
+    return;
+  }
+  if(err) err.style.display='none';
+  _atd.sku=sku; _atd.precoSite=preco; _atd.qtd=qtd;
+  if(!_atd.produto) _atd.produto=sku;
+  showToast('Orçamento: '+_atd.produto+' · '+qtd+' und. · '+_atdFmt(preco),'success');
+  fecharModalOrcamento();
+  atdAtualizarBarra();
+}
+
+/* ── Pagamento: três meios, cada um com as suas contas ───────────── */
+
+const PAGAMENTO_OPCOES = {
+  pix:    {rotulo:'PIX',    contas:['Venda - Pix Manoel','Venda - Pix TRK Bit','Venda - Pix Bahia']},
+  cartao: {rotulo:'Cartão', contas:['Venda - C. Crédito Merc. Pago','Venda - C. Crédito Infinite Pay Suplelive','Venda - C. Crédito Infinite Pay Rossoni']},
+  boleto: {rotulo:'Boleto', contas:['Boleto Bancario 4Vita','Boleto Bancario Vix']}
+};
+
+function abrirPagamento(meio){
+  const cfg=PAGAMENTO_OPCOES[meio];
+  if(!cfg) return;
+  const ov=document.getElementById('modal-pagamento-overlay');
+  if(!ov) return;
+  ov.dataset.meio=meio;
+  document.getElementById('pag-titulo').textContent=cfg.rotulo;
+  const lista=document.getElementById('pag-lista');
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+  const atual=(_atd.pagamento&&_atd.pagamento.conta)||'';
+  lista.innerHTML=cfg.contas.map(c=>
+    `<button type="button" class="pag-opcao${c===atual?' escolhida':''}" onclick="escolherPagamento('${esc(c)}')">${esc(c)}</button>`
+  ).join('');
+  ov.style.display='flex';
+}
+function fecharPagamento(){
+  const ov=document.getElementById('modal-pagamento-overlay');
+  if(ov) ov.style.display='none';
+}
+function escolherPagamento(conta){
+  const ov=document.getElementById('modal-pagamento-overlay');
+  const meio=(ov&&ov.dataset.meio)||'pix';
+  _atd.pagamento={meio, rotulo:PAGAMENTO_OPCOES[meio].rotulo, conta};
+  showToast(PAGAMENTO_OPCOES[meio].rotulo+': '+conta,'success');
+  fecharPagamento();
+  atdAtualizarBarra();
+}
+
+/* ── Os três botões do topo: o rascunho vira texto ───────────────── */
+
+/* O cliente não precisa saber por qual intermediador a etiqueta sai — para
+   ele "Loggi MB" e "Loggi ME" são a mesma Loggi. O sufixo serve para dentro
+   de casa, na hora de gerar a etiqueta. */
+function _atdTranspLimpa(nome){
+  return String(nome||'').replace(/\s+(MB|ME)$/i,'').trim();
+}
+
+function _atdFaltando(){
+  const falta=[];
+  if(!_atd.precoSite) falta.push('Orçamentos (SKU e preço)');
+  if(!_atd.qtd)       falta.push('a quantidade');
+  return falta;
+}
+
+/* A tabela de faixas com o preço unitário de cada uma. Mostrar o valor ao
+   lado do percentual é o que faz o cliente enxergar o ganho de levar mais
+   de uma — o percentual sozinho ele não converte de cabeça. */
+function _atdLinhasFaixas(){
+  return _atdFaixas().map(f=>{
+    const unit=_atd.precoSite*(1-f.pct/100);
+    return `* ${f.qtd} und. ${f.pct}% OFF - ${_atdFmt(unit)}`;
+  }).join('\n');
+}
+
+function _atdCabecalho(){
+  return 'O produto no qual escolheu entra em nosso desconto progressivo. '
+       + 'Seu valor de venda é '+_atdFmt(_atd.precoSite)+', segue abaixo a tabela de preços por und.:\n\n'
+       + _atdLinhasFaixas();
+}
+
+function gerarTextoPix(){
+  const falta=_atdFaltando();
+  if(falta.length){ showToast('Antes preencha: '+falta.join(' e '),'warn'); return; }
+  const pct=_atdDescontoDe(_atd.qtd);
+  const unit=_atd.precoSite*(1-pct/100);
+  const subtotal=unit*_atd.qtd;
+  const frete=_atd.frete?Number(_atd.frete.valor||0):0;
+  const total=subtotal+frete;
+
+  const trechoFrete = _atd.frete
+    ? ' Incluindo o Frete '+_atdTranspLimpa(_atd.frete.transp)+' - '+_atdFmt(frete)+','
+    : '';
+  const linhaPedido = _atd.qtd===1
+    ? `Como o seu pedido é de 1 und., aplicamos o desconto de ${pct}% - ${_atdFmt(unit)}.${trechoFrete} fechamos o valor do seu orçamento em ${_atdFmt(total)}.`
+    : `Como o seu pedido é de ${_atd.qtd} und., aplicamos o desconto de ${pct}% - ${_atdFmt(unit)} por und. (${_atdFmt(subtotal)}).${trechoFrete} fechamos o valor do seu orçamento em ${_atdFmt(total)}.`;
+
+  const texto = _atdCabecalho()+'\n\n'+linhaPedido+'\n\nSerá apenas '+_atd.qtd+' und. mesmo ?';
+  atdMostrarTexto('PIX', texto);
+}
+
+function gerarTextoCartao(){
+  const falta=_atdFaltando();
+  if(falta.length){ showToast('Antes preencha: '+falta.join(' e '),'warn'); return; }
+  const pct=_atdDescontoDe(_atd.qtd);
+  const unit=_atd.precoSite*(1-pct/100);
+  /* A base da tabela do cartão é o valor do produto com desconto, sem o
+     frete — é como os números do pedido foram definidos. Para incluir o
+     frete aqui basta somar _atd.frete.valor nesta linha. */
+  const base=unit*_atd.qtd;
+  const parcelas=getRegraValoresCredito().parcelas.slice().sort((a,b)=>a.n-b.n);
+
+  const padEnd=(t,n)=>t.length>=n?t:t+' '.repeat(n-t.length);
+  const linhas=[['','Total','Parc.'],['Pix',_atdFmt(base),_atdFmt(base)]];
+  parcelas.forEach(f=>{
+    const tot=base*(1+f.pct/100);
+    linhas.push(['Em '+f.n+'x', _atdFmt(tot), _atdFmt(tot/f.n)]);
+  });
+  const c0=Math.max(...linhas.map(r=>r[0].length))+3;
+  const c1=Math.max(...linhas.map(r=>r[1].length))+3;
+  const tabela=linhas.map((r,i)=>padEnd(r[0],c0)+padEnd(r[1],c1)+r[2]);
+  // Linha em branco depois do cabeçalho, como no modelo combinado
+  tabela.splice(1,0,'');
+
+  const texto=_atdCabecalho()+'\n\nNo Cartão ficam os seguintes valores.\n\n```\n'+tabela.join('\n')+'\n```';
+  atdMostrarTexto('Cartão', texto);
+}
+
+function gerarTextoBoleto(){
+  atdMostrarTexto('Boleto',
+    'Para pagamento em boleto será feita uma tratativa mais particular e reservada.');
+}
+
+function atdMostrarTexto(titulo, texto){
+  document.getElementById('atd-texto-titulo').textContent=titulo;
+  document.getElementById('atd-texto-corpo').value=texto;
+  document.getElementById('modal-atd-texto-overlay').style.display='flex';
+}
+function fecharAtdTexto(){
+  document.getElementById('modal-atd-texto-overlay').style.display='none';
+}
+function copiarAtdTexto(){
+  const ta=document.getElementById('atd-texto-corpo');
+  ta.select(); ta.setSelectionRange(0,999999);
+  navigator.clipboard.writeText(ta.value)
+    .then(()=>showToast('Texto copiado','success'))
+    .catch(()=>{ try{ document.execCommand('copy'); showToast('Texto copiado','success'); }
+                 catch(e){ showToast('Selecione e copie à mão','warn'); } });
+}
+
+/* A barra do topo mostra o que já foi preenchido. Sem isso, quem atende
+   clica em PIX e leva um "falta a quantidade" sem saber o que mais falta. */
+function atdAtualizarBarra(){
+  const el=document.getElementById('atd-resumo');
+  if(!el) return;
+  const partes=[];
+  if(_atd.produto||_atd.sku) partes.push((_atd.produto||_atd.sku)+(_atd.precoSite?(' · '+_atdFmt(_atd.precoSite)):''));
+  if(_atd.qtd) partes.push(_atd.qtd+' und.');
+  if(_atd.frete) partes.push('Frete '+_atdTranspLimpa(_atd.frete.transp)+' '+_atdFmt(_atd.frete.valor));
+  if(_atd.pagamento) partes.push(_atd.pagamento.conta);
+  el.textContent = partes.length ? partes.join('  ·  ') : 'Preencha os quadros abaixo para montar o orçamento.';
+  el.style.opacity = partes.length ? '1' : '.6';
+}
+
+function atdLimpar(){
+  _atd.sku=''; _atd.produto=''; _atd.precoSite=0; _atd.qtd=0; _atd.frete=null; _atd.pagamento=null;
+  _freteEscolhido=null;
+  atdAtualizarBarra();
+  showToast('Orçamento limpo','success');
+}
+
+/* ── Script: o texto padrão de cada meio de pagamento ────────────── */
+
+const SCRIPTS_PAGAMENTO_PADRAO = {
+  pix: `Pagamento por PIX
+
+1. Fechado o valor do orçamento, geramos a cobrança PIX e enviamos a chave (ou o QR Code) aqui pela conversa.
+2. Assim que você fizer o pagamento, nos mande o comprovante nesta mesma conversa.
+3. Confirmado o recebimento, o pedido é cadastrado e segue para separação no mesmo dia útil.
+4. Depois de postado, enviamos o código de rastreio por aqui.`,
+  cartao: `Pagamento por Cartão de Crédito
+
+1. Fechado o valor do orçamento, geramos um link de pagamento seguro e enviamos aqui pela conversa.
+2. O parcelamento vai até 3x — os valores de cada parcela são os que passamos na tabela.
+3. Você paga direto no link, com os dados do seu cartão; nós não recebemos nem guardamos esses dados.
+4. Aprovada a compra, o pedido é cadastrado e segue para separação. O rastreio vem por aqui depois da postagem.`,
+  boleto: `Pagamento por Boleto Bancário
+
+1. O boleto é tratado caso a caso, de forma mais particular e reservada.
+2. Fale com o atendimento para verificarmos a liberação para o seu pedido.
+3. Liberado, o boleto é emitido e enviado aqui pela conversa, com a data de vencimento.
+4. O pedido só entra em separação depois da compensação, que leva até 3 dias úteis.`
+};
+
+function _scriptTexto(meio){
+  const salvos=appState.scriptsPagamento;
+  if(salvos && typeof salvos[meio]==='string' && salvos[meio].trim()) return salvos[meio];
+  return SCRIPTS_PAGAMENTO_PADRAO[meio]||'';
+}
+
+function abrirScript(meio){
+  const rot={pix:'Pagamento PIX',cartao:'Pagamento Cartão',boleto:'Pagamento Boleto'}[meio]||'Script';
+  const ov=document.getElementById('modal-script-overlay');
+  if(!ov) return;
+  ov.dataset.meio=meio;
+  document.getElementById('scr-titulo').textContent=rot;
+  document.getElementById('scr-texto').value=_scriptTexto(meio);
+  const podeEditar=!!(currentUser&&currentUser.master);
+  const ta=document.getElementById('scr-texto');
+  ta.readOnly=!podeEditar;
+  document.getElementById('scr-salvar').style.display=podeEditar?'':'none';
+  document.getElementById('scr-aviso').textContent=podeEditar
+    ? 'Você é master: pode editar o texto e salvar para toda a equipe.'
+    : 'Texto padrão definido pelo master.';
+  ov.style.display='flex';
+}
+function fecharScript(){
+  const ov=document.getElementById('modal-script-overlay');
+  if(ov) ov.style.display='none';
+}
+function salvarScript(){
+  if(!currentUser||!currentUser.master) return;
+  const ov=document.getElementById('modal-script-overlay');
+  const meio=(ov&&ov.dataset.meio)||'pix';
+  if(!appState.scriptsPagamento || typeof appState.scriptsPagamento!=='object') appState.scriptsPagamento={};
+  appState.scriptsPagamento[meio]=document.getElementById('scr-texto').value;
+  saveState(appState);
+  showToast('Script salvo','success');
+}
+function copiarScript(){
+  const ta=document.getElementById('scr-texto');
+  ta.select(); ta.setSelectionRange(0,999999);
+  navigator.clipboard.writeText(ta.value)
+    .then(()=>showToast('Texto copiado','success'))
+    .catch(()=>showToast('Selecione e copie à mão','warn'));
+}
+
 /* ── Frete escolhido ───────────────────────────────────────────────
    A cotação compara as transportadoras; isto registra a que o cliente
    aceitou. O sufixo diz por onde a etiqueta sai — MB é Manda Bem, ME é
@@ -23170,6 +23652,8 @@ function confirmarFreteEscolhido(){
   if(err) err.style.display='none';
   const valorFmt='R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
   _freteEscolhido={transp, valor, valorTexto:bruto, texto:'Frete '+transp+' — '+valorFmt};
+  _atd.frete=_freteEscolhido;
+  try{ atdAtualizarBarra(); }catch(e){}
   const res=document.getElementById('fesc-resultado');
   const txt=document.getElementById('fesc-texto');
   if(txt) txt.textContent=_freteEscolhido.texto;
