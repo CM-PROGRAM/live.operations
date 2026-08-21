@@ -106,9 +106,10 @@
 }
 :root[data-theme="light"] body{background-image:radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.05) 0%, transparent 55%), radial-gradient(ellipse at 80% 20%, rgba(80,120,200,0.06) 0%, transparent 55%);}
 :root[data-theme="light"] .sidebar{background:linear-gradient(180deg,#ffffff 0%,#eef1f6 100%);}
-:root[data-theme="light"] .tab-btn{background:#ffffff;border-color:rgba(20,30,55,0.14);color:var(--text-secondary);box-shadow:0 6px 16px -8px rgba(30,45,80,0.22),inset 0 1px 0 rgba(255,255,255,0.8);}
+:root[data-theme="light"] .tab-btn{background:transparent;border-color:transparent;color:#4a5670;box-shadow:none;}
+:root[data-theme="light"] .tab-btn:hover{background:rgba(20,30,55,0.06);color:#1b2331;}
 :root[data-theme="light"] .tab-btn:hover{border-color:rgba(20,30,55,0.3);color:var(--text-primary);}
-:root[data-theme="light"] .tab-btn.active{background:#1b2331;border-color:#1b2331;color:#fff;box-shadow:0 8px 22px -6px rgba(30,45,80,0.4);}
+:root[data-theme="light"] .tab-btn.active{background:rgba(20,30,55,0.09);border-color:transparent;color:#131a29;box-shadow:inset 3px 0 0 #5876b8;}
 /* ── Harmonização do modo claro ─────────────────────────────
    Vários componentes usam véus brancos (rgba(255,255,255,…)) que somem
    sobre fundo claro. Aqui eles passam a usar um véu escuro equivalente,
@@ -196,9 +197,7 @@
 :root[data-theme="light"] .admin-panel{background:#ffffff;border-color:var(--border);box-shadow:var(--sombra-suave);}
 
 /* Barra lateral: caixa de entrada, usuário, tema e sair */
-:root[data-theme="light"] .sidebar-inbox{
-  background:linear-gradient(135deg,rgba(88,118,184,.12),rgba(88,118,184,.04));
-  border-color:rgba(88,118,184,.32);color:#3d5a94;}
+:root[data-theme="light"] .sidebar-inbox{background:transparent;border-color:transparent;color:#4a5670;box-shadow:none;}
 :root[data-theme="light"] .sidebar-inbox:hover{border-color:rgba(88,118,184,.55);color:#2c4470;}
 :root[data-theme="light"] .sb-user-nome{color:var(--text-primary);}
 :root[data-theme="light"] .sb-user-papel{color:#5876b8;}
@@ -793,15 +792,17 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sb-user-papel{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
   color:var(--accent,#8fa8d8);font-family:var(--font-mono);margin-top:2px;}
 @media(max-width:500px){.sidebar-user .sb-user-info{display:none;}.sidebar-user{justify-content:center;}}
-.sidebar-inbox{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:10px 8px 6px;padding:11px 14px;position:relative;
-  background:linear-gradient(135deg,rgba(143,168,216,.14),rgba(88,118,184,.06));
-  border:1px solid rgba(143,168,216,.32);border-radius:12px;cursor:pointer;
-  color:var(--tom-aco);font-family:var(--font-sans);font-size:13px;font-weight:700;letter-spacing:-0.01em;
-  transition:all .18s ease;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);}
-.sidebar-inbox:hover{border-color:rgba(143,168,216,.6);color:var(--text-primary);transform:translateY(-1px);
-  box-shadow:0 6px 18px rgba(88,118,184,.25),inset 0 1px 0 rgba(255,255,255,.08);}
-.sb-inbox-ic{width:19px;height:19px;flex-shrink:0;display:inline-flex;
-  filter:drop-shadow(0 0 5px rgba(143,168,216,.6));}
+/* A caixa de entrada segue o mesmo desenho limpo dos itens do menu — a
+   pílula com contorno e brilho azul destoava agora que o resto é plano.
+   O traço de neon vermelho abaixo dela fica: é o único movimento da barra
+   e continua marcando a divisão entre a identificação e o menu. */
+.sidebar-inbox{display:flex;align-items:center;gap:12px;width:calc(100% - 12px);margin:6px 6px 6px;padding:9px 12px;position:relative;
+  background:transparent;border:1px solid transparent;border-radius:8px;cursor:pointer;
+  color:var(--text-secondary);font-family:var(--font-sans);font-size:14px;font-weight:500;letter-spacing:-0.01em;
+  transition:background .15s,color .15s;box-shadow:none;}
+.sidebar-inbox:hover{background:rgba(255,255,255,0.055);border-color:transparent;color:var(--text-primary);
+  transform:none;box-shadow:none;}
+.sb-inbox-ic{width:19px;height:19px;flex-shrink:0;display:inline-flex;}
 .sb-inbox-ic svg{width:100%;height:100%;}
 .sb-inbox-txt{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 /* Separador com um brilho vermelho suave que percorre a linha de um lado
@@ -882,15 +883,22 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sb-inbox-badge{flex-shrink:0;min-width:19px;height:19px;line-height:19px;padding:0 5px;border-radius:999px;
   background:var(--accent,#8fa8d8);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;text-align:center;}
 @media(max-width:500px){.sb-inbox-txt{display:none;}.sidebar-inbox{justify-content:center;}}
-.tab-btn{background:#0d1220;border:1px solid rgba(255,255,255,0.18);width:calc(100% - 16px);margin:4px 8px;text-align:left;display:flex;align-items:center;gap:11px;padding:10px 16px;border-radius:999px;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--text-muted);transition:all .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:42px;box-shadow:0 8px 20px -6px rgba(255,255,255,0.12),0 0 10px rgba(255,255,255,0.08),var(--realce-topo);}
+/* Menu no desenho da Base: sem pílula, sem borda e sem o halo branco.
+   Cada item era um botão com contorno e brilho próprios, e onze deles
+   empilhados viravam onze objetos disputando atenção — o item aberto se
+   perdia no meio. Aqui o repouso é o fundo da barra; o realce fica só para
+   quem está sobre o item e para o item ativo. */
+.tab-btn{background:transparent;border:1px solid transparent;width:calc(100% - 12px);margin:1px 6px;text-align:left;display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:500;color:var(--text-secondary);transition:background .15s,color .15s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:40px;box-shadow:none;}
 .tab-group{display:flex;flex-direction:column;}
 .tab-group-head{justify-content:flex-start;}
 .tab-group-children{width:calc(100% - 16px);margin-left:14px !important;}
-.tab-sub-btn{width:calc(100% - 8px);margin:2px 4px;min-height:34px;padding:7px 14px;font-size:12.5px;box-shadow:none;background:transparent;border:1px solid transparent;}
-.tab-sub-btn:hover{background:var(--veu-suave);border-color:rgba(255,255,255,0.1);}
-.tab-sub-btn.active{background:linear-gradient(135deg,rgba(255,255,255,0.1),rgba(255,255,255,0.03));border-color:rgba(255,255,255,0.22);color:var(--text-primary);}
-.tab-btn:hover{background:#0d1220;border-color:rgba(255,255,255,0.4);color:var(--text-primary);box-shadow:0 10px 26px -6px rgba(255,255,255,0.22),0 0 16px rgba(255,255,255,0.15),inset 0 1px 0 rgba(255,255,255,0.1);}
-.tab-btn.active{background:#0d1220;border-color:rgba(255,255,255,0.75);color:#fff;font-weight:600;box-shadow:0 0 3px #fff,0 12px 32px -6px rgba(255,255,255,0.3),0 0 22px rgba(255,255,255,0.2),inset 0 1px 0 rgba(255,255,255,0.15);}
+.tab-sub-btn{width:calc(100% - 8px);margin:1px 4px;min-height:32px;padding:6px 12px;font-size:13px;box-shadow:none;background:transparent;border:1px solid transparent;color:var(--text-muted);}
+.tab-sub-btn:hover{background:rgba(255,255,255,0.05);border-color:transparent;color:var(--text-primary);}
+.tab-sub-btn.active{background:rgba(255,255,255,0.07);border-color:transparent;color:#fff;font-weight:600;box-shadow:none;}
+.tab-btn:hover{background:rgba(255,255,255,0.055);border-color:transparent;color:var(--text-primary);box-shadow:none;}
+/* O item aberto: fundo levemente aceso e um traço na borda esquerda, como
+   na Base. Sem contorno inteiro, que voltaria a criar o efeito de botão. */
+.tab-btn.active{background:rgba(255,255,255,0.085);border-color:transparent;color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--tom-aco,#8fa8d8);}
 .tab-btn .tab-icon{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;flex-shrink:0;color:inherit;opacity:.9;}
 .tab-btn .tab-icon svg{width:100%;height:100%;}
 .tab-btn.active .tab-icon{opacity:1;}
@@ -8148,7 +8156,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20p';
+const APP_VERSAO='2026.08.20q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
