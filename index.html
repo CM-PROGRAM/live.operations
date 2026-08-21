@@ -3825,26 +3825,46 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="font-size:15px;font-weight:700;color:var(--text-primary);">Frete escolhido</div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">O que o cliente aceitou</div>
       </div>
+      <button type="button" id="fesc-regra-btn" onclick="alternarRegraFrete()" title="Editar a regra do lucro (master)"
+              style="display:none;background:none;border:1px solid var(--linha-sutil);border-radius:8px;color:var(--text-muted);
+                     cursor:pointer;font-size:13px;line-height:1;padding:6px 9px;">&#9881;</button>
       <button class="btn-link btn-sm" onclick="fecharFreteEscolhido()">Fechar</button>
+    </div>
+    <!-- Regra do lucro: só o master vê e edita. Fica aqui dentro, ao lado de
+         onde o número é usado, e não numa tela de configuração distante. -->
+    <div id="fesc-regra" style="display:none;margin-bottom:14px;padding:12px 14px;border-radius:12px;
+         background:var(--veu-suave);border:1px solid var(--glass-border);">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;">Regra do frete cobrado</div>
+      <div style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;">
+        <div class="input-group" style="flex:1;min-width:120px;margin:0;">
+          <label>Lucro por envio (R$)</label>
+          <input type="text" id="fesc-lucro" inputmode="decimal" placeholder="3,00" oninput="previewFreteEscolhido()">
+        </div>
+        <button class="btn btn-sm" onclick="salvarRegraFrete()" style="width:auto;">Salvar</button>
+      </div>
+      <div style="font-size:10.5px;color:var(--text-muted);line-height:1.6;margin-top:9px;">
+        O custo mais o lucro sobe para o pr&oacute;ximo n&uacute;mero inteiro quando passa dos
+        50 centavos, e desce quando n&atilde;o chega l&aacute;. Vale para toda a equipe.
+      </div>
     </div>
     <div class="input-group" style="margin-bottom:12px;">
       <label>Transportadora</label>
-      <select id="fesc-transp"></select>
+      <select id="fesc-transp" onchange="previewFreteEscolhido()"></select>
     </div>
     <div class="input-group" style="margin-bottom:16px;">
-      <label>Valor do frete (R$)</label>
-      <input type="text" id="fesc-valor" inputmode="decimal" placeholder="Ex: 24,90"
+      <label>Custo do frete (R$)</label>
+      <input type="text" id="fesc-valor" inputmode="decimal" placeholder="Ex: 25,51"
+             oninput="previewFreteEscolhido()"
              onkeydown="if(event.key==='Enter')confirmarFreteEscolhido()">
+    </div>
+    <div id="fesc-resultado" style="display:none;margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:7px;">Registrado</div>
+      <div id="fesc-texto" style="font-family:var(--font-mono);font-size:13px;color:var(--text-primary);background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;padding:11px 13px;line-height:1.7;"></div>
     </div>
     <div id="fesc-erro" style="display:none;font-size:11.5px;color:var(--tom-vermelho);margin-bottom:10px;"></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-sm" onclick="confirmarFreteEscolhido()" style="flex:1;">Confirmar</button>
       <button class="btn btn-ghost btn-sm" onclick="fecharFreteEscolhido()" style="flex:0 0 auto;">Cancelar</button>
-    </div>
-    <div id="fesc-resultado" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--glass-border);">
-      <div style="font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;">Registrado</div>
-      <div id="fesc-texto" style="font-family:var(--font-mono);font-size:13px;color:var(--text-primary);background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;padding:11px 13px;line-height:1.6;"></div>
-      <button class="btn btn-sm" onclick="copiarFreteEscolhido()" style="width:100%;margin-top:10px;">Copiar para o WhatsApp</button>
     </div>
   </div>
 </div>
@@ -4238,6 +4258,7 @@ function defaultState(){
     entradas:[],
     extLinks:{},
     baseInfo:[],
+    lucroFrete:3,
     lastReset:todayStr()
   };
 }
@@ -4328,6 +4349,7 @@ function loadLocal(){
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     if(!Array.isArray(s.baseInfo)) s.baseInfo=[];
+    if(typeof s.lucroFrete!=='number') s.lucroFrete=3;
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
     if(s.tasks.plataformas && Array.isArray(s.tasks.plataformas)){
       s.tasks.plataformas.forEach(g=>{
@@ -6941,6 +6963,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
   if(!Array.isArray(data.baseInfo)) data.baseInfo = [];
+  if(typeof data.lucroFrete!=='number') data.lucroFrete = 3;
   // Firebase omite arrays vazios — restaurar execs:[] para tasks com repeats>1
   if(data.tasks.plataformas && Array.isArray(data.tasks.plataformas)){
     data.tasks.plataformas.forEach(g=>{
@@ -8127,7 +8150,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21b';
+const APP_VERSAO='2026.08.21c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8570,7 +8593,8 @@ const MANUAL_ABAS=[
    paraQue:'As três frentes do atendimento por WhatsApp, cada uma com os atalhos que ela usa.',
    passos:[
      '<b>Atendimento</b> — o que se resolve antes de o pedido existir: <b>Orçamentos</b>, <b>Frete</b> e <b>Pagamento</b>.',
-     'Os quadros preenchem um mesmo rascunho: <b>Orçamentos</b> (SKU, preço e quantidade), <b>Frete Escolhido</b> (valor e transportadora) e <b>Pagamento</b> (a conta onde a cobrança sai).',
+     'Os quadros preenchem um mesmo rascunho: <b>Orçamentos</b> (SKU, preço e quantidade), <b>Frete Escolhido</b> (transportadora e custo da etiqueta) e <b>Pagamento</b> (a conta onde a cobrança sai).',
+     'Em <b>Frete Escolhido</b> você digita o <b>custo</b> da etiqueta. O que o cliente paga é o custo mais o lucro por envio, subindo para o próximo número inteiro quando passa dos 50 centavos — custo R$ 25,51 vira <b>cobrar R$ 29,00</b>. O master ajusta o lucro pela engrenagem do próprio modal.',
      'Com o rascunho pronto, os botões <b>PIX</b>, <b>Cartão</b> e <b>Boleto</b> no alto da tela montam o texto para colar na conversa. A barra ao lado deles mostra o que já foi preenchido.',
      '<b>Pedido</b> — cadastrar o pedido na Base e gerar a etiqueta de envio.',
      '<b>Registro</b> — registrar a venda, guardar o comprovante e alimentar a conferência.',
@@ -23533,6 +23557,27 @@ const FRETE_ESCOLHIDO_OPCOES = [
 // Fica na sessão para o próximo passo do atendimento poder usar o valor
 let _freteEscolhido=null;
 
+/* O valor digitado é o CUSTO da etiqueta. O que vai para o cliente é o custo
+   mais o lucro por envio, subindo para o próximo número inteiro:
+
+     custo 25,51 + 3,00 = 28,51  →  cobra 29,00   (passou dos 50 centavos)
+     custo 25,49 + 3,00 = 28,49  →  cobra 28,00   (não chegou lá)
+
+   Exatamente 50 centavos desce, seguindo a regra que a Cotação de Frete já
+   usava — duas regras de arredondamento no mesmo sistema dariam valores
+   diferentes para o mesmo frete, dependendo de qual tela abriu. */
+const LUCRO_FRETE_PADRAO = 3;
+
+function getLucroFrete(){
+  const v = appState && appState.lucroFrete;
+  return (typeof v === 'number' && isFinite(v) && v >= 0) ? v : LUCRO_FRETE_PADRAO;
+}
+function _freteCobrado(custo){
+  const total = custo + getLucroFrete();
+  const inteiro = Math.floor(total);
+  return (total - inteiro) > 0.5 ? inteiro + 1 : inteiro;
+}
+
 function abrirFreteEscolhido(){
   const sel=document.getElementById('fesc-transp');
   if(sel){
@@ -23541,9 +23586,19 @@ function abrirFreteEscolhido(){
     sel.value=(_freteEscolhido&&_freteEscolhido.transp)||'';
   }
   const val=document.getElementById('fesc-valor');
-  if(val) val.value=(_freteEscolhido&&_freteEscolhido.valorTexto)||'';
+  if(val) val.value=(_freteEscolhido&&_freteEscolhido.custoTexto)||'';
   const err=document.getElementById('fesc-erro'); if(err) err.style.display='none';
-  const res=document.getElementById('fesc-resultado'); if(res) res.style.display='none';
+
+  // A régua do lucro é do master; para os demais o botão nem aparece
+  const master=!!(currentUser&&currentUser.master);
+  const bt=document.getElementById('fesc-regra-btn');
+  if(bt) bt.style.display=master?'inline-flex':'none';
+  const painel=document.getElementById('fesc-regra');
+  if(painel) painel.style.display='none';
+  const lucro=document.getElementById('fesc-lucro');
+  if(lucro) lucro.value=String(getLucroFrete()).replace('.',',');
+
+  previewFreteEscolhido();
   const ov=document.getElementById('modal-frete-escolhido-overlay');
   if(ov) ov.style.display='flex';
   setTimeout(()=>{ try{ document.getElementById('fesc-transp').focus(); }catch(e){} },60);
@@ -23552,35 +23607,67 @@ function fecharFreteEscolhido(){
   const ov=document.getElementById('modal-frete-escolhido-overlay');
   if(ov) ov.style.display='none';
 }
-function confirmarFreteEscolhido(){
-  const err=document.getElementById('fesc-erro');
+
+function _fescLeitura(){
   const transp=(document.getElementById('fesc-transp')||{}).value||'';
   const bruto=((document.getElementById('fesc-valor')||{}).value||'').trim();
-  const valor=parseFloat(bruto.replace(/\./g,'').replace(',','.'));
+  const custo=_atdMoeda(bruto);
+  return {transp, bruto, custo, cobrar:_freteCobrado(custo)};
+}
+
+/* O "Registrado" aparece enquanto se digita, não depois de confirmar: quem
+   está atendendo precisa ver quanto vai cobrar ANTES de fechar o valor com
+   o cliente, e não descobrir depois que já apertou. */
+function previewFreteEscolhido(){
+  const res=document.getElementById('fesc-resultado');
+  const txt=document.getElementById('fesc-texto');
+  if(!res||!txt) return;
+  const l=_fescLeitura();
+  if(!l.transp || !(l.custo>0)){ res.style.display='none'; return; }
+  txt.innerHTML=
+    '<div>'+String(l.transp).replace(/</g,'&lt;')+'</div>'+
+    '<div style="color:var(--text-muted);font-size:11.5px;">custo '+_atdFmt(l.custo)+
+      ' + lucro '+_atdFmt(getLucroFrete())+'</div>'+
+    '<div style="margin-top:5px;font-size:15px;font-weight:800;color:var(--tom-verde,#4ade80);">'+
+      'Cobrar '+_atdFmt(l.cobrar)+'</div>';
+  res.style.display='block';
+}
+
+function confirmarFreteEscolhido(){
+  const err=document.getElementById('fesc-erro');
+  const l=_fescLeitura();
   const falta=[];
-  if(!transp) falta.push('a transportadora');
-  if(!bruto || !(valor>0)) falta.push('o valor do frete');
+  if(!l.transp) falta.push('a transportadora');
+  if(!l.bruto || !(l.custo>0)) falta.push('o custo do frete');
   if(falta.length){
     if(err){ err.textContent='Informe '+falta.join(' e ')+'.'; err.style.display='block'; }
     return;
   }
   if(err) err.style.display='none';
-  const valorFmt='R$ '+valor.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-  _freteEscolhido={transp, valor, valorTexto:bruto, texto:'Frete '+transp+' — '+valorFmt};
+  /* valor = o que o cliente paga. É ele que entra no texto do orçamento; o
+     custo fica guardado ao lado, para conferência. */
+  _freteEscolhido={transp:l.transp, valor:l.cobrar, custo:l.custo, custoTexto:l.bruto,
+                   lucro:getLucroFrete(), texto:'Frete '+l.transp+' — '+_atdFmt(l.cobrar)};
   _atd.frete=_freteEscolhido;
   try{ atdAtualizarBarra(); }catch(e){}
-  const res=document.getElementById('fesc-resultado');
-  const txt=document.getElementById('fesc-texto');
-  if(txt) txt.textContent=_freteEscolhido.texto;
-  if(res) res.style.display='block';
-  showToast('Frete registrado: '+transp+' · '+valorFmt,'success');
+  showToast('Frete registrado: '+l.transp+' · cobrar '+_atdFmt(l.cobrar),'success');
+  fecharFreteEscolhido();
 }
-function copiarFreteEscolhido(){
-  if(!_freteEscolhido) return;
-  try{
-    navigator.clipboard.writeText(_freteEscolhido.texto);
-    showToast('Copiado','success');
-  }catch(e){ showToast('Não consegui copiar','warn'); }
+
+/* ── A régua do lucro, só para o master ──────────────────────────── */
+function alternarRegraFrete(){
+  if(!(currentUser&&currentUser.master)) return;
+  const p=document.getElementById('fesc-regra');
+  if(p) p.style.display = p.style.display==='none' ? 'block' : 'none';
+}
+function salvarRegraFrete(){
+  if(!(currentUser&&currentUser.master)){ showToast('Apenas o master edita esta regra','warn'); return; }
+  const v=_atdMoeda((document.getElementById('fesc-lucro')||{}).value);
+  if(!(v>=0)){ showToast('Informe o lucro por envio','warn'); return; }
+  appState.lucroFrete=v;
+  saveState(appState);
+  previewFreteEscolhido();
+  showToast('Lucro por envio: '+_atdFmt(v),'success');
 }
 
 function abrirModalCotacaoFrete(){
