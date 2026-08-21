@@ -1005,8 +1005,16 @@ body.menu-oculto .sb-atu-txt{display:none;}
    que ela pediu. */
 .bi-quadro.aberto .ini-tit{display:block;overflow:visible;}
 .bi-quadro .bi-mais{font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--text-muted);}
-.bi-quadro .bi-pe{display:flex;align-items:center;justify-content:center;gap:6px;
-  margin-top:auto;padding-top:10px;flex-wrap:wrap;width:100%;}
+/* O rodapé estava com link, assinatura e botões disputando a mesma linha e
+   quebrando em qualquer largura. Agora são duas faixas: quem assinou em
+   cima, e embaixo o link de um lado e Editar/Excluir do outro — separados
+   pela largura do cartão, para ninguém clicar em Excluir mirando no link.
+   A linha de cima marca onde o conteúdo termina. */
+.bi-quadro .bi-pe{display:flex;flex-direction:column;gap:9px;width:100%;
+  margin-top:auto;padding-top:11px;border-top:1px solid var(--linha-sutil);}
+.bi-quadro .bi-meta{text-align:center;}
+.bi-quadro .bi-acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.bi-quadro .bi-adm{display:flex;gap:6px;margin-left:auto;}
 
 /* ── Calendário (um só no sistema) ────────────────────────────────
    O cabeçalho é botão: clicar troca de dias para meses e de meses para
@@ -8242,7 +8250,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21n';
+const APP_VERSAO='2026.08.21o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9015,18 +9023,20 @@ function _baseInfoCardsHtml(){
         <div class="ini-sub">${_iniEsc(texto)}</div>
         ${dobra?`<div class="bi-mais">${aberto?'ver menos ▴':'ver mais ▾'}</div>`:''}
         <div class="bi-pe" onclick="event.stopPropagation();">
-          ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Abrir link ↗</a>`:''}
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
-          ${master?(_biExcluindo===it.id
-            ?`<span style="display:flex;align-items:center;gap:8px;">
-                <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
-                <button class="btn btn-danger btn-sm" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
-                <button class="btn btn-ghost btn-sm" onclick="baseInfoExcluirCancelar()">Não</button>
-              </span>`
-            :`<span style="display:flex;gap:6px;">
-                <button class="btn btn-ghost btn-sm" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
-                <button class="btn btn-danger btn-sm" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
-              </span>`):''}
+          ${(it.link||master)?`<div class="bi-acoes">
+            ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Abrir link ↗</a>`:''}
+            ${master?(_biExcluindo===it.id
+              ?`<span class="bi-adm" style="align-items:center;gap:8px;">
+                  <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
+                  <button class="btn btn-danger btn-sm" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
+                  <button class="btn btn-ghost btn-sm" onclick="baseInfoExcluirCancelar()">Não</button>
+                </span>`
+              :`<span class="bi-adm">
+                  <button class="btn btn-ghost btn-sm" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
+                  <button class="btn btn-danger btn-sm" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
+                </span>`):''}
+          </div>`:''}
         </div>
       </div>`;
   }).join('');
@@ -9068,8 +9078,11 @@ function renderBaseInfo(){
         <span class="section-title">Base Conhecimento</span>
         ${master?`<button class="btn btn-sm" onclick="baseInfoNovo()">+ Nova informação</button>`:''}
       </div>
-      <div style="margin:4px 0 22px;">
-        <input id="bi-busca" type="text" placeholder="Buscar por título, conteúdo ou link..." oninput="baseInfoBuscar(this.value)" value="${_iniEsc(_biBusca)}" style="width:100%;">
+      <!-- Duas camadas de propósito: o normalizador de buscas transforma o
+           div que envolve o campo na pílula da busca e apaga o style dele no
+           caminho. A margem fica na camada de fora, fora do alcance dele. -->
+      <div style="margin:6px 0 34px;">
+        <div><input id="bi-busca" type="text" placeholder="Buscar por título, conteúdo ou link..." oninput="baseInfoBuscar(this.value)" value="${_iniEsc(_biBusca)}" style="width:360px;max-width:100%;"></div>
       </div>
       ${master?`
       <div id="bi-form" style="display:none;border:1px solid var(--glass-border);border-radius:14px;padding:16px;margin-bottom:16px;background:var(--veu-medio);">
