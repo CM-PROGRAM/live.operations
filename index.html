@@ -2206,6 +2206,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <option value="integracao">Integração</option>
             <option value="imagens">Imagens</option>
             <option value="excluirintbase">Exclusão Integração</option>
+            <option value="atualizacaocatalogo">Atualização Catálogo</option>
           </select>
           <input id="atrib-search" type="text" placeholder="🔎 Buscar (plataforma, SKU, MLB, produto, solicitante)..." oninput="renderAtribuir()" style="flex:1;min-width:220px;width:auto;">
         </div>
@@ -2878,6 +2879,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <option value="atendimento">Atendimentos</option>
             <option value="integracao">Integração</option>
             <option value="excluirintbase">Exclusão Integração</option>
+            <option value="atualizacaocatalogo">Atualização Catálogo</option>
             <option value="entrada">Entrada</option>
             <option value="imagens">Imagens</option>
             <option value="projeto">Projetos</option>
@@ -3362,7 +3364,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <div class="input-group">
-        <label>SKU</label>
+        <label>Dados</label>
         <div style="display:flex;gap:8px;">
           <select id="atrib-codigo-tipo" onchange="codigoTipoChanged('atrib')" style="flex:0 0 130px;">
             <option value="SKU">SKU</option>
@@ -4300,6 +4302,7 @@ function defaultState(){
     projNotas:[],
     integracoes:[],
     excluirIntBase:[],
+    atualizacaoCatalogo:[],
     imagensReq:[],
     entradas:[],
     extLinks:{},
@@ -4391,6 +4394,7 @@ function loadLocal(){
     if(!Array.isArray(s.projNotas)) s.projNotas=[];
     if(!Array.isArray(s.integracoes)) s.integracoes=[];
     if(!Array.isArray(s.excluirIntBase)) s.excluirIntBase=[];
+    if(!Array.isArray(s.atualizacaoCatalogo)) s.atualizacaoCatalogo=[];
     _semearEmails(s);
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
@@ -4730,6 +4734,7 @@ const FB_ARQUIVO='suplelive/arquivo';
 const ARQ_AREAS={
   tarefa:'Tarefas', devolucao:'Devoluções', atendimento:'Atendimentos',
   integracao:'Integração', excluirintbase:'Exclusão Integração',
+  atualizacaocatalogo:'Atualização Catálogo',
   entrada:'Entrada', imagens:'Imagens', projeto:'Projetos', usuario:'Usuários'
 };
 
@@ -4837,6 +4842,7 @@ function restaurarDoArquivo(area,chave){
     atendimento:()=>((appState.tasks=appState.tasks||{}).atendimentos||(appState.tasks.atendimentos=[])),
     integracao:()=>appState.integracoes||(appState.integracoes=[]),
     excluirintbase:()=>appState.excluirIntBase||(appState.excluirIntBase=[]),
+    atualizacaocatalogo:()=>appState.atualizacaoCatalogo||(appState.atualizacaoCatalogo=[]),
     entrada:()=>appState.entradas||(appState.entradas=[]),
     imagens:()=>appState.imagensReq||(appState.imagensReq=[])
   }[area];
@@ -5251,6 +5257,7 @@ function _conclusoesPerdidas(){
 const REPARO_LISTAS=[
   {nome:'Integração',        area:'integracao',     lista:()=>appState.integracoes,   origem:'origemIntegId'},
   {nome:'Exclusão Integração',area:'excluirintbase', lista:()=>appState.excluirIntBase,origem:'origemExIntId'},
+  {nome:'Atualização Catálogo',area:'atualizacaocatalogo',lista:()=>appState.atualizacaoCatalogo,origem:'origemAtuCatId'},
   {nome:'Entrada',           area:'entrada',        lista:()=>appState.entradas,      origem:'origemEntradaId'},
   {nome:'Imagens',           area:'imagens',        lista:()=>appState.imagensReq,    origem:'origemImgId'}
 ];
@@ -6129,6 +6136,7 @@ const LOG_ENTIDADES={
   // Anúncios — solicitações
   integracao: { rotulo:'Integração',         lista:s=>((s&&s.integracoes)||[]) },
   exclusaoInt:{ rotulo:'Exclusão Integração',lista:s=>((s&&s.excluirIntBase)||[]) },
+  atuCatalogo:{ rotulo:'Atualização Catálogo',lista:s=>((s&&s.atualizacaoCatalogo)||[]) },
   entrada:    { rotulo:'Entrada',            lista:s=>((s&&s.entradas)||[]) },
   imagem:     { rotulo:'Imagens',            lista:s=>((s&&s.imagensReq)||[]) },
   // Vendas — canceladas
@@ -6331,6 +6339,7 @@ const COLECOES_REG={
   atividades:    {get:s=>s.atividades,                 set:(s,v)=>{s.atividades=v;}},
   integracoes:   {get:s=>s.integracoes,                set:(s,v)=>{s.integracoes=v;}},
   excluirIntBase:{get:s=>s.excluirIntBase,             set:(s,v)=>{s.excluirIntBase=v;}},
+  atualizacaoCatalogo:{get:s=>s.atualizacaoCatalogo,   set:(s,v)=>{s.atualizacaoCatalogo=v;}},
   entradas:      {get:s=>s.entradas,                   set:(s,v)=>{s.entradas=v;}},
   imagensReq:    {get:s=>s.imagensReq,                 set:(s,v)=>{s.imagensReq=v;}},
   canceladas:    {get:s=>s.canceladas,                 set:(s,v)=>{s.canceladas=v;}},
@@ -7004,6 +7013,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.projetos)) data.projetos = [];
   if(!Array.isArray(data.integracoes)) data.integracoes = [];
   if(!Array.isArray(data.excluirIntBase)) data.excluirIntBase = [];
+  if(!Array.isArray(data.atualizacaoCatalogo)) data.atualizacaoCatalogo = [];
   _semearEmails(data);
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
@@ -8196,7 +8206,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21j';
+const APP_VERSAO='2026.08.21k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12592,6 +12602,7 @@ function reconcileAutoTasks(state){
   if(!state || !Array.isArray(state.atividades)) return state;
   const integIds = new Set((state.integracoes||[]).map(x=>x&&x.id).filter(Boolean));
   const exIntIds = new Set((state.excluirIntBase||[]).map(x=>x&&x.id).filter(Boolean));
+  const atuCatIds= new Set((state.atualizacaoCatalogo||[]).map(x=>x&&x.id).filter(Boolean));
   const entIds   = new Set((state.entradas||[]).map(x=>x&&x.id).filter(Boolean));
   const imgIds   = new Set((state.imagensReq||[]).map(x=>x&&x.id).filter(Boolean));
   const ateIds   = new Set(((state.tasks&&state.tasks.atendimentos)||[]).map(x=>x&&x.id).filter(Boolean));
@@ -12600,6 +12611,7 @@ function reconcileAutoTasks(state){
   state.atividades = state.atividades.filter(a=>{
     if(a && a.origemIntegId) return integIds.has(a.origemIntegId);
     if(a && a.origemExIntId) return exIntIds.has(a.origemExIntId);
+    if(a && a.origemAtuCatId) return atuCatIds.has(a.origemAtuCatId);
     if(a && a.origemEntradaId) return entIds.has(a.origemEntradaId);
     if(a && a.origemImgId)   return imgIds.has(a.origemImgId);
     if(a && a.origemAteId)   return ateIds.has(a.origemAteId);
@@ -12624,6 +12636,7 @@ function reconcileAutoTasks(state){
 const VINCULOS_SOLICITACAO = [
   {lista:'integracoes',    campo:'origemIntegId'},
   {lista:'excluirIntBase', campo:'origemExIntId'},
+  {lista:'atualizacaoCatalogo', campo:'origemAtuCatId'},
   {lista:'entradas',       campo:'origemEntradaId'},
   {lista:'imagensReq',     campo:'origemImgId'}
 ];
@@ -18880,6 +18893,9 @@ function renderAtividades(){
     } else if(a.origemImgId){
       const it=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId);
       if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
+    } else if(a.origemAtuCatId){
+      const it=(appState.atualizacaoCatalogo||[]).find(x=>x.id===a.origemAtuCatId);
+      if(it){ codigoLabel=_mktCodigoLabel(it); solicitadoPor=it.criadoPor||'—'; }
     } else if(a.origemAteId){
       const it=(appState.tasks && appState.tasks.atendimentos ? appState.tasks.atendimentos : []).find(x=>x.id===a.origemAteId);
       if(it){
@@ -19264,9 +19280,11 @@ function deleteAtividade(id){
   // A solicitação de origem também vai para o arquivo.
   if(a && a.origemIntegId){ const o=(appState.integracoes||[]).find(x=>x.id===a.origemIntegId); if(o) arquivarRegistro('integracao',o); }
   if(a && a.origemExIntId){ const o=(appState.excluirIntBase||[]).find(x=>x.id===a.origemExIntId); if(o) arquivarRegistro('excluirintbase',o); }
+  if(a && a.origemAtuCatId){ const o=(appState.atualizacaoCatalogo||[]).find(x=>x.id===a.origemAtuCatId); if(o) arquivarRegistro('atualizacaocatalogo',o); }
   if(a && a.origemImgId){ const o=(appState.imagensReq||[]).find(x=>x.id===a.origemImgId); if(o) arquivarRegistro('imagens',o); }
   if(a && a.origemIntegId) appState.integracoes=(appState.integracoes||[]).filter(x=>x.id!==a.origemIntegId);
   if(a && a.origemExIntId) appState.excluirIntBase=(appState.excluirIntBase||[]).filter(x=>x.id!==a.origemExIntId);
+  if(a && a.origemAtuCatId) appState.atualizacaoCatalogo=(appState.atualizacaoCatalogo||[]).filter(x=>x.id!==a.origemAtuCatId);
   if(a && a.origemEntradaId){ const o=(appState.entradas||[]).find(x=>x.id===a.origemEntradaId); if(o) arquivarRegistro('entrada',o); appState.entradas=(appState.entradas||[]).filter(x=>x.id!==a.origemEntradaId); }
   if(a && a.origemImgId)   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==a.origemImgId);
   if(a && (a.origemCancId || a.origemCancNfId)){
@@ -19850,32 +19868,13 @@ const INTEG_MKT_LIST=[
 const ATACADO_MKT={name:'Atacado', tipo:'outros'};
 
 // Variações por marketplace (aparecem em Integração e Imagens)
-const MKT_VARIACOES={
-  'Shopee Suplenium':[
-    'Shopee Suplenium',
-    'Shopee Suplenium 2x'
-  ],
-  'Shopee Primevitaminas':[
-    'Shopee Primevitaminas',
-    'Shopee Primevitaminas 2x'
-  ],
-  'Mercado Livre VXShop':[
-    'Mercado Livre VXShop',
-    'Mercado Livre VXShop 2x',
-    'Mercado Livre VXShop Clássico',
-    'Mercado Livre VXShop Clássico 2x',
-    'Mercado Livre VXShop Premium',
-    'Mercado Livre VXShop Premium 2x'
-  ],
-  'Mercado Livre Vitalife':[
-    'Mercado Livre Vitalife',
-    'Mercado Livre Vitalife 2x',
-    'Mercado Livre Vitalife Clássico',
-    'Mercado Livre Vitalife Clássico 2x',
-    'Mercado Livre Vitalife Premium',
-    'Mercado Livre Vitalife Premium 2x'
-  ]
-};
+/* Variação saiu de todos os marketplaces em 21/08/2026. O mecanismo fica:
+   basta repovoar este mapa para o campo voltar a aparecer, sem mexer em
+   formulário nenhum. Cards antigos guardam a variação que tinham — os
+   formulários preservam o valor gravado em vez de zerá-lo na edição,
+   senão abrir um card velho para trocar a prioridade apagaria de qual
+   loja ele era. */
+const MKT_VARIACOES={};
 // Mostra/esconde o select de variação conforme o marketplace
 function _renderVariacaoField(fieldId,selId,marketplace,selected){
   const field=document.getElementById(fieldId);
@@ -20195,7 +20194,7 @@ document.addEventListener('click',function(e){
 // ── Código (SKU/MLB/ID Anúncio[/Nome]) + Número ─────────────────
 /* Tipos de identificação. A lista é uma só para o sistema inteiro: o que for
    incluído em Criar Tarefa aparece também em Integração, Entrada e Imagens. */
-const CODIGO_TIPOS_BASE=['SKU','MLB','ID Anúncio'];
+const CODIGO_TIPOS_BASE=['SKU','MLB','ID Anúncio','Título Catálogo'];
 function codigoTiposAtuais(){ return getAllCustomOpts(CODIGO_TIPOS_BASE,'customCodigoTipos'); }
 function renderCodigoTipos(prefix,selecionado){
   const sel=document.getElementById(prefix+'-codigo-tipo');
@@ -20217,10 +20216,12 @@ function codigoTipoChanged(prefix){
     numInp.style.paddingLeft='38px';
     numInp.placeholder='Apenas números';
     numInp.value=numInp.value.replace(/\D/g,'');
-  } else if(tipo==='Nome'){
+  } else if(tipo==='Nome' || tipo==='Título Catálogo'){
+    /* Texto livre, não código: o campo aceita espaço e acento, e o
+       marcador "MLB" some — deixá-lo aceso sugeriria número. */
     if(mlbPrefix) mlbPrefix.style.display='none';
     numInp.style.paddingLeft='';
-    numInp.placeholder='Nome do produto';
+    numInp.placeholder = tipo==='Nome' ? 'Nome do produto' : 'Título do catálogo';
   } else {
     if(mlbPrefix) mlbPrefix.style.display='none';
     numInp.style.paddingLeft='';
@@ -20338,6 +20339,19 @@ const INTEG_CTX = {
     origemKey:'origemExIntId', autoPrefix:'atv_exint_', tarefaTitulo:'Exclusão Integração',
     notifTipo:'excluirintbase', notifLabel:'Exclusão Integração', conf:false,
     confirmDel:'Excluir esta solicitação de exclusão?'
+  },
+  /* Atualização Catálogo não tem quadro próprio na aba Anúncios: ela nasce
+     em Criar Tarefa e vive na relação de solicitações de lá. Por isso o
+     render aponta para renderAtribuir — sem isso, editar um card não
+     redesenharia lista nenhuma e a alteração só apareceria no F5. */
+  atualizacaocatalogo: {
+    getArr:()=>(Array.isArray(appState.atualizacaoCatalogo)?appState.atualizacaoCatalogo:(appState.atualizacaoCatalogo=[])),
+    setArr:(a)=>{ appState.atualizacaoCatalogo=a; },
+    idPrefix:'atucat_', tituloNovo:'Solicitar Atualização de Catálogo', toastNovo:'Atualização de catálogo solicitada',
+    render:()=>{try{renderAtribuir();}catch(e){}},
+    origemKey:'origemAtuCatId', autoPrefix:'atv_atucat_', tarefaTitulo:'Atualização Catálogo',
+    notifTipo:'atualizacaocatalogo', notifLabel:'Atualização Catálogo', conf:false,
+    confirmDel:'Excluir esta solicitação de atualização de catálogo?'
   }
 };
 let _integCtx='integracao';
@@ -20881,7 +20895,7 @@ function saveIntegracao(){
       const anterior=arr[idx];
       const novoStatus=document.getElementById('integ-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
-      arr[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
+      arr[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao:(variacao||anterior.variacao||''),status:novoStatus,
         ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){
         notifyCriadorConcluida(arr[idx],ctx.notifLabel,ctx.notifTipo);
@@ -20995,7 +21009,8 @@ const ATRIB_TIPOS=[
   {id:'entrada',        label:'Entrada',            arr:()=>appState.entradas||(appState.entradas=[]),          prefixo:'entrada_'},
   {id:'integracao',     label:'Integração',         arr:()=>appState.integracoes||(appState.integracoes=[]),    prefixo:'integ_'},
   {id:'imagens',        label:'Imagens',            arr:()=>appState.imagensReq||(appState.imagensReq=[]),      prefixo:'img_'},
-  {id:'excluirintbase', label:'Exclusão Integração',arr:()=>appState.excluirIntBase||(appState.excluirIntBase=[]),prefixo:'exint_'}
+  {id:'excluirintbase', label:'Exclusão Integração',arr:()=>appState.excluirIntBase||(appState.excluirIntBase=[]),prefixo:'exint_'},
+  {id:'atualizacaocatalogo',label:'Atualização Catálogo',arr:()=>appState.atualizacaoCatalogo||(appState.atualizacaoCatalogo=[]),prefixo:'atucat_'}
 ];
 function _atribTipo(id){ return ATRIB_TIPOS.find(t=>t.id===id); }
 let _atribSel=[];              // tipos marcados
@@ -21125,6 +21140,7 @@ function salvarAtribuicao(){
     // Gera a tarefa em Tarefas Diárias para quem ficou responsável
     if(tipoId==='integracao')            criarTarefaAutoIntegracao(item, INTEG_CTX.integracao);
     else if(tipoId==='excluirintbase')   criarTarefaAutoIntegracao(item, INTEG_CTX.excluirintbase);
+    else if(tipoId==='atualizacaocatalogo') criarTarefaAutoIntegracao(item, INTEG_CTX.atualizacaocatalogo);
     else if(tipoId==='imagens')          criarTarefaAutoImagem(item);
     else if(tipoId==='entrada')          criarTarefaAutoEntrada(item);
     criados.push(t.label);
@@ -21201,6 +21217,7 @@ function abrirSolicitacaoPorTipo(tipoId,it){
   if(tipoId==='entrada')            openEntradaModal(mkt,it.id);
   else if(tipoId==='integracao')    openIntegModal(mkt,it.id,'integracao');
   else if(tipoId==='excluirintbase')openIntegModal(mkt,it.id,'excluirintbase');
+  else if(tipoId==='atualizacaocatalogo')openIntegModal(mkt,it.id,'atualizacaocatalogo');
   else if(tipoId==='imagens')       openImgModal(mkt,it.id);
 }
 
@@ -21299,7 +21316,7 @@ function saveEntradaReq(){
       const anterior=appState.entradas[idx];
       const novoStatus=document.getElementById('entrada-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
-      appState.entradas[idx]={...anterior,...derivados,produto,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
+      appState.entradas[idx]={...anterior,...derivados,produto,responsaveis,vencimento,prioridade,consideracoes,variacao:(variacao||anterior.variacao||''),status:novoStatus,
         ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.entradas[idx],'Entrada','entrada'); }
       notifyNovosResponsaveis(anterior,appState.entradas[idx],'solicitação de Entrada','entrada');
@@ -21422,7 +21439,7 @@ function saveImagemReq(){
       const anterior=appState.imagensReq[idx];
       const novoStatus=document.getElementById('img-status').value;
       const statusMudouParaConcluido = novoStatus==='concluida' && anterior.status!=='concluida';
-      appState.imagensReq[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao,status:novoStatus,
+      appState.imagensReq[idx]={...anterior,...derivados,responsaveis,vencimento,prioridade,consideracoes,variacao:(variacao||anterior.variacao||''),status:novoStatus,
         ...(statusMudouParaConcluido?{concluidoEm:_agoraCarimbo(),concluidoPor:currentUser.name}:{})};
       if(statusMudouParaConcluido){ notifyCriadorConcluida(appState.imagensReq[idx],'Imagens','imagens'); confRegistrarImagemConcluida(appState.imagensReq[idx]); }
       notifyNovosResponsaveis(anterior,appState.imagensReq[idx],'solicitação de Imagens','imagens');
