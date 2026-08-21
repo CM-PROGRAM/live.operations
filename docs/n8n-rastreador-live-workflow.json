@@ -24,7 +24,9 @@
     {
       "parameters": {
         "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/rastreios.json",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi"
       },
       "id": "Ler Live Track",
       "name": "Ler Live Track",
@@ -34,11 +36,17 @@
         -400,
         300
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
     },
     {
       "parameters": {
-        "jsCode": "/* Quem vale consultar agora, e por onde.\n\n   A origem do card diz o sistema E a conta. Antes disso o campo guardava\n   \"Loggi MB\", que com duas contas de Manda Bem não identificava mais nada —\n   a consulta iria para a conta errada e voltaria \"não encontrado\", que na\n   tela parece problema do pacote e não da configuração. */\nconst todos = $input.first().json || {};\nconst agora = Date.now();\nconst DIAS_ATE_DESISTIR = 45;\n\nconst ORIGENS = {\n  'Melhor Envio · Antonio Carlos': 'me_antonio',\n  'Melhor Envio · Raphael':        'me_raphael',\n  'Manda Bem · Daniel':            'mb_daniel',\n  'Manda Bem · 4Vita':             'mb_4vita',\n  'Base (Mercado Livre, Shopee, Magalu)': 'base'\n};\n\n/* O id que o painel do Manda Bem entende é o número da COLETA, e ele só\n   aparece dentro do código quando o código é do próprio Manda Bem\n   (\"MB0000000328080\" carrega o 328080). Etiqueta de transportadora não\n   carrega: extrair os dígitos de \"AD821673812BR\" daria 821673812, que é\n   uma coleta existente de outra pessoa — consulta errada é pior que\n   consulta nenhuma, porque não parece erro. */\nfunction idDoMandaBem(r) {\n  const doCard = String(r.envioId || r.coletaId || '').trim();\n  if (/^\\d+$/.test(doCard)) return doCard;\n  const cod = String(r.codigo || '').trim().toUpperCase();\n  if (/^MB\\d+$/.test(cod)) return cod.replace(/\\D/g, '').replace(/^0+/, '');\n  return '';\n}\n\nconst fila = [];\nconst fora = { semOrigem: 0, semId: 0, entregue: 0, velho: 0, esperando: 0 };\n\nObject.keys(todos).forEach(chave => {\n  const r = todos[chave];\n  if (!r) return;\n\n  if (r.status === 'Entregue') { fora.entregue++; return; }\n  if (r.trackProximaConsulta && agora < r.trackProximaConsulta) { fora.esperando++; return; }\n\n  /* Pacote parado há mais de 45 dias não volta a andar porque perguntamos de\n     novo. Sai da fila e vira problema humano, não de robô. */\n  const nasceu = Number(r.ordemManual || 0);\n  if (nasceu && (agora - nasceu) > DIAS_ATE_DESISTIR * 864e5) { fora.velho++; return; }\n\n  const via = ORIGENS[String(r.intermediador || '').trim()];\n  if (!via) { fora.semOrigem++; return; }\n\n  let id = '';\n  if (via === 'base')            id = String(r.nped || '').replace(/\\D/g, '');\n  else if (via.indexOf('mb_')===0) id = idDoMandaBem(r);\n  else                            id = String(r.envioId || '').trim();\n\n  if (!id) { fora.semId++; return; }\n\n  fila.push({ json: {\n    chave, via, id,\n    codigo: r.codigo || '',\n    statusAtual: r.status || '',\n    transp: r.transp || '',\n    previsao: r.previsao || '',\n    trackLog: Array.isArray(r.trackLog) ? r.trackLog : []\n  }});\n});\n\nconsole.log(fila.length + ' na fila · fora: ' +\n  Object.keys(fora).map(k => k + '=' + fora[k]).join(' '));\n\nif (fora.semOrigem) {\n  console.log(fora.semOrigem + ' card(s) sem \"Onde consultar\" definido — ' +\n    'esses ficam sem rastreio automático até alguém escolher a conta no card.');\n}\n\nreturn fila;\n"
+        "jsCode": "/* Quem vale consultar agora, e por onde.\n\n   A origem do card diz o sistema E a conta. Antes disso o campo guardava\n   \"Loggi MB\", que com duas contas de Manda Bem não identificava mais nada —\n   a consulta iria para a conta errada e voltaria \"não encontrado\", que na\n   tela parece problema do pacote e não da configuração. */\n/* Leitura falhada não pode virar \"nada para consultar\". O 401 do Firebase\n   entrava aqui como item de erro, a fila saía vazia e a rodada parecia\n   apenas ociosa — o fluxo ficou horas assim sem ninguém desconfiar. */\nconst entrada = $input.first().json || {};\nif (entrada.error || entrada.__error) {\n  const e = entrada.error || entrada.__error || {};\n  const msg = String(e.message || JSON.stringify(e)).slice(0, 200);\n  throw new Error('Não consegui ler os rastreios do LiveOps: ' + msg +\n    ' — se aparecer 401 ou \"Permission denied\", o nó \"Ler Live Track\" está sem a ' +\n    'credencial \"Firebase (conta de serviço)\".');\n}\nconst todos = entrada;\nconst agora = Date.now();\nconst DIAS_ATE_DESISTIR = 45;\n\nconst ORIGENS = {\n  'Melhor Envio · Antonio Carlos': 'me_antonio',\n  'Melhor Envio · Raphael':        'me_raphael',\n  'Manda Bem · Daniel':            'mb_daniel',\n  'Manda Bem · 4Vita':             'mb_4vita',\n  'Base (Mercado Livre, Shopee, Magalu)': 'base'\n};\n\n/* O id que o painel do Manda Bem entende é o número da COLETA, e ele só\n   aparece dentro do código quando o código é do próprio Manda Bem\n   (\"MB0000000328080\" carrega o 328080). Etiqueta de transportadora não\n   carrega: extrair os dígitos de \"AD821673812BR\" daria 821673812, que é\n   uma coleta existente de outra pessoa — consulta errada é pior que\n   consulta nenhuma, porque não parece erro. */\nfunction idDoMandaBem(r) {\n  const doCard = String(r.envioId || r.coletaId || '').trim();\n  if (/^\\d+$/.test(doCard)) return doCard;\n  const cod = String(r.codigo || '').trim().toUpperCase();\n  if (/^MB\\d+$/.test(cod)) return cod.replace(/\\D/g, '').replace(/^0+/, '');\n  return '';\n}\n\nconst fila = [];\nconst fora = { semOrigem: 0, semId: 0, entregue: 0, velho: 0, esperando: 0 };\n\nObject.keys(todos).forEach(chave => {\n  const r = todos[chave];\n  if (!r) return;\n\n  if (r.status === 'Entregue') { fora.entregue++; return; }\n  if (r.trackProximaConsulta && agora < r.trackProximaConsulta) { fora.esperando++; return; }\n\n  /* Pacote parado há mais de 45 dias não volta a andar porque perguntamos de\n     novo. Sai da fila e vira problema humano, não de robô. */\n  const nasceu = Number(r.ordemManual || 0);\n  if (nasceu && (agora - nasceu) > DIAS_ATE_DESISTIR * 864e5) { fora.velho++; return; }\n\n  const via = ORIGENS[String(r.intermediador || '').trim()];\n  if (!via) { fora.semOrigem++; return; }\n\n  let id = '';\n  if (via === 'base')            id = String(r.nped || '').replace(/\\D/g, '');\n  else if (via.indexOf('mb_')===0) id = idDoMandaBem(r);\n  else                            id = String(r.envioId || '').trim();\n\n  if (!id) { fora.semId++; return; }\n\n  fila.push({ json: {\n    chave, via, id,\n    codigo: r.codigo || '',\n    statusAtual: r.status || '',\n    transp: r.transp || '',\n    previsao: r.previsao || '',\n    trackLog: Array.isArray(r.trackLog) ? r.trackLog : []\n  }});\n});\n\nconsole.log(fila.length + ' na fila · fora: ' +\n  Object.keys(fora).map(k => k + '=' + fora[k]).join(' '));\n\nif (fora.semOrigem) {\n  console.log(fora.semOrigem + ' card(s) sem \"Onde consultar\" definido — ' +\n    'esses ficam sem rastreio automático até alguém escolher a conta no card.');\n}\n\nreturn fila;\n"
       },
       "id": "Fila de consulta",
       "name": "Fila de consulta",
@@ -875,7 +883,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.patch) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi"
       },
       "id": "Gravar no LiveOps",
       "name": "Gravar no LiveOps",
@@ -885,7 +895,13 @@
         1800,
         240
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
     },
     {
       "parameters": {
@@ -922,7 +938,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.tarefa) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi"
       },
       "id": "Criar tarefa no LiveOps",
       "name": "Criar tarefa no LiveOps",
@@ -932,7 +950,13 @@
         60,
         540
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
     },
     {
       "parameters": {
@@ -941,7 +965,9 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ trackTarefaCriada: true, _by: \"n8n\" }) }}",
-        "options": {}
+        "options": {},
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi"
       },
       "id": "Marcar tarefa criada",
       "name": "Marcar tarefa criada",
@@ -951,7 +977,13 @@
         280,
         540
       ],
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
     }
   ],
   "connections": {

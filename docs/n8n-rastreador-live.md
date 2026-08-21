@@ -125,6 +125,14 @@ execução e não geram tarefa. Os novos já nascem com a chave.
 
 ---
 
+**Os quatro nós que falam com o LiveOps precisam da credencial `Firebase
+(conta de serviço)`** — `Ler Live Track`, `Gravar no LiveOps`, `Criar tarefa
+no LiveOps` e `Marcar tarefa criada`. É a mesma credencial que o fluxo de
+pedidos da Base já usa. Sem ela o Firebase responde **401 Permission
+denied**, e o efeito é traiçoeiro: o erro entra na fila como item vazio, a
+rodada termina "com sucesso" sem consultar nada e o painel não mostra
+problema nenhum. Por isso a fila agora levanta erro explícito nesse caso.
+
 ## 6. Credenciais (cinco)
 
 | Nome no n8n | Tipo | Conteúdo |
