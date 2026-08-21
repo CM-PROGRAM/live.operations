@@ -8206,7 +8206,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21k';
+const APP_VERSAO='2026.08.21l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8885,7 +8885,13 @@ function renderInicio(){
     </div>`;
 }
 
-function inicioIr(vista){ _iniVista=vista||'home'; renderInicio(); }
+function inicioIr(vista){
+  _iniVista=vista||'home';
+  /* Filtro não sobrevive à saída da página: voltar e encontrar a lista
+     quase vazia por causa de uma busca antiga parece dado sumido. */
+  if(_iniVista!=='baseinfo') _biBusca='';
+  renderInicio();
+}
 
 function renderManual(){
   const el=document.getElementById('inicio-conteudo');
@@ -8931,12 +8937,34 @@ function _baseInfoLista(){
   return appState.baseInfo;
 }
 
-function renderBaseInfo(){
-  const el=document.getElementById('inicio-conteudo');
-  if(!el) return;
-  const lista=_baseInfoLista();
+/* Busca da Base Conhecimento. O termo mora fora do render porque a página
+   inteira é redesenhada a cada salvar/excluir — guardá-lo no campo faria o
+   filtro sumir junto. */
+let _biBusca='';
+function _biNorm(t){
+  return String(t==null?'':t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+}
+function _baseInfoFiltrada(){
+  const q=_biNorm(_biBusca).trim();
+  const todas=_baseInfoLista();
+  if(!q) return todas;
+  /* Procura no título, no conteúdo, no link e em quem publicou: quem lembra
+     "aquele procedimento do Canva" raramente lembra o título exato. */
+  return todas.filter(it=>it && _biNorm([it.titulo,it.texto,it.link,it.por].join(' ')).includes(q));
+}
+
+function _baseInfoCardsHtml(){
+  const lista=_baseInfoFiltrada();
   const master=!!(currentUser&&currentUser.master);
-  const cards = lista.length===0
+  /* Vazio por busca e vazio por não ter nada publicado são coisas
+     diferentes. Dizer "nada publicado" com um filtro ativo seria mentira, e
+     quem lesse iria embora achando que a página está vazia. */
+  if(lista.length===0 && _biBusca.trim()){
+    return `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+      Nenhuma informação encontrada para <b>${_iniEsc(_biBusca.trim())}</b>.
+      <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="baseInfoLimparBusca()">Limpar busca</button></p>`;
+  }
+  return lista.length===0
     ? `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
          Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`
     : lista.map(it=>`
@@ -8958,6 +8986,26 @@ function renderBaseInfo(){
               </span>`):''}
         </div>
       </div>`).join('');
+}
+
+/* Redesenha SÓ a lista. Refazer a página inteira a cada tecla tiraria o
+   cursor do campo — a pessoa digitaria uma letra e perderia o foco. */
+function _baseInfoRenderLista(){
+  const box=document.getElementById('bi-lista');
+  if(box) box.innerHTML=_baseInfoCardsHtml(); else renderBaseInfo();
+}
+function baseInfoBuscar(v){ _biBusca=v||''; _baseInfoRenderLista(); }
+function baseInfoLimparBusca(){
+  _biBusca='';
+  const inp=document.getElementById('bi-busca');
+  if(inp){ inp.value=''; try{ inp.dispatchEvent(new Event('input',{bubbles:true})); }catch(e){} }
+  _baseInfoRenderLista();
+}
+
+function renderBaseInfo(){
+  const el=document.getElementById('inicio-conteudo');
+  if(!el) return;
+  const master=!!(currentUser&&currentUser.master);
 
   el.innerHTML=`
     <div class="ini-wrap">
@@ -8965,6 +9013,9 @@ function renderBaseInfo(){
       <div class="section-header">
         <span class="section-title">Base Conhecimento</span>
         ${master?`<button class="btn btn-sm" onclick="baseInfoNovo()">+ Nova informação</button>`:''}
+      </div>
+      <div style="margin-bottom:14px;">
+        <input id="bi-busca" type="text" placeholder="Buscar por título, conteúdo ou link..." oninput="baseInfoBuscar(this.value)" value="${_iniEsc(_biBusca)}" style="width:100%;">
       </div>
       ${master?`
       <div id="bi-form" style="display:none;border:1px solid var(--glass-border);border-radius:14px;padding:16px;margin-bottom:16px;background:var(--veu-medio);">
@@ -8986,8 +9037,12 @@ function renderBaseInfo(){
           <button class="btn btn-ghost btn-sm" onclick="baseInfoCancelar()">Cancelar</button>
         </div>
       </div>`:''}
-      ${cards}
+      <div id="bi-lista">${_baseInfoCardsHtml()}</div>
     </div>`;
+  /* Esta página não é uma aba, então o normalizador que roda na troca de aba
+     não passa por aqui — sem esta chamada o campo ficaria com desenho
+     diferente de todos os outros do sistema. */
+  try{ normalizarBuscas(el); }catch(e){}
 }
 
 function baseInfoNovo(){
