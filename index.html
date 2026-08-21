@@ -972,33 +972,41 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-quadro.quadro-acoes:hover{transform:none;border-color:rgba(255,255,255,.22);}
 .ini-quadro.quadro-acoes .ini-ic{width:50px;height:50px;}
 
-/* Base Conhecimento: os mesmos quadros do WhatsApp, mas carregando texto de
-   procedimento em vez de uma frase de apoio. O conteúdo nasce dobrado em
-   seis linhas para os cartões da grade terem todos a mesma altura; clicar
+/* Base Conhecimento: mesmo desenho dos quadros do WhatsApp, no tamanho dos
+   cartões de Atendimentos — 320px de largura mínima e 12px de respiro. A
+   página cresce sem limite (é onde todo procedimento vai parar), e no
+   tamanho grande meia dúzia de itens já ocupava a tela inteira.
+
+   O texto nasce dobrado em quatro linhas para a grade sair alinhada; clicar
    abre o texto inteiro, porque procedimento cortado pela metade não serve
-   para nada — e sem essa saída o cartão seria mais bonito e menos útil que
-   a lista que ele substituiu. */
-.bi-quadro{cursor:pointer;}
+   para nada. */
+/* A página inicial é estreita de propósito, com dois quadros no meio da
+   tela. Aqui é o contrário: quanto mais couber por fileira, menos rolagem
+   para achar um procedimento. */
+.bi-wrap{max-width:1500px;}
+.bi-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start;}
+.bi-quadro{cursor:pointer;justify-content:flex-start;min-height:0;
+  padding:16px 18px;border-radius:12px;gap:8px;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
-.bi-quadro .ini-tit{font-size:17px;line-height:1.3;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;
-  min-height:3.9em;}
-/* Aberto, o título não é cortado: o cartão já cresceu para caber o texto,
-   e um título com reticências no cartão que a pessoa acabou de abrir para
-   ler é o oposto do que ela pediu. */
-.bi-quadro.aberto .ini-tit{display:block;overflow:visible;}
-.bi-quadro .ini-sub{max-width:none;width:100%;text-align:left;white-space:pre-wrap;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;}
-/* Fechado, o texto ocupa sempre a altura de seis linhas, mesmo quando tem
-   uma só. Sem isso a grade fica com fileiras de alturas diferentes — cada
-   fileira cresce até o cartão mais alto dela — e o conjunto parece
-   desalinhado sem que nada esteja errado. */
-.bi-quadro:not(.aberto) .ini-sub{height:9.3em;}
+.bi-quadro .ini-ic{width:30px;height:30px;}
+.bi-quadro .ini-tit{font-size:14.5px;line-height:1.3;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+.bi-quadro .ini-sub{max-width:none;width:100%;font-size:12px;text-align:left;white-space:pre-wrap;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;}
+/* Cada cartão tem a altura do que carrega, como os de Atendimentos.
+   Reservar quatro linhas para todos alinhava a grade, mas deixava buraco
+   embaixo de quem só tem uma frase — e numa página que vai crescer sem
+   limite esse buraco custa mais que o desalinho. O align-items:start da
+   grade impede que os curtos estiquem até a altura do vizinho. */
 .bi-quadro.aberto{cursor:default;}
-.bi-quadro.aberto .ini-sub{display:block;overflow:visible;}
-.bi-quadro .bi-mais{font-size:10.5px;font-weight:700;letter-spacing:.3px;color:var(--text-muted);min-height:1.2em;}
-.bi-quadro .bi-pe{display:flex;align-items:center;justify-content:center;gap:8px;
-  margin-top:auto;padding-top:14px;flex-wrap:wrap;width:100%;}
+.bi-quadro.aberto .ini-sub{display:block;overflow:visible;height:auto;}
+/* Aberto, o título não é cortado: o cartão já cresceu para caber o texto, e
+   reticências no cartão que a pessoa acabou de abrir para ler é o oposto do
+   que ela pediu. */
+.bi-quadro.aberto .ini-tit{display:block;overflow:visible;}
+.bi-quadro .bi-mais{font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--text-muted);}
+.bi-quadro .bi-pe{display:flex;align-items:center;justify-content:center;gap:6px;
+  margin-top:auto;padding-top:10px;flex-wrap:wrap;width:100%;}
 
 /* ── Calendário (um só no sistema) ────────────────────────────────
    O cabeçalho é botão: clicar troca de dias para meses e de meses para
@@ -8234,7 +8242,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21m';
+const APP_VERSAO='2026.08.21n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9001,11 +9009,11 @@ function _baseInfoCardsHtml(){
     const texto  = it.texto||'';
     const dobra  = texto.length>220 || texto.split('\n').length>6;
     return `
-      <div class="ini-quadro quadro-acoes bi-quadro${aberto?' aberto':''}" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
+      <div class="ini-quadro bi-quadro${aberto?' aberto':''}" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
         <div class="ini-ic">${iconeMenu('baseinfo')}</div>
         <div class="ini-tit">${_iniEsc(it.titulo)}</div>
         <div class="ini-sub">${_iniEsc(texto)}</div>
-        <div class="bi-mais">${dobra?(aberto?'ver menos ▴':'ver mais ▾'):''}</div>
+        ${dobra?`<div class="bi-mais">${aberto?'ver menos ▴':'ver mais ▾'}</div>`:''}
         <div class="bi-pe" onclick="event.stopPropagation();">
           ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Abrir link ↗</a>`:''}
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
@@ -9022,7 +9030,7 @@ function _baseInfoCardsHtml(){
         </div>
       </div>`;
   }).join('');
-  return `<div class="ini-quadros tres-colunas quadros-maiores">${quadros}</div>`;
+  return `<div class="bi-grade">${quadros}</div>`;
 }
 
 /* Qual quadro está com o texto aberto. Um de cada vez: dois cartões
@@ -9054,13 +9062,13 @@ function renderBaseInfo(){
   const master=!!(currentUser&&currentUser.master);
 
   el.innerHTML=`
-    <div class="ini-wrap">
+    <div class="ini-wrap bi-wrap">
       <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
       <div class="section-header">
         <span class="section-title">Base Conhecimento</span>
         ${master?`<button class="btn btn-sm" onclick="baseInfoNovo()">+ Nova informação</button>`:''}
       </div>
-      <div style="margin-bottom:14px;">
+      <div style="margin:4px 0 22px;">
         <input id="bi-busca" type="text" placeholder="Buscar por título, conteúdo ou link..." oninput="baseInfoBuscar(this.value)" value="${_iniEsc(_biBusca)}" style="width:100%;">
       </div>
       ${master?`
