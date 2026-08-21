@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.17h';
+var VERSAO_CODIGO = '2026.08.21a';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -178,6 +178,16 @@ function doGet(e) {
       propriedadesExistentes: Object.keys(
         PropertiesService.getScriptProperties().getProperties() || {})
     });
+  }
+
+  /* Preço do produto para o orçamento do WhatsApp.
+     A tela manda o SKU; aqui a Base diz qual é o produto e o site diz por
+     quanto ele está sendo vendido, sem desconto. Os dois passos precisam
+     acontecer fora do navegador: a chave da Base ficaria à vista no código
+     da página (o repositório é público) e nem a BaseLinker nem o site
+     autorizam a chamada vinda de outro endereço. */
+  if (acao === 'produto') {
+    return _json(buscarProduto(p.sku || '', String(p.diag || '') === '1'));
   }
 
   if (acao !== 'vendas') {
@@ -1048,4 +1058,166 @@ function testarComprovante() {
     fileBase64: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
   });
   Logger.log(r);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PREÇO DO PRODUTO — Base (quem é) + site (por quanto)
+   ══════════════════════════════════════════════════════════════════ */
+
+function baseToken() {
+  return PropertiesService.getScriptProperties().getProperty('BASELINKER_TOKEN') || '';
+}
+
+/* Endereço de busca do site. Fica em Propriedade do script porque o caminho
+   muda conforme a plataforma da loja, e trocar propriedade é mais rápido do
+   que republicar código. {sku} é substituído pelo código procurado. */
+function siteBuscaUrl() {
+  return PropertiesService.getScriptProperties().getProperty('SITE_BUSCA_URL')
+      || 'https://www.suplelive.com.br/busca?q={sku}';
+}
+
+function _baseChamar(metodo, parametros) {
+  var token = baseToken();
+  if (!token) throw new Error('BASELINKER_TOKEN nao cadastrado — Configuracoes do projeto > Propriedades do script');
+  var resp = UrlFetchApp.fetch('https://api.baselinker.com/connector.php', {
+    method: 'post',
+    muteHttpExceptions: true,
+    headers: { 'X-BLToken': token },
+    payload: { method: metodo, parameters: JSON.stringify(parametros || {}) }
+  });
+  var texto = resp.getContentText();
+  var j;
+  try { j = JSON.parse(texto); }
+  catch (e) { throw new Error('A Base nao devolveu JSON: ' + texto.slice(0, 200)); }
+  if (j.status && j.status !== 'SUCCESS') {
+    throw new Error('A Base recusou: ' + (j.error_message || j.error_code || texto.slice(0, 200)));
+  }
+  return j;
+}
+
+/* O catalogo da Base fica em "inventarios". Sem inventario informado a
+   listagem nao roda, entao o primeiro da conta e o padrao — a conta tem um
+   so, e se um dia tiver mais, o INVENTARIO_ID resolve sem mexer no codigo. */
+function _baseInventarioId() {
+  var fixo = PropertiesService.getScriptProperties().getProperty('BASE_INVENTARIO_ID');
+  if (fixo) return fixo;
+  var j = _baseChamar('getInventories', {});
+  var lista = j.inventories || [];
+  if (!lista.length) throw new Error('A conta da Base nao tem nenhum inventario');
+  return String(lista[0].inventory_id);
+}
+
+function _baseProdutoPorSku(sku) {
+  var inv = _baseInventarioId();
+  var lista = _baseChamar('getInventoryProductsList', {
+    inventory_id: inv,
+    filter_sku: sku
+  });
+  var produtos = lista.products || {};
+  var ids = Object.keys(produtos);
+  if (!ids.length) return null;
+
+  var dados = _baseChamar('getInventoryProductsData', {
+    inventory_id: inv,
+    products: [ids[0]]
+  });
+  var d = (dados.products || {})[ids[0]] || produtos[ids[0]] || {};
+  var nome = d.name || d.text_fields && d.text_fields.name || '';
+  return { id: ids[0], nome: String(nome || ''), ean: String(d.ean || ''), bruto: d };
+}
+
+/* O preco vem do site, nao da Base: e o numero que o cliente ve, e e sobre
+   ele que o desconto progressivo e prometido. Ler pagina de loja e sempre
+   um pouco fragil, entao a leitura tenta as formas mais estaveis primeiro —
+   dado estruturado (JSON-LD e Open Graph), que quase toda plataforma publica
+   para o Google — e so depois cai no texto solto. */
+function _precoDaPagina(html) {
+  if (!html) return { valor: 0, origem: '' };
+
+  // 1. JSON-LD: "offers": { "price": "110.00" }
+  var m = html.match(/"price"\s*:\s*"?([0-9]+(?:[.,][0-9]{1,2})?)"?/);
+  if (m) { var v = _numero(m[1]); if (v > 0) return { valor: v, origem: 'json-ld' }; }
+
+  // 2. Open Graph / meta de produto
+  m = html.match(/property=["']product:price:amount["']\s+content=["']([^"']+)["']/i)
+   || html.match(/content=["']([^"']+)["']\s+property=["']product:price:amount["']/i)
+   || html.match(/itemprop=["']price["'][^>]*content=["']([^"']+)["']/i);
+  if (m) { var v2 = _numero(m[1]); if (v2 > 0) return { valor: v2, origem: 'meta' }; }
+
+  /* 3. Ultimo recurso: o primeiro "R$ 00,00" da pagina. E um palpite, e o
+     diag diz quando foi usado: numa pagina em promocao o primeiro valor
+     costuma ser o preco riscado ("De R$ 150,00 por R$ 110,00"), e ai o
+     orcamento sairia com o numero errado sem ninguem perceber. */
+  m = html.match(/R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/);
+  if (m) { var v3 = _numero(m[1]); if (v3 > 0) return { valor: v3, origem: 'texto (palpite)' }; }
+
+  return { valor: 0, origem: '' };
+}
+
+function _numero(txt) {
+  var t = String(txt || '').trim();
+  // "1.234,56" (BR) vira 1234.56; "1234.56" (JSON-LD) fica como esta
+  if (t.indexOf(',') > -1) t = t.replace(/\./g, '').replace(',', '.');
+  var n = parseFloat(t);
+  return isFinite(n) ? n : 0;
+}
+
+function _buscarNoSite(sku, nome) {
+  var tentativas = [];
+  var termos = [sku];
+  if (nome) termos.push(nome);
+
+  for (var i = 0; i < termos.length; i++) {
+    var url = siteBuscaUrl().replace('{sku}', encodeURIComponent(termos[i]));
+    try {
+      var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
+      var html = resp.getContentText();
+      var achado = _precoDaPagina(html);
+      tentativas.push({ url: url, status: resp.getResponseCode(),
+                        preco: achado.valor, origem: achado.origem, tamanho: html.length });
+      if (achado.valor > 0) {
+        return { preco: achado.valor, origem: achado.origem, url: url, tentativas: tentativas };
+      }
+    } catch (e) {
+      tentativas.push({ url: url, erro: String(e) });
+    }
+  }
+  return { preco: 0, origem: '', url: '', tentativas: tentativas };
+}
+
+/* diag=1 devolve o caminho inteiro — o que a Base respondeu, qual endereco
+   foi consultado no site e o que voltou de cada um. Sem isso, "nao achei o
+   SKU" nao diz se o problema foi a Base, o endereco de busca ou o formato da
+   pagina, e a investigacao vira tentativa e erro. */
+function buscarProduto(sku, diag) {
+  sku = String(sku || '').trim();
+  if (!sku) return { ok: false, erro: 'Informe o SKU' };
+
+  var saida = { ok: false, sku: sku, nome: '', preco: 0 };
+  var passos = {};
+
+  try {
+    var prod = _baseProdutoPorSku(sku);
+    passos.base = prod ? { achou: true, id: prod.id, nome: prod.nome } : { achou: false };
+    if (prod) saida.nome = prod.nome;
+  } catch (e) {
+    passos.base = { erro: String(e) };
+  }
+
+  try {
+    var site = _buscarNoSite(sku, saida.nome);
+    passos.site = site.tentativas;
+    if (site.preco > 0) { saida.preco = site.preco; saida.url = site.url; saida.origem = site.origem; }
+  } catch (e2) {
+    passos.site = { erro: String(e2) };
+  }
+
+  saida.ok = saida.preco > 0;
+  if (!saida.ok) {
+    saida.erro = saida.nome
+      ? 'Achei o produto na Base, mas nao consegui ler o preco no site'
+      : 'Nao achei este SKU na Base nem preco no site';
+  }
+  if (diag) saida.passos = passos;
+  return saida;
 }

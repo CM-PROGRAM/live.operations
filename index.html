@@ -8156,7 +8156,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.20q';
+const APP_VERSAO='2026.08.21a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23348,7 +23348,20 @@ function buscarSkuNaBase(){
     if(j.preco) document.getElementById('orc-preco').value=String(j.preco).replace('.',',');
     if(nome) nome.textContent=_atd.produto;
     if(ach) ach.style.display='block';
-    showToast('Produto encontrado','success');
+    /* Quando o preço não veio de dado estruturado, o Apps Script marca a
+       leitura como palpite: numa página em promoção o primeiro "R$" da tela
+       costuma ser o valor riscado. Melhor avisar do que deixar o orçamento
+       sair com o número errado sem ninguém perceber. */
+    if(String(j.origem||'').indexOf('palpite')>=0){
+      if(err){
+        err.textContent='Li o preço do texto da página, não do dado do produto — confira se '+
+          document.getElementById('orc-preco').value+' é mesmo o valor de venda.';
+        err.style.display='block';
+      }
+      showToast('Produto encontrado — confira o preço','warn');
+    } else {
+      showToast('Produto encontrado','success');
+    }
   }).catch(e=>{
     console.warn('[orçamento] busca de SKU:',e);
     if(err){
