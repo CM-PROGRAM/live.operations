@@ -8090,7 +8090,7 @@ function initApp(){
   // todos os registros já existentes como "criado"
   try{ logSincronizarSnapshot(appState); }catch(e){}
   // buildTabs() cria o footer com avatar/nome/relógio/sair dinamicamente
-  buildTabs();restaurarMenuOculto();renderAll();startClock();startFirebaseSync();initActivityListener();
+  buildTabs();restaurarMenuOculto();normalizarBuscas();renderAll();startClock();startFirebaseSync();initActivityListener();
   // Cards de revisão dos marketplaces do dia
   try{ mktRotinaSincronizar(); }catch(e){ console.warn('[rotina mkt]',e); }
   // Atendimento sem resposta há 24h volta a ser enviado, com a tela aberta
@@ -8165,7 +8165,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21f';
+const APP_VERSAO='2026.08.21g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8392,6 +8392,7 @@ function buildTabs(){
   nav.appendChild(lbl);
 
   function fireTabHooks(id){
+    try{ normalizarBuscas(); }catch(e){ console.warn('normalizarBuscas:',e); }
     if(id==='whatsapp'){ try{ wppAbrirFrente(_wppFrente); }catch(e){ console.warn('wppAbrirFrente:',e); } }
     if(id==='registrovendas'){ try{regSetSubTab('base');}catch(e){console.warn('regSetSubTab:',e);} }
     if(id==='financeiro'){ try{finSetSubTab('confvendas');}catch(e){console.warn('finSetSubTab:',e);} }
@@ -8535,6 +8536,126 @@ function navExternalLink(e,key,label,fallbackUrl){
   }
   window.open(url,'_blank','noopener');
 }
+
+/* ── Um só desenho de busca no sistema inteiro ─────────────────────
+   Cada tela tinha nascido com a sua caixa de busca: umas com a lupa dentro
+   do placeholder, outras com um <span> ao lado, cada uma com o seu contorno
+   e o seu raio de canto. O resultado é que a mesma ação parecia coisa
+   diferente em cada aba.
+
+   A conversão é feita aqui, no carregamento, e não reescrevendo as vinte
+   marcações à mão: assim uma busca nova nasce no padrão sem ninguém
+   lembrar de aplicá-lo, e não há vinte lugares para esquecer um. */
+
+const BUSCA_FORA = new Set(['orc-sku','fesc-valor','gl-novo']);
+
+function normalizarBuscas(raiz){
+  const alvo=(raiz||document);
+  let campos;
+  try{ campos=alvo.querySelectorAll('input[id*="busca"],input[id*="search"],input[type="search"]'); }
+  catch(e){ return; }
+  campos.forEach(inp=>{
+    if(!inp || BUSCA_FORA.has(inp.id)) return;
+    if(inp.closest('.atv-busca')) return;      // já está no padrão
+    if(inp.closest('.sidebar-search')) return; // a busca do menu tem outro papel
+
+    const pai=inp.parentElement;
+    /* O campo costuma vir dentro de um <div> que existe só para desenhar a
+       pílula e segurar a lupa. Quando é esse o caso, esse div VIRA a caixa
+       nova — criar outra por dentro deixaria pílula dentro de pílula. */
+    /* Enfeite é ícone, e só. BUTTON e A ficaram de fora desta lista depois
+       que o "+ Novo Rastreio" — que dividia o mesmo <div> com a busca — foi
+       apagado por ser considerado decoração. Nenhum elemento que a pessoa
+       possa clicar entra aqui. */
+    const ehIcone = c => /^(SPAN|SVG|I|IMG)$/.test(c.tagName) && !(c.textContent||'').trim().replace(/[\u{1F300}-\u{1FAFF}\u{2190}-\u{27BF}\s]/gu,'');
+    const soEnfeite = pai && pai.tagName==='DIV' && !pai.id && pai.children.length<=3 &&
+      Array.prototype.every.call(pai.children, c=>c===inp || ehIcone(c));
+
+    let caixa;
+    if(soEnfeite){
+      caixa=pai;
+      // Remove só o ícone antigo; qualquer outra coisa fica onde está
+      Array.prototype.slice.call(caixa.children).forEach(c=>{ if(c!==inp && ehIcone(c)) c.remove(); });
+      const largura=_buscaLargura(caixa.getAttribute('style')) || _buscaLargura(inp.getAttribute('style'));
+      caixa.removeAttribute('style');
+      caixa.className='atv-busca';
+      if(largura) caixa.setAttribute('style',largura);
+    } else {
+      caixa=document.createElement('div');
+      caixa.className='atv-busca';
+      const largura=_buscaLargura(inp.getAttribute('style'));
+      if(largura) caixa.setAttribute('style',largura);
+      inp.parentNode.insertBefore(caixa,inp);
+    }
+
+    // O campo perde o desenho próprio: quem desenha agora é a caixa
+    inp.removeAttribute('style');
+    inp.setAttribute('type','search');
+    inp.setAttribute('autocomplete','off');
+    // A lupa sai do texto e vira ícone — dentro do placeholder ela sumia
+    // junto com o texto assim que a pessoa começava a digitar
+    const ph=(inp.getAttribute('placeholder')||'').replace(/^[\s\u{1F50D}\u{1F50E}]+/u,'').trim();
+    if(ph) inp.setAttribute('placeholder',ph);
+
+    const ic=document.createElement('span');
+    ic.className='atv-busca-ic'; ic.textContent='🔎';
+    const x=document.createElement('button');
+    x.type='button'; x.className='atv-busca-x'; x.title='Limpar busca'; x.textContent='✕';
+    x.onclick=()=>limparBusca(x);
+
+    caixa.appendChild(inp);
+    caixa.insertBefore(ic,inp);
+    caixa.appendChild(x);
+    if(inp.value) caixa.classList.add('tem-texto');
+
+    /* Os filtros que dividem a linha com a busca herdam width:100% da regra
+       geral de formulário. Enquanto o campo antigo esticava, isso não
+       aparecia; com a caixa nova de largura fixa, cada select passa a ocupar
+       uma linha inteira. Devolver a largura ao conteúdo arruma a fileira. */
+    const linha=caixa.parentElement;
+    if(linha){
+      let ehFlex=false;
+      try{ ehFlex=String(getComputedStyle(linha).display).indexOf('flex')>=0; }catch(e){}
+      if(ehFlex){
+        Array.prototype.forEach.call(linha.children, c=>{
+          if(c.tagName==='SELECT' && (!c.style.width || c.style.width==='100%')) c.style.width='auto';
+        });
+      }
+    }
+  });
+}
+
+/* Só a medida que posicionava o campo na linha viaja para a caixa nova. O
+   resto do estilo em linha era decoração, e é justamente o que se quer
+   perder. */
+function _buscaLargura(estilo){
+  if(!estilo) return '';
+  const partes=[];
+  String(estilo).split(';').forEach(d=>{
+    const nome=(d.split(':')[0]||'').trim().toLowerCase();
+    if(nome==='flex'||nome==='min-width'||nome==='max-width'||nome==='width') partes.push(d.trim());
+  });
+  return partes.length?partes.join(';')+';':'';
+}
+
+/* Limpar dispara o "input" no campo: é o mesmo evento que a digitação
+   dispara, então o oninput que cada tela já tem roda sozinho. Sem isso eu
+   teria de conhecer o nome da função de cada uma das vinte buscas. */
+function limparBusca(botao){
+  const caixa=botao&&botao.closest('.atv-busca');
+  const inp=caixa&&caixa.querySelector('input');
+  if(!inp) return;
+  inp.value='';
+  caixa.classList.remove('tem-texto');
+  inp.dispatchEvent(new Event('input',{bubbles:true}));
+  inp.focus();
+}
+
+// O ✕ só aparece quando há o que limpar
+document.addEventListener('input',function(e){
+  const caixa=e.target&&e.target.closest&&e.target.closest('.atv-busca');
+  if(caixa) caixa.classList.toggle('tem-texto', !!e.target.value);
+});
 
 /* Esconder / mostrar o menu lateral, como na Base. A escolha fica neste
    navegador: é preferência de quem está na frente da tela, não do sistema —
