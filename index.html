@@ -1059,7 +1059,7 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .man-corpo li{font-size:13px;color:var(--text-secondary);line-height:1.7;margin-bottom:3px;}
 .man-aviso{margin-top:12px;padding:10px 12px;border-radius:10px;font-size:12.5px;line-height:1.6;
   background:rgba(234,179,8,.08);border:1px solid rgba(234,179,8,.3);color:var(--text-secondary);}
-/* Base Informações */
+/* Base Conhecimento */
 .bi-card{border:1px solid var(--glass-border);border-radius:14px;padding:14px 16px;margin-bottom:12px;background:var(--veu-suave);}
 .bi-card h3{font-family:var(--font-sans);font-size:15px;font-weight:700;color:var(--text-primary);margin:0 0 6px;}
 .bi-card .bi-txt{font-size:13px;color:var(--text-secondary);line-height:1.65;white-space:pre-wrap;}
@@ -8196,7 +8196,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21h';
+const APP_VERSAO='2026.08.21i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8712,7 +8712,7 @@ function restaurarMenuOculto(){
 }
 
 /* ===== PÁGINA INICIAL ============================================
-   Dois quadros no meio da tela: "Base Informações" (o mural da equipe)
+   Dois quadros no meio da tela: "Base Conhecimento" (o mural da equipe)
    e "Manual Sistema" (como cada aba funciona). O manual só mostra as
    abas que a pessoa enxerga — explicar uma aba que ela não tem só
    gera pedido de acesso e confusão. */
@@ -8863,7 +8863,7 @@ function renderInicio(){
       <div class="ini-quadros">
         <div class="ini-quadro" onclick="inicioIr('baseinfo')">
           <div class="ini-ic">${iconeMenu('baseinfo')}</div>
-          <div class="ini-tit">Base Informações</div>
+          <div class="ini-tit">Base Conhecimento</div>
           <div class="ini-sub">Os avisos, procedimentos e links que a equipe precisa ter à mão.</div>
         </div>
         <div class="ini-quadro" onclick="inicioIr('manual')">
@@ -8913,7 +8913,7 @@ function manualAlternar(i){
   if(it) it.classList.toggle('aberto');
 }
 
-/* ── Base Informações ────────────────────────────────────────────
+/* ── Base Conhecimento ────────────────────────────────────────────
    Mural da equipe: o master escreve, todo mundo lê. É o lugar de
    procedimento e aviso que hoje vive em conversa de WhatsApp e some. */
 function _baseInfoLista(){
@@ -8953,7 +8953,7 @@ function renderBaseInfo(){
     <div class="ini-wrap">
       <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
       <div class="section-header">
-        <span class="section-title">Base Informações</span>
+        <span class="section-title">Base Conhecimento</span>
         ${master?`<button class="btn btn-sm" onclick="baseInfoNovo()">+ Nova informação</button>`:''}
       </div>
       ${master?`
@@ -16604,7 +16604,7 @@ function saveRst(){
       arr[idx]={...ex,id:editId,data,nped,plataforma:ex.plataforma||'',marketplace,status,transp,previsao,cliente:ex.cliente||'',codigo,link,obs,
         intermediador,envioId,
         entregueEm:(status==='Entregue' ? (ex.status==='Entregue'?ex.entregueEm:_entregueEmAgora) : ''),
-        criadoPor:ex.criadoPor||'',criadoEm:ex.criadoEm||'',
+        criadoPor:ex.criadoPor||'',criadoPorKey:ex.criadoPorKey||'',criadoEm:ex.criadoEm||'',
         atualizadoPor:currentUser.name,atualizadoEm:nowTimeStr(),ordemManual:ex.ordemManual};
     }
     showToast('✓ Rastreio atualizado','success');
@@ -16612,7 +16612,9 @@ function saveRst(){
     arr.push({id:'rst_'+Date.now(),data,nped,plataforma:'',marketplace,status,transp,previsao,cliente:'',codigo,link,obs,
       intermediador,envioId,
       entregueEm:(status==='Entregue'?_entregueEmAgora:''),
-      criadoPor:currentUser.name,criadoEm:nowTimeStr(),ordemManual:Date.now()});
+      /* criadoPorKey é o que permite atribuir a tarefa de conferência a quem
+         cadastrou o rastreio: o nome sozinho não identifica o usuário. */
+      criadoPor:currentUser.name,criadoPorKey:currentUser.key,criadoEm:nowTimeStr(),ordemManual:Date.now()});
     showToast(status==='Entregue' ? '✓ Rastreio cadastrado — veja na pasta Entregues' : '✓ Rastreio cadastrado','success');
   }
 
