@@ -26,7 +26,7 @@
 /* Marca de qual código está publicado. Só serve para /exec?acao=diag
    responder "a implantação no ar é esta aqui" — sem isso, não há como saber
    de fora se o "Nova versão" chegou a ser feito. Suba junto com o arquivo. */
-var VERSAO_CODIGO = '2026.08.21a';
+var VERSAO_CODIGO = '2026.08.21b';
 
 // Pasta "Comprovantes" no Drive — a que tem as pastas de cada mês dentro
 var PASTA_COMPROVANTES_ID = '1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr';
@@ -1073,7 +1073,7 @@ function baseToken() {
    que republicar código. {sku} é substituído pelo código procurado. */
 function siteBuscaUrl() {
   return PropertiesService.getScriptProperties().getProperty('SITE_BUSCA_URL')
-      || 'https://www.suplelive.com.br/busca?q={sku}';
+      || 'https://www.suplelive.com.br/buscar?q={sku}';
 }
 
 function _baseChamar(metodo, parametros) {
@@ -1144,14 +1144,55 @@ function _precoDaPagina(html) {
    || html.match(/itemprop=["']price["'][^>]*content=["']([^"']+)["']/i);
   if (m) { var v2 = _numero(m[1]); if (v2 > 0) return { valor: v2, origem: 'meta' }; }
 
-  /* 3. Ultimo recurso: o primeiro "R$ 00,00" da pagina. E um palpite, e o
-     diag diz quando foi usado: numa pagina em promocao o primeiro valor
-     costuma ser o preco riscado ("De R$ 150,00 por R$ 110,00"), e ai o
-     orcamento sairia com o numero errado sem ninguem perceber. */
-  m = html.match(/R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/);
-  if (m) { var v3 = _numero(m[1]); if (v3 > 0) return { valor: v3, origem: 'texto (palpite)' }; }
+  /* 3. O texto da vitrine. Aqui o primeiro "R$" da pagina NAO serve: o card
+     do produto mostra tres valores em sequencia —
+
+       R$ 134,84 via Pix     (ja com os 7% de desconto do proprio site)
+       R$ 184,99             (riscado, o "de")
+       R$ 144,99             (o preco de venda)   <- este
+
+     e ainda "ate 3x de R$ 48,33". O valor que interessa e o de venda: e
+     sobre ele que o desconto progressivo do WhatsApp e prometido. Pegar o
+     primeiro traria o preco do pix e o orcamento sairia baixo demais, sem
+     ninguem perceber. Entao: descarta o que vem seguido de "via Pix",
+     descarta o que esta riscado, e fica com o primeiro que sobrar. */
+  var achados = _precosDoTexto(html);
+  if (achados.length) return { valor: achados[0], origem: 'vitrine' };
 
   return { valor: 0, origem: '' };
+}
+
+function _precosDoTexto(html) {
+  var re = /R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/g;
+  var out = [], m;
+  while ((m = re.exec(html)) !== null) {
+    var valor = _numero(m[1]);
+    if (!(valor > 0)) continue;
+
+    var depois = html.substr(m.index + m[0].length, 160).toLowerCase();
+    var antes  = html.substring(Math.max(0, m.index - 220), m.index).toLowerCase();
+
+    // "R$ 134,84 via Pix" — o desconto que o site ja da, nao o preco de venda
+    if (/via\s*(o\s*)?pix|no\s*pix|via\s*boleto/.test(depois)) continue;
+
+    /* Preco riscado. A checagem tem de olhar SO a tag que envolve este
+       valor: uma janela solta para tras pega a classe do valor anterior e
+       derruba o preco bom junto com o riscado — foi o que aconteceu no
+       primeiro teste. A ultima "<" antes do numero e a tag que o embrulha;
+       se ela for de fechamento, o valor esta solto no texto e nao esta
+       riscado. */
+    var tag = antes.slice(antes.lastIndexOf('<'));
+    if (tag.indexOf('</') !== 0) {
+      if (/^<(del|s|strike)[\s>]/.test(tag)) continue;
+      if (/line-through|preco-?(antigo|old|regular|de)\b|price-?(old|regular|from)|riscado/.test(tag)) continue;
+    }
+
+    // Parcela: "3x de R$ 48,33"
+    if (/\d\s*x\s*(de\s*)?$/.test(antes.slice(-14))) continue;
+
+    out.push(valor);
+  }
+  return out;
 }
 
 function _numero(txt) {
@@ -1173,8 +1214,17 @@ function _buscarNoSite(sku, nome) {
       var resp = UrlFetchApp.fetch(url, { muteHttpExceptions: true, followRedirects: true });
       var html = resp.getContentText();
       var achado = _precoDaPagina(html);
-      tentativas.push({ url: url, status: resp.getResponseCode(),
-                        preco: achado.valor, origem: achado.origem, tamanho: html.length });
+      var t = { url: url, status: resp.getResponseCode(),
+                preco: achado.valor, origem: achado.origem, tamanho: html.length };
+      /* Quando nao acha, a amostra do HTML em volta do primeiro "R$" e o que
+         permite escrever a regra certa sem ficar adivinhando a marcacao da
+         loja. So vai no diagnostico, nunca na resposta normal. */
+      if (!achado.valor) {
+        var pos = html.indexOf('R$');
+        t.candidatos = _precosDoTexto(html).slice(0, 8);
+        t.amostra = pos > -1 ? html.substr(Math.max(0, pos - 400), 1200) : html.substr(0, 600);
+      }
+      tentativas.push(t);
       if (achado.valor > 0) {
         return { preco: achado.valor, origem: achado.origem, url: url, tentativas: tentativas };
       }

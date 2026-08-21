@@ -38,14 +38,15 @@ script**, acrescente:
 > **Cuidado:** *acrescente* uma linha nova. Renomear uma propriedade
 > existente apaga a antiga — foi assim que o `CHATWOOT_TOKEN` sumiu uma vez.
 
-O padrão de `SITE_BUSCA_URL` é:
+O padrão de `SITE_BUSCA_URL` é o caminho de busca da loja, confirmado em
+20/08/2026:
 
 ```
-https://www.suplelive.com.br/busca?q={sku}
+https://www.suplelive.com.br/buscar?q={sku}
 ```
 
-Se a busca da loja usa outro caminho, é aqui que se corrige — sem
-republicar o código.
+Se um dia a loja mudar de plataforma, é aqui que se corrige — sem republicar
+o código.
 
 Depois de salvar, **Implantar → Gerenciar implantações → editar → Nova
 versão**. Sem isso o que está no ar continua sendo o código antigo.
@@ -91,14 +92,30 @@ A leitura tenta as formas mais estáveis primeiro:
 |---|---|---|---|
 | 1 | JSON-LD (`"offers":{"price":…}`) | `json-ld` | alta — quase toda plataforma publica isso para o Google |
 | 2 | `<meta property="product:price:amount">` / `itemprop="price"` | `meta` | alta |
-| 3 | primeiro `R$ 00,00` do texto | `texto (palpite)` | **baixa** |
+| 3 | o card da vitrine | `vitrine` | boa — regra escrita para esta loja |
 
-O terceiro caminho é um palpite e a tela avisa quando ele foi usado: numa
-página em promoção o primeiro `R$` costuma ser o **preço riscado**, e o
-orçamento sairia com o número errado sem ninguém perceber.
+### Por que o terceiro caminho não é o primeiro `R$` da página
 
-Se a origem vier como palpite com frequência, mande uma URL de produto do
-site que eu escrevo o parser exato daquela loja.
+O card do produto na busca mostra **três valores em sequência**:
+
+```
+R$ 134,84  via Pix     ← já com os 7% de desconto do próprio site
+R$ 184,99              ← riscado, o "de"
+R$ 144,99              ← o preço de venda        ◀ este
+        até 3x de R$ 48,33
+```
+
+O que interessa é o **de venda**: é sobre ele que o desconto progressivo do
+WhatsApp é prometido. Pegar o primeiro traria o preço do PIX e o orçamento
+sairia baixo demais, sem ninguém perceber.
+
+A regra descarta o que vem seguido de "via Pix", o que está riscado
+(`<del>`, `<s>`, `line-through`, classe de preço antigo) e as parcelas
+("3x de R$ …"), e fica com o primeiro que sobrar.
+
+A checagem de riscado olha **só a tag que envolve o valor**. Uma janela solta
+para trás pegava a classe do valor anterior e derrubava o preço bom junto com
+o riscado.
 
 ---
 
