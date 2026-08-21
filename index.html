@@ -990,21 +990,32 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
 .bi-quadro .ini-ic{width:30px;height:30px;}
 .bi-quadro .ini-tit{font-size:14.5px;line-height:1.3;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+  min-height:2.6em;}
 .bi-quadro .ini-sub{max-width:none;width:100%;font-size:12px;text-align:left;white-space:pre-wrap;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden;}
-/* Cada cartão tem a altura do que carrega, como os de Atendimentos.
-   Reservar quatro linhas para todos alinhava a grade, mas deixava buraco
-   embaixo de quem só tem uma frase — e numa página que vai crescer sem
-   limite esse buraco custa mais que o desalinho. O align-items:start da
-   grade impede que os curtos estiquem até a altura do vizinho. */
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;}
+/* Fechado, todo cartão tem a mesma altura: duas linhas de título, três de
+   texto e a linha do ver-mais ficam reservadas mesmo quando sobram. Sem
+   isso o cartão fica do tamanho do que carrega e a grade vira um serrote,
+   porque um procedimento de uma frase convive com outro de vinte passos.
+   Três linhas em vez de quatro para o espaço reservado sobrar menos em
+   quem tem pouco texto. */
+.bi-quadro:not(.aberto) .ini-sub{height:4.65em;}
 .bi-quadro.aberto{cursor:default;}
 .bi-quadro.aberto .ini-sub{display:block;overflow:visible;height:auto;}
 /* Aberto, o título não é cortado: o cartão já cresceu para caber o texto, e
    reticências no cartão que a pessoa acabou de abrir para ler é o oposto do
    que ela pediu. */
 .bi-quadro.aberto .ini-tit{display:block;overflow:visible;}
-.bi-quadro .bi-mais{font-size:10px;font-weight:700;letter-spacing:.3px;color:var(--text-muted);}
+/* O aviso de que há mais texto era uma linha cinza de 10px, fácil de não
+   ver — e quem não o visse concluiria que o procedimento tem três linhas.
+   Virou pílula. A altura fica reservada mesmo nos cartões curtos, para
+   todos continuarem do mesmo tamanho. */
+.bi-quadro .bi-mais{min-height:24px;display:flex;align-items:center;justify-content:center;}
+.bi-quadro .bi-mais span{font-size:10.5px;font-weight:700;letter-spacing:.3px;color:var(--text-secondary);
+  padding:3px 12px;border:1px solid var(--glass-border);border-radius:999px;background:var(--veu-suave);
+  transition:border-color .15s,color .15s;}
+.bi-quadro:hover .bi-mais span{border-color:rgba(255,255,255,.32);color:var(--text-primary);}
 /* O rodapé estava com link, assinatura e botões disputando a mesma linha e
    quebrando em qualquer largura. Agora são duas faixas: quem assinou em
    cima, e embaixo o link de um lado e Editar/Excluir do outro — separados
@@ -8250,7 +8261,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21o';
+const APP_VERSAO='2026.08.21p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9015,13 +9026,13 @@ function _baseInfoCardsHtml(){
   const quadros = lista.map(it=>{
     const aberto = _biAberto===it.id;
     const texto  = it.texto||'';
-    const dobra  = texto.length>220 || texto.split('\n').length>6;
+    const dobra  = texto.length>170 || texto.split('\n').length>3;
     return `
       <div class="ini-quadro bi-quadro${aberto?' aberto':''}" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
         <div class="ini-ic">${iconeMenu('baseinfo')}</div>
         <div class="ini-tit">${_iniEsc(it.titulo)}</div>
         <div class="ini-sub">${_iniEsc(texto)}</div>
-        ${dobra?`<div class="bi-mais">${aberto?'ver menos ▴':'ver mais ▾'}</div>`:''}
+        <div class="bi-mais">${dobra?`<span>${aberto?'ver menos ▴':'ver mais ▾'}</span>`:''}</div>
         <div class="bi-pe" onclick="event.stopPropagation();">
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
           ${(it.link||master)?`<div class="bi-acoes">
