@@ -993,9 +993,7 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .atd-barra .btn{width:auto;}
 /* Os três fechamentos são o destino de todo o atendimento: precisam ser
    vistos de longe, não caber discretamente no canto da barra. */
-.atd-barra .atd-fechar{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:700;padding:10px 24px;letter-spacing:.01em;}
-.atd-barra .atd-ic{width:18px;height:18px;display:inline-flex;flex-shrink:0;}
-.atd-barra .atd-ic svg{width:100%;height:100%;}
+.atd-barra .atd-fechar{font-size:14px;font-weight:700;padding:10px 26px;letter-spacing:.01em;}
 .atd-barra{padding:13px 16px;gap:12px;}
 @media(max-width:900px){.ini-quadros.tres-colunas{grid-template-columns:1fr;}}
 .ini-quadro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
@@ -1521,9 +1519,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            Só aparece na frente Atendimento, que é onde o rascunho é montado. -->
       <div class="atd-barra" id="atd-barra" style="display:none;">
         <span class="atd-res" id="atd-resumo"></span>
-        <button class="btn atd-fechar" onclick="gerarTextoPix()"><span class="atd-ic" data-icone="pix"></span>PIX</button>
-        <button class="btn atd-fechar" onclick="gerarTextoCartao()"><span class="atd-ic" data-icone="cartao"></span>Cartão</button>
-        <button class="btn atd-fechar" onclick="gerarTextoBoleto()"><span class="atd-ic" data-icone="boleto"></span>Boleto</button>
+        <button class="btn atd-fechar" onclick="gerarTextoPix()">PIX</button>
+        <button class="btn atd-fechar" onclick="gerarTextoCartao()">Cartão</button>
+        <button class="btn atd-fechar" onclick="gerarTextoBoleto()">Boleto</button>
         <button class="btn btn-ghost atd-fechar" onclick="atdLimpar()" title="Começar outro orçamento">Limpar</button>
       </div>
       <div class="date-header" id="wpp-date" style="display:none;"></div>
@@ -8170,7 +8168,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21d';
+const APP_VERSAO='2026.08.21e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
