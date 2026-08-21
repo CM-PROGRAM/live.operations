@@ -965,6 +965,20 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-quadros.quadros-maiores .ini-ic{width:56px;height:56px;}
 .ini-quadros.quadros-maiores .ini-tit{font-size:23px;}
 .ini-quadros.quadros-maiores .ini-sub{font-size:13px;max-width:300px;}
+/* Quadro que carrega botões (as frentes do WhatsApp): mesmo desenho dos da
+   Página inicial, mas o cartão inteiro não é clicável — quem age são os
+   botões de dentro. */
+.ini-quadro.quadro-acoes{cursor:default;justify-content:flex-start;min-height:300px;padding:38px 28px;}
+.ini-quadro.quadro-acoes:hover{transform:none;border-color:rgba(255,255,255,.22);}
+.ini-quadro.quadro-acoes .ini-ic{width:50px;height:50px;}
+/* Os ícones dentro dos botões vêm de fontes variadas — logo do Manda Bem,
+   marca do Melhor Envio, losango do PIX — cada um com as suas cores. Aqui
+   eles entram em tom neutro, como o resto do sistema. São desenhos vetoriais
+   pequenos: dessaturar não os borra, ao contrário do que acontece com emoji. */
+.ini-quadro.quadro-acoes a svg,
+.ini-quadro.quadro-acoes a img{filter:grayscale(1) brightness(1.45) contrast(.92);opacity:.9;}
+.ini-quadro.quadro-acoes a:hover svg,
+.ini-quadro.quadro-acoes a:hover img{opacity:1;}
 /* Opções de conta no modal de Pagamento */
 .pag-opcao{width:100%;text-align:left;padding:12px 14px;border-radius:12px;cursor:pointer;
   background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.015));
@@ -977,6 +991,12 @@ body.menu-oculto .sb-atu-txt{display:none;}
   border-radius:14px;background:var(--veu-suave);border:1px solid var(--glass-border);}
 .atd-barra .atd-res{flex:1;min-width:200px;font-size:11.5px;font-family:var(--font-mono);color:var(--text-secondary);line-height:1.5;}
 .atd-barra .btn{width:auto;}
+/* Os três fechamentos são o destino de todo o atendimento: precisam ser
+   vistos de longe, não caber discretamente no canto da barra. */
+.atd-barra .atd-fechar{display:inline-flex;align-items:center;gap:9px;font-size:14px;font-weight:700;padding:10px 24px;letter-spacing:.01em;}
+.atd-barra .atd-ic{width:18px;height:18px;display:inline-flex;flex-shrink:0;}
+.atd-barra .atd-ic svg{width:100%;height:100%;}
+.atd-barra{padding:13px 16px;gap:12px;}
 @media(max-width:900px){.ini-quadros.tres-colunas{grid-template-columns:1fr;}}
 .ini-quadro{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
   min-height:230px;padding:32px 24px;cursor:pointer;text-align:center;
@@ -1501,10 +1521,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            Só aparece na frente Atendimento, que é onde o rascunho é montado. -->
       <div class="atd-barra" id="atd-barra" style="display:none;">
         <span class="atd-res" id="atd-resumo"></span>
-        <button class="btn btn-sm" onclick="gerarTextoPix()">PIX</button>
-        <button class="btn btn-sm" onclick="gerarTextoCartao()">Cartão</button>
-        <button class="btn btn-sm" onclick="gerarTextoBoleto()">Boleto</button>
-        <button class="btn btn-ghost btn-sm" onclick="atdLimpar()" title="Começar outro orçamento">Limpar</button>
+        <button class="btn atd-fechar" onclick="gerarTextoPix()"><span class="atd-ic" data-icone="pix"></span>PIX</button>
+        <button class="btn atd-fechar" onclick="gerarTextoCartao()"><span class="atd-ic" data-icone="cartao"></span>Cartão</button>
+        <button class="btn atd-fechar" onclick="gerarTextoBoleto()"><span class="atd-ic" data-icone="boleto"></span>Boleto</button>
+        <button class="btn btn-ghost atd-fechar" onclick="atdLimpar()" title="Começar outro orçamento">Limpar</button>
       </div>
       <div class="date-header" id="wpp-date" style="display:none;"></div>
       <div id="wpp-tasks" style="display:none;"></div>
@@ -8150,7 +8170,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21c';
+const APP_VERSAO='2026.08.21d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8275,6 +8295,9 @@ const ICONES_MENU={
   baseinfo:    '<rect x="3.6" y="5.2" width="4" height="14.2" rx="1"/><rect x="9" y="3.8" width="4" height="15.6" rx="1"/><path d="M15.1 6.4l3.6-1 2.3 12.6-3.6 1z"/><path d="M3.6 9.4h4M9 8h4"/><path d="M2.6 21h18.8"/>',
   manual:      '<path d="M12 6.4S10.2 4.4 6.6 4.4a2 2 0 0 0-2 2v10.4a2 2 0 0 0 2 2c3.6 0 5.4 2 5.4 2s1.8-2 5.4-2a2 2 0 0 0 2-2V6.4a2 2 0 0 0-2-2C13.8 4.4 12 6.4 12 6.4z"/><path d="M12 6.4v14.4"/>',
   chat:        '<path d="M20.4 12.6a7.4 7.4 0 0 1-10.7 6.6L4.2 20.4l1.3-5.3A7.4 7.4 0 1 1 20.4 12.6z"/><path d="M8.8 11.6h6.4M8.8 14.6h4"/>',
+  pix:         '<path d="M8.2 4.6 4.6 8.2a2.6 2.6 0 0 0 0 3.7l3.6 3.6"/><path d="M15.8 19.4l3.6-3.6a2.6 2.6 0 0 0 0-3.7l-3.6-3.6"/><path d="M8.9 8.2h1.2a2.6 2.6 0 0 1 1.9.8l3.3 3.3a2.6 2.6 0 0 0 1.9.8h1.2"/><path d="M8.9 15.8h1.2a2.6 2.6 0 0 0 1.9-.8l3.3-3.3a2.6 2.6 0 0 1 1.9-.8h1.2"/><path d="M9.8 4.6h4.4l-2.2-2.2z" opacity=".9"/>',
+  cartao:      '<rect x="2.6" y="5.4" width="18.8" height="13.2" rx="2.4"/><path d="M2.6 9.8h18.8"/><path d="M6.2 14.6h3.4"/>',
+  boleto:      '<path d="M3.4 5.2v13.6M6 5.2v13.6M8.2 5.2v13.6M10.8 5.2v13.6M13.6 5.2v13.6M16.2 5.2v13.6M18.4 5.2v13.6M20.6 5.2v13.6" stroke-width="1.5"/>',
   pedidos:     '<path d="M6 3.4h9.2l3.4 3.4v13.8a.8.8 0 0 1-1.2.7l-1.7-1-1.8 1a.8.8 0 0 1-.8 0l-1.8-1-1.8 1a.8.8 0 0 1-.8 0l-1.8-1-1.7 1a.8.8 0 0 1-1.2-.7V4.6A1.2 1.2 0 0 1 6 3.4z"/><path d="M8.6 8.6h6.8M8.6 12h6.8M8.6 15.4h4.2"/>',
   track:       '<path d="M2.8 6.6a1.4 1.4 0 0 1 1.4-1.4h8.6a1.4 1.4 0 0 1 1.4 1.4v9.8H2.8z"/><path d="M14.2 9.4h3.2l3.8 3.6v3.4h-7z"/><circle cx="7" cy="18.2" r="1.8"/><circle cx="17.4" cy="18.2" r="1.8"/>',
   cpf:         '<rect x="2.8" y="5" width="18.4" height="14" rx="2.2"/><circle cx="8.6" cy="11" r="2.1"/><path d="M5.2 16.4a3.6 3.6 0 0 1 6.8 0"/><path d="M14.6 10.2h4.2M14.6 13.4h4.2"/>',
@@ -8911,7 +8934,10 @@ function wppAbrirFrente(id){
   if(data)    data.style.display    = napagina ? 'none' : '';
   if(tarefas) tarefas.style.display = napagina ? 'none' : '';
   const barra=document.getElementById('atd-barra');
-  if(barra) barra.style.display = (_wppFrente==='wpp_atend') ? 'flex' : 'none';
+  if(barra){
+    barra.style.display = (_wppFrente==='wpp_atend') ? 'flex' : 'none';
+    try{ preencherIconesDeclarados(barra); }catch(e){}
+  }
   try{ preencherIconesDeclarados(document.getElementById('tab-whatsapp')); }catch(e){}
   try{ atdAtualizarBarra(); }catch(e){}
   if(!napagina) renderWpp();
@@ -8972,6 +8998,16 @@ function _wppRemendarAtendimento(g){
     return (ia<0?99:ia)-(ib<0?99:ib);
   });
 }
+
+/* Um ícone por quadro do WhatsApp, do mesmo conjunto de traço do menu. */
+const ICONE_QUADRO_WPP = {
+  wpp_a2:  'pedidos',      // Orçamentos
+  wpp_a34: 'track',        // Frete
+  wpp_c3:  'financeiro',   // Pagamento
+  wpp_p1:  'tarefas',      // Cadastro
+  wpp_p2:  'track',        // Gerar Etiqueta
+  wpp_c1:  'pedidos'       // Registro de Vendas
+};
 
 function renderWpp(){
   const container=document.getElementById('wpp-tasks');
@@ -9091,14 +9127,25 @@ function renderWpp(){
        repetir "Atendimento" logo abaixo, com o mesmo ícone, só ocupa espaço.
        Na visão de todos os grupos o cabeçalho continua, porque ali ele é o
        que separa um grupo do outro. */
-    if(!_wppFrente) card.appendChild(header);
+    const emFrente = !!_wppFrente;
+    if(!emFrente) card.appendChild(header);
 
-    // Progress bar
-    const pb=document.createElement('div');pb.className='progress-bar';
-    const pf=document.createElement('div');pf.className='progress-fill';
-    if(allDone)pf.classList.add('green');
-    pf.style.width=Math.round((g.items.filter(i=>i.done).length/g.items.length)*100)+'%';
-    pb.appendChild(pf);card.appendChild(pb);
+    /* Na frente aberta o grupo não desenha caixa nenhuma: os quadros de
+       dentro é que são os cartões, no mesmo desenho da Página inicial. A
+       moldura do grupo em volta deles virava caixa dentro de caixa. */
+    if(emFrente){
+      card.style.border='none';
+      card.style.boxShadow='none';
+      card.style.background='none';
+      card.style.marginBottom='0';
+    } else {
+      // Progress bar
+      const pb=document.createElement('div');pb.className='progress-bar';
+      const pf=document.createElement('div');pf.className='progress-fill';
+      if(allDone)pf.classList.add('green');
+      pf.style.width=Math.round((g.items.filter(i=>i.done).length/g.items.length)*100)+'%';
+      pb.appendChild(pf);card.appendChild(pb);
+    }
 
     // Todos os grupos: itens com link ou btns → card 3D; sem link → lista
     const listItems = [];
@@ -9123,18 +9170,33 @@ function renderWpp(){
     // Itens como cards 3D em grid
     if(cardItems.length > 0){
       const grid=document.createElement('div');
-      grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:14px;align-items:stretch;flex:1;'+(listItems.length>0?'border-top:1px solid var(--glass-border);':'');
+      grid.style.cssText = emFrente
+        ? 'display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;padding:10px 0 12px;align-items:stretch;max-width:1240px;margin:0 auto;'
+        : 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:14px;align-items:stretch;flex:1;'+(listItems.length>0?'border-top:1px solid var(--glass-border);':'');
       cardItems.forEach(tk=>{
         const isDone=tk.done;
         const c=document.createElement('div');
-        c.style.cssText=`position:relative;display:flex;flex-direction:column;background:linear-gradient(135deg,rgba(255,255,255,${isDone?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;cursor:default;`;
-        c.onmouseover=()=>{c.style.transform='translateY(-2px)';c.style.borderColor='rgba(255,255,255,0.25)';c.style.boxShadow='0 14px 34px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.1)';};
-        c.onmouseout=()=>{c.style.transform='';c.style.borderColor='var(--glass-border)';c.style.boxShadow='0 8px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.09)';};
-        // Shine line
-        const shine=document.createElement('div');shine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);pointer-events:none;';c.appendChild(shine);
+        if(emFrente){
+          c.className='ini-quadro quadro-acoes';
+          c.style.cssText='cursor:default;';
+        } else {
+          c.style.cssText=`position:relative;display:flex;flex-direction:column;background:linear-gradient(135deg,rgba(255,255,255,${isDone?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;cursor:default;`;
+          c.onmouseover=()=>{c.style.transform='translateY(-2px)';c.style.borderColor='rgba(255,255,255,0.25)';c.style.boxShadow='0 14px 34px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.1)';};
+          c.onmouseout=()=>{c.style.transform='';c.style.borderColor='var(--glass-border)';c.style.boxShadow='0 8px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.09)';};
+          // Shine line
+          const shine=document.createElement('div');shine.style.cssText='position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.2),transparent);pointer-events:none;';c.appendChild(shine);
+        }
+        /* O ícone é o mesmo desenho de traço do menu — sem emoji colorido e
+           sem animação, como o resto do sistema. */
+        if(emFrente){
+          const ic=document.createElement('div');
+          ic.className='ini-ic';
+          ic.innerHTML=iconeMenu(ICONE_QUADRO_WPP[tk.id]||'pedidos');
+          c.appendChild(ic);
+        }
         // Title — centralizado, maior, sem pill verde
         const titleRow=document.createElement('div');titleRow.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;';
-        const label=document.createElement('div');label.style.cssText='font-size:16px;font-weight:800;text-align:center;color:'+(isDone?'var(--text-muted)':'#fff')+';letter-spacing:-0.01em;text-decoration:'+(isDone?'line-through':'none')+';flex:1;';
+        const label=document.createElement('div');label.style.cssText=(emFrente?'font-size:20px;':'font-size:16px;')+'font-weight:800;text-align:center;color:'+(isDone?'var(--text-muted)':'#fff')+';letter-spacing:-0.01em;text-decoration:'+(isDone?'line-through':'none')+';flex:1;';
         label.textContent=tk.text;
         titleRow.appendChild(label);c.appendChild(titleRow);
         // Buttons or link
@@ -9149,7 +9211,13 @@ function renderWpp(){
             a.onmouseout=()=>{a.style.background='rgba(255,255,255,0.06)';a.style.borderColor='rgba(255,255,255,0.28)';a.style.transform='';};
             // Ícones personalizados: logo PIX (losango teal) e maquininha de cartão neon
             let iconInner = '↗';
-            if(b.action==='valores'){
+            /* PIX, Cartão e Boleto ganham o desenho do próprio meio de
+               pagamento, do mesmo conjunto de traço do menu — a seta
+               genérica não dizia nada e era igual nos três. */
+            const _icPag={pagPix:'pix',pagCartao:'cartao',pagBoleto:'boleto'}[b.action];
+            if(_icPag){
+              iconInner = iconeMenu(_icPag).replace('<svg ','<svg style="width:19px;height:19px;display:block;" ');
+            } else if(b.action==='valores'){
               // Ícone etiqueta de valores (tag verde com cifrão)
               iconInner='<svg viewBox="0 0 24 24" fill="none" style="width:19px;height:19px;display:block;"><path d="M3.4 11.2 11.2 3.4c.5-.5 1.2-.7 1.9-.6l5.3.8c.9.1 1.6.8 1.7 1.7l.8 5.3c.1.7-.1 1.4-.6 1.9l-7.8 7.8c-.7.7-1.9.7-2.6 0l-6.5-6.5c-.7-.7-.7-1.9 0-2.6z" fill="#141a2a" stroke="#8fa8d8" stroke-width="1.4"/><circle cx="16" cy="8" r="1.6" fill="#8fa8d8"/><path d="M10.9 9.3c-1.1 0-1.9.6-1.9 1.5 0 2 3.4 1.1 3.4 3 0 .9-.8 1.5-1.9 1.5m0-6c.8 0 1.5.3 1.8.9m-1.8 5.1c-.9 0-1.6-.4-1.9-1M10.9 8.2v1.1m0 6v1.1" stroke="#a7f3d0" stroke-width="1.2" stroke-linecap="round"/></svg>';
             } else if(b.action==='registrarVenda'){
