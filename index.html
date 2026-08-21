@@ -971,6 +971,37 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-quadro.quadro-acoes{cursor:default;justify-content:flex-start;min-height:300px;padding:38px 28px;}
 .ini-quadro.quadro-acoes:hover{transform:none;border-color:rgba(255,255,255,.22);}
 .ini-quadro.quadro-acoes .ini-ic{width:50px;height:50px;}
+
+/* ── Calendário (um só no sistema) ────────────────────────────────
+   O cabeçalho é botão: clicar troca de dias para meses e de meses para
+   anos. Chegar a 2019 pela seta custava setenta e dois cliques. */
+.cal-topo{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.cal-seta{flex-shrink:0;background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);
+  width:28px;height:28px;border-radius:9px;cursor:pointer;font-size:15px;line-height:1;transition:border-color .15s;}
+.cal-seta:hover{border-color:rgba(255,255,255,.35);}
+.cal-titulo{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  background:none;border:1px solid transparent;border-radius:9px;cursor:pointer;padding:5px 10px;
+  font-family:var(--font-sans);font-size:13px;font-weight:700;color:var(--text-primary);transition:all .15s;}
+.cal-titulo:hover{background:var(--veu-medio);border-color:var(--glass-border);}
+.cal-chev{font-size:9px;color:var(--text-muted);}
+.cal-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;}
+.cal-semana>div{text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;}
+.cal-dias{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.cal-dia{aspect-ratio:1;border-radius:8px;border:1px solid transparent;background:transparent;
+  color:var(--text-primary);font-size:12px;font-weight:500;cursor:pointer;font-family:var(--font-sans);transition:background .12s;}
+.cal-dia:hover{background:var(--veu-medio);}
+.cal-dia.hoje{border-color:var(--accent-dim,rgba(143,168,216,.5));}
+.cal-dia.sel{background:linear-gradient(135deg,#8fa8d8,#5876b8);color:#fff;font-weight:700;border-color:transparent;}
+.cal-grade3{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+.cal-opt{padding:11px 4px;border-radius:9px;border:1px solid transparent;background:var(--veu-suave);
+  color:var(--text-primary);font-size:12.5px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:all .12s;}
+.cal-opt:hover{background:var(--veu-medio);border-color:rgba(255,255,255,.2);}
+.cal-opt.hoje{border-color:var(--accent-dim,rgba(143,168,216,.5));}
+.cal-opt.sel{background:linear-gradient(135deg,#8fa8d8,#5876b8);color:#fff;border-color:transparent;}
+.cal-rodape{margin-top:9px;padding-top:9px;border-top:1px solid var(--linha-sutil);text-align:center;}
+.cal-rodape button{background:none;border:none;color:var(--text-muted);cursor:pointer;
+  font-family:var(--font-sans);font-size:11.5px;font-weight:600;padding:3px 12px;border-radius:8px;}
+.cal-rodape button:hover{color:var(--text-primary);background:var(--veu-suave);}
 /* Os ícones dentro dos botões vêm de fontes variadas — logo do Manda Bem,
    marca do Melhor Envio, losango do PIX — cada um com as suas cores. Aqui
    eles entram em tom neutro, como o resto do sistema. São desenhos vetoriais
@@ -8165,7 +8196,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21g';
+const APP_VERSAO='2026.08.21h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -16722,57 +16753,6 @@ const ATE_STATUS_CONFIG={
 // Grava no formato DD/MM/AA (mesmo formato já usado nos registros salvos),
 // só que escolhido no calendário em vez de digitado.
 const _ateCalView={};
-function ateCalOpen(fieldId){
-  const inp=document.getElementById(fieldId);
-  const pop=document.getElementById(fieldId+'-cal-popover');
-  if(!inp||!pop) return;
-  if(pop.style.display==='block'){ pop.style.display='none'; return; }
-  const m=(inp.value||'').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
-  _ateCalView[fieldId] = m ? new Date(2000+parseInt(m[3],10), parseInt(m[2],10)-1, parseInt(m[1],10)) : new Date();
-  ateCalRender(fieldId);
-  pop.style.display='block';
-}
-function ateCalClose(fieldId){ const pop=document.getElementById(fieldId+'-cal-popover'); if(pop) pop.style.display='none'; }
-function ateCalNav(fieldId,delta){
-  const v=_ateCalView[fieldId]||(_ateCalView[fieldId]=new Date());
-  v.setDate(1); v.setMonth(v.getMonth()+delta);
-  ateCalRender(fieldId);
-}
-function ateCalPick(fieldId,y,mo,dia){
-  const inp=document.getElementById(fieldId);
-  if(inp) inp.value=String(dia).padStart(2,'0')+'/'+String(mo+1).padStart(2,'0')+'/'+String(y).slice(-2);
-  ateCalClose(fieldId);
-}
-function ateCalRender(fieldId){
-  const pop=document.getElementById(fieldId+'-cal-popover');
-  if(!pop) return;
-  const view=_ateCalView[fieldId]||(_ateCalView[fieldId]=new Date());
-  const y=view.getFullYear(), mo=view.getMonth();
-  const inp=document.getElementById(fieldId);
-  const m=((inp&&inp.value)||'').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
-  const selKey = m ? (2000+parseInt(m[3],10))+'-'+parseInt(m[2],10)+'-'+parseInt(m[1],10) : '';
-  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const inicio=new Date(y,mo,1).getDay();
-  const diasNoMes=new Date(y,mo+1,0).getDate();
-  const hoje=new Date();
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <button type="button" onclick="ateCalNav('${fieldId}',-1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
-    <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
-    <button type="button" onclick="ateCalNav('${fieldId}',1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
-  ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
-  html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
-  for(let i=0;i<inicio;i++) html+='<div></div>';
-  for(let dia=1;dia<=diasNoMes;dia++){
-    const key=y+'-'+mo+'-'+dia;
-    const isSel=key===selKey;
-    const isHoje=dia===hoje.getDate()&&mo===hoje.getMonth()&&y===hoje.getFullYear();
-    html+=`<button type="button" onclick="ateCalPick('${fieldId}',${y},${mo},${dia})" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='var(--veu-medio)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
-  }
-  html+='</div>';
-  pop.innerHTML=html;
-}
 // Guarda onde o clique COMEÇOU, na fase de captura — antes de qualquer
 // re-render. Sem isso, clicar nas setas de mês fecharia o calendário: o
 // popover reescreve o próprio innerHTML, o elemento clicado sai do DOM e
@@ -17305,6 +17285,19 @@ function atvTituloChanged(){
 
 // ── Calendário customizado do vencimento ──────────────────────
 let _atvCalView = new Date();
+function atvOpenCal(){
+  const inp=document.getElementById('atv-vencimento');
+  const pop=document.getElementById('atv-cal-popover');
+  if(!inp||!pop||inp.disabled) return;
+  const d=inp.value?new Date(inp.value+'T00:00:00'):null;
+  calAbrir(pop, d?new Date(d):new Date(), d?{y:d.getFullYear(),m:d.getMonth(),d:d.getDate()}:null,
+    (y,m,dia)=>{
+      inp.value=y+'-'+String(m+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+      atvSyncVencDisplay();
+    });
+}
+function atvCloseCal(){ calFechar('atv-cal-popover'); }
+
 function atvSyncVencDisplay(){
   const inp=document.getElementById('atv-vencimento');
   const lbl=document.getElementById('atv-venc-label');
@@ -17323,51 +17316,6 @@ function atvSyncVencDisplay(){
     trig.style.opacity=locked?'0.6':'';
     trig.style.cursor=locked?'not-allowed':'pointer';
   }
-}
-function atvOpenCal(){
-  const inp=document.getElementById('atv-vencimento');
-  const pop=document.getElementById('atv-cal-popover');
-  if(!inp||!pop) return;
-  if(inp.disabled) return;
-  if(pop.style.display==='block'){ pop.style.display='none'; return; }
-  _atvCalView = inp.value ? new Date(inp.value+'T00:00:00') : new Date();
-  atvRenderCal();
-  pop.style.display='block';
-}
-function atvCloseCal(){ const pop=document.getElementById('atv-cal-popover'); if(pop) pop.style.display='none'; }
-function atvCalNav(delta){ _atvCalView.setDate(1); _atvCalView.setMonth(_atvCalView.getMonth()+delta); atvRenderCal(); }
-function atvCalPick(iso){
-  const inp=document.getElementById('atv-vencimento');
-  if(inp) inp.value=iso;
-  atvSyncVencDisplay();
-  atvCloseCal();
-}
-function atvRenderCal(){
-  const pop=document.getElementById('atv-cal-popover');
-  if(!pop) return;
-  const view=_atvCalView, y=view.getFullYear(), mo=view.getMonth();
-  const inp=document.getElementById('atv-vencimento');
-  const selIso=inp?inp.value:'';
-  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const inicio=new Date(y,mo,1).getDay();
-  const diasNoMes=new Date(y,mo+1,0).getDate();
-  const _hd=new Date(); const hojeIso=_hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <button type="button" onclick="atvCalNav(-1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
-    <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
-    <button type="button" onclick="atvCalNav(1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
-  ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
-  html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
-  for(let i=0;i<inicio;i++) html+='<div></div>';
-  for(let dia=1;dia<=diasNoMes;dia++){
-    const iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
-    const isSel=iso===selIso, isHoje=iso===hojeIso;
-    html+=`<button type="button" onclick="atvCalPick('${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='var(--veu-medio)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
-  }
-  html+='</div>';
-  pop.innerHTML=html;
 }
 document.addEventListener('click',function(e){
   const pop=document.getElementById('atv-cal-popover');
@@ -17577,6 +17525,19 @@ function addAteMotivo(){
   renderAteMotivoOptions(nome);
   showToast('✓ Motivo "'+nome+'" adicionado','success');
 }
+
+function ateCalOpen(fieldId){
+  const inp=document.getElementById(fieldId);
+  const pop=document.getElementById(fieldId+'-cal-popover');
+  if(!inp||!pop) return;
+  const m=(inp.value||'').match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+  const sel=m?{y:2000+parseInt(m[3],10), m:parseInt(m[2],10)-1, d:parseInt(m[1],10)}:null;
+  calAbrir(pop, sel?new Date(sel.y,sel.m,sel.d):new Date(), sel,
+    (y,mo,dia)=>{
+      inp.value=String(dia).padStart(2,'0')+'/'+String(mo+1).padStart(2,'0')+'/'+String(y).slice(-2);
+    });
+}
+function ateCalClose(fieldId){ calFechar(fieldId+'-cal-popover'); }
 
 function openAteModal(id){
   const overlay=document.getElementById('ate-modal-overlay');
@@ -20022,55 +19983,146 @@ function vencSyncDisplay(prefix){
   }
   if(trig){ trig.style.opacity=''; trig.style.cursor='pointer'; }
 }
+/* ══════════════════════════════════════════════════════════════════
+   CALENDÁRIO — um só para o sistema inteiro
+
+   Havia três implementações quase iguais (prazos das solicitações, datas do
+   atendimento e vencimento da tarefa), cada uma com o seu par de setas. Três
+   cópias significam três lugares para corrigir e dois para esquecer.
+
+   O cabeçalho virou botão: clicar em "Novembro 2025" abre os doze meses, e
+   clicar de novo abre a lista de anos. Chegar a 2019 pela seta custava
+   setenta e dois cliques.
+
+   Cada tela continua dona do seu formato de data — uma guarda AAAA-MM-DD,
+   outra DD/MM/AA — então o calendário devolve ano, mês e dia e quem chamou
+   monta o texto do seu jeito.
+   ══════════════════════════════════════════════════════════════════ */
+
+const CAL_MESES=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const CAL_MESES_CURTO=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const _cal={};   // chave -> {pop, view, sel, aoEscolher, modo}
+
+function _calChave(pop){ return pop.id||'cal'; }
+
+/* sel: {y,m,d} do valor já preenchido, ou null.
+   aoEscolher(y, m, d) recebe mês base zero, como o Date do JavaScript. */
+function calAbrir(pop, view, sel, aoEscolher){
+  if(!pop) return;
+  const chave=_calChave(pop);
+  if(pop.style.display==='block'){ pop.style.display='none'; return; }
+  _cal[chave]={pop, view:view||new Date(), sel:sel||null, aoEscolher, modo:'dias'};
+  calRender(chave);
+  pop.style.display='block';
+}
+function calFechar(chave){
+  const c=_cal[chave]; if(c&&c.pop) c.pop.style.display='none';
+}
+function calModo(chave,modo){
+  const c=_cal[chave]; if(!c) return;
+  c.modo=modo; calRender(chave);
+}
+function calNav(chave,delta){
+  const c=_cal[chave]; if(!c) return;
+  if(c.modo==='anos'){ c.view.setFullYear(c.view.getFullYear()+delta*12); }
+  else if(c.modo==='meses'){ c.view.setFullYear(c.view.getFullYear()+delta); }
+  else { c.view.setDate(1); c.view.setMonth(c.view.getMonth()+delta); }
+  calRender(chave);
+}
+function calPorMes(chave,m){
+  const c=_cal[chave]; if(!c) return;
+  c.view.setDate(1); c.view.setMonth(m); c.modo='dias'; calRender(chave);
+}
+function calPorAno(chave,a){
+  const c=_cal[chave]; if(!c) return;
+  c.view.setDate(1); c.view.setFullYear(a); c.modo='meses'; calRender(chave);
+}
+function calEscolher(chave,y,m,d){
+  const c=_cal[chave]; if(!c) return;
+  try{ c.aoEscolher(y,m,d); }catch(e){ console.warn('[calendário]',e); }
+  calFechar(chave);
+}
+function calHoje(chave){
+  const h=new Date();
+  calEscolher(chave,h.getFullYear(),h.getMonth(),h.getDate());
+}
+
+function calRender(chave){
+  const c=_cal[chave]; if(!c||!c.pop) return;
+  const y=c.view.getFullYear(), mo=c.view.getMonth();
+  const hoje=new Date();
+  const k=(a,b,d)=>a+'-'+b+'-'+d;
+  const selK=c.sel?k(c.sel.y,c.sel.m,c.sel.d):'';
+  const hojeK=k(hoje.getFullYear(),hoje.getMonth(),hoje.getDate());
+  const seta=(dir,txt)=>`<button type="button" onclick="calNav('${chave}',${dir})" class="cal-seta">${txt}</button>`;
+
+  // O rótulo muda com o modo: mês+ano nos dias, ano nos meses, faixa nos anos
+  const inicioFaixa=Math.floor(y/12)*12;
+  const titulo = c.modo==='dias' ? CAL_MESES[mo]+' '+y
+               : c.modo==='meses' ? String(y)
+               : inicioFaixa+' – '+(inicioFaixa+11);
+  const proximoModo = c.modo==='dias' ? 'meses' : c.modo==='meses' ? 'anos' : 'dias';
+
+  let html=`<div class="cal-topo">
+    ${seta(-1,'‹')}
+    <button type="button" class="cal-titulo" onclick="calModo('${chave}','${proximoModo}')"
+            title="${c.modo==='anos'?'Voltar para os dias':'Trocar de '+(c.modo==='dias'?'mês':'ano')+' sem usar as setas'}">
+      ${titulo}<span class="cal-chev">▾</span>
+    </button>
+    ${seta(1,'›')}
+  </div>`;
+
+  if(c.modo==='dias'){
+    const inicio=new Date(y,mo,1).getDay();
+    const dias=new Date(y,mo+1,0).getDate();
+    html+='<div class="cal-semana">';
+    ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div>${d}</div>`; });
+    html+='</div><div class="cal-dias">';
+    for(let i=0;i<inicio;i++) html+='<div></div>';
+    for(let d=1;d<=dias;d++){
+      const cls=['cal-dia'];
+      if(k(y,mo,d)===selK)  cls.push('sel');
+      if(k(y,mo,d)===hojeK) cls.push('hoje');
+      html+=`<button type="button" class="${cls.join(' ')}" onclick="calEscolher('${chave}',${y},${mo},${d})">${d}</button>`;
+    }
+    html+='</div>';
+  } else if(c.modo==='meses'){
+    html+='<div class="cal-grade3">';
+    CAL_MESES_CURTO.forEach((nome,i)=>{
+      const cls=['cal-opt'];
+      if(c.sel && c.sel.y===y && c.sel.m===i) cls.push('sel');
+      if(hoje.getFullYear()===y && hoje.getMonth()===i) cls.push('hoje');
+      html+=`<button type="button" class="${cls.join(' ')}" onclick="calPorMes('${chave}',${i})">${nome}</button>`;
+    });
+    html+='</div>';
+  } else {
+    html+='<div class="cal-grade3">';
+    for(let i=0;i<12;i++){
+      const a=inicioFaixa+i;
+      const cls=['cal-opt'];
+      if(c.sel && c.sel.y===a) cls.push('sel');
+      if(hoje.getFullYear()===a) cls.push('hoje');
+      html+=`<button type="button" class="${cls.join(' ')}" onclick="calPorAno('${chave}',${a})">${a}</button>`;
+    }
+    html+='</div>';
+  }
+
+  html+=`<div class="cal-rodape"><button type="button" onclick="calHoje('${chave}')">Hoje</button></div>`;
+  c.pop.innerHTML=html;
+}
+
 function vencOpenCal(prefix){
   const inp=document.getElementById(prefix+'-vencimento');
   const pop=document.getElementById(prefix+'-cal-popover');
   if(!inp||!pop) return;
-  if(pop.style.display==='block'){ pop.style.display='none'; return; }
-  _vencCalView[prefix]=inp.value?new Date(inp.value+'T00:00:00'):new Date();
-  vencRenderCal(prefix);
-  pop.style.display='block';
+  const d=inp.value?new Date(inp.value+'T00:00:00'):null;
+  calAbrir(pop, d?new Date(d):new Date(), d?{y:d.getFullYear(),m:d.getMonth(),d:d.getDate()}:null,
+    (y,m,dia)=>{
+      inp.value=y+'-'+String(m+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+      vencSyncDisplay(prefix);
+    });
 }
-function vencCloseCal(prefix){ const pop=document.getElementById(prefix+'-cal-popover'); if(pop) pop.style.display='none'; }
-function vencCalNav(prefix,delta){
-  const v=_vencCalView[prefix]||(_vencCalView[prefix]=new Date());
-  v.setDate(1); v.setMonth(v.getMonth()+delta);
-  vencRenderCal(prefix);
-}
-function vencCalPick(prefix,iso){
-  const inp=document.getElementById(prefix+'-vencimento');
-  if(inp) inp.value=iso;
-  vencSyncDisplay(prefix);
-  vencCloseCal(prefix);
-}
-function vencRenderCal(prefix){
-  const pop=document.getElementById(prefix+'-cal-popover');
-  if(!pop) return;
-  const view=_vencCalView[prefix]||(_vencCalView[prefix]=new Date());
-  const y=view.getFullYear(), mo=view.getMonth();
-  const inp=document.getElementById(prefix+'-vencimento');
-  const selIso=inp?inp.value:'';
-  const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
-  const inicio=new Date(y,mo,1).getDay();
-  const diasNoMes=new Date(y,mo+1,0).getDate();
-  const _hd=new Date(); const hojeIso=_hd.getFullYear()+'-'+String(_hd.getMonth()+1).padStart(2,'0')+'-'+String(_hd.getDate()).padStart(2,'0');
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-    <button type="button" onclick="vencCalNav('${prefix}',-1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">‹</button>
-    <span style="font-size:13px;font-weight:700;color:var(--text-primary);">${meses[mo]} ${y}</span>
-    <button type="button" onclick="vencCalNav('${prefix}',1)" style="background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-primary);width:26px;height:26px;border-radius:8px;cursor:pointer;font-size:14px;line-height:1;">›</button>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:4px;">`;
-  ['D','S','T','Q','Q','S','S'].forEach(d=>{ html+=`<div style="text-align:center;font-size:10px;font-weight:700;color:var(--text-muted);padding:2px 0;">${d}</div>`; });
-  html+='</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;">';
-  for(let i=0;i<inicio;i++) html+='<div></div>';
-  for(let dia=1;dia<=diasNoMes;dia++){
-    const iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
-    const isSel=iso===selIso, isHoje=iso===hojeIso;
-    html+=`<button type="button" onclick="vencCalPick('${prefix}','${iso}')" style="aspect-ratio:1;border-radius:8px;border:1px solid ${isSel?'transparent':(isHoje?'var(--accent-dim)':'transparent')};background:${isSel?'linear-gradient(135deg,#8fa8d8,#5876b8)':'transparent'};color:${isSel?'#fff':'var(--text-primary)'};font-size:12px;font-weight:${isSel?'700':'500'};cursor:pointer;" onmouseover="if(this.style.background==='transparent')this.style.background='var(--veu-medio)'" onmouseout="if(!${isSel})this.style.background='transparent'">${dia}</button>`;
-  }
-  html+='</div>';
-  pop.innerHTML=html;
-}
+function vencCloseCal(prefix){ calFechar(prefix+'-cal-popover'); }
 document.addEventListener('click',function(e){
   ['entrada','integ','img','venda','atrib'].forEach(prefix=>{
     const pop=document.getElementById(prefix+'-cal-popover');
