@@ -156,6 +156,25 @@ funcionar sem avisar. Por isso o leitor de movimentações **levanta erro
 quando não reconhece nenhuma linha** num HTML grande: lista vazia pareceria
 "pacote sem movimento", e não é.
 
+**O campo de usuário do formulário chama `login`, não `email`.** Custou uma
+rodada de depuração: mandando `email`, o painel responde **200 com a própria
+tela de login** — nenhum erro, nenhum código diferente, nada que aponte para o
+nome do campo. Se um dia o login voltar a ser recusado, o primeiro teste é
+reler o formulário em vez de desconfiar da senha:
+
+```js
+// cole no lugar do código do "Token Daniel" e rode uma vez
+const corpo = String($input.first().json.body || $input.first().json.data || '');
+const form  = (corpo.match(/<form[\s\S]*?<\/form>/i) || [''])[0];
+return [{ json: {
+  abertura: (form.match(/<form[^>]*>/i) || [''])[0],
+  campos: (form.match(/<input[^>]*>/gi) || []).map(t =>
+    ((t.match(/type="([^"]*)"/i) || [])[1] || 'text') + ' → ' +
+    ((t.match(/name="([^"]*)"/i) || [])[1] || '(sem name)')),
+  captcha: /recaptcha|hcaptcha|turnstile/i.test(corpo)
+}}];
+```
+
 **Cada card falha sozinho.** Todos os nós estão com `continueRegularOutput`:
 um envio que não existe mais no Melhor Envio não derruba a rodada dos outros
 trinta.

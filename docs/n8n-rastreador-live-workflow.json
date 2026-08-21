@@ -470,7 +470,7 @@
               "value": "={{ $json.csrf }}"
             },
             {
-              "name": "email",
+              "name": "login",
               "value": "contato@suplelive.com.br"
             },
             {
@@ -579,7 +579,7 @@
               "value": "={{ $json.csrf }}"
             },
             {
-              "name": "email",
+              "name": "login",
               "value": "4vita@suplelive.com.br"
             },
             {
