@@ -972,6 +972,34 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-quadro.quadro-acoes:hover{transform:none;border-color:rgba(255,255,255,.22);}
 .ini-quadro.quadro-acoes .ini-ic{width:50px;height:50px;}
 
+/* Base Conhecimento: os mesmos quadros do WhatsApp, mas carregando texto de
+   procedimento em vez de uma frase de apoio. O conteúdo nasce dobrado em
+   seis linhas para os cartões da grade terem todos a mesma altura; clicar
+   abre o texto inteiro, porque procedimento cortado pela metade não serve
+   para nada — e sem essa saída o cartão seria mais bonito e menos útil que
+   a lista que ele substituiu. */
+.bi-quadro{cursor:pointer;}
+.bi-quadro:hover{border-color:rgba(255,255,255,.3);}
+.bi-quadro .ini-tit{font-size:17px;line-height:1.3;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;
+  min-height:3.9em;}
+/* Aberto, o título não é cortado: o cartão já cresceu para caber o texto,
+   e um título com reticências no cartão que a pessoa acabou de abrir para
+   ler é o oposto do que ela pediu. */
+.bi-quadro.aberto .ini-tit{display:block;overflow:visible;}
+.bi-quadro .ini-sub{max-width:none;width:100%;text-align:left;white-space:pre-wrap;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden;}
+/* Fechado, o texto ocupa sempre a altura de seis linhas, mesmo quando tem
+   uma só. Sem isso a grade fica com fileiras de alturas diferentes — cada
+   fileira cresce até o cartão mais alto dela — e o conjunto parece
+   desalinhado sem que nada esteja errado. */
+.bi-quadro:not(.aberto) .ini-sub{height:9.3em;}
+.bi-quadro.aberto{cursor:default;}
+.bi-quadro.aberto .ini-sub{display:block;overflow:visible;}
+.bi-quadro .bi-mais{font-size:10.5px;font-weight:700;letter-spacing:.3px;color:var(--text-muted);min-height:1.2em;}
+.bi-quadro .bi-pe{display:flex;align-items:center;justify-content:center;gap:8px;
+  margin-top:auto;padding-top:14px;flex-wrap:wrap;width:100%;}
+
 /* ── Calendário (um só no sistema) ────────────────────────────────
    O cabeçalho é botão: clicar troca de dias para meses e de meses para
    anos. Chegar a 2019 pela seta custava setenta e dois cliques. */
@@ -8206,7 +8234,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21l';
+const APP_VERSAO='2026.08.21m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8889,7 +8917,7 @@ function inicioIr(vista){
   _iniVista=vista||'home';
   /* Filtro não sobrevive à saída da página: voltar e encontrar a lista
      quase vazia por causa de uma busca antiga parece dado sumido. */
-  if(_iniVista!=='baseinfo') _biBusca='';
+  if(_iniVista!=='baseinfo'){ _biBusca=''; _biAberto=null; }
   renderInicio();
 }
 
@@ -8964,28 +8992,46 @@ function _baseInfoCardsHtml(){
       Nenhuma informação encontrada para <b>${_iniEsc(_biBusca.trim())}</b>.
       <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="baseInfoLimparBusca()">Limpar busca</button></p>`;
   }
-  return lista.length===0
-    ? `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-         Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`
-    : lista.map(it=>`
-      <div class="bi-card">
-        <h3>${_iniEsc(it.titulo)}</h3>
-        <div class="bi-txt">${_iniEsc(it.texto)}</div>
-        <div class="bi-pe">
+  if(lista.length===0){
+    return `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+      Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`;
+  }
+  const quadros = lista.map(it=>{
+    const aberto = _biAberto===it.id;
+    const texto  = it.texto||'';
+    const dobra  = texto.length>220 || texto.split('\n').length>6;
+    return `
+      <div class="ini-quadro quadro-acoes bi-quadro${aberto?' aberto':''}" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
+        <div class="ini-ic">${iconeMenu('baseinfo')}</div>
+        <div class="ini-tit">${_iniEsc(it.titulo)}</div>
+        <div class="ini-sub">${_iniEsc(texto)}</div>
+        <div class="bi-mais">${dobra?(aberto?'ver menos ▴':'ver mais ▾'):''}</div>
+        <div class="bi-pe" onclick="event.stopPropagation();">
           ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Abrir link ↗</a>`:''}
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
           ${master?(_biExcluindo===it.id
-            ?`<span style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+            ?`<span style="display:flex;align-items:center;gap:8px;">
                 <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
                 <button class="btn btn-danger btn-sm" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
                 <button class="btn btn-ghost btn-sm" onclick="baseInfoExcluirCancelar()">Não</button>
               </span>`
-            :`<span style="margin-left:auto;display:flex;gap:6px;">
+            :`<span style="display:flex;gap:6px;">
                 <button class="btn btn-ghost btn-sm" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
                 <button class="btn btn-danger btn-sm" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
               </span>`):''}
         </div>
-      </div>`).join('');
+      </div>`;
+  }).join('');
+  return `<div class="ini-quadros tres-colunas quadros-maiores">${quadros}</div>`;
+}
+
+/* Qual quadro está com o texto aberto. Um de cada vez: dois cartões
+   expandidos na mesma linha esticam a linha inteira e empurram o resto da
+   grade para longe. */
+let _biAberto=null;
+function baseInfoAlternar(id){
+  _biAberto = (_biAberto===id) ? null : id;
+  _baseInfoRenderLista();
 }
 
 /* Redesenha SÓ a lista. Refazer a página inteira a cada tecla tiraria o
@@ -9093,9 +9139,9 @@ let _biExcluindo=null;
 function baseInfoExcluir(id){
   if(!currentUser||!currentUser.master) return;
   _biExcluindo=id;
-  renderBaseInfo();
+  _baseInfoRenderLista();
 }
-function baseInfoExcluirCancelar(){ _biExcluindo=null; renderBaseInfo(); }
+function baseInfoExcluirCancelar(){ _biExcluindo=null; _baseInfoRenderLista(); }
 function baseInfoExcluirConfirmar(id){
   if(!currentUser||!currentUser.master) return;
   const lista=_baseInfoLista();
