@@ -1,0 +1,1366 @@
+{
+  "name": "LiveOps · Rastreador Live",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "A cada 5 minutos",
+      "name": "A cada 5 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/rastreios.json",
+        "options": {}
+      },
+      "id": "Ler Live Track",
+      "name": "Ler Live Track",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Quem vale consultar agora, e por onde.\n\n   A origem do card diz o sistema E a conta. Antes disso o campo guardava\n   \"Loggi MB\", que com duas contas de Manda Bem não identificava mais nada —\n   a consulta iria para a conta errada e voltaria \"não encontrado\", que na\n   tela parece problema do pacote e não da configuração. */\nconst todos = $input.first().json || {};\nconst agora = Date.now();\nconst DIAS_ATE_DESISTIR = 45;\n\nconst ORIGENS = {\n  'Melhor Envio · Antonio Carlos': 'me_antonio',\n  'Melhor Envio · Raphael':        'me_raphael',\n  'Manda Bem · Daniel':            'mb_daniel',\n  'Manda Bem · 4Vita':             'mb_4vita',\n  'Base (Mercado Livre, Shopee, Magalu)': 'base'\n};\n\n/* O id que o painel do Manda Bem entende é numérico e já está dentro do\n   próprio código de rastreio: \"MB0000000328080\" carrega o 328080. Deduzir\n   aqui evita depender de alguém digitar certo. Não-numérico no campo é\n   ignorado de propósito: id errado consulta o envio de outra pessoa, o que é\n   pior do que não consultar. */\nfunction idDoMandaBem(r) {\n  const doCard = String(r.envioId || r.coletaId || '').trim();\n  if (/^\\d+$/.test(doCard)) return doCard;\n  const doCodigo = String(r.codigo || '').replace(/\\D/g, '').replace(/^0+/, '');\n  return doCodigo || '';\n}\n\nconst fila = [];\nconst fora = { semOrigem: 0, semId: 0, entregue: 0, velho: 0, esperando: 0 };\n\nObject.keys(todos).forEach(chave => {\n  const r = todos[chave];\n  if (!r) return;\n\n  if (r.status === 'Entregue') { fora.entregue++; return; }\n  if (r.trackProximaConsulta && agora < r.trackProximaConsulta) { fora.esperando++; return; }\n\n  /* Pacote parado há mais de 45 dias não volta a andar porque perguntamos de\n     novo. Sai da fila e vira problema humano, não de robô. */\n  const nasceu = Number(r.ordemManual || 0);\n  if (nasceu && (agora - nasceu) > DIAS_ATE_DESISTIR * 864e5) { fora.velho++; return; }\n\n  const via = ORIGENS[String(r.intermediador || '').trim()];\n  if (!via) { fora.semOrigem++; return; }\n\n  let id = '';\n  if (via === 'base')            id = String(r.nped || '').replace(/\\D/g, '');\n  else if (via.indexOf('mb_')===0) id = idDoMandaBem(r);\n  else                            id = String(r.envioId || '').trim();\n\n  if (!id) { fora.semId++; return; }\n\n  fila.push({ json: {\n    chave, via, id,\n    codigo: r.codigo || '',\n    statusAtual: r.status || '',\n    transp: r.transp || '',\n    previsao: r.previsao || '',\n    trackLog: Array.isArray(r.trackLog) ? r.trackLog : []\n  }});\n});\n\nconsole.log(fila.length + ' na fila · fora: ' +\n  Object.keys(fora).map(k => k + '=' + fora[k]).join(' '));\n\nif (fora.semOrigem) {\n  console.log(fora.semOrigem + ' card(s) sem \"Onde consultar\" definido — ' +\n    'esses ficam sem rastreio automático até alguém escolher a conta no card.');\n}\n\nreturn fila;\n"
+      },
+      "id": "Fila de consulta",
+      "name": "Fila de consulta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {}
+      },
+      "id": "Lotes de 10",
+      "name": "Lotes de 10",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        0,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.via }}",
+                    "rightValue": "me_antonio",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "ME Antonio"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.via }}",
+                    "rightValue": "me_raphael",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "ME Raphael"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.via }}",
+                    "rightValue": "mb_daniel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "MB Daniel"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.via }}",
+                    "rightValue": "mb_4vita",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "MB 4Vita"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.via }}",
+                    "rightValue": "base",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "outputKey": "Base"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "Sem origem"
+        }
+      },
+      "id": "Por origem",
+      "name": "Por origem",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://melhorenvio.com.br/api/v2/me/shipment/tracking",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "LiveOps (contato@suplelive.com.br)"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ orders: [$json.id] }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "ME Antonio · rastreio",
+      "name": "ME Antonio · rastreio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        -60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Melhor Envio · Antonio Carlos"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://melhorenvio.com.br/api/v2/me/shipment/tracking",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "LiveOps (contato@suplelive.com.br)"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ orders: [$json.id] }) }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "ME Raphael · rastreio",
+      "name": "ME Raphael · rastreio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Melhor Envio · Raphael"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* A resposta do Melhor Envio vem chaveada pelo id do pedido, e o item que\n   entrou aqui perdeu os campos do card. Recupera os dois lados antes do\n   Padroniza. */\nconst card = $('Lotes de 10').item.json;\nreturn [{ json: Object.assign({}, card, { respostaME: $json }) }];",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "Junta ME",
+      "name": "Junta ME",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        10
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrderPackages"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ order_id: Number($json.id) }) }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Base · pacotes do pedido",
+      "name": "Base · pacotes do pedido",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        420
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Um pedido pode ter mais de um pacote (envio parcial). Todos entram na\n   consulta de histórico: ignorar os demais mostraria o card como parado\n   enquanto metade da compra já chegou. */\nconst card = $('Lotes de 10').item.json;\nconst r = $json || {};\nif (r.status && r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou: ' + (r.error_message || r.error_code || ''));\n}\nconst ids = (r.packages || []).map(p => Number(p.package_id)).filter(Boolean);\nconst cur = (r.packages || [])[0] || {};\nreturn [{ json: Object.assign({}, card, {\n  packageIds: ids,\n  courierCode: cur.courier_code || '',\n  courierNome: cur.courier_other_name || ''\n}) }];",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "Ids dos pacotes",
+      "name": "Ids dos pacotes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getCourierPackagesStatusHistory"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ package_ids: $json.packageIds }) }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Base · histórico do pacote",
+      "name": "Base · histórico do pacote",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        420
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const card = $('Ids dos pacotes').item.json;\nconst r = $json || {};\nif (r.status && r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou o histórico: ' + (r.error_message || r.error_code || ''));\n}\nreturn [{ json: Object.assign({}, card, { historico: r.packages_history || {} }) }];",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "Junta Base",
+      "name": "Junta Base",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        420
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://painel.mandabem.com.br/login",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Abrir login Daniel",
+      "name": "Abrir login Daniel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -620,
+        760
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* O painel é Laravel: o POST de login só é aceito com o _token (CSRF) que a\n   própria tela de login entrega, junto do cookie de sessão daquela visita.\n   Por isso o login tem dois passos — abrir a tela, depois enviar. */\nconst r = $input.first().json;\nconst corpo = String(r.body || r.data || '');\nconst m = corpo.match(/name=\"csrf-token\"\\s+content=\"([^\"]+)\"/)\n       || corpo.match(/name=\"_token\"\\s+value=\"([^\"]+)\"/);\nif (!m) throw new Error('Não achei o _token na tela de login — o painel pode ter mudado');\n\nconst bruto = (r.headers || {})['set-cookie'] || [];\nconst cookie = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]).join('; ');\n\nreturn [{ json: { csrf: m[1], cookie } }];"
+      },
+      "id": "Token Daniel",
+      "name": "Token Daniel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        760
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://painel.mandabem.com.br/login",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $json.cookie }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "_token",
+              "value": "={{ $json.csrf }}"
+            },
+            {
+              "name": "email",
+              "value": "contato@suplelive.com.br"
+            },
+            {
+              "name": "password",
+              "value": "PREENCHER_A_SENHA_AQUI"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Login Daniel",
+      "name": "Login Daniel",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        760
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Guarda o cookie da sessão já autenticada, para os nós do painel\n   reaproveitarem. Sem captcha no login, isso se renova a cada rodada — ninguém\n   precisa colar cookie à mão quando expirar. */\nconst r = $input.first().json;\nconst bruto = (r.headers || {})['set-cookie'] || [];\nconst novos = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]);\nconst anterior = $('Token Daniel').first().json.cookie || '';\n\n// O cookie da sessão logada substitui o da visita anônima quando repetido\nconst mapa = {};\n(anterior.split('; ').concat(novos)).forEach(c => {\n  const i = c.indexOf('=');\n  if (i > 0) mapa[c.slice(0, i)] = c.slice(i + 1);\n});\nconst cookie = Object.entries(mapa).map(([k, v]) => k + '=' + v).join('; ');\n\n/* Login recusado tem que parar AQUI, alto. O Laravel responde 200 com a\n   própria tela de login quando a senha está errada — nada explode, o cookie\n   até existe, e a falha só reaparece três nós adiante como \"401 não\n   autenticado\" ou, pior, como \"detalhe vazio\", que parece problema do envio.\n   Login aceito redireciona (302 + Location). */\nconst status = Number(r.statusCode || r.status || 0);\nconst cabecalhos = r.headers || {};\nconst local = cabecalhos.location || cabecalhos.Location || '';\nconst corpo = String(r.body || '');\nconst telaDeLogin = /css\\/login\\/|name=\"password\"|id=\"password\"|esqueci\\s*minha\\s*senha/i.test(corpo);\n\nif (!local && status < 300 && telaDeLogin) {\n  throw new Error('Login do Manda Bem recusado: o painel devolveu a tela de login de novo. ' +\n                  'Confira a senha no campo \"password\" do nó \"Login Manda Bem\" — no arquivo do ' +\n                  'repositório ela vai como PREENCHER_A_SENHA_AQUI, porque o repositório é público.');\n}\nreturn [{ json: { cookie } }];"
+      },
+      "id": "Cookie Daniel",
+      "name": "Cookie Daniel",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        760
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://painel.mandabem.com.br/login",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Abrir login 4Vita",
+      "name": "Abrir login 4Vita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -620,
+        980
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* O painel é Laravel: o POST de login só é aceito com o _token (CSRF) que a\n   própria tela de login entrega, junto do cookie de sessão daquela visita.\n   Por isso o login tem dois passos — abrir a tela, depois enviar. */\nconst r = $input.first().json;\nconst corpo = String(r.body || r.data || '');\nconst m = corpo.match(/name=\"csrf-token\"\\s+content=\"([^\"]+)\"/)\n       || corpo.match(/name=\"_token\"\\s+value=\"([^\"]+)\"/);\nif (!m) throw new Error('Não achei o _token na tela de login — o painel pode ter mudado');\n\nconst bruto = (r.headers || {})['set-cookie'] || [];\nconst cookie = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]).join('; ');\n\nreturn [{ json: { csrf: m[1], cookie } }];"
+      },
+      "id": "Token 4Vita",
+      "name": "Token 4Vita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -420,
+        980
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://painel.mandabem.com.br/login",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $json.cookie }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "_token",
+              "value": "={{ $json.csrf }}"
+            },
+            {
+              "name": "email",
+              "value": "4vita@suplelive.com.br"
+            },
+            {
+              "name": "password",
+              "value": "PREENCHER_A_SENHA_AQUI"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": false
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Login 4Vita",
+      "name": "Login 4Vita",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        980
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Guarda o cookie da sessão já autenticada, para os nós do painel\n   reaproveitarem. Sem captcha no login, isso se renova a cada rodada — ninguém\n   precisa colar cookie à mão quando expirar. */\nconst r = $input.first().json;\nconst bruto = (r.headers || {})['set-cookie'] || [];\nconst novos = (Array.isArray(bruto) ? bruto : [bruto])\n  .map(c => String(c).split(';')[0]);\nconst anterior = $('Token 4Vita').first().json.cookie || '';\n\n// O cookie da sessão logada substitui o da visita anônima quando repetido\nconst mapa = {};\n(anterior.split('; ').concat(novos)).forEach(c => {\n  const i = c.indexOf('=');\n  if (i > 0) mapa[c.slice(0, i)] = c.slice(i + 1);\n});\nconst cookie = Object.entries(mapa).map(([k, v]) => k + '=' + v).join('; ');\n\n/* Login recusado tem que parar AQUI, alto. O Laravel responde 200 com a\n   própria tela de login quando a senha está errada — nada explode, o cookie\n   até existe, e a falha só reaparece três nós adiante como \"401 não\n   autenticado\" ou, pior, como \"detalhe vazio\", que parece problema do envio.\n   Login aceito redireciona (302 + Location). */\nconst status = Number(r.statusCode || r.status || 0);\nconst cabecalhos = r.headers || {};\nconst local = cabecalhos.location || cabecalhos.Location || '';\nconst corpo = String(r.body || '');\nconst telaDeLogin = /css\\/login\\/|name=\"password\"|id=\"password\"|esqueci\\s*minha\\s*senha/i.test(corpo);\n\nif (!local && status < 300 && telaDeLogin) {\n  throw new Error('Login do Manda Bem recusado: o painel devolveu a tela de login de novo. ' +\n                  'Confira a senha no campo \"password\" do nó \"Login Manda Bem\" — no arquivo do ' +\n                  'repositório ela vai como PREENCHER_A_SENHA_AQUI, porque o repositório é público.');\n}\nreturn [{ json: { cookie } }];"
+      },
+      "id": "Cookie 4Vita",
+      "name": "Cookie 4Vita",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -20,
+        980
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://painel.mandabem.com.br/coleta/get_envios_row/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Cookie Daniel').first().json.cookie }}"
+            },
+            {
+              "name": "X-Requested-With",
+              "value": "XMLHttpRequest"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "MB Daniel · detalhe",
+      "name": "MB Daniel · detalhe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        700
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* O HTML do detalhe traz o botão da lupa com o endereço do rastreio pronto.\n   Ler daqui vale mais que qualquer tabela de slugs: funciona para\n   transportadora que ainda nem existe no cadastro.\n\n   Três cuidados aprendidos na marra:\n   · o data-path costuma vir RELATIVO (\"coleta/status_jadlog_objeto/328080\").\n     Mandar isso para o nó HTTP dá ERR_INVALID_URL, que na tela vira um erro\n     sem sentido para quem só queria saber onde está a encomenda;\n   · nem todo envio tem o botão — sem objeto postado, ele não existe. Isso não\n     é falha do fluxo, é estado do pacote, e precisa dizer isso;\n   · o HTML vem com barras escapadas (\\/) por causa do JSON. */\nconst BASE = 'https://painel.mandabem.com.br/';\nconst html = $json.html || $json.data || '';\n\nlet achado = '';\nconst padroes = [\n  /class=\"[^\"]*btn-get-status-objeto-envio[^\"]*\"[^>]*data-path=\"([^\"]+)\"/i,\n  /data-path=\"([^\"]*status[^\"]*objeto[^\"]*)\"/i,\n  /data-path=\"([^\"]*(?:rastre|track)[^\"]*)\"/i,\n  /(?:href|data-url)=\"([^\"]*status[^\"]*objeto[^\"]*)\"/i\n];\nfor (const re of padroes) {\n  const m = String(html).match(re);\n  if (m && m[1]) { achado = m[1]; break; }\n}\n\nlet url = achado.replace(/\\\\\\//g, '/').trim();\nif (url && !/^https?:\\/\\//i.test(url)) url = BASE + url.replace(/^\\/+/, '');\n\n// Sem link, o motivo vai junto: é ele que o card vai mostrar\nconst motivo = url ? ''\n  : (String(html).trim()\n      ? 'O Manda Bem não mostrou botão de rastreio neste envio — normalmente é objeto ainda não postado'\n      : 'O Manda Bem devolveu o detalhe vazio para este envio');\n\nreturn { json: { ...$json, trackUrl: url, trackUrlMotivo: motivo } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "MB Daniel · endereço",
+      "name": "MB Daniel · endereço",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        700
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.trackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Cookie Daniel').first().json.cookie }}"
+            },
+            {
+              "name": "X-Requested-With",
+              "value": "XMLHttpRequest"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "MB Daniel · movimentações",
+      "name": "MB Daniel · movimentações",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        700
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* As movimentações do Manda Bem chegam como HTML de tabela. Aqui viram uma\n   lista simples, para o Padroniza tratar todas as origens do mesmo jeito.\n\n   O painel não devolve carimbo em segundos: a data vem escrita na linha, no\n   formato brasileiro. Converter aqui evita que o Padroniza precise conhecer\n   o formato de cada origem. */\nconst html = String($json.body || $json.data || $json.html || '');\nconst mov = [];\n\n/* Cada linha da tabela costuma vir como\n     <td>21/08/2026 14:32</td><td>Objeto em trânsito ...</td>\n   e a ordem das colunas varia entre transportadoras, então a data é\n   procurada em qualquer célula e o texto é o resto da linha. */\nconst linhas = html.split(/<tr[^>]*>/i).slice(1);\nlinhas.forEach(bruto => {\n  const celulas = bruto.split(/<\\/?td[^>]*>/i)\n    .map(c => c.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim())\n    .filter(Boolean);\n  if (!celulas.length) return;\n\n  let ts = 0, texto = [];\n  celulas.forEach(c => {\n    const m = c.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})(?:\\s+(\\d{2}):(\\d{2}))?/);\n    if (m && !ts) {\n      ts = Math.floor(new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() / 1000);\n      const resto = c.replace(m[0], '').trim();\n      if (resto) texto.push(resto);\n    } else {\n      texto.push(c);\n    }\n  });\n\n  const t = texto.join(' — ').trim();\n  if (t) mov.push({ ts: ts, texto: t });\n});\n\n/* Sem nenhuma linha reconhecida, é melhor dizer isso do que devolver lista\n   vazia em silêncio: lista vazia parece \"pacote sem movimento\", e não é. */\nif (!mov.length && html.length > 200) {\n  throw new Error('O painel respondeu mas não reconheci nenhuma movimentação — o HTML pode ter mudado');\n}\n\nreturn [{ json: Object.assign({}, $json, { movimentacoes: mov }) }];\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "MB Daniel · lista",
+      "name": "MB Daniel · lista",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        700
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "=https://painel.mandabem.com.br/coleta/get_envios_row/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Cookie 4Vita').first().json.cookie }}"
+            },
+            {
+              "name": "X-Requested-With",
+              "value": "XMLHttpRequest"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "MB 4Vita · detalhe",
+      "name": "MB 4Vita · detalhe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        460,
+        900
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* O HTML do detalhe traz o botão da lupa com o endereço do rastreio pronto.\n   Ler daqui vale mais que qualquer tabela de slugs: funciona para\n   transportadora que ainda nem existe no cadastro.\n\n   Três cuidados aprendidos na marra:\n   · o data-path costuma vir RELATIVO (\"coleta/status_jadlog_objeto/328080\").\n     Mandar isso para o nó HTTP dá ERR_INVALID_URL, que na tela vira um erro\n     sem sentido para quem só queria saber onde está a encomenda;\n   · nem todo envio tem o botão — sem objeto postado, ele não existe. Isso não\n     é falha do fluxo, é estado do pacote, e precisa dizer isso;\n   · o HTML vem com barras escapadas (\\/) por causa do JSON. */\nconst BASE = 'https://painel.mandabem.com.br/';\nconst html = $json.html || $json.data || '';\n\nlet achado = '';\nconst padroes = [\n  /class=\"[^\"]*btn-get-status-objeto-envio[^\"]*\"[^>]*data-path=\"([^\"]+)\"/i,\n  /data-path=\"([^\"]*status[^\"]*objeto[^\"]*)\"/i,\n  /data-path=\"([^\"]*(?:rastre|track)[^\"]*)\"/i,\n  /(?:href|data-url)=\"([^\"]*status[^\"]*objeto[^\"]*)\"/i\n];\nfor (const re of padroes) {\n  const m = String(html).match(re);\n  if (m && m[1]) { achado = m[1]; break; }\n}\n\nlet url = achado.replace(/\\\\\\//g, '/').trim();\nif (url && !/^https?:\\/\\//i.test(url)) url = BASE + url.replace(/^\\/+/, '');\n\n// Sem link, o motivo vai junto: é ele que o card vai mostrar\nconst motivo = url ? ''\n  : (String(html).trim()\n      ? 'O Manda Bem não mostrou botão de rastreio neste envio — normalmente é objeto ainda não postado'\n      : 'O Manda Bem devolveu o detalhe vazio para este envio');\n\nreturn { json: { ...$json, trackUrl: url, trackUrlMotivo: motivo } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "MB 4Vita · endereço",
+      "name": "MB 4Vita · endereço",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        900
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.trackUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Cookie",
+              "value": "={{ $('Cookie 4Vita').first().json.cookie }}"
+            },
+            {
+              "name": "X-Requested-With",
+              "value": "XMLHttpRequest"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "MB 4Vita · movimentações",
+      "name": "MB 4Vita · movimentações",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        900
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* As movimentações do Manda Bem chegam como HTML de tabela. Aqui viram uma\n   lista simples, para o Padroniza tratar todas as origens do mesmo jeito.\n\n   O painel não devolve carimbo em segundos: a data vem escrita na linha, no\n   formato brasileiro. Converter aqui evita que o Padroniza precise conhecer\n   o formato de cada origem. */\nconst html = String($json.body || $json.data || $json.html || '');\nconst mov = [];\n\n/* Cada linha da tabela costuma vir como\n     <td>21/08/2026 14:32</td><td>Objeto em trânsito ...</td>\n   e a ordem das colunas varia entre transportadoras, então a data é\n   procurada em qualquer célula e o texto é o resto da linha. */\nconst linhas = html.split(/<tr[^>]*>/i).slice(1);\nlinhas.forEach(bruto => {\n  const celulas = bruto.split(/<\\/?td[^>]*>/i)\n    .map(c => c.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim())\n    .filter(Boolean);\n  if (!celulas.length) return;\n\n  let ts = 0, texto = [];\n  celulas.forEach(c => {\n    const m = c.match(/(\\d{2})\\/(\\d{2})\\/(\\d{4})(?:\\s+(\\d{2}):(\\d{2}))?/);\n    if (m && !ts) {\n      ts = Math.floor(new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() / 1000);\n      const resto = c.replace(m[0], '').trim();\n      if (resto) texto.push(resto);\n    } else {\n      texto.push(c);\n    }\n  });\n\n  const t = texto.join(' — ').trim();\n  if (t) mov.push({ ts: ts, texto: t });\n});\n\n/* Sem nenhuma linha reconhecida, é melhor dizer isso do que devolver lista\n   vazia em silêncio: lista vazia parece \"pacote sem movimento\", e não é. */\nif (!mov.length && html.length > 200) {\n  throw new Error('O painel respondeu mas não reconheci nenhuma movimentação — o HTML pode ter mudado');\n}\n\nreturn [{ json: Object.assign({}, $json, { movimentacoes: mov }) }];\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "MB 4Vita · lista",
+      "name": "MB 4Vita · lista",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        900
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Tudo que veio das cinco origens vira o mesmo formato aqui.\n\n   Duas saídas por card:\n   · status — uma palavra em português, que é o que a tela mostra;\n   · trackLog — a linha do tempo, com o texto ORIGINAL da transportadora.\n\n   Guardar os dois não é redundância: o status precisa ser comparável entre\n   Mercado Envios, Shopee Xpress e Correios, e o log precisa ser fiel ao que\n   a transportadora disse — traduzir o log apagaria a informação de origem\n   justamente no lugar onde ela é a prova. */\n\nconst LIMITE_LOG = 40;\nconst TZ = 'America/Sao_Paulo';\n\nfunction carimbo(ts) {\n  const d = ts ? new Date(Number(ts) * 1000) : new Date();\n  return new Intl.DateTimeFormat('pt-BR', {\n    timeZone: TZ, day: '2-digit', month: '2-digit', year: 'numeric',\n    hour: '2-digit', minute: '2-digit'\n  }).format(d);\n}\n\n/* O número do tracking_status da Base é o mesmo entre as transportadoras —\n   confirmado em 21/08/2026 comparando Mercado Envios, Shopee Xpress e\n   Magalog. O texto muda (\"DELIVERED\", \"delivered\", \"entregue\"); o número não.\n   Por isso a tradução usa o número, e o texto vai inteiro para o log. */\nconst STATUS_BASE = {\n  '0': 'Aguardando postagem',\n  '1': 'Aguardando postagem',\n  '2': 'Em trânsito',\n  '3': 'Em trânsito',\n  '4': 'Saiu para entrega',\n  '5': 'Entregue',\n  '6': 'Devolvido',\n  '7': 'Extraviado',\n  '8': 'Cancelado'\n};\n\n/* Melhor Envio e Manda Bem falam por texto, não por código. */\nconst STATUS_TEXTO = [\n  [/entregue|delivered/i,                       'Entregue'],\n  [/saiu para entrega|out_for_delivery/i,       'Saiu para entrega'],\n  [/devolv|returned/i,                          'Devolvido'],\n  [/extravi|lost/i,                             'Extraviado'],\n  [/cancel/i,                                   'Cancelado'],\n  [/tr[âa]nsito|transit|encaminhad|coletad|picked_up|shipped|posta/i, 'Em trânsito'],\n  [/aguardando|pending|ready_to_ship|created/i, 'Aguardando postagem']\n];\n\nfunction traduzirTexto(txt) {\n  const t = String(txt || '');\n  for (let i = 0; i < STATUS_TEXTO.length; i++) {\n    if (STATUS_TEXTO[i][0].test(t)) return STATUS_TEXTO[i][1];\n  }\n  return '';\n}\n\n/* A Base reconfirma o mesmo estado a cada leitura: o histórico da Shopee\n   veio com PICKED_UP quatro vezes, em dias diferentes. Sem colapsar, o card\n   mostraria quatro linhas dizendo a mesma coisa. Fica a PRIMEIRA de cada\n   sequência — que é quando o pacote realmente entrou naquele estado. */\nfunction semRepetidos(linhas) {\n  const saida = [];\n  let anterior = null;\n  for (let i = 0; i < linhas.length; i++) {\n    if (linhas[i].status !== anterior) saida.push(linhas[i]);\n    anterior = linhas[i].status;\n  }\n  return saida;\n}\n\nconst via = $json.via;\nlet linhas = [];   // {ts, status, em}\nlet erro = '';\n\ntry {\n  if (via === 'base') {\n    const hist = $json.historico || {};\n    const pacotes = Object.keys(hist);\n    pacotes.forEach(pid => {\n      (hist[pid] || []).forEach(ev => {\n        linhas.push({\n          ts: Number(ev.tracking_status_date || 0),\n          status: String(ev.courier_status_code || ''),\n          num: String(ev.tracking_status || '')\n        });\n      });\n    });\n  } else if (via === 'me_antonio' || via === 'me_raphael') {\n    /* A resposta do Melhor Envio vem chaveada pelo id do pedido. */\n    const resp = $json.respostaME || {};\n    const primeiro = resp[Object.keys(resp)[0]] || {};\n    (primeiro.tracking || primeiro.events || []).forEach(ev => {\n      linhas.push({\n        ts: ev.date ? Math.floor(new Date(ev.date).getTime() / 1000) : 0,\n        status: String(ev.status || ev.description || ev.title || '')\n      });\n    });\n    if (!linhas.length && primeiro.status) {\n      linhas.push({ ts: 0, status: String(primeiro.status) });\n    }\n  } else {\n    /* Manda Bem: as movimentações já chegam normalizadas do nó anterior. */\n    (($json.movimentacoes) || []).forEach(ev => {\n      linhas.push({ ts: ev.ts || 0, status: String(ev.texto || '') });\n    });\n  }\n} catch (e) {\n  erro = String(e && e.message ? e.message : e);\n}\n\nlinhas = linhas.filter(l => l.status).sort((a, b) => a.ts - b.ts);\nlinhas = semRepetidos(linhas);\n\nconst ultima = linhas.length ? linhas[linhas.length - 1] : null;\nconst statusNovo = ultima\n  ? (via === 'base'\n      ? (STATUS_BASE[ultima.num] || traduzirTexto(ultima.status) || 'Em trânsito')\n      : (traduzirTexto(ultima.status) || 'Em trânsito'))\n  : '';\n\n/* O log é reconstruído inteiro a cada rodada, e não acrescentado: a fonte da\n   verdade é a transportadora, não o que gravamos antes. Assim uma correção\n   dela chega ao card em vez de ficar enterrada sob a nossa cópia antiga. */\nconst logNovo = linhas.slice(-LIMITE_LOG).reverse().map(l => ({\n  em: carimbo(l.ts),\n  status: l.status,\n  fonte: via\n}));\n\nconst logAntigo = Array.isArray($json.trackLog) ? $json.trackLog : [];\nconst mudouStatus = statusNovo && statusNovo !== $json.statusAtual;\nconst mudouLog = JSON.stringify(logNovo) !== JSON.stringify(logAntigo);\n\nconst patch = {\n  trackVerificadoEm: carimbo(),\n  trackLog: erro\n    ? [{ em: carimbo(), erro: erro, fonte: via }].concat(logAntigo).slice(0, LIMITE_LOG)\n    : logNovo,\n  _by: 'n8n'\n};\nif (statusNovo) patch.status = statusNovo;\nif (statusNovo === 'Entregue' && $json.statusAtual !== 'Entregue') {\n  patch.entregueEm = carimbo();\n}\n\nreturn [{ json: {\n  chave: $json.chave,\n  mudou: !!(erro || mudouStatus || mudouLog),\n  patch: patch\n}}];\n",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "Padroniza",
+      "name": "Padroniza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.mudou }}",
+              "rightValue": "true",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "Mudou?",
+      "name": "Mudou?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1580,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/rastreios/{{ $json.chave }}.json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patch) }}",
+        "options": {}
+      },
+      "id": "Gravar no LiveOps",
+      "name": "Gravar no LiveOps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1800,
+        240
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "Pausa 2s",
+      "name": "Pausa 2s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        2020,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Chegou a data prevista: quem cadastrou o rastreio precisa conferir a baixa\n   dentro da Base.\n\n   A tarefa nasce UMA vez por rastreio — a marca trackTarefaCriada, gravada no\n   próprio card, é o que impede a mesma cobrança de voltar a cada rodada. Sem\n   ela, um rastreio parado geraria uma tarefa por minuto.\n\n   Pacote já entregue não gera nada: a conferência existe para o caso em que\n   a data chegou e o pacote NÃO andou. */\nconst todos = $input.first().json || {};\nconst hoje = new Date();\nhoje.setHours(0, 0, 0, 0);\n\nfunction comoData(txt) {\n  const s = String(txt || '').trim();\n  let m = s.match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);\n  m = s.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{2})$/);\n  if (m) return new Date(2000 + +m[3], +m[2] - 1, +m[1]);\n  m = s.match(/^(\\d{2})\\/(\\d{2})\\/(\\d{4})$/);\n  if (m) return new Date(+m[3], +m[2] - 1, +m[1]);\n  return null;\n}\n\nconst saida = [];\nObject.keys(todos).forEach(chave => {\n  const r = todos[chave];\n  if (!r) return;\n  if (r.trackTarefaCriada) return;\n  if (r.status === 'Entregue') return;\n\n  const prev = comoData(r.previsao);\n  if (!prev) return;\n  prev.setHours(0, 0, 0, 0);\n  if (prev > hoje) return;          // ainda não chegou o dia\n\n  const quem = r.criadoPorKey || '';\n  if (!quem) {\n    console.log('Rastreio ' + chave + ' venceu a previsão mas não tem criadoPorKey — ' +\n                'sem isso não há a quem atribuir. Card antigo, cadastrado antes desse campo existir.');\n    return;\n  }\n\n  const descricao = [\n    'Rastreio ' + (r.codigo || chave) + (r.transp ? ' (' + r.transp + ')' : ''),\n    'Previsão de entrega era ' + r.previsao + ' e o pacote ainda não consta como entregue.',\n    'Situação atual: ' + (r.status || '—') + '.',\n    'Conferir na Base se a baixa foi dada e atualizar o card.'\n  ].join('\\n');\n\n  saida.push({ json: {\n    chave: chave,\n    tarefa: {\n      titulo: 'Conferir entrega — ' + (r.nped ? 'pedido ' + r.nped : (r.codigo || chave)),\n      descricao: descricao,\n      responsaveis: [quem],\n      responsavel: quem,\n      prioridade: 'alta',\n      vencimento: new Date().toISOString().slice(0, 10),\n      origemRastreioId: chave,\n      criadoPor: 'Rastreador Live',\n      criadoPorKey: 'sistema'\n    }\n  }});\n});\n\nconsole.log(saida.length + ' tarefa(s) de conferência a criar');\nreturn saida;\n"
+      },
+      "id": "Previsão vencida",
+      "name": "Previsão vencida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        540
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/atividadesExternas.json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.tarefa) }}",
+        "options": {}
+      },
+      "id": "Criar tarefa no LiveOps",
+      "name": "Criar tarefa no LiveOps",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        60,
+        540
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/rastreios/{{ $('Previsão vencida').item.json.chave }}.json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ trackTarefaCriada: true, _by: \"n8n\" }) }}",
+        "options": {}
+      },
+      "id": "Marcar tarefa criada",
+      "name": "Marcar tarefa criada",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        280,
+        540
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "A cada 5 minutos": {
+      "main": [
+        [
+          {
+            "node": "Ler Live Track",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Previsão vencida",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Abrir login Daniel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Abrir login 4Vita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler Live Track": {
+      "main": [
+        [
+          {
+            "node": "Fila de consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila de consulta": {
+      "main": [
+        [
+          {
+            "node": "Lotes de 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Lotes de 10": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Por origem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Por origem": {
+      "main": [
+        [
+          {
+            "node": "ME Antonio · rastreio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "ME Raphael · rastreio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MB Daniel · detalhe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "MB 4Vita · detalhe",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Base · pacotes do pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ME Antonio · rastreio": {
+      "main": [
+        [
+          {
+            "node": "Junta ME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ME Raphael · rastreio": {
+      "main": [
+        [
+          {
+            "node": "Junta ME",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Junta ME": {
+      "main": [
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · pacotes do pedido": {
+      "main": [
+        [
+          {
+            "node": "Ids dos pacotes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids dos pacotes": {
+      "main": [
+        [
+          {
+            "node": "Base · histórico do pacote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · histórico do pacote": {
+      "main": [
+        [
+          {
+            "node": "Junta Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Junta Base": {
+      "main": [
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir login Daniel": {
+      "main": [
+        [
+          {
+            "node": "Token Daniel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token Daniel": {
+      "main": [
+        [
+          {
+            "node": "Login Daniel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login Daniel": {
+      "main": [
+        [
+          {
+            "node": "Cookie Daniel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB Daniel · detalhe": {
+      "main": [
+        [
+          {
+            "node": "MB Daniel · endereço",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB Daniel · endereço": {
+      "main": [
+        [
+          {
+            "node": "MB Daniel · movimentações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB Daniel · movimentações": {
+      "main": [
+        [
+          {
+            "node": "MB Daniel · lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB Daniel · lista": {
+      "main": [
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Abrir login 4Vita": {
+      "main": [
+        [
+          {
+            "node": "Token 4Vita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Token 4Vita": {
+      "main": [
+        [
+          {
+            "node": "Login 4Vita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Login 4Vita": {
+      "main": [
+        [
+          {
+            "node": "Cookie 4Vita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB 4Vita · detalhe": {
+      "main": [
+        [
+          {
+            "node": "MB 4Vita · endereço",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB 4Vita · endereço": {
+      "main": [
+        [
+          {
+            "node": "MB 4Vita · movimentações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB 4Vita · movimentações": {
+      "main": [
+        [
+          {
+            "node": "MB 4Vita · lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MB 4Vita · lista": {
+      "main": [
+        [
+          {
+            "node": "Padroniza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Padroniza": {
+      "main": [
+        [
+          {
+            "node": "Mudou?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mudou?": {
+      "main": [
+        [
+          {
+            "node": "Gravar no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pausa 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Pausa 2s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa 2s": {
+      "main": [
+        [
+          {
+            "node": "Lotes de 10",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Previsão vencida": {
+      "main": [
+        [
+          {
+            "node": "Criar tarefa no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar tarefa no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Marcar tarefa criada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
