@@ -3801,23 +3801,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   </div>
 </div>
 
-<!-- SCRIPT: texto padrão por meio de pagamento -->
-<div id="modal-script-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:560px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
-      <div style="flex:1;">
-        <div style="font-size:15px;font-weight:700;color:var(--text-primary);" id="scr-titulo"></div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;" id="scr-aviso"></div>
-      </div>
-      <button class="btn-link btn-sm" onclick="fecharScript()">Fechar</button>
-    </div>
-    <textarea id="scr-texto" rows="14" style="width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:12.5px;line-height:1.6;resize:vertical;"></textarea>
-    <div style="display:flex;gap:8px;margin-top:12px;">
-      <button class="btn btn-sm" onclick="copiarScript()" style="flex:1;">Copiar</button>
-      <button class="btn btn-ghost btn-sm" id="scr-salvar" onclick="salvarScript()" style="flex:0 0 auto;">Salvar</button>
-    </div>
-  </div>
-</div>
 
 <!-- TEXTO GERADO (PIX / Cartão / Boleto) -->
 <div id="modal-atd-texto-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
@@ -4255,7 +4238,6 @@ function defaultState(){
     entradas:[],
     extLinks:{},
     baseInfo:[],
-    scriptsPagamento:{},
     lastReset:todayStr()
   };
 }
@@ -4346,7 +4328,6 @@ function loadLocal(){
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     if(!Array.isArray(s.baseInfo)) s.baseInfo=[];
-    if(!s.scriptsPagamento || typeof s.scriptsPagamento!=='object') s.scriptsPagamento={};
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
     if(s.tasks.plataformas && Array.isArray(s.tasks.plataformas)){
       s.tasks.plataformas.forEach(g=>{
@@ -6912,8 +6893,6 @@ function _fundirListasDeOpcoes(novo, atual){
   }
   const semLinks = !novo.extLinks || typeof novo.extLinks!=='object' || !Object.keys(novo.extLinks).length;
   if(semLinks && atual.extLinks && Object.keys(atual.extLinks).length) novo.extLinks=atual.extLinks;
-  const semScripts = !novo.scriptsPagamento || typeof novo.scriptsPagamento!=='object' || !Object.keys(novo.scriptsPagamento).length;
-  if(semScripts && atual.scriptsPagamento && Object.keys(atual.scriptsPagamento).length) novo.scriptsPagamento=atual.scriptsPagamento;
 }
 
 function applyRemoteState(data){
@@ -6962,7 +6941,6 @@ function applyRemoteState(data){
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
   if(!Array.isArray(data.baseInfo)) data.baseInfo = [];
-  if(!data.scriptsPagamento || typeof data.scriptsPagamento!=='object') data.scriptsPagamento = {};
   // Firebase omite arrays vazios — restaurar execs:[] para tasks com repeats>1
   if(data.tasks.plataformas && Array.isArray(data.tasks.plataformas)){
     data.tasks.plataformas.forEach(g=>{
@@ -7434,13 +7412,6 @@ function initWpp(){return[
     link:'',
     linkLabel:'',
     items:[
-      {id:'wpp_a0',text:'Script',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
-        btns:[
-          {label:'Pagamento PIX',    action:'scriptPix'},
-          {label:'Pagamento Cartão', action:'scriptCartao'},
-          {label:'Pagamento Boleto', action:'scriptBoleto'}
-        ]
-      },
       {id:'wpp_a2',text:'Orçamentos',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
           {label:'Valores',action:'valores'}
@@ -8156,7 +8127,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21a';
+const APP_VERSAO='2026.08.21b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8598,10 +8569,9 @@ const MANUAL_ABAS=[
   {icone:'chat', aba:'Vendas → WhatsApp (Chatwoot)', perm:'whatsapp',
    paraQue:'As três frentes do atendimento por WhatsApp, cada uma com os atalhos que ela usa.',
    passos:[
-     '<b>Atendimento</b> — o que se resolve antes de o pedido existir: <b>Script</b>, <b>Orçamentos</b>, <b>Frete</b> e <b>Pagamento</b>.',
+     '<b>Atendimento</b> — o que se resolve antes de o pedido existir: <b>Orçamentos</b>, <b>Frete</b> e <b>Pagamento</b>.',
      'Os quadros preenchem um mesmo rascunho: <b>Orçamentos</b> (SKU, preço e quantidade), <b>Frete Escolhido</b> (valor e transportadora) e <b>Pagamento</b> (a conta onde a cobrança sai).',
      'Com o rascunho pronto, os botões <b>PIX</b>, <b>Cartão</b> e <b>Boleto</b> no alto da tela montam o texto para colar na conversa. A barra ao lado deles mostra o que já foi preenchido.',
-     'O quadro <b>Script</b> guarda a explicação padrão de cada meio de pagamento. O master edita e salva para toda a equipe.',
      '<b>Pedido</b> — cadastrar o pedido na Base e gerar a etiqueta de envio.',
      '<b>Registro</b> — registrar a venda, guardar o comprovante e alimentar a conferência.',
      'Clique no quadro para abrir a frente; o botão <b>← WhatsApp</b> volta para os três.'
@@ -8959,18 +8929,10 @@ function _wppRemendarAtendimento(g){
     }
   }
 
-  if(!g.items.some(i=>i.id==='wpp_a0')){
-    g.items.unshift({id:'wpp_a0',text:'Script',sub:'',link:'',linkLabel:'',
-      done:false,doneBy:null,doneAt:null,owner:'cmandrade',btns:[]});
-  }
-  const script=g.items.find(i=>i.id==='wpp_a0');
-  if(script){
-    if(!Array.isArray(script.btns)) script.btns=[];
-    // O botão único "Abrir" virou um por meio de pagamento
-    script.btns=script.btns.filter(b=>b && b.action!=='script');
-    [['Pagamento PIX','scriptPix'],['Pagamento Cartão','scriptCartao'],['Pagamento Boleto','scriptBoleto']]
-      .forEach(([label,action])=>{ if(!script.btns.some(b=>b.action===action)) script.btns.push({label,action}); });
-  }
+  // O quadro "Script" saiu. Quem já tinha o estado gravado com ele precisa
+  // vê-lo desaparecer também — senão ele ficaria na tela de quem usa o
+  // sistema há mais tempo e sumiria só para quem entrasse do zero.
+  g.items=g.items.filter(i=>!i || i.id!=='wpp_a0');
   if(pag){
     if(!Array.isArray(pag.btns)) pag.btns=[];
     // O link solto do InfinitePay virou a escolha da conta, por meio
@@ -8978,9 +8940,9 @@ function _wppRemendarAtendimento(g){
     [['PIX','pagPix'],['Cartão','pagCartao'],['Boleto','pagBoleto']]
       .forEach(([label,action])=>{ if(!pag.btns.some(b=>b.action===action)) pag.btns.push({label,action}); });
   }
-  // A ordem pedida: Script, Orçamentos, Frete, Pagamento. Estado antigo tem
-  // outra, e ordenar aqui evita depender de o item ter nascido no lugar certo.
-  const ordem=['wpp_a0','wpp_a2','wpp_a34','wpp_c3'];
+  // A ordem pedida: Orçamentos, Frete, Pagamento. Estado antigo tem outra, e
+  // ordenar aqui evita depender de o item ter nascido no lugar certo.
+  const ordem=['wpp_a2','wpp_a34','wpp_c3'];
   g.items.sort((a,b)=>{
     const ia=ordem.indexOf(a&&a.id), ib=ordem.indexOf(b&&b.id);
     return (ia<0?99:ia)-(ib<0?99:ib);
@@ -22475,9 +22437,6 @@ function executarAcaoBotao(action){
   if(action==='valoresCredito') abrirModalValoresCredito();
   if(action==='cotacaoFrete') abrirModalCotacaoFrete();
   if(action==='freteEscolhido') abrirFreteEscolhido();
-  if(action==='scriptPix')    abrirScript('pix');
-  if(action==='scriptCartao') abrirScript('cartao');
-  if(action==='scriptBoleto') abrirScript('boleto');
   if(action==='pagPix')    abrirPagamento('pix');
   if(action==='pagCartao') abrirPagamento('cartao');
   if(action==='pagBoleto') abrirPagamento('boleto');
@@ -23555,71 +23514,6 @@ function atdLimpar(){
   showToast('Orçamento limpo','success');
 }
 
-/* ── Script: o texto padrão de cada meio de pagamento ────────────── */
-
-const SCRIPTS_PAGAMENTO_PADRAO = {
-  pix: `Pagamento por PIX
-
-1. Fechado o valor do orçamento, geramos a cobrança PIX e enviamos a chave (ou o QR Code) aqui pela conversa.
-2. Assim que você fizer o pagamento, nos mande o comprovante nesta mesma conversa.
-3. Confirmado o recebimento, o pedido é cadastrado e segue para separação no mesmo dia útil.
-4. Depois de postado, enviamos o código de rastreio por aqui.`,
-  cartao: `Pagamento por Cartão de Crédito
-
-1. Fechado o valor do orçamento, geramos um link de pagamento seguro e enviamos aqui pela conversa.
-2. O parcelamento vai até 3x — os valores de cada parcela são os que passamos na tabela.
-3. Você paga direto no link, com os dados do seu cartão; nós não recebemos nem guardamos esses dados.
-4. Aprovada a compra, o pedido é cadastrado e segue para separação. O rastreio vem por aqui depois da postagem.`,
-  boleto: `Pagamento por Boleto Bancário
-
-1. O boleto é tratado caso a caso, de forma mais particular e reservada.
-2. Fale com o atendimento para verificarmos a liberação para o seu pedido.
-3. Liberado, o boleto é emitido e enviado aqui pela conversa, com a data de vencimento.
-4. O pedido só entra em separação depois da compensação, que leva até 3 dias úteis.`
-};
-
-function _scriptTexto(meio){
-  const salvos=appState.scriptsPagamento;
-  if(salvos && typeof salvos[meio]==='string' && salvos[meio].trim()) return salvos[meio];
-  return SCRIPTS_PAGAMENTO_PADRAO[meio]||'';
-}
-
-function abrirScript(meio){
-  const rot={pix:'Pagamento PIX',cartao:'Pagamento Cartão',boleto:'Pagamento Boleto'}[meio]||'Script';
-  const ov=document.getElementById('modal-script-overlay');
-  if(!ov) return;
-  ov.dataset.meio=meio;
-  document.getElementById('scr-titulo').textContent=rot;
-  document.getElementById('scr-texto').value=_scriptTexto(meio);
-  const podeEditar=!!(currentUser&&currentUser.master);
-  const ta=document.getElementById('scr-texto');
-  ta.readOnly=!podeEditar;
-  document.getElementById('scr-salvar').style.display=podeEditar?'':'none';
-  document.getElementById('scr-aviso').textContent=podeEditar
-    ? 'Você é master: pode editar o texto e salvar para toda a equipe.'
-    : 'Texto padrão definido pelo master.';
-  ov.style.display='flex';
-}
-function fecharScript(){
-  const ov=document.getElementById('modal-script-overlay');
-  if(ov) ov.style.display='none';
-}
-function salvarScript(){
-  if(!currentUser||!currentUser.master) return;
-  const ov=document.getElementById('modal-script-overlay');
-  const meio=(ov&&ov.dataset.meio)||'pix';
-  if(!appState.scriptsPagamento || typeof appState.scriptsPagamento!=='object') appState.scriptsPagamento={};
-  appState.scriptsPagamento[meio]=document.getElementById('scr-texto').value;
-  saveState(appState);
-  showToast('Script salvo','success');
-}
-function copiarScript(){
-  const ta=document.getElementById('scr-texto');
-  ta.select(); ta.setSelectionRange(0,999999);
-  navigator.clipboard.writeText(ta.value)
-    .then(()=>showToast('Texto copiado','success'))
-    .catch(()=>showToast('Selecione e copie à mão','warn'));
-}
 
 /* ── Frete escolhido ───────────────────────────────────────────────
    A cotação compara as transportadoras; isto registra a que o cliente
