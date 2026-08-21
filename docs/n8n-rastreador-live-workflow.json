@@ -959,22 +959,12 @@
       "main": [
         [
           {
-            "node": "Ler Live Track",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Previsão vencida",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Abrir login Daniel",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Abrir login 4Vita",
+            "node": "Previsão vencida",
             "type": "main",
             "index": 0
           }
@@ -1352,6 +1342,28 @@
         [
           {
             "node": "Marcar tarefa criada",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cookie Daniel": {
+      "main": [
+        [
+          {
+            "node": "Abrir login 4Vita",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cookie 4Vita": {
+      "main": [
+        [
+          {
+            "node": "Ler Live Track",
             "type": "main",
             "index": 0
           }
