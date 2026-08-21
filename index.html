@@ -1495,7 +1495,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            rolava por tudo para chegar no que queria. -->
       <!-- 1460px e não 980: com três quadros numa linha, a faixa estreita
            os deixaria menores que os da Página inicial. -->
-      <div id="wpp-inicio" class="ini-wrap ini-centro" style="max-width:1240px;padding:6px 0 10px;">
+      <div id="wpp-inicio" class="ini-wrap" style="max-width:1240px;padding:14px 0 10px;">
         <div class="ini-quadros tres-colunas quadros-maiores">
           <div class="ini-quadro" onclick="wppAbrirFrente('wpp_atend')">
             <div class="ini-ic" data-icone="atendimentos"></div>
@@ -1524,35 +1524,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <button class="btn atd-fechar" onclick="gerarTextoBoleto()">Boleto</button>
         <button class="btn btn-ghost atd-fechar" onclick="atdLimpar()" title="Começar outro orçamento">Limpar</button>
       </div>
-      <div class="date-header" id="wpp-date" style="display:none;"></div>
-      <div id="wpp-tasks" style="display:none;"></div>
-
-    </div>
-
-
-    <!-- REGISTRO DE VENDAS -->
-    <div class="tab-panel" id="tab-registrovendas">
-      <div class="section-header">
-        <span class="section-title">Pedidos</span>
-        <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
-        <!-- Registrar venda só existia dentro da tarefa diária. Quem abre esta
-             aba para ver os pedidos é quem vai lançar o próximo. -->
-        <button class="btn btn-sm" id="btn-novo-pedido" onclick="abrirModalVenda()" style="width:auto;white-space:nowrap;margin-left:auto;">+ Registrar Venda</button>
-      </div>
-      <!-- Registros (o que a equipe lança) / Base (o que veio do BaseLinker) -->
-      <div id="reg-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
-        <button class="atv-stab2 active" data-c="afazer" data-sub="registros" onclick="regSetSubTab('registros')">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg></span>Registros
-        </button>
-        <button class="atv-stab2" data-c="concluida" data-sub="base" onclick="regSetSubTab('base')">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></span>Pedidos Base WhatsApp
-          <span id="reg-cnt-base" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
-        </button>
-      </div>
-
-      <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
-           uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
-           chegar no que importa, que é o pedido em si. -->
+      <!-- O Registro veio da aba Pedidos: quem acabou de fechar a venda no
+           WhatsApp é quem vai lançá-la, e o caminho era trocar de aba para
+           isso. Fica abaixo dos quadros, na tela de entrada. -->
+      <div id="wpp-registros" style="display:none;max-width:1240px;margin:26px auto 0;">
+        <div class="section-header" style="margin-bottom:14px;">
+          <span class="section-title">Registro</span>
+          <button class="btn btn-sm" id="btn-novo-pedido" onclick="abrirModalVenda()"
+                  style="width:auto;white-space:nowrap;margin-left:auto;">+ Registrar pedido</button>
+        </div>
       <div id="reg-registros">
 
         <!-- Números do período escolhido nos filtros -->
@@ -1600,7 +1580,24 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div id="ped-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhum pedido neste período.</div>
         </div>
 
-      </div><!-- /reg-registros -->
+      </div>      </div>
+      <div class="date-header" id="wpp-date" style="display:none;"></div>
+      <div id="wpp-tasks" style="display:none;"></div>
+
+    </div>
+
+
+    <!-- REGISTRO DE VENDAS -->
+    <div class="tab-panel" id="tab-registrovendas">
+      <div class="section-header">
+        <span class="section-title">Pedidos</span>
+        <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
+      </div>
+
+      <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
+           uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
+           chegar no que importa, que é o pedido em si. -->
+<!-- /reg-registros -->
 
       <!-- PEDIDOS BASE WHATSAPP — espelho do que a Base tem com canal WhatsApp.
            Somente leitura: quem manda aqui é a Base; o LiveOps mostra. -->
@@ -8168,7 +8165,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21e';
+const APP_VERSAO='2026.08.21f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8396,9 +8393,7 @@ function buildTabs(){
 
   function fireTabHooks(id){
     if(id==='whatsapp'){ try{ wppAbrirFrente(_wppFrente); }catch(e){ console.warn('wppAbrirFrente:',e); } }
-    if(id==='registrovendas'){
-      try{regSetSubTab(_regSubTab==='base'?'base':'registros');}catch(e){console.warn('regSetSubTab:',e);}
-    }
+    if(id==='registrovendas'){ try{regSetSubTab('base');}catch(e){console.warn('regSetSubTab:',e);} }
     if(id==='financeiro'){ try{finSetSubTab('confvendas');}catch(e){console.warn('finSetSubTab:',e);} }
     if(id==='devolucoes'){ try{devSetSubTab('ativos');}catch(e){console.warn('renderDev:',e);} setTimeout(()=>{try{renderDevStats();}catch(e){}},80); }
     if(id==='atendimentos'){ try{ateSetSubTab('ativos');}catch(e){console.warn('renderAte:',e);} setTimeout(()=>{try{renderAteStats();}catch(e){}},80); }
@@ -8619,15 +8614,15 @@ const MANUAL_ABAS=[
      'Com o rascunho pronto, os botões <b>PIX</b>, <b>Cartão</b> e <b>Boleto</b> no alto da tela montam o texto para colar na conversa. A barra ao lado deles mostra o que já foi preenchido.',
      '<b>Pedido</b> — cadastrar o pedido na Base e gerar a etiqueta de envio.',
      '<b>Registro</b> — registrar a venda, guardar o comprovante e alimentar a conferência.',
-     'Clique no quadro para abrir a frente; o botão <b>← WhatsApp</b> volta para os três.'
+     'Clique no quadro para abrir a frente; o botão <b>← WhatsApp</b> volta para os três.',
+     'Abaixo dos quadros fica o <b>Registro</b>: a lista das vendas lançadas, com busca, filtros por período e o botão <b>+ Registrar pedido</b>. Ele veio da aba Pedidos — quem acabou de fechar a venda aqui é quem vai lançá-la.'
    ]},
 
   {icone:'pedidos', aba:'Vendas → Pedidos', perm:'whatsapp',
    paraQue:'Onde ficam as vendas do WhatsApp: o que foi vendido, por quem, e o quanto falta para a meta.',
    passos:[
-     'Em <b>Registros</b>, lance a venda com data, valor e responsável. Os cartões do topo somam sozinhos o dia, a semana e o mês.',
-     'A <b>Meta</b> é definida no botão do topo: escolha o valor do mês e o sistema divide pelos dias úteis que ainda restam, mostrando quanto precisa sair por dia.',
-     'Em <b>Pedidos Base WhatsApp</b> ficam os pedidos que a automação lê direto da Base, com canal WhatsApp. Essa lista é só leitura: corrigir pedido é na Base.'
+     'Aqui ficam os pedidos que a automação lê direto da Base, com canal WhatsApp. Essa lista é só leitura: corrigir pedido é na Base.',
+     'O <b>Registro</b> — onde a equipe lança a venda à mão — passou para a aba <b>WhatsApp (Chatwoot)</b>, logo abaixo dos três quadros.'
    ],
    atencao:'Se um pedido não aparecer em <b>Pedidos Base WhatsApp</b>, quase sempre a origem de venda dele na Base não é o WhatsApp. Confira lá antes de lançar à mão.'},
 
@@ -8935,6 +8930,12 @@ function wppAbrirFrente(id){
   if(barra){
     barra.style.display = (_wppFrente==='wpp_atend') ? 'flex' : 'none';
     try{ preencherIconesDeclarados(barra); }catch(e){}
+  }
+  // O Registro vive na tela de entrada, abaixo dos quadros
+  const regs=document.getElementById('wpp-registros');
+  if(regs){
+    regs.style.display = napagina ? 'block' : 'none';
+    if(napagina){ try{ renderPedidos(); }catch(e){ console.warn('renderPedidos:',e); } }
   }
   try{ preencherIconesDeclarados(document.getElementById('tab-whatsapp')); }catch(e){}
   try{ atdAtualizarBarra(); }catch(e){}
@@ -10127,16 +10128,15 @@ function finSetSubTab(qual){
    "Registros" é o que a equipe lançou à mão; "Pedidos Base WhatsApp" é o que
    veio da Base. Misturar as duas listas seria o pior dos mundos — ninguém
    saberia de onde veio cada linha nem qual delas corrigir. */
+/* O Registro passou para a aba WhatsApp, junto de quem fecha a venda. A aba
+   Pedidos ficou só com o que vem da Base, então não há mais sub-abas — mas a
+   função continua existindo porque outros pontos ainda a chamam, e trocar
+   todos por nada seria mexer em coisa que funciona sem ganho. */
 function regSetSubTab(qual){
-  _regSubTab = qual || 'registros';
-  const reg=document.getElementById('reg-registros');
+  _regSubTab='base';
   const base=document.getElementById('reg-base');
-  if(reg)  reg.style.display  = _regSubTab==='registros' ? 'block' : 'none';
-  if(base) base.style.display = _regSubTab==='base' ? 'block' : 'none';
-  document.querySelectorAll('#reg-subtabs .atv-stab2').forEach(b=>{
-    b.classList.toggle('active', b.dataset.sub===_regSubTab);
-  });
-  if(_regSubTab==='base') renderPedidosBase(); else renderPedidos();
+  if(base) base.style.display='block';
+  renderPedidosBase();
 }
 
 /* ── Pedidos vindos da Base (BaseLinker) ──────────────────────
