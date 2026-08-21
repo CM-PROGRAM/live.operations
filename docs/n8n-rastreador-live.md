@@ -125,23 +125,23 @@ execução e não geram tarefa. Os novos já nascem com a chave.
 
 ---
 
-**Os quatro nós que falam com o LiveOps precisam da credencial `Firebase
-(conta de serviço)`** — `Ler Live Track`, `Gravar no LiveOps`, `Criar tarefa
-no LiveOps` e `Marcar tarefa criada`. É a mesma credencial que o fluxo de
-pedidos da Base já usa. Sem ela o Firebase responde **401 Permission
-denied**, e o efeito é traiçoeiro: o erro entra na fila como item vazio, a
-rodada termina "com sucesso" sem consultar nada e o painel não mostra
-problema nenhum. Por isso a fila agora levanta erro explícito nesse caso.
-
-## 6. Credenciais (cinco)
+## 6. Credenciais (seis)
 
 | Nome no n8n | Tipo | Conteúdo |
 |---|---|---|
 | `Melhor Envio · Antonio Carlos` | Header Auth | Name `Authorization` · Value `Bearer <token>` |
 | `Melhor Envio · Raphael` | Header Auth | Name `Authorization` · Value `Bearer <token>` |
 | `Base (BaseLinker)` | Header Auth | Name `X-BLToken` · Value o token *(já existe)* |
+| `Firebase (conta de serviço)` | Google API | a mesma do fluxo de pedidos da Base *(já existe)* |
 | Manda Bem Daniel | — | não é credencial, ver abaixo |
 | Manda Bem 4Vita | — | não é credencial, ver abaixo |
+
+**A credencial do Firebase entra em quatro nós:** `Ler Live Track`, `Gravar
+no LiveOps`, `Criar tarefa no LiveOps` e `Marcar tarefa criada`. Sem ela o
+Firebase responde **401 Permission denied**, e o efeito é traiçoeiro: o erro
+entrava na fila como item vazio, a rodada terminava "com sucesso" sem
+consultar nada e nada na tela indicava problema. Hoje a fila levanta erro
+explícito nesse caso, dizendo qual nó está sem credencial.
 
 **Os tokens do Melhor Envio precisam de um escopo só: `shipping-tracking`.**
 Os que temos hoje carregam `shipping-checkout`, `shipping-generate` e
