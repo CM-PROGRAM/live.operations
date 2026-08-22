@@ -985,6 +985,18 @@ body.menu-oculto .sb-atu-txt{display:none;}
    para achar um procedimento. */
 .bi-wrap{max-width:1500px;}
 .bi-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start;}
+
+/* Painéis das Tarefas Suplelive: mesmos quadros da Página inicial, no
+   tamanho compacto — são até sete, e no tamanho grande a escolha exigiria
+   rolagem antes mesmo de começar o dia. */
+.atv-area-grade{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;align-items:start;}
+.ini-quadro.atv-area{min-height:0;padding:20px 18px;border-radius:14px;gap:7px;}
+.ini-quadro.atv-area .ini-ic{width:34px;height:34px;}
+.ini-quadro.atv-area .ini-tit{font-size:16px;}
+.ini-quadro.atv-area .ini-sub{font-size:11.5px;max-width:none;}
+.ini-quadro.atv-area .atv-area-cnt{font-size:10px;font-weight:700;letter-spacing:.3px;
+  color:var(--text-secondary);font-family:var(--font-mono);
+  background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:999px;padding:3px 11px;margin-top:2px;}
 .bi-quadro{cursor:pointer;justify-content:flex-start;min-height:0;
   padding:16px 18px;border-radius:12px;gap:8px;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
@@ -2053,8 +2065,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- TAREFAS USUÁRIOS -->
     <div class="tab-panel" id="tab-tarefas">
       <div class="section-header">
-        <span class="section-title">Tarefas Diárias</span>
+        <span class="section-title" id="atv-titulo-secao">Tarefas Suplelive</span>
+        <button class="btn btn-sm" id="atv-nova-diaria" onclick="abrirDiariaModal()" style="display:none;--bc: var(--rgb-aco);">+ Nova tarefa</button>
       </div>
+
+      <!-- Painéis por área. O quadro só abre depois de escolher uma —
+           misturar tarefa de anúncio com tratativa de atendimento no mesmo
+           kanban era o que tornava o dia difícil de ler. -->
+      <div id="atv-inicio"></div>
+
+      <div id="atv-quadro" style="display:none;">
+      <button class="ini-voltar" onclick="atvIrArea('')">← Tarefas Suplelive</button>
 
       <!-- Status filter tabs -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap;" id="atv-status-tabs-row">
@@ -2142,6 +2163,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       </div>
       <div id="atv-empty" style="display:none;padding:48px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">Nenhuma tarefa cadastrada ainda.</div>
+      </div><!-- /atv-quadro -->
     </div>
 
     <!-- PROJETOS -->
@@ -3473,6 +3495,61 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
         <button class="btn" onclick="closeAtribModal()">Cancelar</button>
         <button class="btn" onclick="salvarAtribuicao()">Atribuir</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: TAREFA DIÁRIA (anotação do próprio colaborador) -->
+<div id="diaria-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);align-items:center;justify-content:center;overflow-y:auto;padding:20px;z-index:1600;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;backdrop-filter:blur(24px);box-shadow:var(--sombra-painel),var(--realce-topo);width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;position:relative;">
+    <div style="position:relative;margin-bottom:20px;">
+      <div id="diaria-modal-title" style="text-align:center;font-family:var(--font-brand);font-size:24px;font-weight:800;letter-spacing:-0.03em;text-transform:uppercase;color:#fff;">Nova tarefa</div>
+      <button onclick="fecharDiariaModal()" class="btn-orb v-open sm" title="Fechar" style="position:absolute;top:50%;right:0;transform:translateY(-50%);"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
+    </div>
+    <div style="display:grid;gap:12px;">
+      <input type="hidden" id="diaria-edit-id" value="">
+      <div class="input-group">
+        <label>Título Tarefa</label>
+        <input type="text" id="diaria-titulo" maxlength="120" placeholder="Ex.: Ajustar estoque do kit 2x na Base">
+      </div>
+      <div class="input-group">
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Observações</span>
+          <span id="diaria-obs-count" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">500 restantes</span>
+        </label>
+        <textarea id="diaria-obs" rows="5" maxlength="500" placeholder="O que foi feito, ou o que precisa ser feito." oninput="diariaContarObs()"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="input-group" style="position:relative;">
+          <label>Prazo conclusão</label>
+          <input type="hidden" id="diaria-venc">
+          <button type="button" onclick="diariaAbrirCal()" style="width:100%;text-align:left;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);color:var(--text-primary);font-size:13px;font-family:var(--font-sans);padding:10px 12px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <span id="diaria-venc-label" style="color:var(--text-muted);">Selecionar data</span>
+            <span style="font-size:14px;">📅</span>
+          </button>
+          <div id="diaria-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
+        </div>
+        <div class="input-group">
+          <label>Prioridade</label>
+          <div class="atv-prior-select">
+            <button type="button" class="atv-prior-trigger" onclick="diariaTogglePrior()">
+              <span class="atv-prior-dot gray" id="diaria-prio-dot"></span>
+              <span id="diaria-prio-label">Normal</span>
+              <span class="chev">▾</span>
+            </button>
+            <div class="atv-prior-menu" id="diaria-prio-menu" style="display:none;">
+              <div class="atv-prior-opt" onclick="diariaSelectPrior('normal')"><span class="atv-prior-dot gray"></span>Normal</div>
+              <div class="atv-prior-opt" onclick="diariaSelectPrior('alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
+              <div class="atv-prior-opt" onclick="diariaSelectPrior('urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
+            </div>
+            <input type="hidden" id="diaria-prio" value="normal">
+          </div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+        <button class="btn" onclick="fecharDiariaModal()">Cancelar</button>
+        <button class="btn" onclick="salvarDiaria()" style="--bc: var(--rgb-aco);">Salvar</button>
       </div>
     </div>
   </div>
@@ -8270,7 +8347,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21q';
+const APP_VERSAO='2026.08.21r';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8413,7 +8490,7 @@ function buildTabs(){
   const tabs=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
     {type:'group', id:'grp-tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas', children:[
-      {id:'tarefas',   label:'Tarefas Diárias'}
+      {id:'tarefas',   label:'Tarefas Suplelive'}
     ]},
     {type:'group', id:'grp-atendimentos', icon:'atendimentos', label:'Atendimentos', perm:'atendimentos', children:[
       {id:'atendimentos', label:'Lançamentos'}
@@ -8817,7 +8894,7 @@ const MANUAL_ABAS=[
    passos:[
      'Em <b>Lançamentos</b>, crie o card com plataforma, motivo e o número do pedido.',
      'Escreva o andamento dentro do próprio card e anexe os prints da conversa — é o que sustenta a nossa versão se o caso virar reclamação.',
-     'Na <b>Data Retorno</b>, o atendimento vira uma tarefa em <b>Tarefas Diárias</b>. O card do quadro já mostra a última tratativa e quantos prints ela tem; clicar abre o atendimento com o histórico inteiro.',
+     'Na <b>Data Retorno</b>, o atendimento vira uma tarefa em <b>Tarefas Suplelive</b>. O card do quadro já mostra a última tratativa e quantos prints ela tem; clicar abre o atendimento com o histórico inteiro.',
      'Ao concluir o atendimento (Status → <b>Concluído</b>), não é preciso marcar uma nova Data Retorno nem anexar print: o caso está encerrado.'
    ],
    atencao:'Motivo e plataforma vêm de listas fechadas. Se faltar uma opção, use o botão <b>✎ editar lista</b> ao lado do campo em vez de escrever por fora.'},
@@ -18904,8 +18981,182 @@ function reorderAtividades(draggedId, targetId){
   renderAtividades();
 }
 
+
+/* ── Áreas das tarefas ───────────────────────────────────────────
+   O quadro juntava tudo: tratativa de atendimento, solicitação de anúncio,
+   revisão de marketplace e conferência de venda na mesma coluna. Aqui cada
+   uma vai para o seu painel.
+
+   A permissão é a MESMA da barra lateral, de propósito: o painel aparece
+   exatamente quando a aba de origem aparece. Assim o master libera num
+   lugar só, e no instante em que ele libera o painel nasce — não há
+   segunda lista de permissão para alguém esquecer de mexer. */
+const ATV_AREAS=[
+  {id:'diarias',      label:'Diárias',      icone:'tarefas',      perm:null,
+   desc:'O que você mesmo anotou para não esquecer.'},
+  {id:'atendimentos', label:'Atendimentos', icone:'atendimentos', perm:'atendimentos',
+   desc:'Retornos de atendimento no dia marcado.'},
+  {id:'vendas',       label:'Vendas',       icone:'vendas',       perm:null,
+   desc:'Pedidos cancelados e o que veio das vendas.'},
+  {id:'anuncios',     label:'Anúncios',     icone:'anuncios',     perm:'integracoes',
+   desc:'Entrada, integração, imagens, exclusão e catálogo.'},
+  {id:'financeiro',   label:'Financeiro',   icone:'financeiro',   perm:'whatsapp',
+   desc:'Conferência das vendas do WhatsApp.'},
+  {id:'marketplaces', label:'Marketplaces', icone:'marketplaces', perm:'plataformas',
+   desc:'A revisão diária de cada loja.'},
+  {id:'devolucoes',   label:'Devoluções',   icone:'devolucoes',   perm:'devolucoes',
+   desc:'Devoluções e canceladas com nota fiscal.'}
+];
+
+/* De onde a tarefa veio decide onde ela aparece. A marca gravada no
+   registro (areaTarefa) vem primeiro: é o que a tarefa criada à mão em
+   Diárias usa, e o que permite corrigir uma classificação sem depender de
+   adivinhar pela origem. */
+function _atvArea(a){
+  if(!a) return 'diarias';
+  if(a.areaTarefa) return a.areaTarefa;
+  if(a.origemAteId)      return 'atendimentos';
+  if(a.rotinaMkt)        return 'marketplaces';
+  if(a.vendaPedidoId)    return 'financeiro';
+  if(a.origemCancNfId)   return 'devolucoes';   // Canceladas com NF fica em Devoluções
+  if(a.origemCancId)     return 'vendas';
+  if(a.origemIntegId||a.origemExIntId||a.origemImgId||a.origemEntradaId||a.origemAtuCatId) return 'anuncios';
+  return 'diarias';
+}
+function _atvAreasVisiveis(){ return ATV_AREAS.filter(x=>_iniPode(x.perm)); }
+
+let _atvAreaSel='';   // '' = tela dos painéis
+
+function atvIrArea(id){
+  const permitidas=_atvAreasVisiveis().map(x=>x.id);
+  _atvAreaSel = (id && permitidas.includes(id)) ? id : '';
+  renderAtividades();
+  const painel=document.getElementById('tab-tarefas');
+  if(painel) painel.scrollIntoView({block:'start',behavior:'auto'});
+}
+
+/* Conta só o que está em aberto. Painel mostrando o total incluiria anos de
+   tarefa concluída e o número deixaria de querer dizer alguma coisa. */
+function _atvPendentesDaArea(id){
+  return (appState.atividades||[]).filter(a=>
+    a && a.status!=='concluida' && a.status!=='finalizada' &&
+    !_atvRotinaVelhaEscondida(a) && _atvArea(a)===id).length;
+}
+
+function renderAtvAreas(){
+  const box=document.getElementById('atv-inicio');
+  if(!box) return;
+  const quadros=_atvAreasVisiveis().map(ar=>{
+    const n=_atvPendentesDaArea(ar.id);
+    return `
+      <div class="ini-quadro atv-area" onclick="atvIrArea('${ar.id}')">
+        <div class="ini-ic">${iconeMenu(ar.icone)}</div>
+        <div class="ini-tit">${ar.label}</div>
+        <div class="ini-sub">${ar.desc}</div>
+        <div class="atv-area-cnt">${n?(n+' em aberto'):'nada em aberto'}</div>
+      </div>`;
+  }).join('');
+  box.innerHTML=`<div class="ini-quadros atv-area-grade">${quadros}</div>`;
+}
+
+/* ── Tarefa criada à mão, em Diárias ─────────────────────────────
+   É a anotação do próprio colaborador: o extra que ele teve de fazer e que
+   precisa ficar registrado. Modal próprio, e não o da tarefa completa,
+   porque aquele é do master e cobra título de lista, marketplace e
+   responsável — nada disso faz sentido para um lembrete pessoal. */
+function abrirDiariaModal(id){
+  if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
+  const a = id ? (appState.atividades||[]).find(x=>x&&x.id===id) : null;
+  document.getElementById('diaria-edit-id').value = a ? a.id : '';
+  document.getElementById('diaria-titulo').value  = a ? (a.titulo||'') : '';
+  document.getElementById('diaria-obs').value     = a ? (a.observacao||'') : '';
+  document.getElementById('diaria-venc').value    = a ? (a.vencimento||'') : '';
+  document.getElementById('diaria-prio').value    = a ? (a.prioridade||'normal') : 'normal';
+  diariaContarObs();
+  diariaSyncVenc();
+  diariaSelectPrior(a?(a.prioridade||'normal'):'normal');
+  document.getElementById('diaria-modal-title').textContent = a ? 'Editar tarefa' : 'Nova tarefa';
+  document.getElementById('diaria-modal-overlay').style.display='flex';
+  setTimeout(()=>{ const t=document.getElementById('diaria-titulo'); if(t) t.focus(); },50);
+}
+function fecharDiariaModal(){ const o=document.getElementById('diaria-modal-overlay'); if(o) o.style.display='none'; }
+function diariaContarObs(){
+  const ta=document.getElementById('diaria-obs'); const c=document.getElementById('diaria-obs-count');
+  if(ta&&c) c.textContent=(500-(ta.value||'').length)+' restantes';
+}
+function diariaSelectPrior(v){
+  document.getElementById('diaria-prio').value=v||'normal';
+  const p=ATV_PRIOR[v]||ATV_PRIOR.normal;
+  const dot=document.getElementById('diaria-prio-dot'); if(dot) dot.className='atv-prior-dot '+p.dot;
+  const lbl=document.getElementById('diaria-prio-label'); if(lbl) lbl.textContent=p.label;
+  const menu=document.getElementById('diaria-prio-menu'); if(menu) menu.style.display='none';
+}
+function diariaTogglePrior(){
+  const m=document.getElementById('diaria-prio-menu');
+  if(m) m.style.display = m.style.display==='block' ? 'none' : 'block';
+}
+function diariaSyncVenc(){
+  const v=(document.getElementById('diaria-venc')||{}).value||'';
+  const l=document.getElementById('diaria-venc-label');
+  if(!l) return;
+  if(v){ l.textContent=new Date(v+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}); l.style.color=''; }
+  else { l.textContent='Selecionar data'; l.style.color='var(--text-muted)'; }
+}
+function diariaAbrirCal(){
+  const pop=document.getElementById('diaria-cal-popover');
+  const inp=document.getElementById('diaria-venc');
+  if(!pop||!inp) return;
+  calAbrir(pop,'dias',inp.value||'',iso=>{ inp.value=iso; diariaSyncVenc(); });
+}
+function salvarDiaria(){
+  if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
+  const titulo=(document.getElementById('diaria-titulo').value||'').trim();
+  if(!titulo){ showToast('Informe o título da tarefa','warn'); return; }
+  const obs=(document.getElementById('diaria-obs').value||'').slice(0,500);
+  const venc=(document.getElementById('diaria-venc').value||'');
+  if(!venc){ showToast('Informe o prazo de conclusão','warn'); return; }
+  const prio=(document.getElementById('diaria-prio').value||'normal');
+  const editId=(document.getElementById('diaria-edit-id').value||'').trim();
+
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  if(editId){
+    const t=appState.atividades.find(x=>x&&x.id===editId);
+    if(!t){ showToast('Tarefa não encontrada','error'); return; }
+    t.titulo=titulo; t.observacao=obs; t.vencimento=venc; t.prioridade=prio;
+  } else {
+    const agora=Date.now();
+    appState.atividades.push({
+      id:'atv_dia_'+agora, areaTarefa:'diarias',
+      titulo, observacao:obs, vencimento:venc, prioridade:prio,
+      status:'aberta',
+      responsavel:currentUser.key, responsaveis:[currentUser.key],
+      criadoEm:_agoraCarimbo(), criadoPor:currentUser.name, criadoPorKey:currentUser.key,
+      ordemManual:agora, comentarios:[]
+    });
+  }
+  saveState(appState);
+  fecharDiariaModal();
+  renderAtividades();
+  showToast(editId?'Tarefa atualizada':'Tarefa criada','success');
+}
+
 function renderAtividades(){
   if(!appState.atividades) appState.atividades=[];
+  /* Painéis primeiro; o quadro só aparece com uma área escolhida. */
+  renderAtvAreas();
+  const areasOk=_atvAreasVisiveis().map(x=>x.id);
+  if(_atvAreaSel && !areasOk.includes(_atvAreaSel)) _atvAreaSel='';
+  const naArea=!!_atvAreaSel;
+  const boxIni=document.getElementById('atv-inicio');   if(boxIni) boxIni.style.display=naArea?'none':'';
+  const boxQd=document.getElementById('atv-quadro');    if(boxQd)  boxQd.style.display=naArea?'':'none';
+  const btnNova=document.getElementById('atv-nova-diaria');
+  if(btnNova) btnNova.style.display=(_atvAreaSel==='diarias')?'':'none';
+  const tit=document.getElementById('atv-titulo-secao');
+  if(tit){
+    const ar=ATV_AREAS.find(x=>x.id===_atvAreaSel);
+    tit.textContent = ar ? ('Tarefas Suplelive · '+ar.label) : 'Tarefas Suplelive';
+  }
+  if(!naArea) return;
   appState.atividades.forEach((a,idx)=>{ if(typeof a.ordemManual!=='number') a.ordemManual=idx; });
   appState.atividades.sort((a,b)=>(a.ordemManual||0)-(b.ordemManual||0));
 
@@ -18945,6 +19196,7 @@ function renderAtividades(){
   appState.atividades.forEach(a=>{
     // Todos veem todas as tarefas (visualização). A ação/edição fica restrita
     // ao master ou ao colaborador responsável (canAct / permissões do modal).
+    if(_atvArea(a)!==_atvAreaSel) return;
     if(filterColab && !getAtvResponsaveis(a).includes(filterColab)) return;
     if(filterPrior && a.prioridade!==filterPrior) return;
     if(termo && !_atvCasaBusca(a,termo)) return;
@@ -19052,10 +19304,21 @@ function renderAtividades(){
       // Card da revisão diária: a etapa e a loja vão na frente
       codigoLabel = [a.mktEtapa,a.mktLoja].filter(Boolean).join(' · ');
       solicitadoPor = a.criadoPor||'Rotina diária';
+    } else if(a.areaTarefa==='diarias'){
+      /* Anotação pessoal: o que importa na frente é o que a pessoa escreveu,
+         não código de anúncio — ela não tem nenhum. */
+      codigoLabel='';
+      solicitadoPor=a.criadoPor||'—';
+      if(a.observacao){
+        extraFrente=`<div style="font-size:11px;color:var(--text-secondary);line-height:1.45;white-space:pre-wrap;background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:8px;padding:6px 8px;margin:2px 0 6px;">${String(a.observacao).replace(/</g,'&lt;')}</div>`;
+      }
     } else {
       codigoLabel = a.sku ? ((a.skuTipo||'SKU')+': '+a.sku) : '';
       solicitadoPor = a.criadoPor||'—';
     }
+    /* Nas diárias a prioridade vai só com a bolinha: o card já carrega o
+       texto da observação, e repetir "Normal" ao lado dela só rouba linha. */
+    const priorSoEmoji = a.areaTarefa==='diarias';
     card.innerHTML=`
       <div style="position:relative;border-radius:12px;overflow:hidden;">
       <div style="position:relative;padding:10px 12px 10px;">
@@ -19078,7 +19341,7 @@ function renderAtividades(){
         ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:var(--tom-vermelho);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--linha-sutil);flex-wrap:wrap;gap:5px;">
           <div style="display:flex;flex-direction:column;gap:1px;">
-            <span style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:9px;height:9px;"></span>${prior.label}</span>
+            <span title="${prior.label}" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:9px;height:9px;"></span>${priorSoEmoji?'':prior.label}</span>
             <span style="font-size:9px;color:var(--text-muted);">${isAtrasada?`<span style="color:#fb7185;font-weight:700;">Atrasada ${Math.abs(dias)}d</span> · `:''}${vencFmt}</span>
           </div>
           <div style="display:flex;gap:5px;align-items:center;" id="atv-acoes-${a.id}"></div>
@@ -19151,7 +19414,12 @@ function renderAtividades(){
         setTimeout(()=>openAteModal(a.origemAteId),50);
       });
     } else {
-      card.addEventListener('click',()=>openAtvModal(a.id));
+      card.addEventListener('click',()=>{
+      /* Anotação pessoal abre no card simples em que foi escrita. O modal
+         completo é do master e cobra título de lista, marketplace e
+         responsável — nada disso existe num lembrete. */
+      if(a.areaTarefa==='diarias') abrirDiariaModal(a.id); else openAtvModal(a.id);
+    });
     }
     (_paraDesenhar[colKey]=_paraDesenhar[colKey]||[]).push({a,card});
   });
