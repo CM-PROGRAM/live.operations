@@ -1070,6 +1070,37 @@ body.menu-oculto .sb-atu-txt{display:none;}
   font-family:var(--font-sans);font-size:12.5px;padding:9px 13px;cursor:pointer;}
 .cli-menu-lista button:hover{background:var(--veu-medio);}
 
+/* ── Ficha do cliente ────────────────────────────────────────────── */
+.fic-grade{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:800px){.fic-grade{grid-template-columns:1fr;}}
+.fic-bloco{background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:14px;padding:18px;}
+.fic-bloco h4{font-family:var(--font-sans);font-size:14px;font-weight:800;color:var(--text-primary);margin:0 0 14px;}
+.fic-ident{display:flex;align-items:flex-start;gap:13px;margin-bottom:16px;}
+.fic-av{width:56px;height:56px;border-radius:50%;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:var(--font-mono);font-size:13px;font-weight:800;color:var(--tom-aco,#8fa8d8);}
+.fic-nome{font-family:var(--font-sans);font-size:15px;font-weight:800;color:var(--text-primary);line-height:1.3;margin-bottom:6px;}
+.fic-linha{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--text-secondary);padding:5px 0;}
+.fic-linha .ic{width:16px;text-align:center;opacity:.6;flex-shrink:0;}
+.fic-linha .vazio{opacity:.45;}
+.fic-mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.fic-mini-card{background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:12px;padding:14px 10px;text-align:center;}
+.fic-mini-val{font-family:var(--font-sans);font-size:19px;font-weight:800;color:var(--mc,var(--text-primary));line-height:1.15;}
+.fic-mini-rot{font-size:10.5px;color:var(--text-muted);margin-top:4px;}
+.fic-ult{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:11px 14px;font-size:12.5px;}
+.fic-rfm{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:14px 0;}
+@media(max-width:700px){.fic-rfm{grid-template-columns:1fr;}.fic-mini{grid-template-columns:1fr;}}
+.fic-rfm-card{background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:12px;padding:14px 16px;}
+.fic-rfm-cab{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:8px;}
+.fic-rfm-cab .ic{color:var(--rc,#8fa8d8);display:flex;}
+.fic-rfm-cab .ic svg{width:15px;height:15px;stroke-width:1.9;}
+.fic-rfm-val{font-family:var(--font-sans);font-size:21px;font-weight:800;color:var(--rc,var(--text-primary));line-height:1.15;}
+.fic-rfm-sub{font-size:10.5px;color:var(--text-muted);margin-top:4px;}
+.fic-score{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;
+  border-top:1px solid var(--linha-sutil);padding-top:14px;flex-wrap:wrap;}
+.fic-score-num{font-family:var(--font-mono);font-size:24px;font-weight:800;color:var(--text-primary);letter-spacing:2px;}
+
 /* Cards de integração: ícone, nome, o que faz, selo de situação à direita
    e a ação embaixo. Dois por fileira, como no CRM de referência. */
 .integ-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;}
@@ -2771,6 +2802,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div class="pag-acoes">
           <span id="cli-sync" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);align-self:center;"></span>
+          <input type="file" id="cli-import-arq" accept=".csv,text/csv" style="display:none;" onchange="cliImportarArquivo(this)">
+          <button class="btn-sec" onclick="document.getElementById('cli-import-arq').click()" title="Trazer clientes de uma planilha em CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 20h16"/></svg>
+            Importar
+          </button>
           <button class="btn-sec" onclick="cliExportar()" title="Baixar a lista filtrada em CSV">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 20h16"/></svg>
             Exportar
@@ -4270,23 +4306,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="clilog-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:560px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
-    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:4px;">
+  <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:960px;max-width:96vw;max-height:90vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
+    <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:18px;">
       <div style="flex:1;min-width:0;">
-        <div id="clilog-nome" style="font-size:15px;font-weight:700;color:var(--text-primary);"></div>
-        <div id="clilog-sub" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;"></div>
+        <div id="clilog-nome" style="font-family:var(--font-sans);font-size:19px;font-weight:800;color:var(--text-primary);line-height:1.3;"></div>
       </div>
-      <button class="btn-link btn-sm" onclick="fecharLogCliente()">Fechar</button>
+      <button onclick="fecharLogCliente()" class="btn-orb v-open sm" title="Fechar"><svg viewBox="0 0 24 24"><line x1="6" y1="6" x2="18" y2="18"/><line x1="6" y1="18" x2="18" y2="6"/></svg></button>
     </div>
-    <div style="height:1px;background:var(--glass-border);margin:14px 0;"></div>
     <div id="clilog-corpo"></div>
-    <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:14px;line-height:1.6;">
-      O hist&oacute;rico vem dos pedidos que a integra&ccedil;&atilde;o l&ecirc; da Base pelo canal
-      WhatsApp. Corrigir pedido &eacute; l&aacute; &mdash; aqui &eacute; s&oacute; leitura.
-    </div>
   </div>
 </div>
-
 <div id="rstlog-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1600;align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
   <div style="background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:24px;width:520px;max-width:96vw;max-height:88vh;overflow-y:auto;box-shadow:var(--sombra-painel),var(--realce-topo);">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">
@@ -4655,6 +4684,7 @@ function defaultState(){
     integracoes:[],
     excluirIntBase:[],
     atualizacaoCatalogo:[],
+    clientesManuais:[],
     imagensReq:[],
     entradas:[],
     extLinks:{},
@@ -4747,6 +4777,7 @@ function loadLocal(){
     if(!Array.isArray(s.integracoes)) s.integracoes=[];
     if(!Array.isArray(s.excluirIntBase)) s.excluirIntBase=[];
     if(!Array.isArray(s.atualizacaoCatalogo)) s.atualizacaoCatalogo=[];
+    if(!Array.isArray(s.clientesManuais)) s.clientesManuais=[];
     _semearEmails(s);
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
@@ -6692,6 +6723,7 @@ const COLECOES_REG={
   integracoes:   {get:s=>s.integracoes,                set:(s,v)=>{s.integracoes=v;}},
   excluirIntBase:{get:s=>s.excluirIntBase,             set:(s,v)=>{s.excluirIntBase=v;}},
   atualizacaoCatalogo:{get:s=>s.atualizacaoCatalogo,   set:(s,v)=>{s.atualizacaoCatalogo=v;}},
+  clientesManuais:{get:s=>s.clientesManuais,           set:(s,v)=>{s.clientesManuais=v;}},
   entradas:      {get:s=>s.entradas,                   set:(s,v)=>{s.entradas=v;}},
   imagensReq:    {get:s=>s.imagensReq,                 set:(s,v)=>{s.imagensReq=v;}},
   canceladas:    {get:s=>s.canceladas,                 set:(s,v)=>{s.canceladas=v;}},
@@ -7376,6 +7408,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.integracoes)) data.integracoes = [];
   if(!Array.isArray(data.excluirIntBase)) data.excluirIntBase = [];
   if(!Array.isArray(data.atualizacaoCatalogo)) data.atualizacaoCatalogo = [];
+  if(!Array.isArray(data.clientesManuais)) data.clientesManuais = [];
   _semearEmails(data);
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
@@ -8568,7 +8601,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.22b';
+const APP_VERSAO='2026.08.22c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10818,16 +10851,37 @@ function agruparClientes(){
     if(!chave) return;
     let c=porChave.get(chave);
     if(!c){
-      c={chave, nome, cpf:p.cpf||'', telefone:p.telefone||'', pedidos:[]};
+      c={chave, nome, cpf:p.cpf||'', telefone:p.telefone||'', email:p.email||'', pedidos:[], origem:'base'};
       porChave.set(chave,c);
     }
     // O cadastro mais completo ganha: um pedido antigo pode ter vindo sem
     // CPF, e não é motivo para o cliente ficar sem ele na tela
     if(!c.cpf && p.cpf) c.cpf=p.cpf;
     if(!c.telefone && p.telefone) c.telefone=p.telefone;
+    if(!c.email && p.email) c.email=p.email;
     if(nome && nome.length>String(c.nome||'').length) c.nome=nome;
     c.pedidos.push(p);
   });
+  /* Clientes trazidos de planilha. Eles NÃO viram pedido na Base — inventar
+     um pedido para eles faria a aba Pedidos mentir e o faturamento subir
+     sozinho. Ficam numa lista própria e se juntam aqui: se o CPF ou o
+     telefone já existe na Base, completam o cadastro em vez de duplicar. */
+  (appState.clientesManuais||[]).filter(Boolean).forEach(m=>{
+    const cpf=_cliSoDigitos(m.cpf), fone=_cliSoDigitos(m.telefone);
+    const nome=String(m.nome||'').trim();
+    const chave = cpf ? ('cpf:'+cpf) : (fone ? ('fone:'+fone) : (nome ? ('nome:'+_cliSemAcento(nome)) : null));
+    if(!chave) return;
+    let c=porChave.get(chave);
+    if(!c){
+      c={chave, nome, cpf:m.cpf||'', telefone:m.telefone||'', email:m.email||'', pedidos:[], origem:'importado'};
+      porChave.set(chave,c);
+    }
+    if(!c.cpf && m.cpf) c.cpf=m.cpf;
+    if(!c.telefone && m.telefone) c.telefone=m.telefone;
+    if(!c.email && m.email) c.email=m.email;
+    if(nome && nome.length>String(c.nome||'').length) c.nome=nome;
+  });
+
   const lista=[...porChave.values()];
   lista.forEach(c=>{
     c.pedidos.sort((a,b)=>
@@ -10999,7 +11053,7 @@ function renderClientes(){
       </td>
       <td>
         <div class="cli-contato">
-          <span><span class="ic">&#9993;</span>${c.cpf?esc(_cliFmtCpf(c.cpf)):'<span style="opacity:.5;">sem CPF</span>'}</span>
+          <span><span class="ic">&#9993;</span>${c.email?esc(c.email):(c.cpf?esc(_cliFmtCpf(c.cpf)):'<span style="opacity:.5;">sem e-mail</span>')}</span>
           <span><span class="ic">&#9742;</span>${fone?esc(_fmtFoneVis(c.telefone)):'<span style="opacity:.5;">sem telefone</span>'}</span>
         </div>
       </td>
@@ -11038,6 +11092,7 @@ function cliMenu(ev,chave){
   if(cpf)  itens.push(`<button onclick="cliCopiar('${cpf}','CPF')">Copiar CPF</button>`);
   if(fone) itens.push(`<button onclick="cliCopiar('${fone}','Telefone')">Copiar telefone</button>`);
   if(fone) itens.push(`<button onclick="window.open('https://wa.me/55${fone}','_blank','noopener')">Abrir no WhatsApp</button>`);
+  if(fone) itens.push(`<button onclick="abrirLogCliente('${c.chave}');setTimeout(()=>cliVerificarContato('${c.chave}'),60)">Verificar contato</button>`);
   const menu=document.createElement('div');
   menu.className='cli-menu-lista';
   menu.innerHTML=itens.join('');
@@ -11047,6 +11102,112 @@ function cliMenu(ev,chave){
     const fora=()=>{ menu.remove(); document.removeEventListener('click',fora); };
     document.addEventListener('click',fora);
   },0);
+}
+
+
+/* ── Importar clientes de planilha ───────────────────────────────────
+   Só CSV. Ler .xlsx exigiria uma biblioteca que este arquivo único não
+   carrega — e "Salvar como CSV" no Excel resolve em dois cliques, o que é
+   melhor que uma importação que às vezes funciona.
+
+   O que entra aqui NÃO vira pedido. Inventar um pedido para o cliente
+   importado faria a aba Pedidos mentir e o faturamento subir sozinho. */
+function _csvLinhas(texto){
+  // Separador: o que aparecer mais no cabeçalho. Excel em português salva
+  // com ponto e vírgula; exportação de sistema costuma sair com vírgula.
+  const bruto=String(texto||'').replace(/^﻿/,'');
+  const cab=bruto.split(/\r?\n/)[0]||'';
+  const sep=(cab.split(';').length>cab.split(',').length)?';':',';
+  const linhas=[]; let campo='', linha=[], aspas=false;
+  for(let i=0;i<bruto.length;i++){
+    const ch=bruto[i];
+    if(aspas){
+      if(ch==='"'){ if(bruto[i+1]==='"'){ campo+='"'; i++; } else aspas=false; }
+      else campo+=ch;
+    } else if(ch==='"'){ aspas=true; }
+    else if(ch===sep){ linha.push(campo); campo=''; }
+    else if(ch==='\n'){ linha.push(campo); linhas.push(linha); linha=[]; campo=''; }
+    else if(ch!=='\r'){ campo+=ch; }
+  }
+  if(campo!=='' || linha.length){ linha.push(campo); linhas.push(linha); }
+  return linhas.filter(l=>l.some(v=>String(v).trim()!==''));
+}
+
+function cliImportarArquivo(input){
+  const arq=input.files&&input.files[0];
+  input.value='';
+  if(!arq) return;
+  if(!/\.csv$/i.test(arq.name)){
+    showToast('Salve a planilha como CSV e tente de novo — .xlsx não é lido aqui','warn');
+    return;
+  }
+  const leitor=new FileReader();
+  leitor.onload=()=>{ try{ _cliImportarTexto(String(leitor.result||''), arq.name); }
+                      catch(e){ showToast('Não consegui ler o arquivo: '+(e.message||e),'error'); } };
+  leitor.readAsText(arq,'utf-8');
+}
+
+function _cliImportarTexto(texto, nomeArq){
+  const linhas=_csvLinhas(texto);
+  if(linhas.length<2){ showToast('A planilha precisa de um cabeçalho e ao menos uma linha','warn'); return; }
+
+  /* O cabeçalho é reconhecido por aproximação: "Telefone", "telefone",
+     "Celular" e "Fone" são a mesma coluna, e exigir o nome exato só faria a
+     importação falhar por acento. */
+  const norm=t=>_cliSemAcento(String(t||'')).replace(/[^a-z]/g,'');
+  const cab=linhas[0].map(norm);
+  const achar=(...nomes)=>{
+    for(const n of nomes){ const i=cab.indexOf(norm(n)); if(i>=0) return i; }
+    return -1;
+  };
+  const iNome =achar('nome','cliente','nomecompleto','razaosocial');
+  const iCpf  =achar('cpf','documento','cpfcnpj');
+  const iFone =achar('telefone','celular','fone','whatsapp','contato');
+  const iMail =achar('email','e-mail','mail');
+  if(iNome<0 && iCpf<0 && iFone<0){
+    showToast('Não achei coluna de Nome, CPF nem Telefone no cabeçalho','warn');
+    return;
+  }
+
+  if(!Array.isArray(appState.clientesManuais)) appState.clientesManuais=[];
+  const jaTem=new Set();
+  appState.clientesManuais.forEach(m=>{
+    const k=_cliSoDigitos(m&&m.cpf)||_cliSoDigitos(m&&m.telefone);
+    if(k) jaTem.add(k);
+  });
+  agruparClientes().forEach(c=>{
+    const k=_cliSoDigitos(c.cpf)||_cliSoDigitos(c.telefone);
+    if(k) jaTem.add(k);
+  });
+
+  let novos=0, repetidos=0, semDado=0;
+  linhas.slice(1).forEach(l=>{
+    const nome =iNome>=0?String(l[iNome]||'').trim():'';
+    const cpf  =iCpf >=0?_cliSoDigitos(l[iCpf]):'';
+    const fone =iFone>=0?_cliSoDigitos(l[iFone]):'';
+    const email=iMail>=0?String(l[iMail]||'').trim():'';
+    if(!nome && !cpf && !fone){ semDado++; return; }
+    const chave=cpf||fone;
+    /* Sem CPF nem telefone não dá para saber se já existe: o mesmo nome
+       aparece duas vezes na vida real. Esses entram assim mesmo, mas a
+       contagem de repetidos só vale para quem tem documento ou número. */
+    if(chave && jaTem.has(chave)){ repetidos++; return; }
+    if(chave) jaTem.add(chave);
+    appState.clientesManuais.push({
+      id:'climan_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
+      nome, cpf, telefone:fone, email,
+      importadoDe:nomeArq||'', importadoEm:_agoraCarimbo(),
+      importadoPor:(currentUser&&currentUser.name)||''
+    });
+    novos++;
+  });
+
+  saveState(appState);
+  renderClientes();
+  const partes=[novos+' cliente(s) importado(s)'];
+  if(repetidos) partes.push(repetidos+' já existia(m)');
+  if(semDado)   partes.push(semDado+' linha(s) sem dado');
+  showToast('⬆ '+partes.join(' · '), novos?'success':'warn');
 }
 
 /* Exporta o que está na tela, não a base inteira: quem filtrou por um
@@ -11083,36 +11244,203 @@ function cliCopiar(valor,rotulo){
   }catch(e){ showToast('Não consegui copiar','warn'); }
 }
 
+/* ── Ficha do cliente ────────────────────────────────────────────────
+   Reúne num lugar só o que estava espalhado: quem é, quanto comprou, como
+   anda a relação e a lista dos pedidos. */
+
+/* RFM é ranking, não nota absoluta. Cada dimensão vale de 1 a 5 conforme a
+   posição do cliente DENTRO desta base — comparar contra um número fixo não
+   funcionaria, porque "gastou muito" numa loja de suplemento não é o mesmo
+   que numa concessionária. Recência é invertida de propósito: quanto menos
+   dias desde a última compra, maior a nota. */
+function _rfmNota(valor, ordenados, invertido){
+  if(!ordenados.length) return 1;
+  const pos=ordenados.filter(v=>v<valor).length;
+  let faixa=Math.floor(pos*5/ordenados.length)+1;
+  if(faixa>5) faixa=5;
+  return invertido ? (6-faixa) : faixa;
+}
+function _rfmDe(c, base){
+  const hoje=new Date(); hoje.setHours(0,0,0,0);
+  const dias=(cli)=>{
+    const d=cli.ultimo&&cli.ultimo.data;
+    if(!d) return 9999;
+    return Math.max(0, Math.round((hoje-new Date(d+'T00:00:00'))/864e5));
+  };
+  const r=dias(c), f=c.pedidos.length, m=c.total||0;
+  const todosR=base.map(dias).sort((a,b)=>a-b);
+  const todosF=base.map(x=>x.pedidos.length).sort((a,b)=>a-b);
+  const todosM=base.map(x=>x.total||0).sort((a,b)=>a-b);
+  const nR=_rfmNota(r,todosR,true), nF=_rfmNota(f,todosF,false), nM=_rfmNota(m,todosM,false);
+
+  /* Os nomes de segmento estão em português porque o resto do sistema está.
+     Um cliente com uma compra recente é "Novo", não "New Customer". */
+  let seg, expl, cor;
+  if(nR>=4 && nF>=4)      { seg='Campeões';  expl='Compram muito e compraram há pouco tempo.';           cor='#22c55e'; }
+  else if(nF>=4)          { seg='Fiéis';     expl='Compram com frequência, mas faz um tempo da última.'; cor='#a78bfa'; }
+  else if(nR>=4 && nF<=2) { seg='Novos';     expl='Chegaram há pouco e ainda compraram poucas vezes.';   cor='#8fa8d8'; }
+  else if(nR<=2 && nF>=3) { seg='Em risco';  expl='Compravam bem e sumiram — vale um contato.';          cor='#f59e0b'; }
+  else if(nR<=2)          { seg='Sumidos';   expl='Faz muito tempo desde a última compra.';              cor='#ef4444'; }
+  else                    { seg='Regulares'; expl='Compram de vez em quando, sem sobressaltos.';         cor='#6d7580'; }
+  return {r,f,m,nR,nF,nM,score:''+nR+nF+nM,seg,expl,cor};
+}
+
 function abrirLogCliente(chave){
-  const c=agruparClientes().find(x=>x.chave===chave);
+  const base=agruparClientes();
+  const c=base.find(x=>x.chave===chave);
   if(!c){ showToast('Cliente não encontrado','warn'); return; }
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
   const nomeEl=document.getElementById('clilog-nome');
-  const subEl=document.getElementById('clilog-sub');
+  if(nomeEl) nomeEl.textContent=(c.nome||'Sem nome')+' — Detalhes do Contato';
+
+  const st=_cliStatus(c);
+  const rfm=_rfmDe(c, base);
+  const primeiro=c.pedidos[c.pedidos.length-1]||{};
+  const ult=c.ultimo||{};
+  const ticket=c.pedidos.length?(c.total/c.pedidos.length):0;
+  const fone=_cliSoDigitos(c.telefone);
+
+  const ICO={
+    relogio:'<circle cx="12" cy="12" r="8.6"/><path d="M12 7.4V12l3 1.8"/>',
+    carrinho:'<path d="M2.6 4h2.6l2.2 10.4a1.6 1.6 0 0 0 1.6 1.3h7.8a1.6 1.6 0 0 0 1.6-1.3l1.4-6.8H6"/><circle cx="9.4" cy="19.4" r="1.4"/><circle cx="17" cy="19.4" r="1.4"/>',
+    dinheiro:'<path d="M12 3v18"/><path d="M16.4 7.2c-.7-1.2-2.3-1.9-4.4-1.9-2.6 0-4.2 1.1-4.2 2.9 0 4 8.6 2.2 8.6 6.2 0 1.9-1.8 3.1-4.4 3.1-2.3 0-4-.8-4.7-2.1"/>'
+  };
+  const box=(ic,rot,val,sub,cor)=>`<div class="fic-rfm-card" style="--rc:${cor};">
+      <div class="fic-rfm-cab"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${ICO[ic]}</svg></span>${rot}</div>
+      <div class="fic-rfm-val">${val}</div>
+      <div class="fic-rfm-sub">${sub}</div>
+    </div>`;
+
   const corpo=document.getElementById('clilog-corpo');
-  if(nomeEl) nomeEl.textContent=c.nome||'Sem nome';
-  if(subEl){
-    const partes=[];
-    if(c.cpf) partes.push('CPF '+_cliFmtCpf(c.cpf));
-    if(c.telefone) partes.push(_fmtFoneVis(c.telefone));
-    partes.push(c.pedidos.length+' pedido(s) · '+_pedFmt(c.total));
-    subEl.textContent=partes.join(' · ');
-  }
-  if(corpo){
-    corpo.innerHTML=c.pedidos.map(p=>{
-      const quando=(p.data?_pedDataBR(p.data):'—')+(p.hora?(' · '+p.hora):'');
-      const num=p.numero?('#'+p.numero):(p.externo?esc(p.externo):'—');
-      const link=p.link?` <a href="${esc(p.link)}" target="_blank" rel="noopener" class="btn-link btn-sm" style="font-size:10px;">Base ↗</a>`:'';
-      return `<div class="cli-log-linha">
-        <span class="cli-log-num">${esc(num)}${link}</span>
-        <span class="cli-log-quando">${esc(quando)}${p.status?` <span class="cli-log-status">${esc(p.status)}</span>`:''}</span>
-        <span class="cli-log-valor">${_pedFmt(Number(p.valor)||0)}</span>
-      </div>`;
-    }).join('');
-  }
+  if(!corpo) return;
+  corpo.innerHTML=`
+    <div class="fic-grade">
+      <div class="fic-bloco">
+        <h4>Informações de Contato</h4>
+        <div class="fic-ident">
+          <span class="fic-av">${esc(_cliIniciais(c.nome))}</span>
+          <span style="min-width:0;">
+            <div class="fic-nome">${esc(c.nome||'Sem nome')}</div>
+            <span class="selo" style="--sc:${st.c};--sb:${st.b};--sbd:${st.d};">${st.rot}</span>
+          </span>
+        </div>
+        <div class="fic-linha"><span class="ic">&#9993;</span>${c.email?esc(c.email):'<span class="vazio">sem e-mail</span>'}</div>
+        <div class="fic-linha"><span class="ic">&#9742;</span>${fone?esc(_fmtFoneVis(c.telefone)):'<span class="vazio">sem telefone</span>'}</div>
+        <div class="fic-linha"><span class="ic">&#128196;</span>${c.cpf?esc(_cliFmtCpf(c.cpf)):'<span class="vazio">sem CPF</span>'}</div>
+        <div class="fic-linha"><span class="ic">&#128197;</span>Cliente desde: ${primeiro.data?esc(_pedDataBR(primeiro.data)):'—'}</div>
+        ${fone?`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn-sec" onclick="cliVerificarContato('${esc(c.chave)}')">Verificar contato</button>
+          <a class="btn-sec" href="https://wa.me/55${esc(fone)}" target="_blank" rel="noopener">Abrir no WhatsApp</a>
+        </div>
+        <div id="clilog-verif" style="margin-top:10px;"></div>`:''}
+      </div>
+
+      <div class="fic-bloco">
+        <h4>Resumo de Pedidos</h4>
+        <div class="fic-mini">
+          <div class="fic-mini-card"><div class="fic-mini-val">${c.pedidos.length}</div><div class="fic-mini-rot">Pedidos</div></div>
+          <div class="fic-mini-card"><div class="fic-mini-val" style="--mc:#22c55e;">${_pedFmt(c.total)}</div><div class="fic-mini-rot">Total Gasto</div></div>
+          <div class="fic-mini-card"><div class="fic-mini-val" style="--mc:#8fa8d8;">${_pedFmt(ticket)}</div><div class="fic-mini-rot">Ticket Médio</div></div>
+        </div>
+        <h4 style="margin-bottom:9px;">Último Pedido</h4>
+        <div class="fic-ult"><span style="color:var(--text-muted);">Data</span>
+          <span style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${ult.data?esc(_pedDataBR(ult.data)):'—'}${ult.hora?(' · '+esc(ult.hora)):''}</span></div>
+      </div>
+    </div>
+
+    <div class="fic-bloco" style="margin-top:14px;">
+      <div style="display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:0;">
+          <h4 style="margin-bottom:4px;">Análise RFM</h4>
+          <div style="font-size:12px;color:var(--text-muted);">Segmentação pelo comportamento de compra</div>
+        </div>
+        <span class="selo" style="--sc:${rfm.cor};--sb:${rfm.cor}1f;--sbd:${rfm.cor}55;">${rfm.seg}</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-secondary);margin-top:10px;">${rfm.expl}</div>
+      <div class="fic-rfm">
+        ${box('relogio','Recência',  rfm.r>=9999?'—':rfm.r, 'dias desde o último pedido','#8fa8d8')}
+        ${box('carrinho','Frequência', rfm.f, 'total de pedidos','#22c55e')}
+        ${box('dinheiro','Monetário', _pedFmt(rfm.m), 'total gasto','#a78bfa')}
+      </div>
+      <div class="fic-score">
+        <span><div style="font-size:12px;color:var(--text-muted);margin-bottom:3px;">Score RFM</div>
+          <div class="fic-score-num">${rfm.score}</div></span>
+        <span style="font-size:11px;color:var(--text-muted);">Recência · Frequência · Monetário — cada um de 1 a 5, comparado com os outros clientes</span>
+      </div>
+    </div>
+
+    <div class="fic-bloco" style="margin-top:14px;">
+      <h4>Histórico de Pedidos</h4>
+      <div class="tabela-rolagem">
+        <table class="tab-dados" style="min-width:560px;">
+          <thead><tr><th>Pedido</th><th>Data</th><th>Itens</th><th>Situação</th><th style="text-align:right;">Valor</th></tr></thead>
+          <tbody>${c.pedidos.map(p=>`<tr>
+            <td>${p.link
+                  ? `<a href="${esc(p.link)}" target="_blank" rel="noopener" style="color:var(--tom-aco,#8fa8d8);font-family:var(--font-mono);font-weight:700;text-decoration:none;">#${esc(p.numero||p.externo||'—')} &#8599;</a>`
+                  : `<span style="font-family:var(--font-mono);font-weight:700;">#${esc(p.numero||p.externo||'—')}</span>`}</td>
+            <td style="font-family:var(--font-mono);">${p.data?esc(_pedDataBR(p.data)):'—'}${p.hora?(' · '+esc(p.hora)):''}</td>
+            <td style="font-family:var(--font-mono);">${p.itens!=null&&p.itens!==''?esc(p.itens):'—'}</td>
+            <td>${p.status?esc(p.status):'—'}</td>
+            <td style="text-align:right;font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${_pedFmt(Number(p.valor)||0)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+      <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:12px;line-height:1.6;">
+        O histórico vem dos pedidos que a integração lê da Base pelo canal WhatsApp.
+        Corrigir pedido é lá — aqui é só leitura.
+      </div>
+    </div>`;
+
   const ov=document.getElementById('clilog-modal-overlay');
   if(ov) ov.style.display='flex';
 }
+
+/* Verificador de contato. Pergunta duas coisas ao proxy: se o número já
+   conversou com a gente no Chatwoot, e o que a GhostAPIs sabe do CPF. A
+   resposta que interessa é se houve mensagem VINDA do número — número que
+   só recebeu template não prova nada, pode ser de outra pessoa. */
+async function cliVerificarContato(chave){
+  const alvo=document.getElementById('clilog-verif');
+  const c=agruparClientes().find(x=>x.chave===chave);
+  if(!alvo || !c) return;
+  const fone=_cliSoDigitos(c.telefone);
+  if(!fone){ alvo.innerHTML='<span style="font-size:12px;color:var(--text-muted);">Sem telefone para verificar.</span>'; return; }
+  if(!CPF_PROXY_URL){
+    alvo.innerHTML='<span style="font-size:12px;color:var(--tom-vermelho);">Proxy não configurado — sem ele não dá para consultar o Chatwoot.</span>';
+    return;
+  }
+  const caixa=(cor,txt)=>`<div style="font-size:12px;color:${cor};background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;line-height:1.6;">${txt}</div>`;
+  alvo.innerHTML=caixa('var(--text-muted)','⏳ Consultando o Chatwoot…');
+  try{
+    const url=CPF_PROXY_URL+(CPF_PROXY_URL.includes('?')?'&':'?')+'acao=chatwoot&fone='+encodeURIComponent(fone);
+    const r=await fetch(url);
+    const j=await r.json();
+    if(!j || j.ok===false){
+      alvo.innerHTML=caixa('var(--tom-vermelho)','❌ '+((j&&j.erro)||'Não consegui consultar o Chatwoot.'));
+      return;
+    }
+    if(!j.achou){
+      alvo.innerHTML=caixa('var(--text-secondary)',
+        '⚠ Nenhum contato com <b>'+_fmtFoneVis(c.telefone)+'</b> no Chatwoot. '
+        +'Esse número veio do pedido na Base e ainda não conversou com a gente por aqui.');
+      return;
+    }
+    const nomeCw=j.nome?(' · '+String(j.nome)):'';
+    if(j.recebemosMensagem){
+      alvo.innerHTML=caixa('var(--green,#22c55e)',
+        '✅ Conversa ativa: já recebemos <b>'+(j.qtdRecebidas||0)+'</b> mensagem(ns) deste número'+nomeCw+'. '
+        +'O contato está confirmado — é ele que responde.');
+    } else {
+      alvo.innerHTML=caixa('var(--amber,#f59e0b)',
+        '⚠ O número existe no Chatwoot'+nomeCw+', mas <b>nunca recebemos mensagem dele</b>. '
+        +'Só saiu mensagem nossa, então ainda não dá para dizer que o contato é dessa pessoa.');
+    }
+  }catch(e){
+    alvo.innerHTML=caixa('var(--tom-vermelho)','❌ Falha ao consultar: '+String(e&&e.message||e));
+  }
+}
+
 function fecharLogCliente(){
   const ov=document.getElementById('clilog-modal-overlay');
   if(ov) ov.style.display='none';
