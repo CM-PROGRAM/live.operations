@@ -3520,7 +3520,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </label>
         <textarea id="diaria-obs" rows="5" maxlength="500" placeholder="O que foi feito, ou o que precisa ser feito." oninput="diariaContarObs()"></textarea>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="display:grid;grid-template-columns:1.2fr .8fr 1fr;gap:10px;">
         <div class="input-group" style="position:relative;">
           <label>Prazo conclusão</label>
           <input type="hidden" id="diaria-venc">
@@ -3529,6 +3529,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <span style="font-size:14px;">📅</span>
           </button>
           <div id="diaria-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
+        </div>
+        <div class="input-group">
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+            <span>Horário</span>
+            <span style="font-size:9.5px;font-weight:400;color:var(--text-muted);">opcional</span>
+          </label>
+          <input type="time" id="diaria-hora">
         </div>
         <div class="input-group">
           <label>Prioridade</label>
@@ -8347,7 +8354,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21s';
+const APP_VERSAO='2026.08.21t';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19071,6 +19078,7 @@ function abrirDiariaModal(id){
   document.getElementById('diaria-titulo').value  = a ? (a.titulo||'') : '';
   document.getElementById('diaria-obs').value     = a ? (a.observacao||'') : '';
   document.getElementById('diaria-venc').value    = a ? (a.vencimento||'') : '';
+  document.getElementById('diaria-hora').value    = a ? (a.hora||'') : '';
   document.getElementById('diaria-prio').value    = a ? (a.prioridade||'normal') : 'normal';
   diariaContarObs();
   diariaSyncVenc();
@@ -19115,6 +19123,7 @@ function salvarDiaria(){
   const obs=(document.getElementById('diaria-obs').value||'').slice(0,500);
   const venc=(document.getElementById('diaria-venc').value||'');
   if(!venc){ showToast('Informe o prazo de conclusão','warn'); return; }
+  const hora=(document.getElementById('diaria-hora').value||'').trim();
   const prio=(document.getElementById('diaria-prio').value||'normal');
   const editId=(document.getElementById('diaria-edit-id').value||'').trim();
 
@@ -19122,12 +19131,12 @@ function salvarDiaria(){
   if(editId){
     const t=appState.atividades.find(x=>x&&x.id===editId);
     if(!t){ showToast('Tarefa não encontrada','error'); return; }
-    t.titulo=titulo; t.observacao=obs; t.vencimento=venc; t.prioridade=prio;
+    t.titulo=titulo; t.observacao=obs; t.vencimento=venc; t.hora=hora; t.prioridade=prio;
   } else {
     const agora=Date.now();
     appState.atividades.push({
       id:'atv_dia_'+agora, areaTarefa:'diarias',
-      titulo, observacao:obs, vencimento:venc, prioridade:prio,
+      titulo, observacao:obs, vencimento:venc, hora, prioridade:prio,
       status:'aberta',
       responsavel:currentUser.key, responsaveis:[currentUser.key],
       criadoEm:_agoraCarimbo(), criadoPor:currentUser.name, criadoPorKey:currentUser.key,
@@ -19240,7 +19249,14 @@ function renderAtividades(){
     const respKeys=getAtvResponsaveis(a);
     const respNomes=respKeys.map(k=>appState.users[k]?appState.users[k].name:null).filter(Boolean);
     const respLine=respNomes.length?respNomes.join(', '):'Não atribuído';
-    const vencFmt=a.vencimento?new Date(a.vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}):'—';
+    /* O horário é opcional e só existe nas diárias. Quando existe, anda
+       colado na data: prazo "25/08/2026" e prazo "25/08/2026 às 14:30" são
+       compromissos diferentes, e separar os dois em cantos opostos do card
+       faria a hora passar despercebida justamente onde ela importa. */
+    const vencFmt=a.vencimento
+      ? (new Date(a.vencimento+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})
+         + (a.hora?(' às '+a.hora):''))
+      : '—';
     const prazoHtml=diasLabel?`<span style="font-size:10px;color:${diasLabel.color};font-family:var(--font-mono);">${diasLabel.text}</span>`:'';
 
     const statusBadge=a.status==='finalizada'
