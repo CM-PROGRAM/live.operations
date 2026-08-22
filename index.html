@@ -172,15 +172,8 @@
   border-color:rgba(var(--pc),0.42);
   box-shadow:0 2px 10px rgba(var(--pc),0.14), var(--realce-topo);
 }
-/* A "lâmpada" de prioridade é uma esfera escura; no claro ela vira clara,
-   com o ponto da cor mais fechado para continuar aparecendo. */
-:root[data-theme="light"] .atv-prior-dot{
-  background:radial-gradient(circle at 35% 30%,#ffffff,#dbe1ec);
-  box-shadow:0 0 0 1px rgba(20,30,55,.14),inset 0 1px 1px rgba(255,255,255,.9);
-}
-:root[data-theme="light"] .atv-prior-dot.gray{--dc:#6b7280;}
-:root[data-theme="light"] .atv-prior-dot.yellow{--dc:#4f6183;}
-:root[data-theme="light"] .atv-prior-dot.red{--dc:#d63636;}
+/* No claro o ícone acompanha o texto, como todos os outros do sistema. */
+:root[data-theme="light"] .atv-prior-dot{background-color:var(--text-secondary);}
 
 /* Botões com texto: no claro o preenchimento vira sólido, senão o texto
    branco fica lavado sobre o fundo da página. */
@@ -609,11 +602,25 @@ input:-webkit-autofill:active{
   transition:background-color 99999s ease-in-out 0s;
 }
 .input-group{display:flex;flex-direction:column;gap:5px;}
-.atv-prior-dot{width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#2c2f36,#0d0e11);box-shadow:0 0 0 1px rgba(255,255,255,.1),inset 0 1px 1px rgba(255,255,255,.15);position:relative;display:inline-block;flex-shrink:0;}
-.atv-prior-dot::after{content:'';position:absolute;width:6px;height:6px;border-radius:50%;top:4px;left:4px;background:var(--dc,#8fa8d8);box-shadow:0 0 6px var(--dc,#8fa8d8),0 0 12px var(--dc,#8fa8d8);}
-.atv-prior-dot.gray{--dc:#9ca3af;}
-.atv-prior-dot.yellow{--dc:#b0bfd8;}
-.atv-prior-dot.red{--dc:#ef4444;}
+/* Prioridade: ícone de traço, no mesmo padrão do resto do sistema, sem cor.
+   As três classes antigas (gray/yellow/red) continuam existindo porque estão
+   escritas em dezenas de lugares — o que mudou foi só o desenho por trás
+   delas. Cada prioridade tem uma FORMA diferente, e não uma cor diferente:
+   sem cor, a forma é a única coisa que distingue as três. */
+.atv-prior-dot{width:16px;height:16px;display:inline-block;flex-shrink:0;
+  background-color:var(--text-secondary);
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;
+  -webkit-mask-position:center;mask-position:center;
+  -webkit-mask-size:contain;mask-size:contain;}
+/* Normal: um traço, nada acontecendo */
+.atv-prior-dot.gray{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");
+        mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5 12h14'/%3E%3C/svg%3E");}
+/* Alta: seta para cima */
+.atv-prior-dot.yellow{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5'/%3E%3Cpath d='M5 12l7-7 7 7'/%3E%3C/svg%3E");
+          mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 19V5'/%3E%3Cpath d='M5 12l7-7 7 7'/%3E%3C/svg%3E");}
+/* Urgente: triângulo de alerta */
+.atv-prior-dot.red{-webkit-mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+       mask-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");}
 .atv-prior-select{position:relative;}
 .atv-prior-trigger{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-sans);font-size:14px;padding:9px 12px;outline:none;width:100%;cursor:pointer;box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);display:flex;align-items:center;gap:9px;}
 .atv-prior-trigger .chev{margin-left:auto;font-size:10px;color:var(--text-muted);}
@@ -3531,10 +3538,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div id="diaria-cal-popover" style="display:none;position:absolute;bottom:calc(100% + 6px);left:0;z-index:60;width:280px;max-width:88vw;background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:14px;box-shadow:var(--sombra-painel),var(--realce-topo);padding:12px;backdrop-filter:blur(20px);"></div>
         </div>
         <div class="input-group">
-          <label style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
-            <span>Horário</span>
-            <span style="font-size:9.5px;font-weight:400;color:var(--text-muted);">opcional</span>
-          </label>
+          <label>Horário (opcional)</label>
           <input type="time" id="diaria-hora">
         </div>
         <div class="input-group">
@@ -3545,7 +3549,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               <span id="diaria-prio-label">Normal</span>
               <span class="chev">▾</span>
             </button>
-            <div class="atv-prior-menu" id="diaria-prio-menu" style="display:none;">
+            <!-- Abre para cima: este é o último campo antes dos botões, e
+                 para baixo o menu saía do card, escondendo "Urgente". -->
+            <div class="atv-prior-menu" id="diaria-prio-menu" style="display:none;top:auto;bottom:calc(100% + 4px);">
               <div class="atv-prior-opt" onclick="diariaSelectPrior('normal')"><span class="atv-prior-dot gray"></span>Normal</div>
               <div class="atv-prior-opt" onclick="diariaSelectPrior('alta')"><span class="atv-prior-dot yellow"></span>Alta</div>
               <div class="atv-prior-opt" onclick="diariaSelectPrior('urgente')"><span class="atv-prior-dot red"></span>Urgente</div>
@@ -8354,7 +8360,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21t';
+const APP_VERSAO='2026.08.21u';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19320,6 +19326,10 @@ function renderAtividades(){
       // Card da revisão diária: a etapa e a loja vão na frente
       codigoLabel = [a.mktEtapa,a.mktLoja].filter(Boolean).join(' · ');
       solicitadoPor = a.criadoPor||'Rotina diária';
+      const instr=MKT_ROTINA_INSTRUCAO[a.mktEtapa];
+      if(instr){
+        extraFrente=`<div style="font-size:11px;color:var(--text-secondary);line-height:1.45;background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:8px;padding:6px 8px;margin:3px 0 6px;">${instr}</div>`;
+      }
     } else if(a.areaTarefa==='diarias'){
       /* Anotação pessoal: o que importa na frente é o que a pessoa escreveu,
          não código de anúncio — ela não tem nenhum. */
@@ -19357,7 +19367,7 @@ function renderAtividades(){
         ${(a.status==='andamento'&&a.pendencia)?`<div style="font-size:10px;color:var(--tom-vermelho);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:4px 7px;margin-bottom:8px;line-height:1.35;">⚠ ${String(a.pendencia).replace(/</g,'&lt;')}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--linha-sutil);flex-wrap:wrap;gap:5px;">
           <div style="display:flex;flex-direction:column;gap:1px;">
-            <span title="${prior.label}" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:9px;height:9px;"></span>${priorSoEmoji?'':prior.label}</span>
+            <span title="${prior.label}" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:${prior.color};"><span class="atv-prior-dot ${prior.dot}" style="width:14px;height:14px;"></span>${priorSoEmoji?'':prior.label}</span>
             <span style="font-size:9px;color:var(--text-muted);">${isAtrasada?`<span style="color:#fb7185;font-weight:700;">Atrasada ${Math.abs(dias)}d</span> · `:''}${vencFmt}</span>
           </div>
           <div style="display:flex;gap:5px;align-items:center;" id="atv-acoes-${a.id}"></div>
@@ -19455,9 +19465,20 @@ function renderAtividades(){
   const empty=document.getElementById('atv-empty');
   if(empty){
     empty.style.display=total===0?'block':'none';
-    empty.textContent = termo
-      ? 'Nenhuma tarefa encontrada para \u201c'+fBusca.value.trim()+'\u201d.'
-      : 'Nenhuma tarefa cadastrada ainda.';
+    /* "Nenhuma tarefa cadastrada" com um filtro ligado é mentira, e cara: os
+       46 cards da revisão diária são todos do Gustavo, então qualquer outro
+       nome no filtro de colaborador esvazia a área inteira e parece que a
+       rotina não rodou. A mensagem agora diz que é o filtro. */
+    const filtros=[];
+    if(termo) filtros.push('pela busca \u201c'+fBusca.value.trim()+'\u201d');
+    if(filterColab){
+      const u=(appState.users||{})[filterColab];
+      filtros.push('pelo colaborador '+((u&&u.name)||filterColab));
+    }
+    if(filterPrior) filtros.push('pela prioridade '+((ATV_PRIOR[filterPrior]||{}).label||filterPrior));
+    empty.textContent = filtros.length
+      ? 'Nenhuma tarefa desta área passa '+filtros.join(' e ')+'. Limpe o filtro para ver o resto.'
+      : 'Nenhuma tarefa cadastrada nesta área ainda.';
   }
 }
 
@@ -21115,9 +21136,11 @@ const MKT_ROTINA=[
     'Envios Hoje','Reclamações e Mediações','Mensagens','Devoluções',
     'Gestão de Anúncios','Reputação']},
   {plataforma:'Shopee',          loja:'Suplenium',         etapas:[
-    'Cancelados','Não Pagos','Devoluções','Gestão de Revisão','Saúde da Conta']},
+    'Cancelados','Não Pagos','Devoluções','Gestão de Revisão','Saúde da Conta',
+    'Enviar Msg Shp']},
   {plataforma:'Shopee',          loja:'Primevitaminas',    etapas:[
-    'Cancelados','Não Pagos','Devoluções','Gestão de Revisão','Saúde da Conta']},
+    'Cancelados','Não Pagos','Devoluções','Gestão de Revisão','Saúde da Conta',
+    'Enviar Msg Shp']},
   {plataforma:'DPSP',            loja:'Pacheco',           etapas:[
     'Performance de Sellers','Gestão Vendas','Relatórios','Pacheco Baixas Pedidos',
     'Devoluções','Atendimentos']},
@@ -21125,6 +21148,14 @@ const MKT_ROTINA=[
     'Performance de Sellers','Gestão Vendas','Relatórios','São Paulo Baixas Pedidos',
     'Devoluções','Atendimentos']}
 ];
+
+/* Etapa que precisa dizer o que fazer. As demais são autoexplicativas pelo
+   nome ("Cancelados", "Não Pagos"); esta não — quem lê "Enviar Msg Shp" sem
+   a instrução não tem como saber para quem, nem por quê. O texto vai na
+   frente do card, e não escondido dentro dele. */
+const MKT_ROTINA_INSTRUCAO={
+  'Enviar Msg Shp':'Enviar uma mensagem da sua conta Shopee, para nossa loja — Aumentar Nível Atendimento'
+};
 
 // O painel de Marketplaces chama as lojas da DPSP pelo nome completo;
 // a rotina usa o nome curto que o usuário definiu.
