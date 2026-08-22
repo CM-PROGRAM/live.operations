@@ -3668,7 +3668,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div style="display:grid;gap:12px;">
       <div id="atv-somente-leitura" style="display:none;align-items:center;gap:8px;background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:var(--radius);padding:9px 12px;font-size:11.5px;color:var(--text-secondary);">
         <span style="font-size:13px;">👁</span>
-        <span>Modo conferência — você pode ver a tarefa e o print, mas não alterar.</span>
+        <span>Modo conferência — você pode ver a tarefa, ver o print e comentar. Os dados da tarefa não podem ser alterados.</span>
       </div>
       <div class="input-group">
         <label style="display:flex;align-items:center;justify-content:space-between;"><span>Título</span><span id="atv-titulo-admin-btns" style="display:flex;"><button type="button" class="lista-editar" title="Gerenciar os títulos" onclick="abrirGerenciarLista('atv-titulo')">✎ editar lista</button></span></label>
@@ -3763,14 +3763,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <span id="atv-comentario-novo-label" style="font-size:11px;color:var(--text-muted);">Adicionar comentário</span>
           <span id="atv-comentario-count" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">150 restantes</span>
         </label>
-        <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um novo comentário... (pode colar um print aqui com Ctrl+V)" onpaste="atvColarImagemComentario(event)" oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
-        <div id="atv-comentario-img-wrap" style="display:none;align-items:center;gap:10px;margin-top:8px;background:var(--bg-surface);border:1px solid var(--border-light);border-radius:var(--radius);padding:8px 10px;">
-          <img id="atv-comentario-img-preview" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva(this.src,'print-comentario')">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;color:var(--text-primary);font-weight:600;">📎 Print anexado ao comentário</div>
-            <div style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">Será salvo junto com o comentário</div>
-          </div>
-          <button type="button" class="btn-orb v-danger sm" title="Remover print" onclick="atvRemoverImagemComentario()" style="width:20px;height:20px;flex-shrink:0;"><svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></button>
+        <textarea id="atv-comentario" rows="2" maxlength="150" placeholder="Adicione um novo comentário... (pode colar prints aqui com Ctrl+V)" onpaste="atvColarImagemComentario(event)" oninput="document.getElementById('atv-comentario-count').textContent=(150-this.value.length)+' restantes'" style="resize:none;"></textarea>
+        <div id="atv-com-fotos-preview" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <input type="file" id="atv-com-foto" accept="image/*" multiple style="display:none;" onchange="atvPreviewComFotos(this)">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('atv-com-foto').click()">📎 Anexar imagens</button>
+          <button type="button" class="btn btn-sm" id="atv-com-btn" onclick="atvComentar()" style="--bc: var(--rgb-aco);">Comentar</button>
+          <span style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);">grava só o comentário, sem mudar o status</span>
         </div>
       </div>
       <div class="input-group" id="atv-prova-wrap" style="display:none;">
@@ -6617,7 +6616,17 @@ function _aplicarRegistroRemoto(nome,acc,chave,valor){
   if(!Array.isArray(lista)) acc.set(appState,alvo);
   const reg={...valor}; delete reg._by;
   const i=alvo.findIndex(x=>x && _regChave(x.id)===chave);
-  if(i>-1) alvo[i]=reg; else alvo.push(reg);
+  /* Registro que chega substitui o daqui — menos os comentários, que se
+     juntam. Substituir a lista inteira fazia o último a gravar apagar o
+     comentário de quem tinha acabado de escrever: os dois viam o próprio
+     texto, nenhum via o do outro. A união é por id, então repetir também não
+     acontece. */
+  if(i>-1){
+    const daqui=alvo[i];
+    const juntos=_fundirComentarios(reg.comentarios,_listaComentarios(daqui));
+    if(juntos.length) reg.comentarios=juntos;
+    alvo[i]=reg;
+  } else alvo.push(reg);
   _regEnviado[nome]=_regEnviado[nome]||{};
   _regEnviado[nome][chave]=JSON.stringify(reg);
   return true;
@@ -8261,7 +8270,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21p';
+const APP_VERSAO='2026.08.21q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21678,6 +21687,7 @@ function _esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'
 
 
 function openAtvModal(id,forcarSomenteLeitura){
+  try{ atvLimparComentarioPendente(); }catch(e){}
   const imgInp=document.getElementById('atv-imagem-input'); if(imgInp) imgInp.value='';
   _atvSetPendingImagem('','');
   const isMasterUser = currentUser && currentUser.master;
@@ -21797,19 +21807,14 @@ function openAtvModal(id,forcarSomenteLeitura){
     const historicoEl=document.getElementById('atv-comentario-historico');
     const novoLabelEl=document.getElementById('atv-comentario-novo-label');
     if(a.titulo!=='Entrada'){
-      const lista = Array.isArray(a.comentarios) ? a.comentarios
-        : (a.comentario ? [{texto:a.comentario,autor:a.comentarioAutor,em:a.comentarioEm}] : []);
-      if(historicoEl){
-        if(lista.length){
-          historicoEl.style.display='flex';
-          historicoEl.innerHTML = lista.map(c=>`<div><div style="font-size:12px;color:var(--text-primary);line-height:1.4;">${String(c.texto||'').replace(/</g,'&lt;')}</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${(c.autor||'—')}${c.em?(' · '+c.em):''}</div></div>`).join('<div style="height:1px;background:var(--border-light);margin:2px 0;"></div>');
-        } else {
-          historicoEl.style.display='none'; historicoEl.innerHTML='';
-        }
-      }
+      _atvRenderComentarios(a);
       if(novoLabelEl) novoLabelEl.style.display='';
       if(comentCnt) comentCnt.style.display='';
-      if(comentEl){ comentEl.value=''; comentEl.disabled=!podeEditarResp; comentEl.style.opacity=podeEditarResp?'':'0.5'; }
+      /* Comentar é de todo mundo. Antes o campo ficava travado para quem não
+         fosse master nem responsável — justamente quem mais precisa perguntar
+         alguma coisa no card. Editar os dados da tarefa continua restrito. */
+      if(comentEl){ comentEl.value=''; comentEl.disabled=false; comentEl.style.opacity=''; }
+      const comBtn=document.getElementById('atv-com-btn'); if(comBtn) comBtn.style.display='';
       if(comentCnt) comentCnt.textContent='150 restantes';
     } else {
       // Título "Entrada": comentário é um texto fixo do sistema (definido em
@@ -21818,6 +21823,7 @@ function openAtvModal(id,forcarSomenteLeitura){
       if(novoLabelEl) novoLabelEl.style.display='none';
       if(comentCnt) comentCnt.style.display='none';
       if(comentEl){ comentEl.disabled=!isMasterUser; comentEl.style.opacity=isMasterUser?'':'0.5'; }
+      const comBtnE=document.getElementById('atv-com-btn'); if(comBtnE) comBtnE.style.display=isMasterUser?'':'none';
     }
     // Trava o vencimento se a regra automática se aplicar
     atvTituloChanged();
@@ -22059,26 +22065,31 @@ function _atvRenderRotina(a){
   grid.appendChild(pill);
 }
 
-// Modo conferência: a tarefa abre inteira, com o print à vista, mas nenhum
-// campo aceita alteração. Sem isso o colaborador poderia mexer nos campos e
-// achar que salvou algo — não há botão de salvar para ele.
+// Modo conferência: a tarefa abre inteira, com o print à vista, e nenhum
+// campo de dado aceita alteração. Sem isso o colaborador poderia mexer nos
+// campos e achar que salvou algo — não há botão de salvar para ele.
+// Comentar é exceção: ver sem poder perguntar não serve para conferir nada.
 function _atvAplicarSomenteLeitura(ativo){
   const modal=document.getElementById('atv-modal-overlay');
   if(!modal) return;
   const aviso=document.getElementById('atv-somente-leitura');
   if(aviso) aviso.style.display=ativo?'flex':'none';
-  // Estes dois já têm regra própria (podeEditarResp) mais acima — não mexer,
-  // senão reabrir a tarefa como responsável desfaria a trava deles
-  const comRegraPropria=new Set(['atv-comentario','atv-responsavel']);
+  /* Estes têm regra própria mais acima — não mexer, senão reabrir a tarefa
+     como responsável desfaria a trava deles. O campo de comentário e o
+     seletor de imagens do comentário entram aqui porque comentar é de todo
+     mundo, inclusive de quem só está conferindo. */
+  const comRegraPropria=new Set(['atv-comentario','atv-responsavel','atv-com-foto']);
   modal.querySelectorAll('input,select,textarea').forEach(el=>{
     if(el.type==='hidden' || comRegraPropria.has(el.id)) return;
     el.disabled=!!ativo;
   });
-  // O comentário tem regra própria (o responsável escreve), mas em modo
-  // conferência ninguém escreve nada — inclusive o responsável que chegou
-  // pelo aviso de que outra pessoa fez a tarefa dele.
+  /* Somente leitura protege os DADOS da tarefa, não a conversa. Travar o
+     comentário aqui era o motivo de "não consigo comentar no card": quem não
+     é master, responsável, criador nem revisor abre tudo em modo conferência
+     — e é justamente quem precisa perguntar alguma coisa. Continua sem poder
+     mudar título, prazo, responsável ou status. */
   const coment=document.getElementById('atv-comentario');
-  if(coment && ativo){ coment.disabled=true; coment.style.opacity='0.5'; }
+  if(coment){ coment.disabled=false; coment.style.opacity=''; }
   // Gatilhos que não são <input>: data, prioridade, responsáveis, marketplace
   ['atv-venc-trigger','atv-prioridade-wrap','atv-responsavel-grid','atv-marketplace-grid']
     .forEach(idEl=>{
@@ -22091,6 +22102,57 @@ function _atvAplicarSomenteLeitura(ativo){
 
 function closeAtvModal(){
   const o=document.getElementById('atv-modal-overlay');if(o)o.style.display='none';
+}
+
+/* ── Comentários da tarefa ───────────────────────────────────────
+   Todo comentário nasce com id e carimbo em milissegundos. Sem id não há
+   como juntar duas listas vindas de sessões diferentes sem repetir ou
+   perder linha — e era exatamente isso que acontecia: o registro inteiro
+   era substituído pelo último que gravasse, então quem comentasse ao mesmo
+   tempo que outra pessoa via o próprio comentário sumir.
+
+   Comentário antigo não tem id. Para esses o id é DERIVADO do conteúdo
+   (autor + data + texto), nunca sorteado: se cada sessão sorteasse um id
+   diferente para a mesma linha, a união passaria a duplicá-la. */
+function _idComentario(c){
+  if(c && c.id) return String(c.id);
+  return 'c:'+[(c&&c.autor)||'',(c&&c.em)||'',String((c&&c.texto)||'').trim()].join('|');
+}
+function _tsComentario(c){
+  if(c && Number(c.ts)) return Number(c.ts);
+  // Comentário antigo só tem a data escrita; ler dali evita jogá-lo para o
+  // fim da lista como se não tivesse hora nenhuma.
+  const m=String((c&&c.em)||'').match(/(\d{2})\/(\d{2})\/(\d{4})(?:[,\s]+(\d{2}):(\d{2}))?/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0)).getTime();
+  return 0;
+}
+function _listaComentarios(a){
+  if(!a) return [];
+  if(Array.isArray(a.comentarios)) return a.comentarios;
+  return a.comentario ? [{texto:a.comentario,autor:a.comentarioAutor,em:a.comentarioEm}] : [];
+}
+/* União de duas listas de comentários, mais novo primeiro. É o que impede
+   tanto a perda quanto a duplicata quando duas pessoas comentam no mesmo
+   card antes de uma ver a outra. */
+function _fundirComentarios(umaLista,outraLista){
+  const vistos=new Map();
+  (umaLista||[]).concat(outraLista||[]).forEach(c=>{
+    if(!c) return;
+    const k=_idComentario(c);
+    if(!vistos.has(k)) vistos.set(k,c);
+  });
+  return [...vistos.values()].sort((x,y)=>_tsComentario(y)-_tsComentario(x));
+}
+function _novoComentario(texto,fotos,fotosRef){
+  const agora=Date.now();
+  return {
+    id:'c_'+agora+'_'+Math.random().toString(36).slice(2,7),
+    texto:String(texto||''),
+    autor:currentUser.name, autorKey:currentUser.key,
+    em:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}),
+    ts:agora,
+    fotos:(fotos||[]).slice(), fotosRef:(fotosRef||[]).slice()
+  };
 }
 
 // Imagem anexada inline no card (não é mais uma tela separada obrigatória
@@ -22134,28 +22196,146 @@ function onAtvImagemSelecionada(input){
   lerImagemComprimida(f, dataUrl=>_atvAnexarImagem(dataUrl,f.name));
 }
 
-// Ctrl+V de um print dentro do campo de comentário: anexa a imagem logo
-// abaixo e mantém o texto digitável normalmente
+/* Imagens do comentário. São várias de propósito: um passo a passo raramente
+   cabe num print só, e antes daqui a segunda imagem simplesmente substituía
+   a primeira, sem avisar.
+
+   A PRIMEIRA delas continua virando a prova da tarefa, que é o que o botão
+   Concluir exige. Sem isso, colar um print e tentar concluir passaria a
+   reclamar de imagem faltando logo depois de a pessoa ter anexado uma. */
+let _atvComFotos=[];      // miniaturas
+let _atvComFotosRef=[];   // chaves das originais, mesmo índice
+function _atvIdAtual(){ return (document.getElementById('atv-edit-id')||{}).value||'atv_tmp'; }
+
+function _atvGuardarFotos(arquivos,aviso){
+  if(!arquivos.length) return;
+  Promise.all(arquivos.map(f=>lerImagemComprimidaAsync(f)))
+    .then(dados=>Promise.all(dados.map((d,n)=>imgPreparar(_atvIdAtual(),'coment_'+Date.now()+'_'+n,null,d))))
+    .then(preps=>{
+      preps.forEach(pz=>{ _atvComFotos.push(pz.thumb); _atvComFotosRef.push(pz.chave); });
+      // A primeira imagem também serve de prova, se ainda não houver uma
+      if(!_atvPendingImagem && preps.length) _atvSetPendingImagem(preps[0].thumb,'print-comentario.png',preps[0].chave);
+      atvRenderComFotos();
+      showToast(aviso||(arquivos.length+' imagem(ns) anexada(s)'),'success');
+    });
+}
+
+function atvPreviewComFotos(input){
+  const arquivos=Array.from(input.files||[]);
+  _atvGuardarFotos(arquivos);
+  input.value='';
+}
+
+// Ctrl+V de prints dentro do campo de comentário: anexa todos e mantém o
+// texto digitável normalmente
 function atvColarImagemComentario(ev){
   const itens=(ev.clipboardData&&ev.clipboardData.items)||[];
-  let arquivo=null;
+  const arquivos=[];
   for(let i=0;i<itens.length;i++){
     if(itens[i].kind==='file' && String(itens[i].type||'').indexOf('image/')===0){
-      arquivo=itens[i].getAsFile(); break;
+      const f=itens[i].getAsFile(); if(f) arquivos.push(f);
     }
   }
-  if(!arquivo) return; // colagem de texto segue o comportamento padrão
+  if(!arquivos.length) return; // colagem de texto segue o comportamento padrão
   ev.preventDefault();
-  lerImagemComprimida(arquivo, dataUrl=>{
-    _atvAnexarImagem(dataUrl,'print-colado.png');
-    showToast('📎 Print anexado ao comentário','success');
+  _atvGuardarFotos(arquivos,'📎 Print anexado ao comentário');
+}
+
+function atvRenderComFotos(){
+  const prev=document.getElementById('atv-com-fotos-preview');
+  if(!prev) return;
+  prev.innerHTML='';
+  _atvComFotos.forEach((src,i)=>{
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:relative;width:60px;height:60px;';
+    const img=document.createElement('img');
+    img.src=src;
+    img.style.cssText='width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer;';
+    img.onclick=()=>atvVerProva(src,'print-comentario',_atvComFotosRef[i]);
+    const rm=document.createElement('button');
+    rm.type='button'; rm.textContent='×'; rm.title='Remover imagem';
+    rm.onclick=()=>atvRemoverComFoto(i);
+    rm.style.cssText='position:absolute;top:-6px;right:-6px;width:18px;height:18px;line-height:16px;border-radius:50%;background:var(--accent,#8fa8d8);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;';
+    wrap.appendChild(img); wrap.appendChild(rm); prev.appendChild(wrap);
   });
+}
+
+function atvRemoverComFoto(i){
+  const eraProva = _atvComFotos[i] && _atvComFotos[i]===_atvPendingImagem;
+  imgApagarOriginal(_atvComFotosRef[i]);
+  _atvComFotos.splice(i,1); _atvComFotosRef.splice(i,1);
+  // A prova aponta para a que saiu: passa para a próxima, ou some
+  if(eraProva) _atvSetPendingImagem(_atvComFotos[0]||'','print-comentario.png',_atvComFotosRef[0]||'');
+  atvRenderComFotos();
+  showToast('Imagem removida','success');
+}
+
+function atvLimparComentarioPendente(){
+  _atvComFotos=[]; _atvComFotosRef=[];
+  const inp=document.getElementById('atv-com-foto'); if(inp) inp.value='';
+  atvRenderComFotos();
+  const ta=document.getElementById('atv-comentario'); if(ta) ta.value='';
+  const cnt=document.getElementById('atv-comentario-count'); if(cnt) cnt.textContent='150 restantes';
 }
 
 function atvRemoverImagemComentario(){
   _atvSetPendingImagem('','');
   const inp=document.getElementById('atv-imagem-input'); if(inp) inp.value='';
   showToast('Print removido','');
+}
+
+/* Comentar sem mexer no status. Antes, comentário só era gravado junto de
+   Concluir/Pendente/Finalizar — quem não podia executar a tarefa escrevia,
+   fechava o card e o texto ia embora sem aviso nenhum. Era a causa de
+   "ninguém está vendo meus comentários". */
+function atvComentar(){
+  if(!currentUser){ showToast('Faça login para comentar','warn'); return; }
+  const id=(document.getElementById('atv-edit-id')||{}).value||'';
+  const idx=(appState.atividades||[]).findIndex(x=>x&&x.id===id);
+  if(idx<0){ showToast('Abra uma tarefa para comentar','warn'); return; }
+  const ta=document.getElementById('atv-comentario');
+  const texto=String((ta&&ta.value)||'').trim().slice(0,150);
+  if(!texto && !_atvComFotos.length){ showToast('Escreva um comentário ou anexe uma imagem','warn'); return; }
+
+  const alvo=appState.atividades[idx];
+  const entrada=_novoComentario(texto,_atvComFotos,_atvComFotosRef);
+  alvo.comentarios=_fundirComentarios([entrada],_listaComentarios(alvo));
+  atvLimparComentarioPendente();
+  saveState(appState);
+  _atvRenderComentarios(alvo);
+  try{ renderAtividades(); }catch(e){}
+
+  // Avisa os responsáveis — menos quem escreveu
+  const titulo=alvo.titulo||'tarefa';
+  getAtvResponsaveis(alvo).forEach(k=>{
+    if(k===currentUser.key) return;
+    if(db && fbConnected){
+      db.ref('suplelive/notificacoes/'+k).push({msg:'💬 Novo comentário de '+currentUser.name+' em "'+titulo+'"',
+        ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,alvoTipo:'tarefa',alvoId:alvo.id});
+    }
+  });
+  showToast('💬 Comentário publicado','success');
+}
+
+/* O histórico é desenhado por fora do abrir-do-card para que comentar
+   atualize a lista na hora, sem fechar e reabrir. */
+function _atvRenderComentarios(a){
+  const wrap=document.getElementById('atv-comentario-historico');
+  if(!wrap) return;
+  const lista=_listaComentarios(a);
+  if(!lista.length){ wrap.style.display='none'; wrap.innerHTML=''; return; }
+  wrap.style.display='flex';
+  wrap.innerHTML=lista.map(c=>{
+    const fotos=(c.fotos||[]).map((src,fi)=>{
+      const ref=String((c.fotosRef||[])[fi]||'').replace(/'/g,"\\'");
+      return `<img src="${src}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${String(src).replace(/'/g,"\\'")}','print-comentario','${ref}')">`;
+    }).join('');
+    return `<div>
+      <div style="font-size:12px;color:var(--text-primary);line-height:1.45;white-space:pre-wrap;">${String(c.texto||'').replace(/</g,'&lt;')}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${(c.autor||'—')}${c.em?(' · '+c.em):''}</div>
+      ${fotos?`<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:5px;">${fotos}</div>`:''}
+    </div>`;
+  }).join('<div style="height:1px;background:var(--border-light);margin:2px 0;"></div>');
 }
 
 // Abre o print de conclusão em uma nova aba, em tamanho ampliado
@@ -22310,11 +22490,9 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
   const comentarioFixoEm = isEntradaTitulo ? new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
   const novoComentarioTexto = isEntradaTitulo ? '' : (document.getElementById('atv-comentario')?.value||'').trim().slice(0,150);
   function comentariosPatch(){
-    if(!novoComentarioTexto) return {};
-    const baseList = Array.isArray(anterior.comentarios) ? anterior.comentarios.slice()
-      : (anterior.comentario ? [{texto:anterior.comentario,autor:anterior.comentarioAutor,em:anterior.comentarioEm}] : []);
-    const entrada={texto:novoComentarioTexto,autor:currentUser.name,em:new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})};
-    return {comentarios:[entrada,...baseList]};
+    if(!novoComentarioTexto && !_atvComFotos.length) return {};
+    const entrada=_novoComentario(novoComentarioTexto,_atvComFotos,_atvComFotosRef);
+    return {comentarios:_fundirComentarios([entrada],_listaComentarios(anterior))};
   }
 
   // Imagem anexada inline (obrigatória apenas para Concluir — verificado
@@ -22436,6 +22614,11 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
         alvoTipo:'tarefa', alvoId:editId});
     }
   });
+
+  /* O campo é esvaziado só depois de a gravação passar. Enquanto ficava
+     preenchido, clicar Pendente e depois Concluir mandava o mesmo texto duas
+     vezes — e o comentário aparecia repetido para todo mundo. */
+  try{ atvLimparComentarioPendente(); }catch(e){}
 
   renderAtividades();
   return true;
