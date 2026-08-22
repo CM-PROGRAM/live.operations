@@ -272,25 +272,41 @@ separa o WhatsApp dentro do código. Dois motivos:
 
 2. **Dá para medir o Arquivo** (ver 9.3).
 
-### 9.3 O Arquivo, medido em vez de adivinhado
+### 9.3 O Arquivo — o que a Base entrega, e o que não entrega
 
-Pedido arquivado não volta no `getOrders`, e eu não sei qual parâmetro o
-traz — parâmetro errado na BaseLinker devolve lista vazia sem reclamar, então
-chutar aqui produziria uma aba em silêncio parecendo certa.
+**Medido em 22/08/2026, não deduzido.** O pedido mais antigo que o
+`getOrders` devolve nesta conta é de **24/05/2026** — exatamente **90 dias**
+antes. Duas sondagens fecharam a questão:
 
-O que a carga faz é **contar o buraco**. Os ids são sequenciais: se ela leu do
-id 100 ao 8.400 e recebeu 6.100 pedidos, os 2.201 que faltam são pedidos que a
-leitura não alcança — arquivados ou excluídos. No fim da execução o log diz:
+| Sondagem | Resultado |
+|---|---|
+| `getOrders` com `date_from` de 01/01/2026 | devolve o mesmo pedido de 24/05 |
+| `getOrders` com `id_from: 1` | devolve o mesmo pedido de 24/05 |
 
-```
-ids de 100 a 8400 · faltando 2201 id(s) na sequência
-```
+Pedir por data antiga não muda nada. **Não é parâmetro faltando: a Base
+arquiva o pedido depois de 90 dias e o `getOrders` não devolve arquivado.**
+O limite é da conta, não da chamada.
 
-Esse número responde a pergunta que importa: se for perto de zero, o Arquivo
-não muda nada e a carga já trouxe tudo. Se for grande, vale ir atrás do
-parâmetro — e aí basta a página do manual de `getOrders` (Configurações da
-conta → API → documentação) ou o `order_id` de um pedido que você saiba que
-está no Arquivo.
+Para trazer o que está no Arquivo (**Pedidos → Lista de Pedidos → Arquivo**)
+sobram dois caminhos, e nenhum passa por esta carga:
+
+1. **Mexer no arquivamento automático da Base**, se ele for configurável para
+   um prazo maior. Isso resolve daqui para a frente; o que já foi arquivado
+   continua arquivado até ser desarquivado.
+2. **Exportar o Arquivo pela tela da Base em CSV** e trazer por importação.
+   É o caminho que funciona hoje.
+
+### Uma medição que foi removida
+
+A primeira versão desta carga tentava medir o tamanho do Arquivo contando os
+`order_id` que faltavam na sequência. **Não serve, e o número que ela dava era
+enganoso.** Os ids da BaseLinker são globais — de todos os clientes dela, não
+sequenciais por conta. Nesta conta o pedido mais antigo tem id 36 milhões e os
+recentes passam de 47 milhões: 11 milhões de "buracos" para ~4.700 pedidos em
+90 dias. Aqueles buracos são pedidos de outras empresas.
+
+O log agora informa apenas **a data do pedido mais antigo alcançado**, que é
+uma verdade verificável e responde a mesma pergunta sem inventar número.
 
 ### 9.4 Rodar
 
