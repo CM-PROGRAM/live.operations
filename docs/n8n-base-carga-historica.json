@@ -1,0 +1,286 @@
+{
+  "name": "LiveOps · Carga histórica de pedidos (rodar na mão)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "Começar a carga",
+      "name": "Começar a carga",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/pedidosBase.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "O que já temos",
+      "name": "O que já temos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -360,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrderStatusList"
+            },
+            {
+              "name": "parameters",
+              "value": "{}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Status da Base",
+      "name": "Status da Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Ponto de partida da varredura.\n\n   id_from=0 é de propósito: a carga histórica não tem data de corte, ela vai\n   do primeiro pedido que existe até o último. */\nreturn [{ json: { proximoId: 0, pagina: 0 } }];\n"
+      },
+      "id": "Ponto de partida",
+      "name": "Ponto de partida",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        40,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrders"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ id_from: $json.proximoId, get_unconfirmed_orders: true, include_custom_extra_fields: true }) }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "Base · página de pedidos",
+      "name": "Base · página de pedidos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        300
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Uma página da Base vira registros do LiveOps.\n\n   ── Por que esta carga NÃO usa filter_order_source ──────────────────\n   O fluxo de todo dia filtra a origem no servidor, e faz bem: economiza\n   tráfego. Aqui é o contrário — a varredura lê TUDO e separa o WhatsApp\n   aqui dentro, por dois motivos:\n\n   1. Se o id da origem estiver errado, o filtro do servidor devolve lista\n      vazia sem erro nenhum, e a carga terminaria \"com sucesso\" tendo\n      importado zero. Lendo tudo, isso é impossível de acontecer calado.\n\n   2. Lendo tudo dá para MEDIR o Arquivo. Os pedidos arquivados não voltam\n      no getOrders, então os ids deles ficam faltando na sequência. O buraco\n      entre o menor e o maior id lido, menos o que veio, é quantos pedidos\n      estão fora do alcance desta leitura. Sem isso a gente não teria como\n      saber se o Arquivo tem dez pedidos ou dez mil. */\n\nconst r = $json || {};\nif (r.status && r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou: ' + (r.error_message || r.error_code || JSON.stringify(r).slice(0,200)));\n}\nconst pedidos = r.orders || [];\n\n/* Página vazia = acabou. Devolver zero itens encerra o laço sozinho: sem\n   item, nada segue para o nó seguinte e a repetição para. */\nconst estado = $getWorkflowStaticData('global');\nif (!estado.iniciado) {\n  estado.iniciado = true;\n  estado.lidos = 0; estado.gravados = 0; estado.paginas = 0;\n  estado.menorId = null; estado.maiorId = null;\n  estado.porOrigem = {};\n}\n\nif (!pedidos.length) {\n  const vaoDe = (estado.maiorId || 0) - (estado.menorId || 0) + 1;\n  const faltando = Math.max(0, vaoDe - estado.lidos);\n  console.log('── Carga histórica terminada ──');\n  console.log(estado.paginas + ' página(s) · ' + estado.lidos + ' pedido(s) lidos · ' +\n              estado.gravados + ' do WhatsApp gravados');\n  console.log('ids de ' + estado.menorId + ' a ' + estado.maiorId +\n              ' · faltando ' + faltando + ' id(s) na sequência');\n  if (faltando > 0) {\n    console.log('Esses ' + faltando + ' são pedidos que o getOrders não devolve — ' +\n                'arquivados ou excluídos. É o tamanho do Arquivo, medido.');\n  }\n  const origens = Object.keys(estado.porOrigem).sort((a,b)=>estado.porOrigem[b]-estado.porOrigem[a]);\n  console.log('origens encontradas: ' + origens.map(k=>k+'='+estado.porOrigem[k]).join(' · '));\n  return [];\n}\n\nconst TZ = 'America/Sao_Paulo';\nfunction data(ts){\n  if(!ts) return '';\n  return new Intl.DateTimeFormat('sv-SE',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'})\n    .format(new Date(Number(ts)*1000));\n}\nfunction hora(ts){\n  if(!ts) return '';\n  return new Intl.DateTimeFormat('pt-BR',{timeZone:TZ,hour:'2-digit',minute:'2-digit'})\n    .format(new Date(Number(ts)*1000));\n}\n/* O total não vem pronto: a Base entrega os produtos e o frete separados.\n   Somar aqui evita que a tela mostre um valor diferente do que a Base\n   mostra — a divergência que ninguém consegue explicar depois. */\nfunction total(p){\n  const itens=(p.products||[]).reduce((a,i)=>a+(Number(i.price_brutto)||0)*(Number(i.quantity)||0),0);\n  return Math.round((itens+(Number(p.delivery_price)||0))*100)/100;\n}\n\nconst nomeStatus = $('Status da Base').first().json.statuses\n  ? Object.fromEntries(($('Status da Base').first().json.statuses||[]).map(s=>[String(s.id), s.name]))\n  : {};\nconst jaTemos = $('O que já temos').first().json || {};\nconst carimbo = new Date().toLocaleString('pt-BR',{timeZone:TZ});\n\n/* Só o que entrou pelo WhatsApp. A Base marca isso em order_source, e o\n   nome varia conforme o cadastro da conta — por isso a comparação é por\n   pedaço do texto, e não igualdade exata. */\nfunction ehWhatsApp(p){\n  const fonte = String(p.order_source || '').toLowerCase();\n  const nome  = String(p.order_source_info || '').toLowerCase();\n  return fonte.includes('whats') || nome.includes('whats')\n      || (fonte === 'personal' && Number(p.order_source_id) === 0);\n}\n\nconst patch = {};\nlet maior = 0, gravadosAqui = 0;\n\npedidos.forEach(p => {\n  const id = Number(p.order_id) || 0;\n  if (id > maior) maior = id;\n  estado.lidos++;\n  if (estado.menorId === null || id < estado.menorId) estado.menorId = id;\n  if (estado.maiorId === null || id > estado.maiorId) estado.maiorId = id;\n  const chaveOrigem = (p.order_source || '?') + '/' + (p.order_source_id === undefined ? '?' : p.order_source_id);\n  estado.porOrigem[chaveOrigem] = (estado.porOrigem[chaveOrigem] || 0) + 1;\n\n  if (!ehWhatsApp(p)) return;\n\n  const quando = p.date_add || p.date_confirmed || 0;\n  const registro = {\n    id: 'base_' + p.order_id,\n    numero: String(p.order_id),\n    externo: String(p.external_order_id || p.shop_order_id || ''),\n    cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n    telefone: String(p.phone || '').replace(/\\D/g, ''),\n    cpf: String(p.invoice_nip || '').replace(/\\D/g, ''),\n    email: String(p.email || ''),\n    valor: total(p),\n    itens: (p.products || []).reduce((a, i) => a + (Number(i.quantity) || 0), 0),\n    status: nomeStatus[String(p.order_status_id)] || ('status ' + p.order_status_id),\n    canal: 'WhatsApp',\n    data: data(quando),\n    hora: hora(quando),\n    link: 'https://panel-u.baselinker.com/orders.php#order:' + p.order_id,\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n\n  /* Pedido que já está igual no LiveOps não é regravado. Numa carga de\n     milhares isso é a diferença entre alguns minutos e uma hora — e evita\n     que a tela de quem estiver trabalhando pisque a cada página. */\n  const atual = jaTemos['base_' + p.order_id];\n  if (atual) {\n    const iguais = Object.keys(registro).every(k => k === 'sincronizadoEm' || String(atual[k] || '') === String(registro[k] || ''));\n    if (iguais) return;\n  }\n  patch['base_' + p.order_id] = registro;\n  gravadosAqui++;\n  estado.gravados++;\n});\n\nestado.paginas++;\nconsole.log('página ' + estado.paginas + ': ' + pedidos.length + ' pedido(s) · ' +\n            gravadosAqui + ' para gravar · próximo id ' + (maior + 1));\n\nreturn [{ json: { patch, proximoId: maior + 1, quantos: pedidos.length } }];\n"
+      },
+      "id": "Página → registros",
+      "name": "Página → registros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/pedidosBase.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patch) }}",
+        "options": {}
+      },
+      "id": "Gravar a página",
+      "name": "Gravar a página",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        200
+      ],
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "Pausa 1s",
+      "name": "Pausa 1s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        400
+      ],
+      "webhookId": "carga-pausa"
+    }
+  ],
+  "connections": {
+    "Começar a carga": {
+      "main": [
+        [
+          {
+            "node": "O que já temos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "O que já temos": {
+      "main": [
+        [
+          {
+            "node": "Status da Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status da Base": {
+      "main": [
+        [
+          {
+            "node": "Ponto de partida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ponto de partida": {
+      "main": [
+        [
+          {
+            "node": "Base · página de pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · página de pedidos": {
+      "main": [
+        [
+          {
+            "node": "Página → registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página → registros": {
+      "main": [
+        [
+          {
+            "node": "Gravar a página",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pausa 1s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa 1s": {
+      "main": [
+        [
+          {
+            "node": "Base · página de pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}

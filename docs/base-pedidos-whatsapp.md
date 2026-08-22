@@ -239,35 +239,68 @@ agrupamento por telefone.
 
 ---
 
-## 9. O que falta para "2026 inteiro"
+## 9. A carga histórica
 
-Duas coisas, e as duas dependem de uma informação que só a Base responde.
+Arquivo: `docs/n8n-base-carga-historica.json` — fluxo separado, **gatilho
+manual**, para rodar uma vez.
 
-### 9.1 O limite de 100 por chamada
+Ele é separado do fluxo de todo dia de propósito. O de todo dia lê uma janela
+curta a cada minuto; varrer o histórico inteiro a cada minuto seria um
+desperdício e um risco de bater no limite da API.
 
-Hoje a leitura é uma janela de 7 dias, relida a cada minuto. Para trazer o ano
-inteiro isso não serve: `getOrders` devolve no máximo **100 pedidos por
-chamada**, então uma janela de 365 dias traria 100 e calaria sobre o resto.
+### 9.1 Como ele varre
 
-O caminho documentado para varrer tudo é paginar por **`id_from`**: cada
-chamada devolve até 100 pedidos com `order_id` maior que o informado, e a
-próxima chamada usa o maior id recebido. Isso é um laço no fluxo (um nó de
-repetição), não um ajuste de parâmetro — é a mudança maior das duas.
+`getOrders` devolve no máximo **100 pedidos por chamada**, então uma janela
+larga traria 100 e calaria sobre o resto. A varredura pagina por `id_from`:
+cada volta pede os pedidos com id maior que o último recebido, e o laço
+termina sozinho quando uma página volta vazia.
 
-### 9.2 Os pedidos do Arquivo
+Página que volta vazia devolve **zero itens**, e sem item nada segue adiante —
+é assim que o laço para, sem precisar de um nó de decisão que alguém possa
+configurar errado.
 
-Em **Pedidos → Lista de Pedidos → Arquivo** a Base guarda pedidos que não
-aparecem na listagem normal, e a API se comporta do mesmo jeito: `getOrders`
-sem mais nada **não devolve pedido arquivado**.
+### 9.2 Por que ela lê tudo e filtra depois
 
-Não vou inventar o nome do parâmetro que os traz — parâmetro errado na
-BaseLinker não dá erro, devolve lista vazia, e a aba ficaria em silêncio
-parecendo certa. Para fechar isso preciso de uma destas duas:
+O fluxo de todo dia filtra a origem no servidor (`filter_order_source`), e faz
+bem: economiza tráfego. A carga faz o contrário — lê **todos** os pedidos e
+separa o WhatsApp dentro do código. Dois motivos:
 
-- a página do manual da BaseLinker de `getOrders` (Configurações da conta →
-  API → documentação), ou
-- o retorno de uma chamada de teste com um pedido que você saiba que está no
-  Arquivo — o `order_id` dele já ajuda.
+1. **Filtro errado não dá erro.** Se o id da origem estiver trocado, a Base
+   devolve lista vazia e a carga terminaria "com sucesso" tendo importado
+   zero. Lendo tudo, isso não acontece calado — e o log mostra quantos vieram
+   de cada origem, com o nome que a Base usa.
 
-Com isso o Arquivo entra como uma segunda passada da mesma leitura, e a lista
-de clientes passa a cobrir o ano inteiro.
+2. **Dá para medir o Arquivo** (ver 9.3).
+
+### 9.3 O Arquivo, medido em vez de adivinhado
+
+Pedido arquivado não volta no `getOrders`, e eu não sei qual parâmetro o
+traz — parâmetro errado na BaseLinker devolve lista vazia sem reclamar, então
+chutar aqui produziria uma aba em silêncio parecendo certa.
+
+O que a carga faz é **contar o buraco**. Os ids são sequenciais: se ela leu do
+id 100 ao 8.400 e recebeu 6.100 pedidos, os 2.201 que faltam são pedidos que a
+leitura não alcança — arquivados ou excluídos. No fim da execução o log diz:
+
+```
+ids de 100 a 8400 · faltando 2201 id(s) na sequência
+```
+
+Esse número responde a pergunta que importa: se for perto de zero, o Arquivo
+não muda nada e a carga já trouxe tudo. Se for grande, vale ir atrás do
+parâmetro — e aí basta a página do manual de `getOrders` (Configurações da
+conta → API → documentação) ou o `order_id` de um pedido que você saiba que
+está no Arquivo.
+
+### 9.4 Rodar
+
+1. Importar o arquivo no n8n
+2. Conferir as credenciais: `Base (BaseLinker)` nos dois nós da Base e
+   `Firebase (conta de serviço)` nos dois do LiveOps
+3. **Execute workflow** e deixar rodando
+4. Abrir o nó `Página → registros` e ler o log
+
+Rodar de novo é seguro: pedido que já está igual no LiveOps não é regravado.
+Numa carga de milhares isso é a diferença entre alguns minutos e uma hora — e
+evita que a tela de quem estiver trabalhando pisque a cada página.
+
