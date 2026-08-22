@@ -2802,11 +2802,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div class="pag-acoes">
           <span id="cli-sync" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);align-self:center;"></span>
-          <input type="file" id="cli-import-arq" accept=".csv,text/csv" style="display:none;" onchange="cliImportarArquivo(this)">
-          <button class="btn-sec" onclick="document.getElementById('cli-import-arq').click()" title="Trazer clientes de uma planilha em CSV">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 20h16"/></svg>
-            Importar
-          </button>
           <button class="btn-sec" onclick="cliExportar()" title="Baixar a lista filtrada em CSV">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 20h16"/></svg>
             Exportar
@@ -4684,7 +4679,6 @@ function defaultState(){
     integracoes:[],
     excluirIntBase:[],
     atualizacaoCatalogo:[],
-    clientesManuais:[],
     imagensReq:[],
     entradas:[],
     extLinks:{},
@@ -4777,7 +4771,6 @@ function loadLocal(){
     if(!Array.isArray(s.integracoes)) s.integracoes=[];
     if(!Array.isArray(s.excluirIntBase)) s.excluirIntBase=[];
     if(!Array.isArray(s.atualizacaoCatalogo)) s.atualizacaoCatalogo=[];
-    if(!Array.isArray(s.clientesManuais)) s.clientesManuais=[];
     _semearEmails(s);
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
@@ -6723,7 +6716,6 @@ const COLECOES_REG={
   integracoes:   {get:s=>s.integracoes,                set:(s,v)=>{s.integracoes=v;}},
   excluirIntBase:{get:s=>s.excluirIntBase,             set:(s,v)=>{s.excluirIntBase=v;}},
   atualizacaoCatalogo:{get:s=>s.atualizacaoCatalogo,   set:(s,v)=>{s.atualizacaoCatalogo=v;}},
-  clientesManuais:{get:s=>s.clientesManuais,           set:(s,v)=>{s.clientesManuais=v;}},
   entradas:      {get:s=>s.entradas,                   set:(s,v)=>{s.entradas=v;}},
   imagensReq:    {get:s=>s.imagensReq,                 set:(s,v)=>{s.imagensReq=v;}},
   canceladas:    {get:s=>s.canceladas,                 set:(s,v)=>{s.canceladas=v;}},
@@ -7408,7 +7400,6 @@ function applyRemoteState(data){
   if(!Array.isArray(data.integracoes)) data.integracoes = [];
   if(!Array.isArray(data.excluirIntBase)) data.excluirIntBase = [];
   if(!Array.isArray(data.atualizacaoCatalogo)) data.atualizacaoCatalogo = [];
-  if(!Array.isArray(data.clientesManuais)) data.clientesManuais = [];
   _semearEmails(data);
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
@@ -8601,7 +8592,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.22c';
+const APP_VERSAO='2026.08.22d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10851,7 +10842,7 @@ function agruparClientes(){
     if(!chave) return;
     let c=porChave.get(chave);
     if(!c){
-      c={chave, nome, cpf:p.cpf||'', telefone:p.telefone||'', email:p.email||'', pedidos:[], origem:'base'};
+      c={chave, nome, cpf:p.cpf||'', telefone:p.telefone||'', email:p.email||'', pedidos:[]};
       porChave.set(chave,c);
     }
     // O cadastro mais completo ganha: um pedido antigo pode ter vindo sem
@@ -10862,26 +10853,6 @@ function agruparClientes(){
     if(nome && nome.length>String(c.nome||'').length) c.nome=nome;
     c.pedidos.push(p);
   });
-  /* Clientes trazidos de planilha. Eles NÃO viram pedido na Base — inventar
-     um pedido para eles faria a aba Pedidos mentir e o faturamento subir
-     sozinho. Ficam numa lista própria e se juntam aqui: se o CPF ou o
-     telefone já existe na Base, completam o cadastro em vez de duplicar. */
-  (appState.clientesManuais||[]).filter(Boolean).forEach(m=>{
-    const cpf=_cliSoDigitos(m.cpf), fone=_cliSoDigitos(m.telefone);
-    const nome=String(m.nome||'').trim();
-    const chave = cpf ? ('cpf:'+cpf) : (fone ? ('fone:'+fone) : (nome ? ('nome:'+_cliSemAcento(nome)) : null));
-    if(!chave) return;
-    let c=porChave.get(chave);
-    if(!c){
-      c={chave, nome, cpf:m.cpf||'', telefone:m.telefone||'', email:m.email||'', pedidos:[], origem:'importado'};
-      porChave.set(chave,c);
-    }
-    if(!c.cpf && m.cpf) c.cpf=m.cpf;
-    if(!c.telefone && m.telefone) c.telefone=m.telefone;
-    if(!c.email && m.email) c.email=m.email;
-    if(nome && nome.length>String(c.nome||'').length) c.nome=nome;
-  });
-
   const lista=[...porChave.values()];
   lista.forEach(c=>{
     c.pedidos.sort((a,b)=>
@@ -11104,111 +11075,6 @@ function cliMenu(ev,chave){
   },0);
 }
 
-
-/* ── Importar clientes de planilha ───────────────────────────────────
-   Só CSV. Ler .xlsx exigiria uma biblioteca que este arquivo único não
-   carrega — e "Salvar como CSV" no Excel resolve em dois cliques, o que é
-   melhor que uma importação que às vezes funciona.
-
-   O que entra aqui NÃO vira pedido. Inventar um pedido para o cliente
-   importado faria a aba Pedidos mentir e o faturamento subir sozinho. */
-function _csvLinhas(texto){
-  // Separador: o que aparecer mais no cabeçalho. Excel em português salva
-  // com ponto e vírgula; exportação de sistema costuma sair com vírgula.
-  const bruto=String(texto||'').replace(/^﻿/,'');
-  const cab=bruto.split(/\r?\n/)[0]||'';
-  const sep=(cab.split(';').length>cab.split(',').length)?';':',';
-  const linhas=[]; let campo='', linha=[], aspas=false;
-  for(let i=0;i<bruto.length;i++){
-    const ch=bruto[i];
-    if(aspas){
-      if(ch==='"'){ if(bruto[i+1]==='"'){ campo+='"'; i++; } else aspas=false; }
-      else campo+=ch;
-    } else if(ch==='"'){ aspas=true; }
-    else if(ch===sep){ linha.push(campo); campo=''; }
-    else if(ch==='\n'){ linha.push(campo); linhas.push(linha); linha=[]; campo=''; }
-    else if(ch!=='\r'){ campo+=ch; }
-  }
-  if(campo!=='' || linha.length){ linha.push(campo); linhas.push(linha); }
-  return linhas.filter(l=>l.some(v=>String(v).trim()!==''));
-}
-
-function cliImportarArquivo(input){
-  const arq=input.files&&input.files[0];
-  input.value='';
-  if(!arq) return;
-  if(!/\.csv$/i.test(arq.name)){
-    showToast('Salve a planilha como CSV e tente de novo — .xlsx não é lido aqui','warn');
-    return;
-  }
-  const leitor=new FileReader();
-  leitor.onload=()=>{ try{ _cliImportarTexto(String(leitor.result||''), arq.name); }
-                      catch(e){ showToast('Não consegui ler o arquivo: '+(e.message||e),'error'); } };
-  leitor.readAsText(arq,'utf-8');
-}
-
-function _cliImportarTexto(texto, nomeArq){
-  const linhas=_csvLinhas(texto);
-  if(linhas.length<2){ showToast('A planilha precisa de um cabeçalho e ao menos uma linha','warn'); return; }
-
-  /* O cabeçalho é reconhecido por aproximação: "Telefone", "telefone",
-     "Celular" e "Fone" são a mesma coluna, e exigir o nome exato só faria a
-     importação falhar por acento. */
-  const norm=t=>_cliSemAcento(String(t||'')).replace(/[^a-z]/g,'');
-  const cab=linhas[0].map(norm);
-  const achar=(...nomes)=>{
-    for(const n of nomes){ const i=cab.indexOf(norm(n)); if(i>=0) return i; }
-    return -1;
-  };
-  const iNome =achar('nome','cliente','nomecompleto','razaosocial');
-  const iCpf  =achar('cpf','documento','cpfcnpj');
-  const iFone =achar('telefone','celular','fone','whatsapp','contato');
-  const iMail =achar('email','e-mail','mail');
-  if(iNome<0 && iCpf<0 && iFone<0){
-    showToast('Não achei coluna de Nome, CPF nem Telefone no cabeçalho','warn');
-    return;
-  }
-
-  if(!Array.isArray(appState.clientesManuais)) appState.clientesManuais=[];
-  const jaTem=new Set();
-  appState.clientesManuais.forEach(m=>{
-    const k=_cliSoDigitos(m&&m.cpf)||_cliSoDigitos(m&&m.telefone);
-    if(k) jaTem.add(k);
-  });
-  agruparClientes().forEach(c=>{
-    const k=_cliSoDigitos(c.cpf)||_cliSoDigitos(c.telefone);
-    if(k) jaTem.add(k);
-  });
-
-  let novos=0, repetidos=0, semDado=0;
-  linhas.slice(1).forEach(l=>{
-    const nome =iNome>=0?String(l[iNome]||'').trim():'';
-    const cpf  =iCpf >=0?_cliSoDigitos(l[iCpf]):'';
-    const fone =iFone>=0?_cliSoDigitos(l[iFone]):'';
-    const email=iMail>=0?String(l[iMail]||'').trim():'';
-    if(!nome && !cpf && !fone){ semDado++; return; }
-    const chave=cpf||fone;
-    /* Sem CPF nem telefone não dá para saber se já existe: o mesmo nome
-       aparece duas vezes na vida real. Esses entram assim mesmo, mas a
-       contagem de repetidos só vale para quem tem documento ou número. */
-    if(chave && jaTem.has(chave)){ repetidos++; return; }
-    if(chave) jaTem.add(chave);
-    appState.clientesManuais.push({
-      id:'climan_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-      nome, cpf, telefone:fone, email,
-      importadoDe:nomeArq||'', importadoEm:_agoraCarimbo(),
-      importadoPor:(currentUser&&currentUser.name)||''
-    });
-    novos++;
-  });
-
-  saveState(appState);
-  renderClientes();
-  const partes=[novos+' cliente(s) importado(s)'];
-  if(repetidos) partes.push(repetidos+' já existia(m)');
-  if(semDado)   partes.push(semDado+' linha(s) sem dado');
-  showToast('⬆ '+partes.join(' · '), novos?'success':'warn');
-}
 
 /* Exporta o que está na tela, não a base inteira: quem filtrou por um
    segmento quer levar aquele recorte. O separador é ponto e vírgula porque
