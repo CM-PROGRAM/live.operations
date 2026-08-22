@@ -272,41 +272,62 @@ separa o WhatsApp dentro do código. Dois motivos:
 
 2. **Dá para medir o Arquivo** (ver 9.3).
 
-### 9.3 O Arquivo — o que a Base entrega, e o que não entrega
+### 9.3 O Arquivo — respondido pela própria Base
 
-**Medido em 22/08/2026, não deduzido.** O pedido mais antigo que o
-`getOrders` devolve nesta conta é de **24/05/2026** — exatamente **90 dias**
-antes. Duas sondagens fecharam a questão:
+A tela **Pedidos → Lista de pedidos → Arquivo** avisa, em letras próprias:
 
-| Sondagem | Resultado |
+> Pedidos com mais de 3 meses vão automaticamente para o Arquivo para fins de
+> otimização do sistema. **O arquivo é um banco de dados separado e tem seu
+> próprio mecanismo de busca.** [...] Para restaurar seu pedido ao status
+> ativo, clique em "Desarquivar" no cartão de pedido.
+
+Isso encerra a investigação:
+
+- **3 meses** é exatamente o que a sondagem mediu em 22/08/2026: o pedido mais
+  antigo que o `getOrders` devolve é de 24/05/2026, 90 dias antes.
+- O Arquivo é **outro banco**. Não é status, não é filtro — por isso nenhum
+  parâmetro do `getOrders` o alcança. Nunca foi falta de parâmetro.
+- Desarquivar é **um pedido por vez**, pelo cartão. Com 12.857 pedidos no
+  Arquivo, isso não é caminho.
+
+### O que foi tentado, e por que não serviu
+
+| Tentativa | Resultado |
 |---|---|
 | `getOrders` com `date_from` de 01/01/2026 | devolve o mesmo pedido de 24/05 |
 | `getOrders` com `id_from: 1` | devolve o mesmo pedido de 24/05 |
+| `getOrders` com `filter_order_status_id` do status "Whatsapp" | **ignorado** — voltaram pedidos com outro `order_status_id`, e o mesmo primeiro pedido da chamada sem filtro |
 
-Pedir por data antiga não muda nada. **Não é parâmetro faltando: a Base
-arquiva o pedido depois de 90 dias e o `getOrders` não devolve arquivado.**
-O limite é da conta, não da chamada.
+A terceira merece nota, porque é a armadilha desta API: **parâmetro que a
+BaseLinker não reconhece não dá erro** — ela devolve dados como se o filtro
+tivesse funcionado. Um filtro decorativo no fluxo passaria despercebido para
+sempre. É por isso que nada aqui foi decidido pelo nome do parâmetro, e sim
+pelo que voltou.
 
-Para trazer o que está no Arquivo (**Pedidos → Lista de Pedidos → Arquivo**)
-sobram dois caminhos, e nenhum passa por esta carga:
+Nota sobre o status chamado "Whatsapp" (id 354653): ele **não** marca origem.
+Os pedidos que o carregam vêm de `omnik`, `melibr` (Mercado Livre) e
+`shopeebr` (Shopee). Classificar WhatsApp por ele traria marketplace junto.
 
-1. **Mexer no arquivamento automático da Base**, se ele for configurável para
-   um prazo maior. Isso resolve daqui para a frente; o que já foi arquivado
-   continua arquivado até ser desarquivado.
-2. **Exportar o Arquivo pela tela da Base em CSV** e trazer por importação.
-   É o caminho que funciona hoje.
+### O caminho que sobra
+
+Exportar o Arquivo pela tela da Base, **filtrando antes pela origem do
+WhatsApp** — sem o filtro seriam 12.857 pedidos, com ele são algumas
+centenas. A importação a construir é de **pedido**, não de cliente: os
+clientes se montam sozinhos a partir dos pedidos, com valor, data e histórico
+corretos. Um importador de cadastro deixaria todo cliente antigo com R$ 0,00 e
+estragaria o Total Gasto e o RFM.
 
 ### Uma medição que foi removida
 
 A primeira versão desta carga tentava medir o tamanho do Arquivo contando os
-`order_id` que faltavam na sequência. **Não serve, e o número que ela dava era
-enganoso.** Os ids da BaseLinker são globais — de todos os clientes dela, não
-sequenciais por conta. Nesta conta o pedido mais antigo tem id 36 milhões e os
-recentes passam de 47 milhões: 11 milhões de "buracos" para ~4.700 pedidos em
-90 dias. Aqueles buracos são pedidos de outras empresas.
+`order_id` que faltavam na sequência. **Não serve, e o número era enganoso.**
+Os ids da BaseLinker são globais — de todos os clientes dela, não sequenciais
+por conta. Nesta conta o pedido mais antigo tem id 36 milhões e os recentes
+passam de 47 milhões: 11 milhões de "buracos" para ~4.700 pedidos em 90 dias.
+Aqueles buracos são pedidos de outras empresas.
 
-O log agora informa apenas **a data do pedido mais antigo alcançado**, que é
-uma verdade verificável e responde a mesma pergunta sem inventar número.
+O log informa agora **a data do pedido mais antigo alcançado** — verdade
+verificável, que responde a mesma pergunta sem inventar número.
 
 ### 9.4 Rodar
 
