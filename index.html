@@ -998,6 +998,101 @@ body.menu-oculto .sb-atu-txt{display:none;}
    sete painéis, então o último fica sozinho na fileira — de propósito:
    igualar a fileira apertando a largura deixaria estes cartões menores que
    os da Página inicial, que é o padrão que a tela toda segue. */
+
+/* ── Página de lista, no formato do OmniCRM ──────────────────────────
+   Título grande com subtítulo à esquerda, ações à direita; uma fileira de
+   indicadores; a barra de segmentos + busca; e a tabela dentro de um
+   cartão. As cores continuam sendo as nossas — copiar o branco dele aqui
+   deixaria esta aba destoando de todas as outras do sistema. */
+.pag-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px;}
+.pag-titulo{font-family:var(--font-sans);font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--text-primary);margin:0 0 4px;}
+.pag-sub{font-size:13px;color:var(--text-muted);margin:0;}
+.pag-acoes{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.btn-sec{display:inline-flex;align-items:center;gap:7px;background:var(--grad-vidro);border:1px solid var(--glass-border);
+  border-radius:10px;color:var(--text-primary);font-family:var(--font-sans);font-size:12.5px;font-weight:600;
+  padding:9px 15px;cursor:pointer;transition:border-color .15s;}
+.btn-sec:hover{border-color:rgba(255,255,255,.32);}
+.btn-sec svg{width:15px;height:15px;stroke-width:2;}
+
+/* Indicadores: ícone num círculo à esquerda, número grande e rótulo ao lado */
+.kpi-linha{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:18px;}
+.kpi-card{display:flex;align-items:center;gap:13px;background:var(--bg-card);border:1px solid var(--glass-border);
+  border-radius:14px;padding:16px 18px;box-shadow:var(--sombra-card);}
+.kpi-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--kb,rgba(143,168,216,.12));border:1px solid var(--kbd,rgba(143,168,216,.32));color:var(--kc,#8fa8d8);}
+.kpi-ic svg{width:19px;height:19px;stroke-width:1.9;}
+.kpi-num{display:block;font-family:var(--font-sans);font-size:23px;font-weight:800;line-height:1.1;color:var(--kc,var(--text-primary));}
+.kpi-rot{display:block;font-size:11.5px;color:var(--text-muted);margin-top:3px;}
+
+/* Barra de segmentos + busca */
+.lista-barra{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;}
+.seg{display:inline-flex;gap:3px;background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:11px;padding:3px;}
+.seg-btn{background:transparent;border:none;border-radius:8px;color:var(--text-muted);font-family:var(--font-sans);
+  font-size:12.5px;font-weight:600;padding:7px 15px;cursor:pointer;transition:all .15s;}
+.seg-btn:hover{color:var(--text-primary);}
+.seg-btn.active{background:var(--veu-medio);color:var(--text-primary);box-shadow:0 1px 3px rgba(0,0,0,.35);}
+.lista-barra-dir{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+
+/* Tabela dentro do cartão */
+.tabela-card{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:16px;
+  box-shadow:var(--sombra-card);overflow:hidden;}
+.tabela-cab{padding:16px 18px 12px;}
+.tc-titulo{font-family:var(--font-sans);font-size:15.5px;font-weight:800;color:var(--text-primary);}
+.tabela-rolagem{overflow-x:auto;}
+.tab-dados{width:100%;border-collapse:collapse;font-size:12.5px;min-width:840px;}
+.tab-dados thead th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.3px;
+  color:var(--text-muted);border-top:1px solid var(--linha-sutil);border-bottom:1px solid var(--linha-sutil);
+  white-space:nowrap;background:var(--veu-suave);}
+.tab-dados th.ord{cursor:pointer;user-select:none;}
+.tab-dados th.ord:hover{color:var(--text-primary);}
+.tab-dados th .seta{opacity:.45;font-size:9px;margin-left:4px;}
+.tab-dados th.ord.ativa .seta{opacity:1;color:var(--tom-aco,#8fa8d8);}
+.tab-dados tbody td{padding:12px 14px;border-bottom:1px solid var(--linha-sutil);vertical-align:middle;color:var(--text-secondary);}
+.tab-dados tbody tr:last-child td{border-bottom:none;}
+.tab-dados tbody tr:hover{background:var(--veu-suave);}
+.tab-vazia td{text-align:center;color:var(--text-muted);padding:34px 14px;}
+
+.cli-av{width:34px;height:34px;border-radius:10px;background:var(--grad-avatar);
+  border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-family:var(--font-mono);font-size:10px;font-weight:800;color:var(--tom-aco,#8fa8d8);}
+.cli-nome-cel{display:flex;align-items:center;gap:11px;}
+.cli-nome-txt{font-size:13px;font-weight:700;color:var(--text-primary);line-height:1.25;}
+.cli-contato{display:flex;flex-direction:column;gap:3px;font-family:var(--font-mono);font-size:11.5px;}
+.cli-contato span{display:flex;align-items:center;gap:6px;}
+.cli-contato .ic{opacity:.6;}
+.selo{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:700;border-radius:999px;padding:3px 10px;
+  background:var(--sb,rgba(143,168,216,.12));border:1px solid var(--sbd,rgba(143,168,216,.35));color:var(--sc,#8fa8d8);}
+.cli-acoes{display:flex;align-items:center;gap:5px;justify-content:flex-end;}
+.cli-menu{position:relative;}
+.cli-menu-lista{position:absolute;right:0;top:calc(100% + 4px);z-index:60;min-width:190px;background:#151a28;
+  border:1px solid var(--glass-border);border-radius:11px;box-shadow:0 12px 32px rgba(0,0,0,.55);overflow:hidden;}
+.cli-menu-lista button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text-primary);
+  font-family:var(--font-sans);font-size:12.5px;padding:9px 13px;cursor:pointer;}
+.cli-menu-lista button:hover{background:var(--veu-medio);}
+
+/* Cards de integração: ícone, nome, o que faz, selo de situação à direita
+   e a ação embaixo. Dois por fileira, como no CRM de referência. */
+.integ-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:14px;}
+@media(max-width:900px){.integ-grade{grid-template-columns:1fr;}}
+.integ-card{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:16px;
+  padding:18px 20px;box-shadow:var(--sombra-card);display:flex;flex-direction:column;gap:14px;}
+.integ-topo{display:flex;align-items:flex-start;gap:13px;}
+.integ-ic{width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  background:var(--ib,rgba(143,168,216,.12));border:1px solid var(--ibd,rgba(143,168,216,.32));color:var(--ic,#8fa8d8);}
+.integ-ic svg{width:20px;height:20px;stroke-width:1.8;}
+.integ-nome{font-family:var(--font-sans);font-size:15px;font-weight:800;color:var(--text-primary);line-height:1.25;}
+.integ-desc{font-size:12px;color:var(--text-muted);line-height:1.55;margin-top:3px;}
+.integ-selo{margin-left:auto;flex-shrink:0;}
+.integ-pe{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
+.integ-btn{display:inline-flex;align-items:center;gap:7px;background:var(--grad-vidro);border:1px solid var(--glass-border);
+  border-radius:10px;color:var(--text-primary);font-family:var(--font-sans);font-size:12.5px;font-weight:600;
+  padding:9px 15px;cursor:pointer;text-decoration:none;transition:border-color .15s;}
+.integ-btn:hover{border-color:rgba(255,255,255,.32);}
+.integ-btn svg{width:15px;height:15px;stroke-width:1.9;}
+.integ-btn.mudo{opacity:.5;cursor:default;}
+.integ-btn.mudo:hover{border-color:var(--glass-border);}
+.integ-onde{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);}
+
 /* Aba criada, conteúdo ainda não. A tela diz o que vai morar ali em vez de
    ficar em branco — tela vazia sem explicação vira chamado, e quem abre
    conclui que o sistema quebrou. */
@@ -2228,16 +2323,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <div class="tab-panel" id="tab-integracoes">
-      <div class="section-header">
-        <span class="section-title">Integrações</span>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Integrações</h2>
+          <p class="pag-sub">O que está ligado ao LiveOps e onde cada coisa é configurada</p>
+        </div>
       </div>
-      <div class="date-header">Contas e chaves conectadas ao sistema</div>
-      <div class="aba-futura">
-        <div class="af-ic" data-icone="integracoes"></div>
-        <h3>Integrações</h3>
-        <p>Base, Chatwoot, Melhor Envio, Manda Bem e os marketplaces: o que está conectado, o que expirou e o que precisa de atenção.</p>
-        <span class="af-selo">em construção</span>
-      </div>
+      <div id="integ-kpis" class="kpi-linha"></div>
+      <div style="font-family:var(--font-sans);font-size:15.5px;font-weight:800;color:var(--text-primary);margin:4px 0 12px;">Serviços conectados</div>
+      <div id="integ-lista" class="integ-grade"></div>
     </div>
 
     <div class="tab-panel" id="tab-jobs">
@@ -2670,26 +2764,60 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- CONSULTA CPF — CPF CLIENTE -->
     <!-- VENDAS — CLIENTES -->
     <div class="tab-panel" id="tab-clientes">
-      <div class="section-header">
-        <span class="section-title">Clientes</span>
-        <span id="cli-sync" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);"></span>
-      </div>
-      <div id="cli-kpis" class="ped-kpis" style="margin-bottom:14px;"></div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
-        <div class="atv-busca">
-          <span class="atv-busca-ic">&#128270;</span>
-          <input type="search" id="cli-busca" oninput="renderClientes()" autocomplete="off"
-                 placeholder="Buscar por nome, CPF, telefone ou n&ordm; do pedido&hellip;">
-          <button type="button" class="atv-busca-x" title="Limpar busca" onclick="cliLimparBusca()">&#10005;</button>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Clientes</h2>
+          <p class="pag-sub">Quem já comprou, quanto comprou e quando foi a última vez</p>
         </div>
-        <select id="cli-ordem" onchange="renderClientes()" style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-family:var(--font-sans);font-size:12px;padding:5px 12px;outline:none;cursor:pointer;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);">
-          <option value="recente">Compra mais recente</option>
-          <option value="pedidos">Quem mais comprou</option>
-          <option value="nome">Nome (A&ndash;Z)</option>
-        </select>
+        <div class="pag-acoes">
+          <span id="cli-sync" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);align-self:center;"></span>
+          <button class="btn-sec" onclick="cliExportar()" title="Baixar a lista filtrada em CSV">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 20h16"/></svg>
+            Exportar
+          </button>
+        </div>
       </div>
-      <div id="cli-cards" class="cli-cards"></div>
-      <div id="cli-vazio" style="display:none;"></div>
+
+      <div id="cli-kpis" class="kpi-linha"></div>
+
+      <div class="lista-barra">
+        <div class="seg" id="cli-seg">
+          <button class="seg-btn active" data-f="todos" onclick="cliSetFiltro('todos')">Todos</button>
+          <button class="seg-btn" data-f="recorrentes" onclick="cliSetFiltro('recorrentes')">Recorrentes</button>
+          <button class="seg-btn" data-f="unica" onclick="cliSetFiltro('unica')">Uma compra</button>
+        </div>
+        <div class="lista-barra-dir">
+          <div class="atv-busca">
+            <span class="atv-busca-ic">&#128270;</span>
+            <input type="search" id="cli-busca" oninput="renderClientes()" autocomplete="off"
+                   placeholder="Buscar por nome, CPF, telefone ou n&ordm; do pedido&hellip;">
+            <button type="button" class="atv-busca-x" title="Limpar busca" onclick="cliLimparBusca()">&#10005;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tabela-card">
+        <div class="tabela-cab">
+          <span class="tc-titulo">Contatos (<span id="cli-total">0</span>)</span>
+        </div>
+        <div class="tabela-rolagem">
+          <table class="tab-dados">
+            <thead>
+              <tr>
+                <th class="ord" data-o="nome"    onclick="cliOrdenar('nome')">Nome <span class="seta">&#8597;</span></th>
+                <th>Contato</th>
+                <th>Status</th>
+                <th class="ord" data-o="pedidos" onclick="cliOrdenar('pedidos')">Pedidos <span class="seta">&#8597;</span></th>
+                <th class="ord" data-o="total"   onclick="cliOrdenar('total')">Total Gasto <span class="seta">&#8597;</span></th>
+                <th class="ord" data-o="recente" onclick="cliOrdenar('recente')">Último Pedido <span class="seta">&#8597;</span></th>
+                <th style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="cli-linhas"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="cli-vazio" style="display:none;margin-top:14px;"></div>
     </div>
 
     <div class="tab-panel" id="tab-consultacpf">
@@ -8440,7 +8568,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.22a';
+const APP_VERSAO='2026.08.22b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8711,6 +8839,7 @@ function buildTabs(){
     if(id==='admin'){ try{ admAbrirSecao(_admSecao); }catch(e){ console.warn('admin render:',e); } }
     if(id==='notificacoes'){ try{ renderNotifPagina(); }catch(e){ console.warn('renderNotifPagina:',e); } }
     if(id==='inicio'){ try{ renderInicio(); }catch(e){ console.warn('renderInicio:',e); } }
+    if(id==='integracoes'){ try{ renderIntegracoesTab(); }catch(e){ console.warn('renderIntegracoesTab:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -10716,48 +10845,116 @@ function cliLimparBusca(){
   el.value=''; renderClientes(); el.focus();
 }
 
-function renderClientes(){
-  const alvo=document.getElementById('cli-cards');
-  if(!alvo) return;
-  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+/* ── Clientes ────────────────────────────────────────────────────────
+   A lista se monta a partir dos pedidos que a integração lê da Base. Não
+   existe cadastro manual de cliente aqui de propósito: um cliente digitado
+   à mão não teria pedido nenhum, e a primeira sincronização o deixaria para
+   trás sem que ninguém percebesse. É por isso que não há "Adicionar
+   Cliente" nesta tela — a origem é a Base, e ela manda. */
+let _cliFiltro='todos';
+let _cliOrdem={campo:'recente', desc:true};
 
+function cliSetFiltro(f){
+  _cliFiltro=f||'todos';
+  document.querySelectorAll('#cli-seg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===_cliFiltro));
+  renderClientes();
+}
+function cliOrdenar(campo){
+  /* Clicar de novo na mesma coluna inverte. O padrão de cada coluna é o que
+     a pessoa quer ver primeiro: nome começa de A a Z, os números começam do
+     maior, e a data começa da mais recente. */
+  if(_cliOrdem.campo===campo) _cliOrdem.desc=!_cliOrdem.desc;
+  else _cliOrdem={campo, desc: campo!=='nome'};
+  renderClientes();
+}
+
+function _cliStatus(c){
+  const n=c.pedidos.length;
+  if(n>=3) return {rot:'Fiel',       c:'#22c55e', b:'rgba(34,197,94,.12)',  d:'rgba(34,197,94,.35)'};
+  if(n===2) return {rot:'Recorrente',c:'#a78bfa', b:'rgba(167,139,250,.12)',d:'rgba(167,139,250,.35)'};
+  return         {rot:'Cliente',    c:'#8fa8d8', b:'rgba(143,168,216,.12)',d:'rgba(143,168,216,.35)'};
+}
+function _cliIniciais(nome){
+  const partes=String(nome||'').trim().split(/\s+/).filter(Boolean);
+  if(!partes.length) return '—';
+  return (partes[0][0]+(partes.length>1?partes[partes.length-1][0]:'')).toUpperCase();
+}
+
+// Lista já filtrada e ordenada — usada pela tela e pela exportação
+function _cliListaVisivel(){
   const todos=agruparClientes();
   const bq=document.getElementById('cli-busca');
   const termo=_cliSemAcento((bq?bq.value:'').trim());
-  if(bq && bq.parentElement) bq.parentElement.classList.toggle('tem-texto', !!termo);
-
-  // Quem digita CPF ou telefone escreve com ponto, traço e parêntese, ou
-  // não escreve nenhum: a segunda comparação é só de dígitos. Ela só entra
-  // quando o termo tem dígito — senão "" casaria com tudo.
   const termoDigitos=_cliSoDigitos(termo);
-  const lista = !termo ? todos.slice() : todos.filter(c=>{
+
+  let lista = !termo ? todos.slice() : todos.filter(c=>{
     const campos=[c.nome, c.cpf, c.telefone];
     c.pedidos.forEach(p=>{ campos.push(p.numero); campos.push(p.externo); });
     const texto=_cliSemAcento(campos.filter(Boolean).join(' '));
     if(texto.includes(termo)) return true;
+    // Quem digita CPF ou telefone escreve com ponto e traço, ou não escreve
+    // nenhum: esta segunda comparação é só de dígitos, e só entra quando o
+    // termo tem dígito — senão "" casaria com todo mundo.
     if(!termoDigitos) return false;
     return _cliSoDigitos(campos.filter(Boolean).join(' ')).includes(termoDigitos);
   });
 
-  const ordem=((document.getElementById('cli-ordem')||{}).value)||'recente';
-  lista.sort((a,b)=>{
-    if(ordem==='pedidos') return b.pedidos.length-a.pedidos.length || String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
-    if(ordem==='nome')    return String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
-    const da=(a.ultimo&&a.ultimo.data)||'', db=(b.ultimo&&b.ultimo.data)||'';
-    return String(db).localeCompare(String(da))
-        || String((b.ultimo&&b.ultimo.hora)||'').localeCompare(String((a.ultimo&&a.ultimo.hora)||''));
-  });
+  if(_cliFiltro==='recorrentes') lista=lista.filter(c=>c.pedidos.length>1);
+  else if(_cliFiltro==='unica')  lista=lista.filter(c=>c.pedidos.length===1);
 
-  // Cartões de resumo
+  const dir=_cliOrdem.desc?-1:1;
+  lista.sort((a,b)=>{
+    if(_cliOrdem.campo==='nome')    return dir*-1*String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
+    if(_cliOrdem.campo==='pedidos') return dir*(a.pedidos.length-b.pedidos.length);
+    if(_cliOrdem.campo==='total')   return dir*((a.total||0)-(b.total||0));
+    const da=((a.ultimo&&a.ultimo.data)||'')+((a.ultimo&&a.ultimo.hora)||'');
+    const db=((b.ultimo&&b.ultimo.data)||'')+((b.ultimo&&b.ultimo.hora)||'');
+    return dir*String(da).localeCompare(String(db));
+  });
+  return {todos, lista, termo, bq};
+}
+
+function renderClientes(){
+  const corpo=document.getElementById('cli-linhas');
+  if(!corpo) return;
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const {todos, lista, termo, bq}=_cliListaVisivel();
+  if(bq && bq.parentElement) bq.parentElement.classList.toggle('tem-texto', !!termo);
+
+  // ── Indicadores ────────────────────────────────────────────────
+  /* Os números são os que esta base realmente sabe. O CRM de referência
+     mostra funil de lead (novos, contatados, qualificados, perdidos); aqui
+     não existe lead — cliente nasce de um pedido pago. Repetir aquele funil
+     encheria a tela de cinco zeros permanentes. */
   const kp=document.getElementById('cli-kpis');
   if(kp){
     const nPedidos=todos.reduce((a,c)=>a+c.pedidos.length,0);
+    const faturado=todos.reduce((a,c)=>a+(c.total||0),0);
     const recorrentes=todos.filter(c=>c.pedidos.length>1).length;
-    const card=(rot,val,sub,cor)=>`<div class="ped-kpi" style="--kc:${cor};"><span class="val">${val}</span><span class="rot">${rot}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
-    kp.innerHTML = card('Clientes', todos.length, todos.length?(nPedidos+' pedido(s) no total'):'', '#8fa8d8')
-      + card('Compraram mais de uma vez', recorrentes,
-             todos.length?Math.round(recorrentes*100/todos.length)+'% da base':'', 'var(--green)')
-      + card('Na busca', lista.length, termo?('filtrando por “'+esc(bq.value.trim())+'”'):'sem filtro', '#a78bfa');
+    const mes=new Date().toISOString().slice(0,7);
+    const novos=todos.filter(c=>{
+      const primeiro=c.pedidos[c.pedidos.length-1];
+      return primeiro && String(primeiro.data||'').slice(0,7)===mes;
+    }).length;
+    const ICO={
+      clientes:'<circle cx="12" cy="8" r="3.4"/><path d="M5 19.6a7 7 0 0 1 14 0"/>',
+      repete:'<path d="M3.5 8.5h13a4 4 0 0 1 0 8h-9"/><path d="M7 12.5 3.5 8.5 7 4.5"/>',
+      novo:'<circle cx="12" cy="12" r="8.6"/><path d="M12 8.4v7.2M8.4 12h7.2"/>',
+      pedidos:'<path d="M4 6.5h16l-1.4 10.2a2 2 0 0 1-2 1.7H7.4a2 2 0 0 1-2-1.7z"/><path d="M9 6.5a3 3 0 0 1 6 0"/>',
+      dinheiro:'<rect x="2.8" y="6" width="18.4" height="12" rx="2.4"/><circle cx="12" cy="12" r="2.6"/>'
+    };
+    const card=(ic,num,rot,cor,bg,bd)=>`<div class="kpi-card">
+      <span class="kpi-ic" style="--kc:${cor};--kb:${bg};--kbd:${bd};">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${ICO[ic]}</svg>
+      </span>
+      <span><span class="kpi-num" style="--kc:${cor};">${num}</span><span class="kpi-rot">${rot}</span></span>
+    </div>`;
+    kp.innerHTML =
+        card('clientes', todos.length,   'Clientes',           '#8fa8d8','rgba(143,168,216,.12)','rgba(143,168,216,.32)')
+      + card('repete',   recorrentes,    'Compraram de novo',  '#a78bfa','rgba(167,139,250,.12)','rgba(167,139,250,.32)')
+      + card('novo',     novos,          'Novos neste mês',    '#22c55e','rgba(34,197,94,.12)',  'rgba(34,197,94,.32)')
+      + card('pedidos',  nPedidos,       'Pedidos',            '#f59e0b','rgba(245,158,11,.12)', 'rgba(245,158,11,.32)')
+      + card('dinheiro', _pedFmt(faturado),'Faturado',         '#e8c25a','rgba(232,194,90,.12)', 'rgba(232,194,90,.32)');
   }
 
   const sync=document.getElementById('cli-sync');
@@ -10766,48 +10963,117 @@ function renderClientes(){
     sync.textContent=ultimo?('Base lida em '+ultimo):'';
   }
 
+  const tot=document.getElementById('cli-total'); if(tot) tot.textContent=lista.length;
+  document.querySelectorAll('.tab-dados th.ord').forEach(th=>{
+    const ativa=th.dataset.o===_cliOrdem.campo;
+    th.classList.toggle('ativa',ativa);
+    const seta=th.querySelector('.seta');
+    if(seta) seta.textContent = ativa ? (_cliOrdem.desc?'▾':'▴') : '↕';
+  });
+
+  // ── Linhas ─────────────────────────────────────────────────────
   const vazio=document.getElementById('cli-vazio');
   if(lista.length===0){
-    alvo.innerHTML='';
-    if(vazio){
-      vazio.style.display='block';
-      vazio.innerHTML = todos.length===0
-        ? `<div style="padding:34px 24px;border:1px dashed var(--glass-border);border-radius:14px;text-align:center;">
-             <div style="font-size:13px;color:var(--text-secondary);font-weight:600;margin-bottom:6px;">Nenhum cliente ainda</div>
-             <div style="font-size:12px;color:var(--text-muted);line-height:1.65;max-width:520px;margin:0 auto;">
-               A lista se monta sozinha a partir dos pedidos que a integração lê da Base
-               pelo canal WhatsApp. Enquanto o fluxo da Base não estiver ativo, ela fica vazia
-               — confira em <b>Pedidos → Pedidos Base WhatsApp</b>.
-             </div>
-           </div>`
-        : `<div style="padding:28px;text-align:center;color:var(--text-muted);font-size:13px;">
-             Nenhum cliente encontrado para “${esc(bq.value.trim())}”.
-           </div>`;
-    }
+    corpo.innerHTML=`<tr class="tab-vazia"><td colspan="7">${
+      todos.length===0
+        ? 'A lista se monta sozinha a partir dos pedidos que a integração lê da Base pelo canal WhatsApp. Enquanto o fluxo não estiver ativo, ela fica vazia — confira em <b>Pedidos → Pedidos Base WhatsApp</b>.'
+        : (termo ? ('Nenhum cliente encontrado para “'+esc(bq.value.trim())+'”.')
+                 : 'Nenhum cliente neste filtro.')
+    }</td></tr>`;
+    if(vazio) vazio.style.display='none';
     return;
   }
   if(vazio) vazio.style.display='none';
 
-  alvo.innerHTML=lista.map(c=>{
+  corpo.innerHTML=lista.map(c=>{
     const fone=_cliSoDigitos(c.telefone);
     const ult=c.ultimo||{};
-    const quando=ult.data?(_pedDataBR(ult.data)+(ult.hora?(' às '+ult.hora):'')):'—';
-    return `<div class="cli-card">
-      <div class="cli-nome">${esc(c.nome||'Sem nome')}</div>
-      <div class="cli-linha"><span class="rot">CPF</span>
-        ${c.cpf?`<span>${esc(_cliFmtCpf(c.cpf))}</span>
-                 <button class="cli-copiar" title="Copiar CPF" onclick="cliCopiar('${esc(_cliSoDigitos(c.cpf))}','CPF')">⧉</button>`
-               :'<span class="vazio">não informado</span>'}</div>
-      <div class="cli-linha"><span class="rot">Fone</span>
-        ${fone?`<span>${esc(_fmtFoneVis(c.telefone))}</span>
-                <button class="cli-copiar" title="Copiar telefone" onclick="cliCopiar('${esc(fone)}','Telefone')">⧉</button>`
-              :'<span class="vazio">não informado</span>'}</div>
-      <div class="cli-pe">
-        <span class="resumo">${c.pedidos.length} pedido(s) · ${_pedFmt(c.total)}<br>último em ${esc(quando)}</span>
-        <button class="cli-logs" onclick="abrirLogCliente('${esc(c.chave)}')">Logs (${c.pedidos.length})</button>
-      </div>
-    </div>`;
+    const quando=ult.data?_pedDataBR(ult.data):'—';
+    const st=_cliStatus(c);
+    return `<tr>
+      <td>
+        <div class="cli-nome-cel">
+          <span class="cli-av">${esc(_cliIniciais(c.nome))}</span>
+          <span class="cli-nome-txt">${esc(c.nome||'Sem nome')}</span>
+        </div>
+      </td>
+      <td>
+        <div class="cli-contato">
+          <span><span class="ic">&#9993;</span>${c.cpf?esc(_cliFmtCpf(c.cpf)):'<span style="opacity:.5;">sem CPF</span>'}</span>
+          <span><span class="ic">&#9742;</span>${fone?esc(_fmtFoneVis(c.telefone)):'<span style="opacity:.5;">sem telefone</span>'}</span>
+        </div>
+      </td>
+      <td><span class="selo" style="--sc:${st.c};--sb:${st.b};--sbd:${st.d};">${st.rot}</span></td>
+      <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${c.pedidos.length}</td>
+      <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${_pedFmt(c.total)}</td>
+      <td style="font-family:var(--font-mono);">${esc(quando)}</td>
+      <td>
+        <div class="cli-acoes">
+          <button class="btn-orb v-open sm" title="Ver os pedidos deste cliente" onclick="abrirLogCliente('${esc(c.chave)}')">
+            <svg viewBox="0 0 24 24"><path d="M1.8 12S5.5 5.4 12 5.4 22.2 12 22.2 12 18.5 18.6 12 18.6 1.8 12 1.8 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+          <span class="cli-menu">
+            <button class="btn-orb v-open sm" title="Mais ações" onclick="cliMenu(event,'${esc(c.chave)}')">
+              <svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg>
+            </button>
+          </span>
+        </div>
+      </td>
+    </tr>`;
   }).join('');
+}
+
+/* Menu de ações da linha. Só entra aqui o que existe de verdade para este
+   cliente: sem telefone não aparece WhatsApp, sem CPF não aparece copiar
+   CPF. Opção que abre e não faz nada é pior que opção que não existe. */
+function cliMenu(ev,chave){
+  ev.stopPropagation();
+  document.querySelectorAll('.cli-menu-lista').forEach(m=>m.remove());
+  const c=agruparClientes().find(x=>x.chave===chave);
+  if(!c) return;
+  const fone=_cliSoDigitos(c.telefone);
+  const cpf=_cliSoDigitos(c.cpf);
+  const itens=[];
+  itens.push(`<button onclick="abrirLogCliente('${c.chave}')">Ver pedidos (${c.pedidos.length})</button>`);
+  if(cpf)  itens.push(`<button onclick="cliCopiar('${cpf}','CPF')">Copiar CPF</button>`);
+  if(fone) itens.push(`<button onclick="cliCopiar('${fone}','Telefone')">Copiar telefone</button>`);
+  if(fone) itens.push(`<button onclick="window.open('https://wa.me/55${fone}','_blank','noopener')">Abrir no WhatsApp</button>`);
+  const menu=document.createElement('div');
+  menu.className='cli-menu-lista';
+  menu.innerHTML=itens.join('');
+  menu.onclick=()=>menu.remove();
+  ev.currentTarget.parentElement.appendChild(menu);
+  setTimeout(()=>{
+    const fora=()=>{ menu.remove(); document.removeEventListener('click',fora); };
+    document.addEventListener('click',fora);
+  },0);
+}
+
+/* Exporta o que está na tela, não a base inteira: quem filtrou por um
+   segmento quer levar aquele recorte. O separador é ponto e vírgula porque
+   é o que o Excel em português abre sem perguntar nada. */
+function cliExportar(){
+  const {lista}=_cliListaVisivel();
+  if(!lista.length){ showToast('Não há clientes nesta lista para exportar','warn'); return; }
+  const csv=(v)=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+  const linhas=[['Nome','CPF','Telefone','Situação','Pedidos','Total gasto','Último pedido'].map(csv).join(';')];
+  lista.forEach(c=>{
+    const ult=c.ultimo||{};
+    linhas.push([
+      c.nome||'', c.cpf?_cliFmtCpf(c.cpf):'', c.telefone?_fmtFoneVis(c.telefone):'',
+      _cliStatus(c).rot, c.pedidos.length,
+      Number(c.total||0).toFixed(2).replace('.',','),
+      ult.data?_pedDataBR(ult.data):''
+    ].map(csv).join(';'));
+  });
+  // BOM na frente: sem ele o Excel abre "José" como "JosÃ©"
+  const blob=new Blob(['﻿'+linhas.join('\r\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='clientes-'+new Date().toISOString().slice(0,10)+'.csv';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  showToast('⬇ '+lista.length+' cliente(s) exportado(s)','success');
 }
 
 function cliCopiar(valor,rotulo){
@@ -21522,6 +21788,135 @@ function _mktResponsavelHtml(it){
   return _mktSemResponsavel(it)
     ? `<span style="color:var(--tom-vermelho);font-weight:700;">⚠ ${txt} — abra e escolha o colaborador</span>`
     : txt;
+}
+
+
+/* ── Integrações ─────────────────────────────────────────────────────
+   Esta tela é um mapa, não um painel de controle. O LiveOps não liga nem
+   desliga nada aqui: cada serviço é configurado no lugar dele — n8n, Apps
+   Script, Firebase — e o que a tela faz é dizer QUAL é esse lugar e levar
+   até ele.
+
+   Por isso a situação não é "Conectado/Desconectado". Um selo verde escrito
+   "Conectado" que ninguém verifica de verdade mente no pior momento
+   possível: no dia em que o token vence. O que está escrito aqui é onde a
+   configuração mora, que é uma verdade estável. */
+const INTEGRACOES=[
+  {nome:'Base (BaseLinker)', ic:'caixa', cor:'#8fa8d8',
+   desc:'Origem dos pedidos, produtos e do rastreio dos marketplaces. É dela que a lista de Clientes se monta.',
+   onde:'Token no n8n e no Apps Script', uso:'em uso',
+   acao:{txt:'Abrir a Base', url:'https://panel.baselinker.com/'}},
+
+  {nome:'n8n Automation', ic:'raio', cor:'#f59e0b',
+   desc:'Os robôs: rastreio das encomendas, leitura dos pedidos da Base e as tarefas que nascem sozinhas.',
+   onde:'n8n.suplelive.com.br', uso:'em uso',
+   acao:{txt:'Configurar n8n', url:'https://n8n.suplelive.com.br/home/workflows'}},
+
+  {nome:'Chatwoot (WhatsApp)', ic:'chat', cor:'#22c55e',
+   desc:'Atendimento no WhatsApp. As conversas ainda vivem lá fora — a aba Inbox é o lugar reservado para trazê-las.',
+   onde:'Token no Apps Script', uso:'em uso',
+   acao:{txt:'Abrir Chatwoot', url:'https://app.chatwoot.com/'}},
+
+  {nome:'GhostAPIs (CPF)', ic:'lupa', cor:'#a78bfa',
+   desc:'Consulta de CPF: traz nome e telefone do cliente a partir do documento.',
+   onde:'Token no Apps Script', uso:'em uso',
+   acao:{txt:'Ver Consulta CPF', aba:'consultacpf'}},
+
+  {nome:'Melhor Envio', ic:'caminhao', cor:'#8fa8d8',
+   desc:'Rastreio das encomendas das contas Antonio Carlos e Raphael.',
+   onde:'Credenciais no n8n', uso:'em uso',
+   acao:{txt:'Abrir Melhor Envio', url:'https://melhorenvio.com.br/'}},
+
+  {nome:'Manda Bem', ic:'caminhao', cor:'#8fa8d8',
+   desc:'Rastreio das contas Daniel e 4Vita. Não tem API: o robô lê o painel.',
+   onde:'Login no n8n', uso:'em uso',
+   acao:{txt:'Abrir Manda Bem', url:'https://painel.mandabem.com.br/'}},
+
+  {nome:'Firebase', ic:'banco', cor:'#e8c25a',
+   desc:'Onde o LiveOps guarda tudo. É por ele que duas telas abertas veem a mesma coisa ao mesmo tempo.',
+   onde:'Conta de serviço', uso:'em uso',
+   acao:{txt:'Abrir console', url:'https://console.firebase.google.com/'}},
+
+  {nome:'Google Apps Script', ic:'codigo', cor:'#22c55e',
+   desc:'A ponte para o que o navegador não alcança sozinho: preço no site, consulta de CPF e sondagem da Base.',
+   onde:'script.google.com', uso:'em uso',
+   acao:{txt:'Abrir Apps Script', url:'https://script.google.com/home'}},
+
+  {nome:'Mercado Livre · Shopee · Magalu', ic:'loja', cor:'#6d7580',
+   desc:'Os marketplaces entram pela Base, e não por integração direta: três integrações viraram uma.',
+   onde:'Pela Base', uso:'indireto',
+   acao:null}
+];
+
+const _INTEG_ICONES={
+  caixa:'<path d="M3.4 8.1 12 3.6l8.6 4.5v7.8L12 20.4l-8.6-4.5z"/><path d="M3.4 8.1 12 12.6l8.6-4.5"/><path d="M12 12.6v7.8"/>',
+  raio:'<path d="M13.6 4.2 8.8 11h4.4l-2.8 8.8L15.2 13h-4.4z"/>',
+  chat:'<path d="M20.4 12.4a7.6 7.6 0 0 1-10.9 6.8L4 20.4l1.3-5.2A7.6 7.6 0 1 1 20.4 12.4z"/>',
+  lupa:'<circle cx="10.8" cy="10.8" r="6.4"/><path d="M15.4 15.4 20 20"/>',
+  caminhao:'<rect x="2.6" y="6.6" width="12.2" height="9.6" rx="1.8"/><path d="M14.8 10h3l2.6 2.6v3.6h-5.6z"/><circle cx="7" cy="18.4" r="1.9"/><circle cx="17.4" cy="18.4" r="1.9"/>',
+  banco:'<ellipse cx="12" cy="6.2" rx="7.6" ry="2.8"/><path d="M4.4 6.2v11.6c0 1.5 3.4 2.8 7.6 2.8s7.6-1.3 7.6-2.8V6.2"/><path d="M4.4 12c0 1.5 3.4 2.8 7.6 2.8s7.6-1.3 7.6-2.8"/>',
+  codigo:'<path d="M8.6 8.4 4.6 12l4 3.6"/><path d="M15.4 8.4 19.4 12l-4 3.6"/><path d="M13.4 5.4 10.6 18.6"/>',
+  loja:'<path d="M4 9.4 5.2 4.6h13.6L20 9.4"/><path d="M4 9.4a2.4 2.4 0 0 0 4.8 0 2.4 2.4 0 0 0 4.8 0 2.4 2.4 0 0 0 4.8 0"/><path d="M5.4 11.4v7.2a1.4 1.4 0 0 0 1.4 1.4h10.4a1.4 1.4 0 0 0 1.4-1.4v-7.2"/>'
+};
+
+function renderIntegracoesTab(){
+  const box=document.getElementById('integ-lista');
+  if(!box) return;
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  const kp=document.getElementById('integ-kpis');
+  if(kp){
+    const emUso=INTEGRACOES.filter(i=>i.uso==='em uso').length;
+    const noN8n=INTEGRACOES.filter(i=>/n8n/i.test(i.onde)).length;
+    const noScript=INTEGRACOES.filter(i=>/Apps Script/i.test(i.onde)).length;
+    const card=(num,rot,cor,bg,bd,ic)=>`<div class="kpi-card">
+      <span class="kpi-ic" style="--kc:${cor};--kb:${bg};--kbd:${bd};">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${_INTEG_ICONES[ic]}</svg>
+      </span>
+      <span><span class="kpi-num" style="--kc:${cor};">${num}</span><span class="kpi-rot">${rot}</span></span>
+    </div>`;
+    kp.innerHTML =
+        card(INTEGRACOES.length,'Serviços mapeados','#8fa8d8','rgba(143,168,216,.12)','rgba(143,168,216,.32)','caixa')
+      + card(emUso,'Em uso hoje','#22c55e','rgba(34,197,94,.12)','rgba(34,197,94,.32)','raio')
+      + card(noN8n,'Configurados no n8n','#f59e0b','rgba(245,158,11,.12)','rgba(245,158,11,.32)','raio')
+      + card(noScript,'Configurados no Apps Script','#a78bfa','rgba(167,139,250,.12)','rgba(167,139,250,.32)','codigo');
+  }
+
+  box.innerHTML=INTEGRACOES.map(it=>{
+    const selo = it.uso==='em uso'
+      ? '<span class="selo" style="--sc:#22c55e;--sb:rgba(34,197,94,.12);--sbd:rgba(34,197,94,.35);">em uso</span>'
+      : '<span class="selo" style="--sc:#6d7580;--sb:rgba(109,117,128,.12);--sbd:rgba(109,117,128,.3);">indireto</span>';
+    let acao;
+    if(!it.acao){
+      acao='<span class="integ-btn mudo">Sem configuração própria</span>';
+    } else if(it.acao.aba){
+      acao=`<button class="integ-btn" onclick="switchTab('${it.acao.aba}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${_INTEG_ICONES[it.ic]}</svg>
+              ${esc(it.acao.txt)}</button>`;
+    } else {
+      acao=`<a class="integ-btn" href="${esc(it.acao.url)}" target="_blank" rel="noopener">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${_INTEG_ICONES[it.ic]}</svg>
+              ${esc(it.acao.txt)}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;opacity:.6;"><path d="M14 4h6v6"/><path d="M20 4 10.5 13.5"/><path d="M18.5 13.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V7A1.5 1.5 0 0 1 5 5.5h5.5"/></svg>
+            </a>`;
+    }
+    return `<div class="integ-card">
+      <div class="integ-topo">
+        <span class="integ-ic" style="--ic:${it.cor};--ib:${it.cor}1f;--ibd:${it.cor}55;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${_INTEG_ICONES[it.ic]}</svg>
+        </span>
+        <span style="min-width:0;">
+          <div class="integ-nome">${esc(it.nome)}</div>
+          <div class="integ-desc">${esc(it.desc)}</div>
+        </span>
+        <span class="integ-selo">${selo}</span>
+      </div>
+      <div class="integ-pe">
+        ${acao}
+        <span class="integ-onde">configurado em: ${esc(it.onde)}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function renderIntegracoes(){
