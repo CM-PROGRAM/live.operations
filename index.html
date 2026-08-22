@@ -986,17 +986,17 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .bi-wrap{max-width:1500px;}
 .bi-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;align-items:start;}
 
-/* Painéis das Tarefas Suplelive: mesmos quadros da Página inicial, no
-   tamanho compacto — são até sete, e no tamanho grande a escolha exigiria
-   rolagem antes mesmo de começar o dia. */
-.atv-area-grade{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;align-items:start;}
-.ini-quadro.atv-area{min-height:0;padding:20px 18px;border-radius:14px;gap:7px;}
-.ini-quadro.atv-area .ini-ic{width:34px;height:34px;}
-.ini-quadro.atv-area .ini-tit{font-size:16px;}
-.ini-quadro.atv-area .ini-sub{font-size:11.5px;max-width:none;}
+/* Painéis das Tarefas Suplelive: os mesmos quadros da Página inicial, no
+   mesmo tamanho e em fileiras de dois, centralizados na largura dela. Ficam
+   sete painéis, então o último fica sozinho na fileira — de propósito:
+   igualar a fileira apertando a largura deixaria estes cartões menores que
+   os da Página inicial, que é o padrão que a tela toda segue. */
+.atv-area-grade{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;
+  max-width:980px;margin:0 auto;align-items:start;}
+@media(max-width:760px){.atv-area-grade{grid-template-columns:1fr;}}
 .ini-quadro.atv-area .atv-area-cnt{font-size:10px;font-weight:700;letter-spacing:.3px;
   color:var(--text-secondary);font-family:var(--font-mono);
-  background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:999px;padding:3px 11px;margin-top:2px;}
+  background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:999px;padding:3px 12px;margin-top:4px;}
 .bi-quadro{cursor:pointer;justify-content:flex-start;min-height:0;
   padding:16px 18px;border-radius:12px;gap:8px;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
@@ -8347,7 +8347,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21r';
+const APP_VERSAO='2026.08.21s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
