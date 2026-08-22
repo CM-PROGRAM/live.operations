@@ -998,6 +998,20 @@ body.menu-oculto .sb-atu-txt{display:none;}
    sete painéis, então o último fica sozinho na fileira — de propósito:
    igualar a fileira apertando a largura deixaria estes cartões menores que
    os da Página inicial, que é o padrão que a tela toda segue. */
+/* Aba criada, conteúdo ainda não. A tela diz o que vai morar ali em vez de
+   ficar em branco — tela vazia sem explicação vira chamado, e quem abre
+   conclui que o sistema quebrou. */
+.aba-futura{max-width:720px;margin:40px auto;text-align:center;
+  background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.012));
+  border:1px solid var(--glass-border);border-radius:20px;padding:44px 32px;}
+.aba-futura .af-ic{width:52px;height:52px;margin:0 auto 14px;color:var(--text-secondary);opacity:.85;}
+.aba-futura .af-ic svg{width:100%;height:100%;stroke-width:1.3;}
+.aba-futura h3{font-family:var(--font-sans);font-size:20px;font-weight:800;color:var(--text-primary);margin:0 0 8px;}
+.aba-futura p{font-size:13px;color:var(--text-muted);line-height:1.7;margin:0 auto;max-width:520px;}
+.aba-futura .af-selo{display:inline-block;margin-top:16px;font-size:10px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;font-family:var(--font-mono);color:var(--text-secondary);
+  background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:999px;padding:5px 14px;}
+
 .atv-area-grade{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;
   max-width:980px;margin:0 auto;align-items:start;}
 @media(max-width:760px){.atv-area-grade{grid-template-columns:1fr;}}
@@ -1792,7 +1806,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ENVIOS -->
     <div class="tab-panel" id="tab-envios">
       <div class="section-header">
-        <span class="section-title">Rastreador Live</span>
+        <span class="section-title">Acompanhamento</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
       <div class="date-header" id="env-date"></div>
@@ -2171,6 +2185,72 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div id="atv-empty" style="display:none;padding:48px;text-align:center;color:var(--text-muted);font-size:13px;font-family:var(--font-mono);">Nenhuma tarefa cadastrada ainda.</div>
       </div><!-- /atv-quadro -->
+    </div>
+
+
+    <div class="tab-panel" id="tab-inbox">
+      <div class="section-header">
+        <span class="section-title">Inbox</span>
+      </div>
+      <div class="date-header">Conversas em um lugar só</div>
+      <div class="aba-futura">
+        <div class="af-ic" data-icone="inbox"></div>
+        <h3>Inbox</h3>
+        <p>Aqui vão ficar as conversas do WhatsApp, para atender sem sair do LiveOps. Hoje elas vivem no Chatwoot, em <b>Vendas → WhatsApp</b>.</p>
+        <span class="af-selo">em construção</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-estoque">
+      <div class="section-header">
+        <span class="section-title">Estoque</span>
+      </div>
+      <div class="date-header">Saldo e movimentação dos produtos</div>
+      <div class="aba-futura">
+        <div class="af-ic" data-icone="estoque"></div>
+        <h3>Estoque</h3>
+        <p>Saldo por SKU, entradas e saídas, e o histórico de cada alteração. Os dados virão da Base, pelo mesmo caminho que já traz os pedidos.</p>
+        <span class="af-selo">em construção</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-templates">
+      <div class="section-header">
+        <span class="section-title">Templates</span>
+      </div>
+      <div class="date-header">Textos prontos da operação</div>
+      <div class="aba-futura">
+        <div class="af-ic" data-icone="templates"></div>
+        <h3>Templates</h3>
+        <p>Os textos que a equipe repete todo dia — orçamento, frete, cobrança, pós-venda — guardados em um lugar só, para todo mundo mandar a mesma coisa.</p>
+        <span class="af-selo">em construção</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-integracoes">
+      <div class="section-header">
+        <span class="section-title">Integrações</span>
+      </div>
+      <div class="date-header">Contas e chaves conectadas ao sistema</div>
+      <div class="aba-futura">
+        <div class="af-ic" data-icone="integracoes"></div>
+        <h3>Integrações</h3>
+        <p>Base, Chatwoot, Melhor Envio, Manda Bem e os marketplaces: o que está conectado, o que expirou e o que precisa de atenção.</p>
+        <span class="af-selo">em construção</span>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-jobs">
+      <div class="section-header">
+        <span class="section-title">Jobs &amp; Logs</span>
+      </div>
+      <div class="date-header">Monitoramento dos robôs</div>
+      <div class="aba-futura">
+        <div class="af-ic" data-icone="jobs"></div>
+        <h3>Jobs &amp; Logs</h3>
+        <p>O que os fluxos do n8n executaram, o que falhou e por quê. Hoje isso só se vê entrando no n8n — a ideia é não precisar.</p>
+        <span class="af-selo">em construção</span>
+      </div>
     </div>
 
     <!-- PROJETOS -->
@@ -8360,7 +8440,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.21u';
+const APP_VERSAO='2026.08.22a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -8491,6 +8571,13 @@ const ICONES_MENU={
   pedidos:     '<path d="M6 3.4h9.2l3.4 3.4v13.8a.8.8 0 0 1-1.2.7l-1.7-1-1.8 1a.8.8 0 0 1-.8 0l-1.8-1-1.8 1a.8.8 0 0 1-.8 0l-1.8-1-1.7 1a.8.8 0 0 1-1.2-.7V4.6A1.2 1.2 0 0 1 6 3.4z"/><path d="M8.6 8.6h6.8M8.6 12h6.8M8.6 15.4h4.2"/>',
   track:       '<path d="M2.8 6.6a1.4 1.4 0 0 1 1.4-1.4h8.6a1.4 1.4 0 0 1 1.4 1.4v9.8H2.8z"/><path d="M14.2 9.4h3.2l3.8 3.6v3.4h-7z"/><circle cx="7" cy="18.2" r="1.8"/><circle cx="17.4" cy="18.2" r="1.8"/>',
   cpf:         '<rect x="2.8" y="5" width="18.4" height="14" rx="2.2"/><circle cx="8.6" cy="11" r="2.1"/><path d="M5.2 16.4a3.6 3.6 0 0 1 6.8 0"/><path d="M14.6 10.2h4.2M14.6 13.4h4.2"/>',
+  inbox:       '<path d="M3.5 12.5h4l1.4 2.4h6.2l1.4-2.4h4"/><path d="M5.2 5.6h13.6l2.7 6.9v4.4a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2v-4.4z"/>',
+  clientes:    '<circle cx="9" cy="8.2" r="3.2"/><path d="M3.2 19.4a5.8 5.8 0 0 1 11.6 0"/><path d="M16.2 5.6a3.1 3.1 0 0 1 0 5.6"/><path d="M17.4 14.2a5.6 5.6 0 0 1 3.4 5.2"/>',
+  estoque:     '<path d="M3.4 8.1 12 3.6l8.6 4.5v7.8L12 20.4l-8.6-4.5z"/><path d="M3.4 8.1 12 12.6l8.6-4.5"/><path d="M12 12.6v7.8"/>',
+  templates:   '<path d="M6.6 3.4h7l4.8 4.8v12a1.6 1.6 0 0 1-1.6 1.6H6.6A1.6 1.6 0 0 1 5 20.2V5a1.6 1.6 0 0 1 1.6-1.6z"/><path d="M13.4 3.4v4.9h4.9"/><path d="M8.6 13h6.8M8.6 16.6h4.4"/>',
+  integracoes: '<path d="M13.6 4.2 8.8 11h4.4l-2.8 8.8L15.2 13h-4.4z"/>',
+  acompanha:   '<rect x="2.6" y="6.6" width="12.2" height="9.6" rx="1.8"/><path d="M14.8 10h3l2.6 2.6v3.6h-5.6z"/><circle cx="7" cy="18.4" r="1.9"/><circle cx="17.4" cy="18.4" r="1.9"/>',
+  jobs:        '<path d="M2.8 12.4h3.6l2-5.2 3.4 9.6 2.4-6 1.6 3.2h5.4"/>',
   admin:       '<circle cx="12" cy="12" r="3.1"/><path d="M19.5 14.4a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0V20a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9H4a1.8 1.8 0 1 1 0-3.6h.2a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3H9.7a1.5 1.5 0 0 0 .9-1.4V4a1.8 1.8 0 1 1 3.6 0v.2a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6H20a1.5 1.5 0 0 0-1.4.9z"/>'
 };
 function iconeMenu(chave){
@@ -8502,21 +8589,27 @@ function iconeMenu(chave){
 function buildTabs(){
   const tabs=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
+    /* Inbox é onde as conversas do WhatsApp vão morar. Enquanto não moram,
+       a aba diz isso — tela vazia sem explicação vira chamado. */
+    {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'whatsapp'},
     {type:'group', id:'grp-tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas', children:[
       {id:'tarefas',   label:'Tarefas Suplelive'}
     ]},
     {type:'group', id:'grp-atendimentos', icon:'atendimentos', label:'Atendimentos', perm:'atendimentos', children:[
       {id:'atendimentos', label:'Lançamentos'}
     ]},
+    /* Clientes, Pedidos e Acompanhamento saíram de dentro de Vendas e viraram
+       abas de primeiro nível: são as três telas mais abertas do dia, e cada
+       uma custava dois cliques por estar enterrada num grupo. Os ids
+       continuam os mesmos (clientes, registrovendas, envios) porque aparecem
+       em vínculo já gravado — tarefa, notificação, permissão — e trocá-los
+       quebraria registro antigo sem ganho nenhum. */
+    {id:'clientes', icon:'clientes', label:'Clientes', perm:'whatsapp'},
+    {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'whatsapp'},
+    {id:'estoque', icon:'estoque', label:'Estoque', perm:'admin'},
     {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
-      // Os ids não mudam junto com os nomes: eles aparecem em vínculo já
-      // gravado (tarefa, notificação, permissão) e trocá-los quebraria
-      // registro antigo sem ganho nenhum.
-      {id:'clientes', label:'Clientes', perm:'whatsapp'},
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
-      {id:'registrovendas', label:'Pedidos', perm:'whatsapp'},
       {id:'canceladas', label:'Pedidos Cancelados'},
-      {id:'envios',    label:'Rastreador Live', perm:'envios'},
       // A consulta de CPF é de todo mundo: quem atende cliente precisa do
       // telefone, e trancar isso só criava pedido de liberação para o master
       {id:'consultacpf', label:'Consulta CPF', perm:null}
@@ -8535,6 +8628,12 @@ function buildTabs(){
       {id:'devolucoes', label:'Lançamentos'},
       {id:'canceladasnf', label:'Canceladas com NF'}
     ]},
+    {id:'templates',  icon:'templates',    label:'Templates',       perm:'admin'},
+    {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'admin'},
+    /* "Rastreador Live" virou "Acompanhamento": o nome antigo dizia a
+       tecnologia, o novo diz o trabalho. O id segue 'envios'. */
+    {id:'envios',     icon:'acompanha',    label:'Acompanhamento',  perm:'envios'},
+    {id:'jobs',       icon:'jobs',         label:'Jobs & Logs',     perm:'admin'},
     {id:'cnpjs',      icon:'cnpjs', label:'CNPJs Suplelive', perm:'cnpjs'},
     {id:'admin',      icon:'admin', label:'Administrador',       perm:'admin'}
   ];
@@ -8588,6 +8687,8 @@ function buildTabs(){
 
   function fireTabHooks(id){
     try{ normalizarBuscas(); }catch(e){ console.warn('normalizarBuscas:',e); }
+    // Os painéis novos desenham o ícone por data-icone, como as frentes do WhatsApp
+    try{ preencherIconesDeclarados(document.getElementById('tab-'+id)); }catch(e){}
     if(id==='whatsapp'){ try{ wppAbrirFrente(_wppFrente); }catch(e){ console.warn('wppAbrirFrente:',e); } }
     if(id==='registrovendas'){ try{regSetSubTab('base');}catch(e){console.warn('regSetSubTab:',e);} }
     if(id==='financeiro'){ try{finSetSubTab('confvendas');}catch(e){console.warn('finSetSubTab:',e);} }
@@ -8942,7 +9043,7 @@ const MANUAL_ABAS=[
    ],
    atencao:'Se um pedido não aparecer em <b>Pedidos Base WhatsApp</b>, quase sempre a origem de venda dele na Base não é o WhatsApp. Confira lá antes de lançar à mão.'},
 
-  {icone:'track', aba:'Vendas → Rastreador Live', perm:'envios',
+  {icone:'track', aba:'Acompanhamento', perm:'envios',
    paraQue:'Acompanhamento dos envios. A automação consulta a transportadora e escreve o status no card.',
    passos:[
      'Crie o card preenchendo o essencial: <b>código de rastreio</b> (ou o código do envio no Melhor Envio) e a <b>transportadora</b>. Sem esses dois, a automação não tem o que consultar.',
