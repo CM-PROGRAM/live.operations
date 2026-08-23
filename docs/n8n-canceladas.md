@@ -142,7 +142,32 @@ API** — estão no Arquivo, que é um banco separado da Base e não é alcança
 nenhum parâmetro (o mesmo limite documentado em `base-pedidos-whatsapp.md` §9).
 
 Para esses, o caminho é a exportação em CSV pelo painel da Base, como foi feito
-com os 524 pedidos de WhatsApp.
+com os 524 pedidos de WhatsApp — e o LiveOps importa direto, ver abaixo.
+
+### 4.1 Importar o Arquivo pela tela
+
+Em **Pedidos → Canceladas** (ou **Canceladas com NF**), botão **Importar
+Arquivo**.
+
+1. Na Base: **Pedidos → Lista de pedidos → Arquivo**, filtre o período que
+   falta (janeiro a maio de 2026) e exporte em **CSV**.
+2. O arquivo precisa ter pelo menos as colunas `numero`, `data` e `status`. O
+   modelo usado nos pedidos de WhatsApp já serve — as outras colunas
+   (`cliente_comprador`, `cpf`, `telefone`, `origem`) são aproveitadas quando
+   existem.
+3. **Um arquivo só alimenta as duas listas.** Quem separa cancelamento com nota
+   de cancelamento sem é o `status` escrito na linha, não quem exportou — não
+   precisa exportar duas vezes.
+4. Nada é gravado direto: aparece um painel de conferência com quantos vão para
+   cada lista, quantos já estavam, quantos não são cancelamento, quantos são
+   anteriores a 2026 e quantos vieram repetidos dentro do próprio arquivo.
+5. **Por padrão o histórico entra como concluído.** São meses de cancelamento já
+   resolvido; abrir tudo encheria o quadro do dia com trabalho que ninguém vai
+   refazer. A caixa **"Trazer como A Fazer"** existe para o caso contrário — e
+   ela avisa quantas tarefas vão cair no quadro de uma vez.
+
+Importar o mesmo arquivo duas vezes não duplica: a chave é o número do pedido.
+As linhas vindas daí aparecem com a marca **arquivo** embaixo do número.
 
 ---
 

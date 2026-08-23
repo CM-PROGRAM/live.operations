@@ -2191,8 +2191,18 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <button class="seg-btn"        data-f="abertas"    onclick="cancSetFiltro('cancnf','abertas')">A Fazer</button>
             <button class="seg-btn"        data-f="concluidas" onclick="cancSetFiltro('cancnf','concluidas')">Concluídas</button>
           </div>
+          <input type="file" id="cancnf-import-arq" accept=".csv,text/csv" style="display:none;" onchange="cancImportarArquivo(this,'cancnf')">
+          <button class="btn-sec" style="width:auto;white-space:nowrap;"
+            onclick="document.getElementById('cancnf-import-arq').click()"
+            title="Trazer os cancelamentos antigos exportados do Arquivo da Base">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 20h16"/></svg>
+            Importar Arquivo
+          </button>
         </div>
       </div>
+
+      <!-- Conferência antes de gravar: o importador nunca escreve direto. -->
+      <div id="cancnf-import-painel" class="ped-bloco" style="display:none;padding:16px 18px;margin-bottom:14px;"></div>
 
       <div class="ped-bloco" style="overflow:hidden;">
         <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
@@ -2290,8 +2300,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <button class="seg-btn"        data-f="abertas"    onclick="cancSetFiltro('canc','abertas')">A Fazer</button>
             <button class="seg-btn"        data-f="concluidas" onclick="cancSetFiltro('canc','concluidas')">Concluídas</button>
           </div>
+          <input type="file" id="canc-import-arq" accept=".csv,text/csv" style="display:none;" onchange="cancImportarArquivo(this,'canc')">
+          <button class="btn-sec" style="width:auto;white-space:nowrap;"
+            onclick="document.getElementById('canc-import-arq').click()"
+            title="Trazer os cancelamentos antigos exportados do Arquivo da Base">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 20h16"/></svg>
+            Importar Arquivo
+          </button>
         </div>
       </div>
+
+      <div id="canc-import-painel" class="ped-bloco" style="display:none;padding:16px 18px;margin-bottom:14px;"></div>
 
       <div class="ped-bloco" style="overflow:hidden;">
         <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
@@ -9350,7 +9369,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23aa';
+const APP_VERSAO='2026.08.23ab';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -24704,6 +24723,188 @@ function _cancPedidoHtml(item){
     +' target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">#'+_cancEsc(n)+' ↗</a>';
 }
 
+/* ── Importar o Arquivo da Base ───────────────────────────────────────
+   O fluxo do n8n só alcança 90 dias: rodando em agosto, ele chega até maio.
+   Janeiro a maio de 2026 estão no Arquivo, que é outro banco dentro da Base e
+   nenhum parâmetro da API abre. O caminho é o mesmo dos 524 pedidos de
+   WhatsApp: exportar em CSV pelo painel e trazer por aqui.
+
+   Um arquivo só alimenta as duas listas. Quem exporta não separa cancelamento
+   com nota de cancelamento sem — quem separa é o status escrito na linha, e é
+   ele que decide o destino. Exportar duas vezes seria trabalho a troco de
+   nada, e trabalho repetido é onde entra o erro. */
+const CANC_ARQ_OBRIGATORIAS=['numero','data','status'];
+let _cancArqImport=null;   // lido e esperando confirmação
+
+function cancImportarArquivo(input,p){
+  const arq=input&&input.files&&input.files[0];
+  input.value='';
+  if(!arq) return;
+  const fr=new FileReader();
+  fr.onerror=()=>showToast('Não consegui abrir o arquivo.','warn');
+  fr.onload=()=>{
+    let lido;
+    try{ lido=_arqLerCsv(String(fr.result||'')); }
+    catch(e){ showToast('Não consegui ler o arquivo: '+(e&&e.message||e),'warn'); return; }
+    _cancArqPreparar(p, arq.name, lido);
+  };
+  fr.readAsText(arq,'utf-8');
+}
+
+/* Monta o que seria gravado e conta tudo, sem tocar em appState. */
+function _cancArqPreparar(p, nomeArq, lido){
+  const painel=document.getElementById(p+'-import-painel');
+  const erro=msg=>{
+    _cancArqImport=null;
+    if(!painel) return;
+    painel.style.display='block';
+    painel.innerHTML='<div style="font-size:12.5px;font-weight:700;color:var(--red);margin-bottom:6px;">Não dá para importar este arquivo</div>'
+      +'<div style="font-size:11.5px;color:var(--text-secondary);line-height:1.8;">'+msg+'</div>'
+      +'<div style="margin-top:12px;"><button class="btn-sec" style="width:auto;" onclick="cancFecharImport(\''+p+'\')">Fechar</button></div>';
+  };
+
+  const faltando=CANC_ARQ_OBRIGATORIAS.filter(c=>lido.colunas.indexOf(c)<0);
+  if(faltando.length) return erro('Faltam colunas no cabeçalho: <b>'+faltando.join(', ')+'</b>.<br>'
+    +'O arquivo precisa ter pelo menos <b>numero</b>, <b>data</b> e <b>status</b> — o mesmo modelo de exportação usado nos pedidos serve.');
+  if(!lido.linhas.length) return erro('Não encontrei nenhum pedido no arquivo.');
+  if(lido.sobra) return erro('O arquivo tem '+lido.sobra.length+' caracteres fora dos registros — provavelmente algum '
+    +'nome ou endereço com aspas dentro, o que desalinha as colunas. Não vou gravar dado torto.');
+
+  const jaTem=new Set();
+  ['canc','cancnf'].forEach(k=>_cancLista(k).forEach(x=>{ if(x&&x.id) jaTem.add(String(x.id)); }));
+
+  const vistos=new Set();
+  const novos={canc:[], cancnf:[]};
+  let repetidos=0, duplicadosNoArquivo=0, naoCancelados=0, foraDoAno=0, semNumero=0;
+  const carimbo=new Date().toLocaleString('pt-BR');
+
+  lido.linhas.forEach(l=>{
+    const numero=String(l.numero||'').trim();
+    if(!numero){ semNumero++; return; }
+    const situacao=String(l.status||'').trim();
+    /* Linha que não é cancelamento não entra. A exportação do Arquivo vem com
+       tudo — pedido entregue, pago, em rota — e só o status diz o que é. */
+    if(!/cancel/i.test(situacao)){ naoCancelados++; return; }
+    const ehNF=/\bnf\b|nota\s*fiscal/i.test(situacao);
+    const p2=ehNF?'cancnf':'canc';
+    const chave=(ehNF?'cancnf_':'canc_')+numero;
+    if(vistos.has(chave)){ duplicadosNoArquivo++; return; }
+    vistos.add(chave);
+    if(jaTem.has(chave)){ repetidos++; return; }
+
+    const dh=_arqData(l.data);
+    const ano=Number(String(dh.data||'').slice(0,4))||0;
+    if(ano<CANC_ANO_MINIMO){ foraDoAno++; return; }
+
+    const ms=dh.data?new Date(dh.data+'T'+(dh.hora||'00:00')+':00').getTime():0;
+    novos[p2].push({
+      id:chave,
+      cliente:String(l.cliente_comprador||l.cliente_entrega||l.cliente||'').trim(),
+      cpf:_arqCpf(l.cpf),
+      telefone:_arqFone(l.telefone),
+      plataforma:String(l.origem||'').trim().toUpperCase(),
+      pedidoBase:numero,
+      dataPedido:dh.data,
+      statusBase:situacao,
+      consideracoes:CANC_CONSIDERACAO,
+      responsaveis:CANC_RESPONSAVEIS.slice(),
+      prazoHoras:CANC_PRAZO_HORAS,
+      criadoEm:(dh.data?dh.data.split('-').reverse().join('/'):carimbo)+(dh.hora?(', '+dh.hora):''),
+      criadoPor:'Arquivo da Base',
+      ordemManual:ms||Date.now(),
+      doArquivo:true,
+      importadoEm:carimbo
+    });
+  });
+
+  _cancArqImport={p, nomeArq, novos, repetidos, duplicadosNoArquivo,
+                  naoCancelados, foraDoAno, semNumero, lidos:lido.linhas.length};
+  _cancArqPainel(p);
+}
+
+function _cancArqPainel(p){
+  const painel=document.getElementById(p+'-import-painel');
+  if(!painel||!_cancArqImport) return;
+  const I=_cancArqImport;
+  const nC=I.novos.canc.length, nN=I.novos.cancnf.length, total=nC+nN;
+  const linha=(rot,val,cor)=>val
+    ? `<div style="display:flex;justify-content:space-between;gap:12px;font-size:11.5px;">
+         <span style="color:var(--text-secondary);">${rot}</span>
+         <span style="font-family:var(--font-mono);font-weight:700;color:${cor||'var(--text-primary)'};">${val}</span></div>`
+    : '';
+  painel.style.display='block';
+  painel.innerHTML=
+     `<div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:3px;">Conferir antes de gravar</div>`
+    +`<div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:11px;">${String(I.nomeArq||'').replace(/</g,'&lt;')} · ${I.lidos} registro(s) lidos</div>`
+    +`<div style="display:grid;gap:5px;max-width:460px;">`
+      +linha('Vão para <b>Canceladas</b>', nC, 'var(--green)')
+      +linha('Vão para <b>Canceladas com NF</b>', nN, 'var(--green)')
+      +linha('Já estavam no sistema', I.repetidos)
+      +linha('Não são cancelamento', I.naoCancelados)
+      +linha('Anteriores a '+CANC_ANO_MINIMO, I.foraDoAno)
+      +linha('Repetidos dentro do arquivo', I.duplicadosNoArquivo)
+      +linha('Sem número de pedido', I.semNumero, 'var(--red)')
+    +`</div>`
+    +(total
+      ? `<label style="display:flex;align-items:center;gap:8px;margin-top:13px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;">
+           <input type="checkbox" id="${p}-import-afazer" style="width:auto;margin:0;cursor:pointer;">
+           Trazer como <b>A Fazer</b> (gera tarefa diária para cada um)
+         </label>
+         <div style="font-size:10.5px;color:var(--text-muted);line-height:1.7;margin-top:5px;max-width:520px;">
+           Desmarcado, tudo entra como <b>concluído</b> — que é o certo para histórico já resolvido.
+           Marcado, ${total} tarefa(s) caem no quadro de Gustavo e CM Andrade de uma vez.
+         </div>`
+      : `<div style="font-size:11.5px;color:var(--text-muted);margin-top:12px;">Nada novo para gravar neste arquivo.</div>`)
+    +`<div style="display:flex;gap:10px;margin-top:14px;">`
+      +(total?`<button class="btn" style="width:auto;" onclick="cancConfirmarImport('${p}')">Gravar ${total} registro(s)</button>`:'')
+      +`<button class="btn-sec" style="width:auto;" onclick="cancFecharImport('${p}')">Cancelar</button>`
+    +`</div>`;
+}
+
+function cancFecharImport(p){
+  _cancArqImport=null;
+  const painel=document.getElementById(p+'-import-painel');
+  if(painel){ painel.style.display='none'; painel.innerHTML=''; }
+}
+
+function cancConfirmarImport(p){
+  if(!_cancArqImport) return cancFecharImport(p);
+  const I=_cancArqImport;
+  const total=I.novos.canc.length+I.novos.cancnf.length;
+  if(!total) return cancFecharImport(p);
+
+  const comoAFazer=!!(document.getElementById(p+'-import-afazer')||{}).checked;
+  const agora=Date.now();
+  ['canc','cancnf'].forEach(k=>{
+    const lista=_cancLista(k);
+    I.novos[k].forEach(item=>{
+      if(comoAFazer){
+        item.status='aberta';
+        item.prazoLimite=agora+CANC_PRAZO_HORAS*3600*1000;
+      }else{
+        /* Histórico entra fechado de propósito: são meses de cancelamento já
+           resolvido, e abrir tudo encheria o quadro do dia com trabalho que
+           ninguém vai refazer. tarefaGerada trava a criação automática. */
+        item.status='concluida';
+        item.concluidoEm=item.criadoEm||'';
+        item.tarefaGerada=true;
+      }
+      lista.push(item);
+    });
+  });
+
+  /* Com "A Fazer" marcado a tarefa nasce agora, e não na próxima vez que
+     alguém abrir a aba: quem importou espera ver o quadro mudar. */
+  if(comoAFazer){ try{ cancGarantirTarefas(); }catch(e){ console.warn('[canc] tarefas do import:',e); } }
+
+  saveState(appState);
+  cancFecharImport(p);
+  renderCanceladas('canc');
+  renderCanceladas('cancnf');
+  try{ renderAtividades(); }catch(e){}
+  showToast('✓ '+total+' registro(s) importados do Arquivo','success');
+}
+
 function renderCanceladas(p){
   const c=_cancCtx(p);
   const tbody=document.getElementById(p+'-rows');
@@ -24787,7 +24988,9 @@ function renderCanceladas(p){
     const fone=String(item.telefone||'').replace(/\D/g,'');
     const tr=document.createElement('tr');
     tr.innerHTML=`
-      <td style="font-weight:700;font-family:var(--font-mono);">${_cancPedidoHtml(item)}</td>
+      <td style="font-weight:700;font-family:var(--font-mono);">${_cancPedidoHtml(item)}
+        ${item.doArquivo?`<div style="font-size:9px;font-weight:400;color:var(--text-muted);" title="Veio do Arquivo da Base — não é mais relido pela integração">arquivo</div>`:''}
+      </td>
       <td style="color:var(--text-primary);white-space:normal;max-width:280px;">${_cancEsc(item.cliente||'—')}
         ${doc?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">CPF ${_cancEsc(_cancCpfVis(doc))}</div>`:''}
         ${fone?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${_fmtFoneVis(fone)}</div>`:''}
