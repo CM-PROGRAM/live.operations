@@ -649,6 +649,7 @@ html{overflow-x:hidden;}
 .acp-rot[data-ic="cifrao"]::before{-webkit-mask-image:var(--ic-cif);mask-image:var(--ic-cif);}
 .acp-rot[data-ic="predio"]::before{-webkit-mask-image:var(--ic-pre);mask-image:var(--ic-pre);}
 .acp-rot[data-ic="documento"]::before{-webkit-mask-image:var(--ic-doc);mask-image:var(--ic-doc);}
+.acp-rot[data-ic="foto"]::before{-webkit-mask-image:var(--ic-foto);mask-image:var(--ic-foto);}
 :root{
   --ic-cal:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>');
   --ic-cam:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h13v13H1z"/><path d="M14 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg>');
@@ -656,10 +657,25 @@ html{overflow-x:hidden;}
   --ic-cif:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>');
   --ic-pre:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>');
   --ic-doc:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>');
+  --ic-foto:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.4"/><path d="M8 6l1.6-2.4h4.8L16 6"/></svg>');
 }
 /* Linha de produto: nome largo, o resto estreito. O nome é o campo em que a
    pessoa digita para buscar, e busca com pouco espaço não deixa ler o
    resultado. */
+/* Miniaturas das fotos. Quadradas e do mesmo tamanho para a fila não
+   dançar quando as fotos vêm em formatos diferentes. */
+.acp-fotos{display:flex;flex-wrap:wrap;gap:8px;}
+.acp-fotos:empty{display:none;}
+.acp-fotos .fo{position:relative;width:78px;height:78px;border-radius:9px;overflow:hidden;
+  border:1px solid var(--glass-border);background:var(--veu-medio);}
+.acp-fotos .fo img{width:100%;height:100%;object-fit:cover;display:block;cursor:zoom-in;}
+.acp-fotos .fo button{position:absolute;top:3px;right:3px;width:19px;height:19px;line-height:1;
+  border:none;border-radius:50%;background:rgba(0,0,0,.66);color:#fff;font-size:10px;cursor:pointer;padding:0;}
+.acp-fotos .fo button:hover{background:rgba(239,68,68,.9);}
+.acp-conf{font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap;cursor:pointer;
+  background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-muted);}
+.acp-conf.sim{background:rgba(34,197,94,.13);border-color:rgba(34,197,94,.4);color:#86efac;}
+:root[data-theme="light"] .acp-conf.sim{color:#15803d;}
 .acp-prod{display:grid;grid-template-columns:2.4fr 1.2fr .8fr 1fr auto;gap:9px;align-items:start;
   background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:11px;padding:11px 12px;margin-bottom:9px;}
 @media (max-width:620px){ .acp-prod{grid-template-columns:1fr 1fr;} }
@@ -2214,18 +2230,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div style="overflow-x:auto;">
           <table class="ped-tabela acp-tabela">
-            <thead>
-              <tr>
-                <th class="ord" data-oa="data"    onclick="acpOrdenar('data')">Data <span class="seta">&#8597;</span></th>
-                <th class="ord" data-oa="loja"    onclick="acpOrdenar('loja')">Loja/Cliente <span class="seta">&#8597;</span></th>
-                <th class="ord" data-oa="rastreio" onclick="acpOrdenar('rastreio')">Rastreio <span class="seta">&#8597;</span></th>
-                <th class="ord" data-oa="itens"   onclick="acpOrdenar('itens')">Produtos <span class="seta">&#8597;</span></th>
-                <th class="ord" data-oa="status"  onclick="acpOrdenar('status')">Status <span class="seta">&#8597;</span></th>
-                <th class="ord" data-oa="atualizado" onclick="acpOrdenar('atualizado')">Última Atualização <span class="seta">&#8597;</span></th>
-                <th class="ord" data-oa="previsao"   onclick="acpOrdenar('previsao')">Previsão <span class="seta">&#8597;</span></th>
-                <th style="text-align:right;">A&ccedil;&otilde;es</th>
-              </tr>
-            </thead>
+            <thead><tr id="acp-cabecalho"></tr></thead>
             <tbody id="acp-rows"></tbody>
           </table>
         </div>
@@ -4909,11 +4914,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div class="acp-linha">
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Código de Rastreio <b>*</b></span>
           <input id="acp-rastreio" type="text" maxlength="60" placeholder="Ex: AA123456789BR"></label>
-        <label class="ent-campo"><span class="acp-rot" data-ic="cifrao">Taxa de Entrega <b>*</b></span>
+        <label class="ent-campo" id="acp-campo-frete"><span class="acp-rot" data-ic="cifrao">Taxa de Entrega <b>*</b></span>
           <input id="acp-frete" type="number" min="0" step="0.01" value="0"></label>
       </div>
-      <div class="acp-linha">
-        <label class="ent-campo" id="acp-campo-armazem"><span class="acp-rot" data-ic="predio">Warehouse de Destino <b>*</b></span>
+      <div class="acp-linha" id="acp-linha-armazem">
+        <label class="ent-campo"><span class="acp-rot" data-ic="predio">Warehouse de Destino <b>*</b></span>
           <select id="acp-armazem"></select>
           <small id="acp-armazem-aviso"></small></label>
         <div></div>
@@ -4927,6 +4932,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <label class="ent-campo"><span class="acp-rot" data-ic="documento">Observação <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
         <textarea id="acp-obs" rows="3" maxlength="400" placeholder="Adicione observações sobre este registro…"
           style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 11px;outline:none;resize:vertical;"></textarea></label>
+
+      <div id="acp-bloco-fotos" style="display:none;">
+        <div class="ent-campo">
+          <span class="acp-rot" data-ic="foto">Fotos da devolução <small style="font-weight:400;color:var(--text-muted);">(opcional) — o que chegou, como chegou</small></span>
+          <div id="acp-fotos-lista" class="acp-fotos"></div>
+          <input type="file" id="acp-foto-arq" accept="image/*" capture="environment" multiple style="display:none;" onchange="acpAddFotos(this)">
+          <button class="btn-sec" style="width:auto;margin-top:6px;" onclick="document.getElementById('acp-foto-arq').click()">+ Adicionar foto</button>
+        </div>
+      </div>
 
       <div id="acp-bloco-produtos">
         <div style="display:flex;align-items:center;gap:10px;margin:6px 0 9px;">
@@ -6294,6 +6308,10 @@ function _percorrerImagensDoEstado(s, visitar){
   };
   (s.atividades||[]).forEach(a=>emItem(a,'atividades'));
   (s.projetos||[]).forEach(a=>emItem(a,'projetos'));
+  /* Sem esta linha, a foto de uma devolução ficaria inteira no cache do
+     navegador: é o varredor que troca a imagem pela miniatura antes de
+     gravar local, e sem ele a cota estoura calada. */
+  (s.acompanhamentos||[]).forEach(a=>emItem(a,'acompanhamentos'));
   Object.keys(s.tasks||{}).forEach(k=>{
     const lista=s.tasks[k];
     if(Array.isArray(lista)) lista.forEach(a=>emItem(a,'tasks.'+k));
@@ -9136,7 +9154,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23n';
+const APP_VERSAO='2026.08.23o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12482,6 +12500,18 @@ const ACP_STATUS=[
   {v:'Cancelado',                          c:'parado'}
 ];
 let _acpTipo='compra';
+/* Cada tipo pergunta o que lhe diz respeito. Devolução não tem taxa de
+   entrega nem warehouse de destino — o que volta não entra em armazém pela
+   nossa mão, a Base repõe no cancelamento — e não tem lista de produtos,
+   porque quem devolve devolve o pedido, não uma carga. O que ela tem e as
+   outras não é foto: o estado em que a mercadoria chegou é a prova. */
+const ACP_CAMPOS={
+  compra:        {frete:true,  armazem:true,  produtos:true,  fotos:false},
+  devolucao:     {frete:false, armazem:false, produtos:false, fotos:true},
+  transferencia: {frete:false, armazem:true,  produtos:true,  fotos:false}
+};
+function _acpPerfil(tipo){ return ACP_CAMPOS[tipo]||ACP_CAMPOS.compra; }
+let _acpFotos=[];
 let _acpOrdem={campo:'data', desc:true};
 
 function acpSetTipo(t){ _acpTipo=t||'compra'; pagVoltarAoInicio('acomp'); renderAcompanhamento(); }
@@ -12691,6 +12721,15 @@ function acpAbrir(tipo,id){
   const linhaEd=document.getElementById('acp-linha-edicao');
   if(linhaEd) linhaEd.style.display=a?'grid':'none';
 
+  const perfil=_acpPerfil(t);
+  const mostrar=(cid,ok,como)=>{const el=document.getElementById(cid); if(el) el.style.display=ok?(como||''):'none';};
+  mostrar('acp-campo-frete',   perfil.frete);
+  mostrar('acp-linha-armazem', perfil.armazem, 'grid');
+  mostrar('acp-bloco-produtos',perfil.produtos);
+  mostrar('acp-bloco-fotos',   perfil.fotos);
+  _acpFotos = a && Array.isArray(a.fotos) ? a.fotos.slice() : [];
+  acpDesenharFotos();
+
   const sel=document.getElementById('acp-status');
   if(sel) sel.innerHTML=ACP_STATUS.map(s=>`<option${a&&a.status===s.v?' selected':''}>${s.v}</option>`).join('');
   const st=document.getElementById('acp-transportadora');
@@ -12732,6 +12771,54 @@ function acpAbrir(tipo,id){
 }
 function acpFechar(){ const o=document.getElementById('acp-overlay'); if(o) o.classList.remove('open'); }
 
+/* Fotos da devolução.
+
+   Passam pelo mesmo caminho das outras imagens do sistema: o original vai
+   para o armazenamento e o card guarda a miniatura. Sem isso, meia dúzia de
+   fotos de celular enchem o pacote que sobe para a nuvem a cada gravação e
+   a tela de todo mundo começa a travar. */
+const ACP_MAX_FOTOS=6;
+
+function acpAddFotos(input){
+  const arqs=[...(input.files||[])];
+  input.value='';
+  if(!arqs.length) return;
+  const cabem=ACP_MAX_FOTOS-_acpFotos.length;
+  if(cabem<=0){ showToast('Já são '+ACP_MAX_FOTOS+' fotos — apague uma para pôr outra','warn'); return; }
+  const levar=arqs.slice(0,cabem);
+  if(arqs.length>cabem) showToast('Entraram '+cabem+' de '+arqs.length+' — o limite é '+ACP_MAX_FOTOS,'warn');
+
+  const id=(document.getElementById('acp-overlay')||{}).dataset?.id || ('tmp_'+Date.now());
+  let restam=levar.length;
+  levar.forEach((f,n)=>{
+    const leitor=new FileReader();
+    leitor.onerror=()=>{ if(!--restam) acpDesenharFotos(); };
+    leitor.onload=()=>{
+      const dataUrl=String(leitor.result||'');
+      if(!dataUrl.startsWith('data:image')){ if(!--restam) acpDesenharFotos(); return; }
+      imgPreparar(id,'fotos',_acpFotos.length+n,dataUrl)
+        .then(({thumb})=>{ _acpFotos.push(thumb||dataUrl); })
+        .catch(()=>{ _acpFotos.push(dataUrl); })
+        .then(()=>{ if(!--restam) acpDesenharFotos(); });
+    };
+    leitor.readAsDataURL(f);
+  });
+}
+
+function acpDesenharFotos(){
+  const box=document.getElementById('acp-fotos-lista'); if(!box) return;
+  box.innerHTML=_acpFotos.map((f,i)=>`<div class="fo">
+      <img src="${f}" alt="foto ${i+1}" onclick="acpVerFoto(${i})">
+      <button title="Remover" onclick="acpRemFoto(${i})">&#10005;</button>
+    </div>`).join('');
+}
+function acpRemFoto(i){ _acpFotos.splice(i,1); acpDesenharFotos(); }
+function acpVerFoto(i){
+  const f=_acpFotos[i]; if(!f) return;
+  const w=window.open('');
+  if(w) w.document.write('<img src="'+f+'" style="max-width:100%;">');
+}
+
 function acpSalvar(){
   const ov=document.getElementById('acp-overlay');
   const err=document.getElementById('acp-erro');
@@ -12755,10 +12842,11 @@ function acpSalvar(){
     && String(x.rastreio||'').trim().toLowerCase()===rastreio.toLowerCase());
   if(igual) return falhar('Já existe '+T.um+' com o rastreio '+rastreio+' (de '+_pedDataBR(igual.data)+'). Edite aquela em vez de criar outra.');
 
-  if(!v('acp-armazem')) return falhar('Escolha o warehouse de destino — é o armazém da Base onde o estoque vai entrar.');
+  const perfil=_acpPerfil(tipo);
+  if(perfil.armazem && !v('acp-armazem')) return falhar('Escolha o warehouse de destino — é o armazém da Base onde o estoque vai entrar.');
 
-  const produtos=_acpLerProdutos();
-  if(!produtos.length) return falhar('Informe pelo menos um produto.');
+  const produtos=perfil.produtos?_acpLerProdutos():[];
+  if(perfil.produtos && !produtos.length) return falhar('Informe pelo menos um produto.');
   for(let i=0;i<produtos.length;i++){
     const x=produtos[i], n=(i+1)+'º produto';
     if(!x.nome)      return falhar(n+': informe o nome.');
@@ -12778,9 +12866,10 @@ function acpSalvar(){
     tipo,
     data, loja:v('acp-loja'), cliente:v('acp-cliente'),
     transportadora:v('acp-transportadora'),
-    armazem:v('acp-armazem'),
-    taxaEntrega:Number(v('acp-frete'))||0,
+    armazem:perfil.armazem?v('acp-armazem'):'',
+    taxaEntrega:perfil.frete?(Number(v('acp-frete'))||0):0,
     rastreio, obs:v('acp-obs'), produtos,
+    fotos:perfil.fotos?_acpFotos.slice():[],
     atualizadoEm:agora.toLocaleDateString('pt-BR')
   };
   /* Na criação, status e previsão não estão na tela — não podem ser lidos de
@@ -12793,7 +12882,7 @@ function acpSalvar(){
   else{
     appState.acompanhamentos.push({
       id:'acp_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,6),
-      ...campos, arquivado:false, ts:agora.getTime(),
+      ...campos, arquivado:false, conferido:false, ts:agora.getTime(),
       criadoPor:(currentUser&&currentUser.name)||'', criadoPorKey:(currentUser&&currentUser.key)||'',
       criadoEm:agora.toLocaleString('pt-BR')
     });
@@ -12932,7 +13021,11 @@ function acpArquivar(id){
 }
 
 function acpVer(id){
-  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
+  if(!a && String(id).indexOf('dev_antigo_')===0){
+    a=_acpDevolucoesAntigas().find(x=>x.id===id);
+  }
+  if(!a) return;
   const ov=document.getElementById('acp-ver-overlay'); if(!ov) return;
   const T=ACP_TIPOS[a.tipo]||ACP_TIPOS.compra;
   document.getElementById('acp-ver-titulo').textContent=T.um.charAt(0).toUpperCase()+T.um.slice(1)+(a.rastreio?(' · '+a.rastreio):'');
@@ -12953,7 +13046,15 @@ function acpVer(id){
     + linha('Previsão', a.previsao?_pedDataBR(a.previsao):'')
     + linha('Última atualização', a.atualizadoEm)
     + linha('Observação', a.obs)
+    + linha('Conferido', a.conferido?'Sim':'Não')
     + linha('Registrado por', a.criadoPor)
+    + (a._antigo?'<div style="margin-top:8px;font-size:11px;color:var(--text-muted);">Cadastrado na aba <b>Devoluções</b>, que continua sendo a dona deste registro — é lá que ele se edita.</div>':'')
+    + ((Array.isArray(a.fotos)&&a.fotos.length)
+        ? `<div style="margin-top:14px;font-size:12px;font-weight:800;color:var(--text-primary);">Fotos</div>
+           <div class="acp-fotos" style="margin-top:6px;">`
+          + a.fotos.map((f,i)=>`<div class="fo"><img src="${f}" alt="foto ${i+1}" onclick="window.open('').document.write('<img src=\'${f}\' style=\'max-width:100%;\'>')"></div>`).join('')
+          + '</div>'
+        : '')
     + (itens.length?`<div style="margin-top:14px;font-size:12px;font-weight:800;color:var(--text-primary);">Produtos</div>
         <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">`
       + itens.map((p,i)=>`<div style="display:flex;align-items:center;gap:9px;background:var(--veu-medio);border:1px solid var(--glass-border);border-radius:9px;padding:8px 11px;">
@@ -12972,6 +13073,84 @@ function acpVer(id){
   ov.classList.add('open');
 }
 function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(o) o.classList.remove('open'); }
+
+/* As colunas mudam com o tipo, porque as perguntas mudam. Numa compra
+   interessa quantos itens vieram; numa devolução interessa de quem voltou,
+   por qual transportadora, e se alguém já conferiu o que chegou. Mostrar as
+   mesmas sete colunas nos três encheria a tela de "N/A". */
+const ACP_COLUNAS={
+  compra:[
+    {c:'data',rot:'Data',ord:1},{c:'loja',rot:'Loja/Cliente',ord:1},
+    {c:'rastreio',rot:'Rastreio',ord:1},{c:'itens',rot:'Produtos',ord:1},
+    {c:'status',rot:'Status',ord:1},{c:'atualizado',rot:'Última Atualização',ord:1},
+    {c:'previsao',rot:'Previsão',ord:1},{c:'acoes',rot:'Ações',dir:1}
+  ],
+  transferencia:[
+    {c:'data',rot:'Data',ord:1},{c:'loja',rot:'Origem → Destino',ord:1},
+    {c:'rastreio',rot:'Rastreio',ord:1},{c:'itens',rot:'Produtos',ord:1},
+    {c:'status',rot:'Status',ord:1},{c:'atualizado',rot:'Última Atualização',ord:1},
+    {c:'previsao',rot:'Previsão',ord:1},{c:'acoes',rot:'Ações',dir:1}
+  ],
+  devolucao:[
+    {c:'data',rot:'Data',ord:1},{c:'cliente',rot:'Cliente',ord:1},
+    {c:'loja',rot:'Loja',ord:1},{c:'transportadora',rot:'Transportadora',ord:1},
+    {c:'rastreio',rot:'Rastreio',ord:1},{c:'status',rot:'Status',ord:1},
+    {c:'previsao',rot:'Previsão',ord:1},{c:'obs',rot:'Observações'},
+    {c:'conferido',rot:'Conferido',ord:1},{c:'acoes',rot:'Ações',dir:1}
+  ]
+};
+function _acpColunas(){ return ACP_COLUNAS[_acpTipo]||ACP_COLUNAS.compra; }
+
+/* Os cards da aba Devoluções antiga aparecem aqui, convertidos na hora.
+
+   Não migro o dado: aquela aba continua sendo a dona deles, com o fluxo de
+   estorno que o Carlos Red usa. Copiar criaria duas verdades para a mesma
+   devolução, e a pergunta "qual das duas está certa?" não tem resposta boa.
+   Aqui eles entram como leitura — dá para ver e abrir a ficha, não dá para
+   editar, e a coluna Ações diz onde se edita. */
+function _acpDevolucoesAntigas(){
+  return ((appState.tasks||{}).devolucoes||[]).filter(Boolean).map(d=>({
+    id:'dev_antigo_'+d.id,
+    _antigo:true, _idOriginal:d.id,
+    tipo:'devolucao',
+    data:_acpDataAntiga(d.data),
+    cliente:d.cliente||'',
+    loja:d.plataforma||'',
+    transportadora:'',
+    /* A devolução antiga guarda o número do pedido, não o rastreio. Pôr o
+       pedido na coluna Rastreio seria mentir sobre o que o número é. */
+    rastreio:'',
+    numeroPedido:d.nped||'',
+    status:_acpStatusAntigo(d),
+    previsao:'',
+    obs:d.motivo||'',
+    fotos:Array.isArray(d.fotos)?d.fotos:[],
+    conferido:String(d.workflow||'')==='concluida',
+    arquivado:false,
+    criadoPor:d.criadoPor||'',
+    criadoEm:d.criadoEm||'',
+    atualizadoEm:d.atualizadoEm||d.criadoEm||'',
+    ts:Number(d.ordemManual)||0
+  }));
+}
+function _acpDataAntiga(v){
+  const x=String(v||'').trim();
+  const m=x.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if(m) return m[3]+'-'+m[2]+'-'+m[1];
+  return /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : '';
+}
+/* Os estados da aba antiga são de outro processo — o do estorno — e não
+   cabem no vocabulário daqui. Traduzo para o rótulo que eles já têm lá, em
+   vez de forçá-los num status nosso que diria outra coisa. */
+const ACP_STATUS_ANTIGO={
+  aberta:'Em aberto',
+  pronto_estorno:'Pronto para estorno',
+  concluida:'Concluída'
+};
+function _acpStatusAntigo(d){
+  const w=String((d&&(d.workflow||d.status))||'').toLowerCase();
+  return ACP_STATUS_ANTIGO[w] || (d&&d.status) || 'Em aberto';
+}
 
 function renderAcompanhamento(){
   const seg=document.querySelectorAll('#acp-seg .seg-btn');
@@ -12992,7 +13171,10 @@ function renderAcompanhamento(){
   if(tit0) tit0.textContent=(ACP_TIPOS[_acpTipo]||ACP_TIPOS.compra).rot;
   if(ehEnvio){ try{ renderRastreios(); }catch(e){} return; }
 
-  const todos=(appState.acompanhamentos||[]).filter(Boolean).filter(a=>a.tipo===_acpTipo);
+  let todos=(appState.acompanhamentos||[]).filter(Boolean).filter(a=>a.tipo===_acpTipo);
+  if(_acpTipo==='devolucao'){
+    try{ todos=todos.concat(_acpDevolucoesAntigas()); }catch(e){ console.warn('[acp] antigas:',e); }
+  }
 
   const sel=document.getElementById('acp-f-status');
   if(sel){
@@ -13013,13 +13195,29 @@ function renderAcompanhamento(){
     if(!verArq && a.arquivado) return false;
     if(fst && a.status!==fst) return false;
     if(qr && !String(a.rastreio||'').toLowerCase().includes(qr)) return false;
-    if(qp && !_acpItens(a).some(p=>(String(p.sku||'')+' '+String(p.nome||'')).toLowerCase().includes(qp))) return false;
+    if(qp){
+      /* Em devolução a busca de "produto" cai na observação, que é onde o
+         que voltou está escrito — não há lista de itens ali. */
+      const alvo=_acpTipo==='devolucao'
+        ? String(a.obs||'')+' '+String(a.cliente||'')
+        : _acpItens(a).map(x=>String(x.sku||'')+' '+String(x.nome||'')).join(' ');
+      if(!alvo.toLowerCase().includes(qp)) return false;
+    }
     return true;
   });
+
+  const cols=_acpColunas();
+  const cab=document.getElementById('acp-cabecalho');
+  if(cab) cab.innerHTML=cols.map(c=>c.ord
+    ? `<th class="ord" data-oa="${c.c}" onclick="acpOrdenar('${c.c}')"${c.dir?' style="text-align:right;"':''}>${c.rot} <span class="seta">&#8597;</span></th>`
+    : `<th${c.dir?' style="text-align:right;"':''}>${c.rot}</th>`).join('');
 
   const dir=_acpOrdem.desc?-1:1;
   lista.sort((a,b)=>{
     switch(_acpOrdem.campo){
+      case 'cliente':  return dir*String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR');
+      case 'transportadora': return dir*String(a.transportadora||'').localeCompare(String(b.transportadora||''),'pt-BR');
+      case 'conferido':return dir*((a.conferido?1:0)-(b.conferido?1:0));
       case 'loja':     return dir*String(a.loja||'').localeCompare(String(b.loja||''),'pt-BR');
       case 'rastreio': return dir*String(a.rastreio||'').localeCompare(String(b.rastreio||''),'pt-BR');
       case 'itens':    return dir*(_acpQtd(a)-_acpQtd(b));
@@ -13063,28 +13261,79 @@ function renderAcompanhamento(){
   pag.forEach(a=>{
     const tr=document.createElement('tr');
     if(a.arquivado) tr.className='arquivado';
-    const itens=_acpItens(a);
-    const rast=String(a.rastreio||'').trim();
-    tr.innerHTML=`
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(a.data)}</td>
-      <td style="color:var(--text-secondary);white-space:normal;max-width:210px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}
-        ${a.cliente?`<div style="font-size:9.5px;color:var(--text-muted);">${a.cliente}</div>`:''}</td>
-      <td style="font-family:var(--font-mono);">${rast
-        ? `<a href="https://www.google.com/search?q=${encodeURIComponent(rast)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${rast} ↗</a>`
-        : '<span style="color:var(--text-muted);">—</span>'}</td>
-      <td style="color:var(--text-secondary);">${itens.length?(itens.length+' item(s)'):'—'}
-        ${itens.length?`<div style="font-size:9.5px;color:var(--text-muted);">${_acpQtd(a)} un.</div>`:''}</td>
-      <td><span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span></td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${a.atualizadoEm||'—'}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${a.previsao?_pedDataBR(a.previsao):'<span style="color:var(--text-muted);">N/A</span>'}</td>
-      <td style="text-align:right;white-space:nowrap;">
-        ${pode?`<button class="ped-acao" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
-        <button class="ped-acao" title="Ver o que chegou" onclick="acpVer('${a.id}')">Ver</button>
-        ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" title="${a.arquivado?'Tirar do arquivo':'Arquivar'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
-      </td>`;
+    tr.innerHTML=cols.map(c=>_acpCelula(c.c,a,pode)).join('');
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
+}
+
+const _ACP_VAZIO='<span style="color:var(--text-muted);">—</span>';
+const _ACP_NA='<span style="color:var(--text-muted);">N/A</span>';
+
+function _acpCelula(col,a,pode){
+  const mono='font-family:var(--font-mono);color:var(--text-secondary);';
+  switch(col){
+    case 'data':
+      return `<td style="${mono}">${a.data?_pedDataBR(a.data):_ACP_VAZIO}</td>`;
+    case 'cliente':
+      return `<td style="color:var(--text-primary);white-space:normal;max-width:210px;">${a.cliente||_ACP_VAZIO}
+        ${a.numeroPedido?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">pedido ${a.numeroPedido}</div>`:''}</td>`;
+    case 'loja':
+      return `<td style="color:var(--text-secondary);white-space:normal;max-width:210px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}
+        ${(_acpTipo!=='devolucao'&&a.cliente)?`<div style="font-size:9.5px;color:var(--text-muted);">${a.cliente}</div>`:''}</td>`;
+    case 'transportadora':
+      return `<td style="color:var(--text-secondary);">${a.transportadora||_ACP_VAZIO}</td>`;
+    case 'rastreio': {
+      const r=String(a.rastreio||'').trim();
+      return `<td style="font-family:var(--font-mono);">${r
+        ? `<a href="https://www.google.com/search?q=${encodeURIComponent(r)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${r} ↗</a>`
+        : _ACP_VAZIO}</td>`;
+    }
+    case 'itens': {
+      const itens=_acpItens(a);
+      return `<td style="color:var(--text-secondary);">${itens.length?(itens.length+' item(s)'):'—'}
+        ${itens.length?`<div style="font-size:9.5px;color:var(--text-muted);">${_acpQtd(a)} un.</div>`:''}</td>`;
+    }
+    case 'status':
+      return `<td><span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span></td>`;
+    case 'atualizado':
+      return `<td style="${mono}">${a.atualizadoEm||'—'}</td>`;
+    case 'previsao':
+      return `<td style="${mono}">${a.previsao?_pedDataBR(a.previsao):_ACP_NA}</td>`;
+    case 'obs':
+      return `<td style="color:var(--text-secondary);white-space:normal;max-width:230px;">${a.obs
+        ? String(a.obs).slice(0,120)+(String(a.obs).length>120?'…':'') : _ACP_NA}
+        ${(Array.isArray(a.fotos)&&a.fotos.length)?`<div style="font-size:9.5px;color:var(--text-muted);">${a.fotos.length} foto(s)</div>`:''}</td>`;
+    case 'conferido':
+      /* Clicável só no registro novo: o antigo tem o estado dele amarrado ao
+         fluxo de estorno da outra aba, e mexer por aqui furaria aquele
+         caminho pelo meio. */
+      return `<td>${(pode&&!a._antigo)
+        ? `<button class="acp-conf${a.conferido?' sim':''}" title="Marcar como conferido" onclick="acpConferir('${a.id}')">${a.conferido?'✓ Sim':'Não'}</button>`
+        : `<span class="acp-conf${a.conferido?' sim':''}">${a.conferido?'✓ Sim':'Não'}</span>`}</td>`;
+    case 'acoes':
+      if(a._antigo){
+        return `<td style="text-align:right;white-space:nowrap;">
+          <button class="ped-acao" title="Ver a devolução" onclick="acpVer('${a.id}')">Ver</button>
+          <button class="ped-acao" title="Editar na aba Devoluções, que é a dona deste registro" onclick="switchTab('devolucoes')">Abrir na aba</button>
+        </td>`;
+      }
+      return `<td style="text-align:right;white-space:nowrap;">
+        ${pode?`<button class="ped-acao" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
+        <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
+        ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" title="${a.arquivado?'Tirar do arquivo':'Arquivar'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
+      </td>`;
+    default:
+      return '<td></td>';
+  }
+}
+
+function acpConferir(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  a.conferido=!a.conferido;
+  a.atualizadoEm=new Date().toLocaleDateString('pt-BR');
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
+  renderAcompanhamento();
 }
 
 /* ===== ENTRADA DE ESTOQUE ==========================================
