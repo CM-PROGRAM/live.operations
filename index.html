@@ -557,7 +557,54 @@ html{overflow-x:hidden;}
 .est-kpi .sub{display:block;font-size:11px;color:var(--text-muted);margin-top:1px;}
 .est-kpi .ic{position:absolute;top:15px;right:16px;width:18px;height:18px;color:var(--text-muted);opacity:.65;}
 .est-kpi .ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
-.est-tabela td{vertical-align:top;padding-top:13px;padding-bottom:13px;}
+/* Legibilidade da lista de estoque.
+
+   O cabeçalho padrão do sistema é 10px em caixa alta com espaçamento de
+   letra — desenho de rótulo, não de leitura. Numa tabela de 326 linhas que
+   alguém varre procurando um produto, isso cansa: caixa alta tira a forma
+   da palavra, que é justamente por onde o olho reconhece sem soletrar.
+   Aqui vira caixa normal, maior e sem espaçamento forçado.
+
+   E o nome do produto sobe de secundário para primário. Ele é o que a
+   pessoa está procurando; deixá-lo mais apagado que a linha inteira era
+   pedir para ela aproximar o rosto da tela. */
+.est-tabela{font-size:13.5px;}
+.est-tabela th{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:var(--text-secondary);padding-top:14px;padding-bottom:12px;}
+.est-tabela th.ord:hover{color:var(--text-primary);}
+.est-tabela td{vertical-align:top;padding:13px 16px;line-height:1.45;}
+.est-tabela .est-sku{font-family:var(--font-mono);font-size:12.5px;font-weight:700;
+  color:var(--text-primary);letter-spacing:.02em;}
+.est-tabela .est-nome{font-size:13.5px;color:var(--text-primary);white-space:normal;
+  max-width:440px;line-height:1.4;}
+.est-tabela .est-nome a{color:inherit;text-decoration:none;}
+.est-tabela .est-nome a:hover{text-decoration:underline;}
+.est-tabela .est-ean{font-family:var(--font-mono);font-size:12.5px;color:var(--text-secondary);}
+.est-tabela .est-custo{text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:700;}
+/* Linhas alternadas. Com sete colunas largas, o olho perde a linha no meio
+   do caminho — a faixa é o que segura a leitura da esquerda para a direita. */
+.est-tabela tbody tr:nth-child(even){background:rgba(255,255,255,.022);}
+.est-tabela tbody tr:hover{background:rgba(255,255,255,.05);}
+
+/* Tema claro. As cores de status são pensadas para fundo escuro: o azul
+   claro do saldo e o vermelho do negativo somem sobre branco — o número
+   dentro do balão fica ilegível, que é justamente o número que a pessoa foi
+   ali ver. No claro eles escurecem, mantendo o mesmo significado. */
+:root[data-theme="light"] .est-tabela tbody tr:nth-child(even){background:rgba(20,30,55,.025);}
+:root[data-theme="light"] .est-tabela tbody tr:hover{background:rgba(20,30,55,.055);}
+:root[data-theme="light"] .est-saldo{background:rgba(20,30,55,.05);color:#4f5b73;}
+:root[data-theme="light"] .est-saldo.tem{background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.35);color:#1d4ed8;}
+:root[data-theme="light"] .est-saldo.neg{background:rgba(220,38,38,.09);border-color:rgba(220,38,38,.35);color:#b91c1c;}
+:root[data-theme="light"] .est-arm .qtd.neg{color:#b91c1c;}
+:root[data-theme="light"] .ent-sit.lancado{color:#15803d;}
+:root[data-theme="light"] .ent-sit.pendente{color:#a16207;}
+:root[data-theme="light"] .ent-sit.semcadastro,
+:root[data-theme="light"] .ent-sit.erro{color:#b91c1c;}
+:root[data-theme="light"] .acp-st.pronto{color:#15803d;}
+:root[data-theme="light"] .acp-st.espera{color:#a16207;}
+:root[data-theme="light"] .acp-st.parado{color:#b91c1c;}
+:root[data-theme="light"] .acp-st.andando{color:#1d4ed8;}
+:root[data-theme="light"] .ped-sim{color:#15803d;}
 /* ── Acompanhamento ─────────────────────────────────────────── */
 /* Largura fixa nas buscas. Sem ela o input de dentro pede o tamanho do seu
    próprio placeholder, os dois campos incham e a barra de filtros quebra em
@@ -646,16 +693,17 @@ html{overflow-x:hidden;}
 .ent-sit.erro{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#fca5a5;}
 /* Saldo total. Zero fica apagado e negativo fica vermelho, porque negativo
    não é "pouco estoque": é conta que não fecha, e precisa saltar. */
-.est-saldo{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;
-  border-radius:11px;font-family:var(--font-mono);font-size:11.5px;font-weight:700;
+.est-saldo{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:25px;padding:0 10px;
+  border-radius:13px;font-family:var(--font-mono);font-size:12.5px;font-weight:700;
   background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-muted);}
 .est-saldo.tem{background:rgba(143,168,216,.18);border-color:rgba(143,168,216,.5);color:#cfe0ff;}
 .est-saldo.neg{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.45);color:#fca5a5;}
 .est-arm{display:flex;flex-direction:column;gap:5px;}
 .est-arm > div{display:flex;align-items:center;gap:8px;}
-.est-arm .nome{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap;
+.est-arm{gap:4px;}
+.est-arm .nome{font-size:11px;font-weight:600;padding:3px 9px;border-radius:8px;white-space:nowrap;
   background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-secondary);}
-.est-arm .qtd{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+.est-arm .qtd{font-family:var(--font-mono);font-size:12px;color:var(--text-secondary);}
 .est-arm .qtd.neg{color:#fca5a5;}
 .ped-tabela th.ord{cursor:pointer;user-select:none;}
 .ped-tabela th.ord:hover{color:var(--text-primary);}
@@ -9069,7 +9117,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23i';
+const APP_VERSAO='2026.08.23j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12219,11 +12267,11 @@ function renderEstoque(){
     const armazens=_estArmazens(p);
     const tr=document.createElement('tr');
     tr.innerHTML=`
-      <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${p.sku||'—'}</td>
-      <td style="color:var(--text-secondary);white-space:normal;max-width:420px;">
-        ${p.link?`<a href="${p.link}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${p.nome||'—'}</a>`:(p.nome||'—')}
+      <td class="est-sku">${p.sku||'—'}</td>
+      <td class="est-nome">
+        ${p.link?`<a href="${p.link}" target="_blank" rel="noopener">${p.nome||'—'}</a>`:(p.nome||'—')}
       </td>
-      <td style="font-family:var(--font-mono);color:var(--text-muted);">${p.ean||'—'}</td>
+      <td class="est-ean">${p.ean||'—'}</td>
       <td><span class="est-saldo ${classe}">${total}</span></td>
       <td>${armazens.length
         ? `<div class="est-arm">${armazens.map(a=>{
@@ -12231,7 +12279,7 @@ function renderEstoque(){
             return `<div><span class="nome">${a.nome||'—'}</span><span class="qtd${q<0?' neg':''}">${q} un.</span></div>`;
           }).join('')}</div>`
         : '<span style="color:var(--text-muted);">—</span>'}</td>
-      <td style="text-align:right;font-family:var(--font-mono);color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
+      <td class="est-custo" style="color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
