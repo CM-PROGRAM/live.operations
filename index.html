@@ -2120,7 +2120,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <span id="reg-cnt-base" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span></button>
         <button class="atv-stab2" data-sub="cancnf" onclick="regSetSubTab('cancnf')">Canceladas com NF
           <span id="reg-cnt-cancnf" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span></button>
-        <button class="atv-stab2" data-sub="canc"   onclick="regSetSubTab('canc')">Cancelados
+        <button class="atv-stab2" data-sub="canc"   onclick="regSetSubTab('canc')">Canceladas
           <span id="reg-cnt-canc" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span></button>
       </div>
 
@@ -2199,7 +2199,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       <div id="reg-canc" style="display:none;">
       <div class="section-header">
-        <span class="section-title">Pedidos Cancelados</span>
+        <span class="section-title">Canceladas</span>
       </div>
       <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
       <div style="max-width:620px;margin-bottom:24px;">
@@ -9298,7 +9298,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23x';
+const APP_VERSAO='2026.08.23y';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9467,7 +9467,7 @@ function buildTabs(){
     {id:'estoque', icon:'estoque', label:'Estoque', perm:'admin'},
     {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
-      /* "Pedidos Cancelados" e "Canceladas com NF" saíram do menu: viraram
+      /* "Canceladas" e "Canceladas com NF" saíram do menu: viraram
          sub-abas de Pedidos, que é onde se procura por pedido. */
       // A consulta de CPF é de todo mundo: quem atende cliente precisa do
       // telefone, e trancar isso só criava pedido de liberação para o master
