@@ -1102,6 +1102,31 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
    escurecê-la — o azul-aço do escuro some sobre o branco. */
 .mkt-nome{color:var(--mkt-cor,#8fa8d8);}
 .mkt-loja{color:var(--mkt-cor,#8fa8d8);}
+/* Bloco de uma loja dentro da plataforma.
+
+   Antes era uma fileira: o nome da loja colado nos botões e todos empurrados
+   para a esquerda, com metade da largura vazia à direita. Agora o nome fica
+   numa linha própria, e as conferências ocupam a largura numa grade — o
+   espaço deixa de ser sobra e vira alinhamento. */
+.mkt-loja-bloco{padding:14px 0;border-top:1px solid var(--linha-sutil);}
+.mkt-loja-bloco:first-child{border-top:none;padding-top:4px;}
+.mkt-loja-bloco .cab{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+.mkt-loja-bloco .cab .conta{font-size:11px;font-family:var(--font-mono);color:var(--text-muted);}
+.mkt-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:9px;}
+.mkt-chip{display:flex;align-items:center;gap:9px;width:100%;text-align:left;cursor:pointer;
+  background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:11px;
+  color:var(--text-primary);font-family:var(--font-sans);font-size:12.5px;font-weight:600;
+  padding:11px 13px;transition:border-color .15s,background .15s,transform .12s;}
+.mkt-chip:hover{border-color:var(--mkt-cor,#8fa8d8);background:var(--veu-medio);transform:translateY(-1px);}
+.mkt-chip .marca{flex:0 0 auto;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:10px;font-weight:900;line-height:1;
+  background:rgba(255,255,255,.07);border:1px solid var(--glass-border);color:var(--text-muted);}
+.mkt-chip.feita .marca{background:rgba(34,197,94,.18);border-color:rgba(34,197,94,.5);color:#86efac;}
+.mkt-chip.feita{color:var(--text-muted);}
+.mkt-chip .rot{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+:root[data-theme="light"] .mkt-chip{background:#fff;color:#1b2331;}
+:root[data-theme="light"] .mkt-chip.feita{color:#78839a;}
+:root[data-theme="light"] .mkt-chip.feita .marca{color:#15803d;}
 :root[data-theme="light"] .mkt-nome,
 :root[data-theme="light"] .mkt-loja{color:#3d5a94;}
 /* No tema claro o neon branco do Web Continental sumiria no fundo claro.
@@ -9233,7 +9258,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23t';
+const APP_VERSAO='2026.08.23u';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23614,44 +23639,71 @@ function renderMktLinks(){
     if(_mktAberta) headRow.style.justifyContent='flex-end';
     card.appendChild(headRow);
     const body=document.createElement('div');
-    body.style.cssText='display:flex;flex-direction:column;gap:8px;';
+    body.style.cssText='display:flex;flex-direction:column;';
+    /* Com o nome da plataforma fora, é a loja que identifica o bloco —
+       então ela herda a cor da plataforma em vez do azul genérico. */
+    const tc=(_mktAberta && MKT_NEON[pf.platform]) ? ('rgb('+MKT_NEON[pf.platform]+')') : '#8fa8d8';
     pf.stores.forEach(st=>{
-      const row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
-      /* Com o nome da plataforma fora, é a loja que identifica o bloco —
-         então ela herda a cor da plataforma em vez do azul genérico. */
-      const tc=(_mktAberta && MKT_NEON[pf.platform]) ? ('rgb('+MKT_NEON[pf.platform]+')') : '#8fa8d8';
+      const bloco=document.createElement('div');
+      bloco.className='mkt-loja-bloco';
+      bloco.style.setProperty('--mkt-cor', tc);
+
+      const cab=document.createElement('div');
+      cab.className='cab';
       const storeLbl=document.createElement('span');
       storeLbl.className='mkt-loja';
-      storeLbl.style.cssText=`min-width:170px;text-align:center;background:linear-gradient(135deg,${_hexA(tc,0.12)},${_hexA(tc,0.02)});border:1.5px solid ${_hexA(tc,0.5)};border-radius:10px;padding:6px 12px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
+      storeLbl.style.cssText=`background:linear-gradient(135deg,${_hexA(tc,0.14)},${_hexA(tc,0.03)});border:1.5px solid ${_hexA(tc,0.5)};border-radius:9px;padding:5px 13px;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;`;
       storeLbl.style.setProperty('--mkt-cor', tc);
       storeLbl.textContent=st.store;
-      row.appendChild(storeLbl);
+      cab.appendChild(storeLbl);
+
+      /* Contagem por loja. A da plataforma fica no topo do card; esta diz
+         onde falta trabalho quando há mais de uma loja — sem ela, duas lojas
+         com progressos diferentes viram um número só que não serve para
+         nenhuma das duas. */
+      let feitas=0, comTarefa=0;
+      st.links.forEach(lk=>{
+        const tf=_mktTarefaDoLink(pf.platform,st.store,lk.label);
+        if(tf){ comTarefa++; if(_mktTarefaConcluida(tf)) feitas++; }
+      });
+      if(comTarefa){
+        const conta=document.createElement('span');
+        conta.className='conta';
+        conta.textContent=feitas+' de '+comTarefa+' feitas hoje';
+        if(feitas>=comTarefa) conta.style.color='var(--green)';
+        cab.appendChild(conta);
+      }
+      bloco.appendChild(cab);
+
+      const grade=document.createElement('div');
+      grade.className='mkt-grade';
       st.links.forEach(lk=>{
         // A conclusão vem da tarefa do dia em Tarefas Diárias — aqui é só leitura
         const tarefa=_mktTarefaDoLink(pf.platform,st.store,lk.label);
         const isDone=_mktTarefaConcluida(tarefa);
-        // Pill da tarefa: roxo com borda neon branco claro + verificado na frente do nome
-        const pill=document.createElement('span');
-        pill.style.cssText=`display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,rgba(143,168,216,0.22),rgba(143,168,216,0.08));border:1.5px solid rgba(255,255,255,.65);border-radius:50px;padding:3px 5px 3px 6px;box-shadow:0 0 8px rgba(255,255,255,.22),inset 0 1px 0 rgba(255,255,255,.12);white-space:nowrap;`;
+        const chip=document.createElement('button');
+        chip.type='button';
+        chip.className='mkt-chip'+(isDone?' feita':'');
+        chip.style.setProperty('--mkt-cor', tc);
         if(tarefa){
           const marca=document.createElement('span');
+          marca.className='marca';
           marca.title=isDone
-            ?'Concluída em Tarefas Diárias'+(tarefa.concluidoPor?' por '+tarefa.concluidoPor:'')
-            :'Pendente — concluir em Tarefas Diárias';
-          marca.style.cssText=`background:${isDone?'linear-gradient(135deg,#9db8e8,#5876b8)':'rgba(255,255,255,.08)'};border:1.5px solid rgba(255,255,255,.4);color:#fff;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1;padding:0;flex:0 0 auto;`;
+            ?'Concluída em Tarefas Suplelive'+(tarefa.concluidoPor?' por '+tarefa.concluidoPor:'')
+            :'Pendente — concluir em Tarefas Suplelive';
           marca.textContent=isDone?'✓':'';
-          pill.appendChild(marca);
+          chip.appendChild(marca);
         }
-        const btn=document.createElement('button');
-        btn.type='button';
-        btn.style.cssText=`background:none;border:none;color:var(--tom-lilas);font-size:12.5px;font-weight:700;font-family:var(--font-sans);cursor:pointer;padding:2px 6px 2px 0;line-height:1;${isDone?'opacity:.65;':''}`;
-        btn.textContent=lk.label;
-        btn.onclick=(e)=>_mktLinkClick(e,pf.platform,st.store,lk.label,lk.url,lk.internal);
-        pill.appendChild(btn);
-        row.appendChild(pill);
+        const rot=document.createElement('span');
+        rot.className='rot';
+        rot.textContent=lk.label;
+        chip.appendChild(rot);
+        chip.title=lk.label;
+        chip.onclick=(e)=>_mktLinkClick(e,pf.platform,st.store,lk.label,lk.url,lk.internal);
+        grade.appendChild(chip);
       });
-      body.appendChild(row);
+      bloco.appendChild(grade);
+      body.appendChild(bloco);
     });
     card.appendChild(body);
     panel.appendChild(card);
