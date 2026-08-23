@@ -616,6 +616,18 @@ html{overflow-x:hidden;}
 /* Largura fixa nas buscas. Sem ela o input de dentro pede o tamanho do seu
    próprio placeholder, os dois campos incham e a barra de filtros quebra em
    três linhas — foi o que aconteceu na primeira medição. */
+/* Rodapé de paginação, igual nas três listas. */
+.pag-rodape{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 16px;
+  border-top:1px solid var(--glass-border);font-size:12px;color:var(--text-muted);}
+.pag-rodape.tem{display:flex;}
+.pag-rodape select{width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);
+  border-radius:8px;color:var(--text-secondary);font-size:12px;padding:5px 9px;cursor:pointer;outline:none;}
+.pag-rodape .pg-conta{color:var(--text-secondary);}
+.pag-rodape .pg-nav{display:flex;gap:5px;margin-left:auto;align-items:center;}
+.pag-rodape .pg-nav button{background:none;border:1px solid var(--glass-border);border-radius:8px;
+  color:var(--text-secondary);cursor:pointer;font-size:12px;line-height:1;padding:6px 11px;}
+.pag-rodape .pg-nav button:hover:not(:disabled){color:var(--text-primary);border-color:rgba(143,168,216,.55);background:rgba(143,168,216,.12);}
+.pag-rodape .pg-nav button:disabled{opacity:.35;cursor:default;}
 .acp-busca{display:flex;align-items:center;gap:7px;background:var(--grad-vidro);border:1px solid var(--glass-border);
   border-radius:50px;padding:6px 13px;flex:0 0 auto;width:186px;box-shadow:inset 0 2px 6px rgba(0,0,0,.2);}
 .acp-busca span{font-size:11px;color:var(--text-muted);flex:0 0 auto;}
@@ -2101,6 +2113,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             </table>
           </div>
           <div id="base-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+          <div id="base-pag" class="pag-rodape"></div>
         </div>
       </div>
 
@@ -2215,19 +2228,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </table>
         </div>
         <div id="acp-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
-        <div id="acp-rodape" style="padding:11px 18px;border-top:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-          <span style="font-size:11.5px;color:var(--text-muted);">Linhas por página</span>
-          <select id="acp-por-pagina" onchange="acpPorPagina()"
-            style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:8px;color:var(--text-secondary);font-size:11.5px;padding:4px 9px;cursor:pointer;outline:none;">
-            <option>10</option><option>25</option><option>50</option><option>100</option>
-          </select>
-          <div style="flex:1;"></div>
-          <span id="acp-pagina" style="font-size:11.5px;color:var(--text-muted);"></span>
-          <button class="ped-acao" onclick="acpIrPara(1)"          title="Primeira">&laquo;</button>
-          <button class="ped-acao" onclick="acpIrPara(_acpPag-1)"  title="Anterior">&lsaquo;</button>
-          <button class="ped-acao" onclick="acpIrPara(_acpPag+1)"  title="Próxima">&rsaquo;</button>
-          <button class="ped-acao" onclick="acpIrPara(1e9)"        title="Última">&raquo;</button>
-        </div>
+        <div id="acp-pag" class="pag-rodape"></div>
       </div>
 
       <!-- ENVIADOS — o Live Track de sempre, agora dentro da aba -->
@@ -2700,6 +2701,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </table>
         </div>
         <div id="est-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+        <div id="est-pag" class="pag-rodape"></div>
       </div>
     </div>
 
@@ -3210,6 +3212,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <tbody id="cli-linhas"></tbody>
           </table>
         </div>
+        <div id="cli-pag" class="pag-rodape"></div>
       </div>
       <div id="cli-vazio" style="display:none;margin-top:14px;"></div>
     </div>
@@ -9131,7 +9134,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23k';
+const APP_VERSAO='2026.08.23l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11464,6 +11467,7 @@ function cliLimparBusca(){
    trás sem que ninguém percebesse. É por isso que não há "Adicionar
    Cliente" nesta tela — a origem é a Base, e ela manda. */
 let _cliFiltro='todos';
+let _cliFiltroAnterior=null;
 let _cliOrdem={campo:'recente', desc:true};
 
 function cliSetFiltro(f){
@@ -11532,6 +11536,8 @@ function renderClientes(){
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const {todos, lista, termo, bq}=_cliListaVisivel();
   if(bq && bq.parentElement) bq.parentElement.classList.toggle('tem-texto', !!termo);
+  const filtro=[termo,_cliFiltro].join('|');
+  if(_cliFiltroAnterior!==filtro){ _cliFiltroAnterior=filtro; pagVoltarAoInicio('clientes'); }
 
   // ── Indicadores ────────────────────────────────────────────────
   /* Os números são os que esta base realmente sabe. O CRM de referência
@@ -11593,11 +11599,13 @@ function renderClientes(){
                  : 'Nenhum cliente neste filtro.')
     }</td></tr>`;
     if(vazio) vazio.style.display='none';
+    pagRodape('clientes','cli-pag',0);
     return;
   }
   if(vazio) vazio.style.display='none';
 
-  corpo.innerHTML=lista.map(c=>{
+  pagRodape('clientes','cli-pag',lista.length);
+  corpo.innerHTML=pagFatiar('clientes',lista).map(c=>{
     const fone=_cliSoDigitos(c.telefone);
     const ult=c.ultimo||{};
     const quando=ult.data?_pedDataBR(ult.data):'—';
@@ -12112,6 +12120,98 @@ function baseConfirmarImport(){
   showToast('✔ '+N.length+' pedido'+(N.length===1?'':'s')+' do Arquivo gravados — '+nomeArq,'success');
 }
 
+/* ===== PAGINAÇÃO =================================================
+   Um paginador para as três listas grandes. Escrever três vezes a mesma
+   coisa é três lugares para consertar quando ela estiver errada.
+
+   O padrão é 50 e não 10. Dez linhas numa lista de 582 produtos dá 59
+   páginas: quem procura um produto não folheia sessenta telas, desiste e vai
+   perguntar para alguém. Cinquenta cabe numa rolada e ainda é rápido de
+   desenhar. Quem quiser outro número escolhe, e a escolha fica gravada neste
+   navegador — é preferência de pessoa, não de sistema.
+
+   "Todos" existe porque às vezes a pessoa quer usar o Ctrl+F do navegador,
+   e aí paginar atrapalha em vez de ajudar. */
+const PAG_OPCOES=[10,20,50,100,200,'Todos'];
+const PAG_PADRAO=50;
+const _pagEstado={};
+const _pagRender={
+  pedidos:  ()=>renderPedidosBase(),
+  clientes: ()=>renderClientes(),
+  estoque:  ()=>renderEstoque(),
+  acomp:    ()=>renderAcompanhamento()
+};
+
+function _pagLer(chave){
+  if(!_pagEstado[chave]){
+    let salvo=PAG_PADRAO;
+    try{
+      const v=localStorage.getItem('liveops_pag_'+chave);
+      if(v==='Todos') salvo='Todos';
+      else if(v && PAG_OPCOES.indexOf(Number(v))>=0) salvo=Number(v);
+    }catch(e){}
+    _pagEstado[chave]={pag:1, porPag:salvo};
+  }
+  return _pagEstado[chave];
+}
+
+/* Devolve só a fatia da página atual, e corrige a página quando a lista
+   encolheu por um filtro — ficar parado na página 12 de uma lista que agora
+   tem 3 é a forma mais rápida de alguém concluir que "sumiu tudo". */
+function pagFatiar(chave, lista){
+  const e=_pagLer(chave);
+  if(e.porPag==='Todos'){ e.pag=1; return lista; }
+  const paginas=Math.max(1, Math.ceil(lista.length/e.porPag));
+  if(e.pag>paginas) e.pag=paginas;
+  if(e.pag<1) e.pag=1;
+  return lista.slice((e.pag-1)*e.porPag, e.pag*e.porPag);
+}
+
+function pagRodape(chave, id, total){
+  const box=document.getElementById(id); if(!box) return;
+  const e=_pagLer(chave);
+  const todos=e.porPag==='Todos';
+  const paginas=todos?1:Math.max(1, Math.ceil(total/e.porPag));
+  /* Some quando não há o que paginar: um rodapé dizendo "página 1 de 1" em
+     cima de quatro linhas é ruído. */
+  box.classList.toggle('tem', total>PAG_OPCOES[0]);
+  if(total<=PAG_OPCOES[0]){ box.innerHTML=''; return; }
+  const de=todos?1:((e.pag-1)*e.porPag+1);
+  const ate=todos?total:Math.min(total, e.pag*e.porPag);
+  box.innerHTML=
+     `<span>Itens por página:</span>`
+    +`<select onchange="pagPorPagina('${chave}',this.value)">`
+    + PAG_OPCOES.map(o=>`<option${String(o)===String(e.porPag)?' selected':''}>${o}</option>`).join('')
+    +`</select>`
+    +`<span class="pg-conta">${de}–${ate} de ${total}</span>`
+    +`<div class="pg-nav">`
+    +  `<button onclick="pagIr('${chave}',1)"${e.pag<=1?' disabled':''} title="Primeira">&laquo;</button>`
+    +  `<button onclick="pagIr('${chave}',${e.pag-1})"${e.pag<=1?' disabled':''} title="Anterior">&lsaquo;</button>`
+    +  `<span style="padding:0 6px;">Página ${e.pag} de ${paginas}</span>`
+    +  `<button onclick="pagIr('${chave}',${e.pag+1})"${e.pag>=paginas?' disabled':''} title="Próxima">&rsaquo;</button>`
+    +  `<button onclick="pagIr('${chave}',${paginas})"${e.pag>=paginas?' disabled':''} title="Última">&raquo;</button>`
+    +`</div>`;
+}
+
+function pagIr(chave,p){
+  const e=_pagLer(chave);
+  e.pag=Math.max(1,Number(p)||1);
+  try{ (_pagRender[chave]||function(){})(); }catch(err){ console.warn('[pag]',err); }
+  /* Trocar de página e continuar no meio da lista antiga desorienta: o topo
+     da tabela é onde a leitura recomeça. */
+  try{ document.querySelector('.tab-panel.active').scrollIntoView({block:'start',behavior:'smooth'}); }catch(err){}
+}
+function pagPorPagina(chave,v){
+  const e=_pagLer(chave);
+  e.porPag = (v==='Todos') ? 'Todos' : (Number(v)||PAG_PADRAO);
+  e.pag=1;
+  try{ localStorage.setItem('liveops_pag_'+chave, String(e.porPag)); }catch(err){}
+  try{ (_pagRender[chave]||function(){})(); }catch(err){ console.warn('[pag]',err); }
+}
+/* Filtro novo devolve a lista para a primeira página. Sem isso, filtrar
+   estando na página 7 mostra uma tela vazia com resultado existindo. */
+function pagVoltarAoInicio(chave){ _pagLer(chave).pag=1; }
+
 /* ===== ESTOQUE =====================================================
    Espelho do catálogo da Base. Somente leitura, pelo mesmo motivo dos
    pedidos: quem move estoque é a Base, e um segundo lugar onde dá para
@@ -12136,6 +12236,7 @@ function baseConfirmarImport(){
    produto pode ter armazém que a nossa leitura não trouxe, e somar o que
    chegou daria um total menor que o verdadeiro sem ninguém perceber. */
 let _estOrdem={campo:'sku', desc:false};
+let _estFiltroAnterior=null;
 
 function estOrdenar(campo){
   if(_estOrdem.campo===campo) _estOrdem.desc=!_estOrdem.desc;
@@ -12199,6 +12300,8 @@ function renderEstoque(){
 
   const q=((document.getElementById('est-busca')||{}).value||'').toLowerCase().trim();
   const arm=((document.getElementById('est-f-armazem')||{}).value||'');
+  const filtro=q+'|'+arm;
+  if(_estFiltroAnterior!==filtro){ _estFiltroAnterior=filtro; pagVoltarAoInicio('estoque'); }
 
   const lista=todos.filter(p=>{
     /* Filtrar por armazém mostra quem TEM saldo nele. Trazer também os
@@ -12263,6 +12366,7 @@ function renderEstoque(){
   const vazio=document.getElementById('est-vazio');
   tbody.innerHTML='';
   if(!lista.length){
+    pagRodape('estoque','est-pag',0);
     if(vazio){
       vazio.style.display='block';
       vazio.innerHTML = todos.length
@@ -12273,8 +12377,9 @@ function renderEstoque(){
   }
   if(vazio) vazio.style.display='none';
 
+  pagRodape('estoque','est-pag',lista.length);
   const frag=document.createDocumentFragment();
-  lista.forEach(p=>{
+  pagFatiar('estoque',lista).forEach(p=>{
     const total=Number(p.total)||0;
     const classe=total<0?'neg':(total>0?'tem':'');
     const custo=Number(p.precoMedio)||0;
@@ -12345,20 +12450,16 @@ const ACP_STATUS=[
   {v:'PROBLEMA - extraviado',              c:'parado'},
   {v:'Cancelado',                          c:'parado'}
 ];
-let _acpTipo='compra', _acpPag=1, _acpPorPag=10;
+let _acpTipo='compra';
 let _acpOrdem={campo:'data', desc:true};
 
-function acpSetTipo(t){ _acpTipo=t||'compra'; _acpPag=1; renderAcompanhamento(); }
+function acpSetTipo(t){ _acpTipo=t||'compra'; pagVoltarAoInicio('acomp'); renderAcompanhamento(); }
 function acpOrdenar(c){
   if(_acpOrdem.campo===c) _acpOrdem.desc=!_acpOrdem.desc;
   else _acpOrdem={campo:c, desc:(c==='data'||c==='atualizado'||c==='itens')};
   renderAcompanhamento();
 }
-function acpPorPagina(){
-  _acpPorPag=Number((document.getElementById('acp-por-pagina')||{}).value)||10;
-  _acpPag=1; renderAcompanhamento();
-}
-function acpIrPara(p){ _acpPag=Math.max(1,p||1); renderAcompanhamento(); }
+
 
 function acpMenuAdd(ev){
   if(ev) ev.stopPropagation();
@@ -12909,12 +13010,8 @@ function renderAcompanhamento(){
   const cnt=document.getElementById('acp-conta');
   if(cnt) cnt.textContent=lista.length+' registro(s)'+(lista.length!==todos.length?(' de '+todos.length):'');
 
-  const paginas=Math.max(1,Math.ceil(lista.length/_acpPorPag));
-  if(_acpPag>paginas) _acpPag=paginas;
-  const pag=lista.slice((_acpPag-1)*_acpPorPag, _acpPag*_acpPorPag);
-  const rot=document.getElementById('acp-pagina');
-  if(rot) rot.textContent='Página '+_acpPag+' de '+paginas;
-  const rodape=document.getElementById('acp-rodape'); if(rodape) rodape.style.display=lista.length?'flex':'none';
+  pagRodape('acomp','acp-pag',lista.length);
+  const pag=pagFatiar('acomp',lista);
 
   const tbody=document.getElementById('acp-rows'); if(!tbody) return;
   const vazio=document.getElementById('acp-vazio');
@@ -13093,6 +13190,7 @@ function renderEntradasEstoque(){
    porta para os dois lados discordarem, e ninguém saberia qual está certo.
    Ação é "Ver cliente" e "Abrir na Base" — ir olhar, não mexer. */
 let _baseFiltro='todos';
+let _basePedFiltroAnterior=null;
 let _baseOrdem={campo:'data', desc:true};
 
 function baseSetFiltro(f){
@@ -13190,6 +13288,8 @@ function renderPedidosBase(){
   const q=((document.getElementById('base-busca')||{}).value||'').toLowerCase().trim();
   const fst=((document.getElementById('base-f-status')||{}).value||'');
   const soSemFone=!!((document.getElementById('base-f-semfone')||{}).checked);
+  const filtro=[q,fst,soSemFone,_baseFiltro].join('|');
+  if(_basePedFiltroAnterior!==filtro){ _basePedFiltroAnterior=filtro; pagVoltarAoInicio('pedidos'); }
 
   const lista=todos.filter(p=>{
     if(fst && p.status!==fst) return false;
@@ -13249,6 +13349,7 @@ function renderPedidosBase(){
   const vazio=document.getElementById('base-vazio');
   tbody.innerHTML='';
   if(!lista.length){
+    pagRodape('pedidos','base-pag',0);
     if(vazio){
       vazio.style.display='block';
       vazio.innerHTML = todos.length
@@ -13259,8 +13360,9 @@ function renderPedidosBase(){
   }
   if(vazio) vazio.style.display='none';
 
+  pagRodape('pedidos','base-pag',lista.length);
   const frag=document.createDocumentFragment();
-  lista.forEach(p=>{
+  pagFatiar('pedidos',lista).forEach(p=>{
     const tr=document.createElement('tr');
     const fone=String(p.telefone||'').replace(/\D/g,'');
     const cor=_BASE_CORES[_baseClasse(p.status)];
