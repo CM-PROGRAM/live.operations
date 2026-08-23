@@ -578,11 +578,43 @@ html{overflow-x:hidden;}
 .acp-rot[data-ic="calendario"]::before{-webkit-mask-image:var(--ic-cal);mask-image:var(--ic-cal);}
 .acp-rot[data-ic="caminhao"]::before{-webkit-mask-image:var(--ic-cam);mask-image:var(--ic-cam);}
 .acp-rot[data-ic="caixa"]::before{-webkit-mask-image:var(--ic-cx);mask-image:var(--ic-cx);}
+.acp-rot[data-ic="cifrao"]::before{-webkit-mask-image:var(--ic-cif);mask-image:var(--ic-cif);}
+.acp-rot[data-ic="predio"]::before{-webkit-mask-image:var(--ic-pre);mask-image:var(--ic-pre);}
+.acp-rot[data-ic="documento"]::before{-webkit-mask-image:var(--ic-doc);mask-image:var(--ic-doc);}
 :root{
   --ic-cal:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>');
   --ic-cam:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h13v13H1z"/><path d="M14 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg>');
   --ic-cx:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/></svg>');
+  --ic-cif:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>');
+  --ic-pre:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-6h6v6"/></svg>');
+  --ic-doc:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>');
 }
+/* Linha de produto: nome largo, o resto estreito. O nome é o campo em que a
+   pessoa digita para buscar, e busca com pouco espaço não deixa ler o
+   resultado. */
+.acp-prod{display:grid;grid-template-columns:2.4fr 1.2fr .8fr 1fr auto;gap:9px;align-items:start;
+  background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:11px;padding:11px 12px;margin-bottom:9px;}
+@media (max-width:620px){ .acp-prod{grid-template-columns:1fr 1fr;} }
+.acp-prod label{display:flex;flex-direction:column;gap:4px;min-width:0;}
+.acp-prod label > span{font-size:10.5px;font-weight:700;color:var(--text-secondary);}
+.acp-prod input{width:100%;min-width:0;background:var(--grad-vidro);border:1px solid var(--glass-border);
+  border-radius:8px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:7px 10px;outline:none;}
+.acp-prod input:disabled{opacity:.55;cursor:not-allowed;}
+.acp-prod-x{align-self:end;background:none;border:1px solid var(--glass-border);border-radius:8px;
+  color:var(--text-muted);cursor:pointer;font-size:12px;padding:7px 10px;}
+.acp-prod-x:hover{color:#fca5a5;border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.1);}
+/* Sugestões da busca. Posição absoluta para não empurrar a linha de baixo
+   enquanto a pessoa digita. */
+.acp-sug-wrap{position:relative;}
+.acp-sug{position:absolute;top:100%;left:0;right:0;z-index:30;margin-top:3px;max-height:210px;overflow-y:auto;
+  background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:10px;
+  box-shadow:var(--sombra-painel);padding:4px;display:none;backdrop-filter:blur(24px);}
+.acp-sug.aberta{display:block;}
+.acp-sug button{display:flex;width:100%;gap:9px;align-items:baseline;text-align:left;background:none;border:none;
+  border-radius:7px;cursor:pointer;padding:7px 9px;color:var(--text-secondary);font-family:var(--font-sans);font-size:11.5px;}
+.acp-sug button:hover{background:var(--veu-medio);color:var(--text-primary);}
+.acp-sug .s{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-muted);white-space:nowrap;}
+.acp-sug .vazio{padding:9px;font-size:11px;color:var(--text-muted);}
 .acp-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:4px 6px;border-radius:7px;}
 .acp-x:hover{background:var(--veu-medio);color:var(--text-primary);}
 .acp-mi{display:block;width:100%;text-align:left;background:none;border:none;border-radius:7px;cursor:pointer;
@@ -607,6 +639,7 @@ html{overflow-x:hidden;}
 /* Situação da entrada. Cada estado tem uma cor porque cada um pede uma ação
    diferente de quem olha — e "sem cadastro" pede a mais urgente. */
 .ent-sit{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap;}
+.ent-sit.aguardando{background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-muted);}
 .ent-sit.pendente{background:rgba(240,180,41,.14);border:1px solid rgba(240,180,41,.45);color:#f5cd6b;}
 .ent-sit.lancado{background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);color:#86efac;}
 .ent-sit.semcadastro{background:rgba(249,115,98,.14);border:1px solid rgba(249,115,98,.45);color:#fca5a5;}
@@ -2537,11 +2570,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div>
           <h2 class="pag-titulo">Estoque</h2>
           <p class="pag-sub">Gerencie o estoque de produtos em múltiplos armazéns</p>
-        </div>
-        <div class="pag-acoes">
-          <button id="est-btn-entrada" class="btn btn-sm" style="width:auto;white-space:nowrap;display:none;" onclick="entAbrir()">
-            + Entrada de estoque
-          </button>
         </div>
       </div>
 
@@ -4807,25 +4835,41 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div class="acp-linha">
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-loja">Nome da Loja <b>*</b></span>
-          <input id="acp-loja" type="text" maxlength="120" placeholder="Ex: Growth Suplementos"></label>
-        <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-cliente">Nome do Cliente <b>*</b></span>
+          <input id="acp-loja" type="text" maxlength="120" placeholder="Ex: Mercado Livre"></label>
+        <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-cliente">Nome do Cliente <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
           <input id="acp-cliente" type="text" maxlength="120" placeholder="Ex: João Silva"></label>
       </div>
-      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Código de Rastreio <b>*</b></span>
-        <input id="acp-rastreio" type="text" maxlength="60" placeholder="Ex: AA123456789BR"></label>
+      <div class="acp-linha">
+        <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Código de Rastreio <b>*</b></span>
+          <input id="acp-rastreio" type="text" maxlength="60" placeholder="Ex: AA123456789BR"></label>
+        <label class="ent-campo"><span class="acp-rot" data-ic="cifrao">Taxa de Entrega <b>*</b></span>
+          <input id="acp-frete" type="number" min="0" step="0.01" value="0"></label>
+      </div>
+      <div class="acp-linha">
+        <label class="ent-campo" id="acp-campo-armazem"><span class="acp-rot" data-ic="predio">Warehouse de Destino <b>*</b></span>
+          <select id="acp-armazem"></select>
+          <small id="acp-armazem-aviso"></small></label>
+        <div></div>
+      </div>
       <div class="acp-linha" id="acp-linha-edicao" style="display:none;">
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Status <b>*</b></span>
           <select id="acp-status"></select></label>
         <label class="ent-campo"><span class="acp-rot" data-ic="calendario">Previsão de chegada</span>
           <input id="acp-previsao" type="date"></label>
       </div>
-      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Produtos <small style="font-weight:400;color:var(--text-muted);">(opcional) — um por linha: SKU · nome · quantidade</small></span>
-        <textarea id="acp-produtos" rows="3" placeholder="AST12840 · Creatina 1kg AST · 12&#10;· Whey Growth 900g · 24"
-          style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-mono);padding:9px 11px;outline:none;resize:vertical;"></textarea>
-        <small id="acp-itens-conta"></small></label>
-      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Observações <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
+      <label class="ent-campo"><span class="acp-rot" data-ic="documento">Observação <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
         <textarea id="acp-obs" rows="3" maxlength="400" placeholder="Adicione observações sobre este registro…"
           style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 11px;outline:none;resize:vertical;"></textarea></label>
+
+      <div id="acp-bloco-produtos">
+        <div style="display:flex;align-items:center;gap:10px;margin:6px 0 9px;">
+          <span style="font-size:14px;font-weight:800;color:var(--text-primary);">Produtos</span>
+          <span id="acp-prod-resumo" style="font-size:11px;color:var(--text-muted);"></span>
+          <div style="flex:1;"></div>
+          <button class="btn-sec" style="width:auto;" onclick="acpAddProduto()">+ Adicionar Produto</button>
+        </div>
+        <div id="acp-produtos-lista"></div>
+      </div>
       <div id="acp-erro" style="display:none;font-size:11.5px;color:#fca5a5;"></div>
     </div>
     <div class="modal-footer">
@@ -4842,54 +4886,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div id="acp-ver-corpo" style="margin-top:12px;"></div>
     <div class="modal-footer">
       <button class="btn btn-ghost btn-sm" onclick="acpFecharVer()">Fechar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ENTRADA DE ESTOQUE — o formulário só monta o pedido. Quem mexe na Base
-     é o n8n, e é ele que devolve o que aconteceu de verdade. -->
-<div class="modal-overlay" id="ent-overlay">
-  <div class="modal" style="width:460px;">
-    <div class="modal-title">Entrada de estoque</div>
-    <p style="font-size:11.5px;color:var(--text-muted);line-height:1.65;margin:2px 0 14px;">
-      O pedido entra na fila e o robô lança na Base. O custo médio é recalculado
-      lá, com o saldo que a Base tiver na hora — não com o que esta tela mostra.
-    </p>
-    <div style="display:flex;flex-direction:column;gap:10px;">
-      <label class="ent-campo"><span>SKU <small style="font-weight:400;color:var(--text-muted);">— se já tiver</small></span>
-        <input id="ent-sku" type="text" list="ent-skus" autocomplete="off" placeholder="AST12840" oninput="entPrever()">
-        <datalist id="ent-skus"></datalist>
-        <small id="ent-achou"></small>
-      </label>
-      <div style="display:flex;gap:10px;">
-        <label class="ent-campo" style="flex:2;"><span>Nome do produto <b id="ent-req-nome" style="display:none;">*</b></span>
-          <input id="ent-nome" type="text" maxlength="160" placeholder="Creatina Micronizada 1kg AST Sports" oninput="entPrever()"></label>
-        <label class="ent-campo" style="flex:1;"><span>EAN <b id="ent-req-ean" style="display:none;">*</b></span>
-          <input id="ent-ean" type="text" inputmode="numeric" maxlength="14" placeholder="07897570128400" oninput="entPrever()"></label>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <label class="ent-campo" style="flex:1;"><span>Quantidade <b>*</b></span>
-          <input id="ent-qtd" type="number" min="1" step="1" placeholder="10" oninput="entPrever()"></label>
-        <label class="ent-campo" style="flex:1;"><span>Custo unitário (R$) <b>*</b></span>
-          <input id="ent-custo" type="number" min="0" step="0.01" placeholder="52,30" oninput="entPrever()"></label>
-      </div>
-      <div style="display:flex;gap:10px;">
-        <label class="ent-campo" style="flex:1;"><span>Preço Mercado Livre</span>
-          <input id="ent-preco-ml" type="number" min="0" step="0.01" placeholder="deixe vazio p/ manter"></label>
-        <label class="ent-campo" style="flex:1;"><span>Preço atacado</span>
-          <input id="ent-preco-atacado" type="number" min="0" step="0.01" placeholder="deixe vazio p/ manter"></label>
-      </div>
-      <label class="ent-campo"><span>Armazém <b>*</b></span>
-        <select id="ent-armazem"></select></label>
-      <label class="ent-campo"><span>Observação</span>
-        <input id="ent-obs" type="text" maxlength="200" placeholder="nota fiscal, fornecedor, lote…"></label>
-      <div id="ent-previa" style="display:none;font-size:11.5px;line-height:1.75;color:var(--text-secondary);
-        background:var(--veu-medio);border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;"></div>
-      <div id="ent-erro" style="display:none;font-size:11.5px;color:#fca5a5;"></div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="entFechar()">Cancelar</button>
-      <button class="btn btn-sm" onclick="entEnviar()">Mandar para a fila</button>
     </div>
   </div>
 </div>
@@ -9073,7 +9069,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23g';
+const APP_VERSAO='2026.08.23h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12108,8 +12104,6 @@ const _EST_ICONES={
 function renderEstoque(){
   const tbody=document.getElementById('est-rows'); if(!tbody) return;
   try{ renderEntradasEstoque(); }catch(e){ console.warn('renderEntradasEstoque:',e); }
-  const btnEnt=document.getElementById('est-btn-entrada');
-  if(btnEnt) btnEnt.style.display=(currentUser&&(currentUser.master||(currentUser.perms||[]).includes('entrada')))?'':'none';
   const todos=(appState.produtos||[]).filter(Boolean);
 
   /* A lista de armazéns sai do próprio dado, não de uma lista fixa: a Base
@@ -12309,17 +12303,144 @@ function _acpClasseStatus(v){
 function _acpItens(a){ return Array.isArray(a&&a.produtos)?a.produtos.filter(Boolean):[]; }
 function _acpQtd(a){ return _acpItens(a).reduce((n,p)=>n+(Number(p.qtd)||0),0); }
 
-/* "AST12840 · Creatina 1kg · 12" por linha. O separador é o ponto médio
-   porque nome de produto tem vírgula e tem hífen; ponto médio não tem. */
-function _acpLerProdutos(txt){
-  return String(txt||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
-    const p=l.split('·').map(x=>x.trim());
-    const qtd=Number(String(p[2]==null?'':p[2]).replace(',','.'))||1;
-    return {sku:p[0]||'', nome:p[1]||p[0]||'', qtd:Math.max(1,Math.round(qtd))};
-  });
+/* ── Linhas de produto ────────────────────────────────────────────
+   Cada linha é um item da carga. O nome busca no catálogo já lido da Base;
+   escolher um resultado trava o SKU, porque SKU digitado à mão é a origem
+   mais provável de lançar estoque no produto errado.
+
+   Produto que não está no catálogo continua podendo entrar: nome livre, SKU
+   vazio e um campo de EAN que aparece só nesse caso. É esse par nome+EAN que
+   faz a tarefa de cadastro na Base nascer útil. */
+function _acpArmazensConhecidos(){
+  const nomes=[];
+  (appState.produtos||[]).forEach(p=>(Array.isArray(p&&p.armazens)?p.armazens:[]).forEach(a=>{
+    const n=String((a&&a.nome)||'').trim();
+    if(n && nomes.indexOf(n)<0) nomes.push(n);
+  }));
+  return nomes.sort((a,b)=>a.localeCompare(b,'pt-BR'));
 }
-function _acpEscreverProdutos(lista){
-  return _acpItens({produtos:lista}).map(p=>[p.sku||'',p.nome||'',p.qtd||1].join(' · ')).join('\n');
+
+/* "ES: 8 | SP: 0" — o saldo por armazém ao lado de cada sugestão. É o que
+   evita a pergunta seguinte ("tem quanto disso lá?") virar outra aba. */
+function _acpSaldoResumo(prod){
+  const arr=Array.isArray(prod&&prod.armazens)?prod.armazens:[];
+  if(!arr.length) return '';
+  return arr.map(a=>{
+    const n=String(a.nome||'');
+    const curto=(n.match(/\b([A-Z]{2,})\b/)||[])[1] || n.split(/\s+/).pop() || n;
+    return curto+': '+(Number(a.qtd)||0);
+  }).join(' | ');
+}
+
+function _acpLinhaHtml(i,p){
+  p=p||{};
+  const novo=!String(p.sku||'').trim();
+  return `<div class="acp-prod" data-i="${i}">
+    <label class="acp-sug-wrap"><span>Nome do Produto <b style="color:var(--accent);">*</b></span>
+      <input class="acp-p-nome" autocomplete="off" placeholder="Digite para buscar um produto (mínimo 2 letras)…"
+        value="${String(p.nome||'').replace(/"/g,'&quot;')}"
+        oninput="acpBuscarProduto(this)" onblur="acpFecharSugestoes(this)">
+      <div class="acp-sug"></div></label>
+    <label><span>SKU <b style="color:var(--accent);">*</b></span>
+      <input class="acp-p-sku" readonly placeholder="Selecione um produto"
+        value="${String(p.sku||'').replace(/"/g,'&quot;')}"></label>
+    <label><span>Quantidade <b style="color:var(--accent);">*</b></span>
+      <input class="acp-p-qtd" type="number" min="1" step="1" value="${Number(p.qtd)||1}" oninput="acpResumoProdutos()"></label>
+    <label><span>Custo Unitário <b style="color:var(--accent);">*</b></span>
+      <input class="acp-p-custo" type="number" min="0" step="0.01" value="${Number(p.custo)||0}" oninput="acpResumoProdutos()"></label>
+    <button class="acp-prod-x" title="Remover" onclick="acpRemProduto(this)">&#10005;</button>
+    <label class="acp-p-ean-campo" style="grid-column:1/-1;display:${novo?'flex':'none'};">
+      <span>EAN <b style="color:var(--accent);">*</b> <small style="font-weight:400;color:var(--text-muted);">— produto novo: é ele que evita cadastrar duas vezes na Base</small></span>
+      <input class="acp-p-ean" inputmode="numeric" maxlength="14" placeholder="07897570128400"
+        value="${String(p.ean||'').replace(/"/g,'&quot;')}"></label>
+  </div>`;
+}
+
+function _acpLinhas(){ return [...document.querySelectorAll('#acp-produtos-lista .acp-prod')]; }
+
+function _acpLerProdutos(){
+  return _acpLinhas().map(l=>({
+    nome: String((l.querySelector('.acp-p-nome')||{}).value||'').trim(),
+    sku:  String((l.querySelector('.acp-p-sku')||{}).value||'').trim(),
+    ean:  String((l.querySelector('.acp-p-ean')||{}).value||'').replace(/\D/g,''),
+    qtd:  Math.max(1,Math.round(Number((l.querySelector('.acp-p-qtd')||{}).value)||0)),
+    custo:Number((l.querySelector('.acp-p-custo')||{}).value)||0
+  })).filter(x=>x.nome||x.sku);
+}
+
+function acpDesenharProdutos(lista){
+  const box=document.getElementById('acp-produtos-lista'); if(!box) return;
+  const arr=(Array.isArray(lista)&&lista.length)?lista:[{}];
+  box.innerHTML=arr.map((p,i)=>_acpLinhaHtml(i,p)).join('');
+  acpResumoProdutos();
+}
+function acpAddProduto(){
+  const box=document.getElementById('acp-produtos-lista'); if(!box) return;
+  box.insertAdjacentHTML('beforeend',_acpLinhaHtml(_acpLinhas().length,{}));
+  acpResumoProdutos();
+  const ult=_acpLinhas().pop();
+  if(ult){ const c=ult.querySelector('.acp-p-nome'); if(c) c.focus(); }
+}
+function acpRemProduto(btn){
+  const l=btn.closest('.acp-prod'); if(!l) return;
+  /* Nunca fica sem nenhuma: uma compra sem produto não vira entrada de
+     estoque, e a tela ficaria sem o campo para recomeçar. */
+  if(_acpLinhas().length<=1){ acpDesenharProdutos([{}]); return; }
+  l.remove(); acpResumoProdutos();
+}
+function acpResumoProdutos(){
+  const el=document.getElementById('acp-prod-resumo'); if(!el) return;
+  const l=_acpLerProdutos();
+  const un=l.reduce((n,x)=>n+x.qtd,0);
+  const tot=l.reduce((n,x)=>n+x.qtd*x.custo,0);
+  el.textContent=l.length?(l.length+' produto(s) · '+un+' un. · '+_pedFmt(tot)+' em mercadoria'):'';
+}
+
+function acpBuscarProduto(inp){
+  const linha=inp.closest('.acp-prod');
+  const cx=linha.querySelector('.acp-sug');
+  const sku=linha.querySelector('.acp-p-sku');
+  const eanCampo=linha.querySelector('.acp-p-ean-campo');
+  const termo=String(inp.value||'').trim().toLowerCase();
+
+  /* Mexeu no nome, o vínculo com o catálogo se desfaz. Manter o SKU antigo
+     enquanto o nome muda é como o estoque vai parar no produto errado. */
+  if(sku){ sku.value=''; }
+  if(eanCampo) eanCampo.style.display='flex';
+
+  if(termo.length<2){ cx.classList.remove('aberta'); cx.innerHTML=''; acpResumoProdutos(); return; }
+  const sem=_cliSemAcento(termo);
+  const achados=(appState.produtos||[]).filter(Boolean).filter(pr=>
+    _cliSemAcento(String(pr.nome||'')).includes(sem) || String(pr.sku||'').toLowerCase().includes(termo)
+  ).slice(0,8);
+
+  if(!achados.length){
+    cx.innerHTML=(appState.produtos||[]).length
+      ? '<div class="vazio">Nenhum produto do catálogo com esse nome. Pode seguir: ele entra como produto novo e vira tarefa de cadastro na Base.</div>'
+      : '<div class="vazio">O catálogo da Base ainda não foi lido. Rode o fluxo de estoque no n8n para a busca funcionar.</div>';
+    cx.classList.add('aberta'); acpResumoProdutos(); return;
+  }
+  cx.innerHTML=achados.map(pr=>`<button type="button" onmousedown="acpEscolherProduto(this,'${String(pr.id).replace(/'/g,"\\'")}')">
+      <span>${String(pr.nome||'(sem nome)')}</span>
+      <span class="s">${_acpSaldoResumo(pr)}</span></button>`).join('');
+  cx.classList.add('aberta');
+  acpResumoProdutos();
+}
+function acpFecharSugestoes(inp){
+  const cx=inp.closest('.acp-prod').querySelector('.acp-sug');
+  setTimeout(()=>{ if(cx) cx.classList.remove('aberta'); },140);
+}
+function acpEscolherProduto(btn,id){
+  const pr=(appState.produtos||[]).find(x=>x&&String(x.id)===String(id)); if(!pr) return;
+  const linha=btn.closest('.acp-prod');
+  linha.querySelector('.acp-p-nome').value=pr.nome||'';
+  linha.querySelector('.acp-p-sku').value=pr.sku||'';
+  const ean=linha.querySelector('.acp-p-ean'); if(ean) ean.value=pr.ean||'';
+  /* Produto do catálogo não precisa de EAN digitado: a Base já tem o dele. */
+  const campo=linha.querySelector('.acp-p-ean-campo'); if(campo) campo.style.display='none';
+  linha.querySelector('.acp-sug').classList.remove('aberta');
+  const q=linha.querySelector('.acp-p-qtd'); if(q) q.focus();
+  acpResumoProdutos();
 }
 
 function acpNovo(tipo){
@@ -12372,6 +12493,21 @@ function acpAbrir(tipo,id){
     st.innerHTML='<option value="">Selecione a transportadora</option>'
       +lista.map(x=>`<option${x===atual?' selected':''}>${x}</option>`).join('');
   }
+  /* Warehouse de destino: a lista sai do catálogo já lido da Base. Sem
+     catálogo o campo fica vazio e o aviso diz o que fazer, em vez de
+     oferecer uma lista inventada que não bate com armazém nenhum de lá. */
+  const sa=document.getElementById('acp-armazem');
+  const nomes=_acpArmazensConhecidos();
+  if(sa){
+    const atual=a?String(a.armazem||''):'';
+    const lista=nomes.slice();
+    if(atual && lista.indexOf(atual)<0) lista.unshift(atual);
+    sa.innerHTML='<option value="">Selecione o warehouse</option>'
+      +lista.map(x=>`<option${x===atual?' selected':''}>${x}</option>`).join('');
+  }
+  const av=document.getElementById('acp-armazem-aviso');
+  if(av) av.textContent=nomes.length?'':'O catálogo da Base ainda não foi lido — rode o fluxo de estoque no n8n.';
+
   const p=(cid,v)=>{const el=document.getElementById(cid); if(el) el.value=v==null?'':v;};
   const ph=(cid,v)=>{const el=document.getElementById(cid); if(el) el.placeholder=v;};
   ph('acp-loja',T.exLoja); ph('acp-cliente',T.exCliente);
@@ -12380,17 +12516,10 @@ function acpAbrir(tipo,id){
   p('acp-loja',      a?a.loja:'');
   p('acp-cliente',   a?a.cliente:'');
   p('acp-rastreio',  a?a.rastreio:'');
+  p('acp-frete',     a?(Number(a.taxaEntrega)||0):0);
   p('acp-obs',       a?a.obs:'');
-  p('acp-produtos',  a?_acpEscreverProdutos(a.produtos):'');
+  acpDesenharProdutos(a?a.produtos:null);
   const err=document.getElementById('acp-erro'); if(err){ err.style.display='none'; err.textContent=''; }
-  const cta=document.getElementById('acp-itens-conta'); if(cta) cta.textContent='';
-  const ta=document.getElementById('acp-produtos');
-  if(ta) ta.oninput=()=>{
-    const l=_acpLerProdutos(ta.value);
-    const c=document.getElementById('acp-itens-conta');
-    if(c) c.textContent=l.length?(l.length+' produto(s), '+l.reduce((n,x)=>n+x.qtd,0)+' un.'):'';
-  };
-  if(ta) ta.oninput();
   ov.classList.add('open');
 }
 function acpFechar(){ const o=document.getElementById('acp-overlay'); if(o) o.classList.remove('open'); }
@@ -12409,7 +12538,6 @@ function acpSalvar(){
   if(!data) return falhar('Informe a '+T.data.toLowerCase()+'.');
   if(!v('acp-transportadora')) return falhar('Escolha a transportadora.');
   if(!v('acp-loja'))     return falhar('Informe "'+T.loja+'".');
-  if(!v('acp-cliente'))  return falhar('Informe "'+T.cliente+'".');
   const rastreio=v('acp-rastreio');
   if(!rastreio) return falhar('Informe o código de rastreio — é por ele que este registro é acompanhado.');
   /* Rastreio repetido no mesmo tipo quase sempre é a mesma caixa cadastrada
@@ -12419,12 +12547,31 @@ function acpSalvar(){
     && String(x.rastreio||'').trim().toLowerCase()===rastreio.toLowerCase());
   if(igual) return falhar('Já existe '+T.um+' com o rastreio '+rastreio+' (de '+_pedDataBR(igual.data)+'). Edite aquela em vez de criar outra.');
 
-  const produtos=_acpLerProdutos(v('acp-produtos'));
+  if(!v('acp-armazem')) return falhar('Escolha o warehouse de destino — é o armazém da Base onde o estoque vai entrar.');
+
+  const produtos=_acpLerProdutos();
+  if(!produtos.length) return falhar('Informe pelo menos um produto.');
+  for(let i=0;i<produtos.length;i++){
+    const x=produtos[i], n=(i+1)+'º produto';
+    if(!x.nome)      return falhar(n+': informe o nome.');
+    if(!(x.qtd>0))   return falhar(n+': a quantidade precisa ser maior que zero.');
+    if(!(x.custo>0)) return falhar(n+': informe o custo unitário. Sem ele a Base não recalcula o custo médio.');
+    /* Produto fora do catálogo precisa de EAN — é com ele que a tarefa de
+       cadastro na Base nasce útil, e é ele que evita cadastrar o mesmo
+       produto duas vezes. */
+    if(!x.sku){
+      if(!x.ean) return falhar(n+' ("'+x.nome+'") não está no catálogo: informe o EAN.');
+      if(x.ean.length<8 || x.ean.length>14) return falhar(n+': EAN com '+x.ean.length+' dígitos não existe — use o código de barras da embalagem.');
+    }
+  }
+
   const agora=new Date();
   const campos={
     tipo,
     data, loja:v('acp-loja'), cliente:v('acp-cliente'),
     transportadora:v('acp-transportadora'),
+    armazem:v('acp-armazem'),
+    taxaEntrega:Number(v('acp-frete'))||0,
     rastreio, obs:v('acp-obs'), produtos,
     atualizadoEm:agora.toLocaleDateString('pt-BR')
   };
@@ -12443,10 +12590,126 @@ function acpSalvar(){
       criadoEm:agora.toLocaleString('pt-BR')
     });
   }
+  const alvo=existente||appState.acompanhamentos[appState.acompanhamentos.length-1];
+  let resumo={criadas:0,tarefas:0};
+  try{ resumo=_acpSincronizarEntradas(alvo); }catch(e){ console.warn('[acp] entradas:',e); }
   try{ saveState(appState); }catch(e){ return falhar('Não consegui salvar: '+(e&&e.message||e)); }
   acpFechar();
   renderAcompanhamento();
-  showToast(existente?'Registro atualizado':'Registro criado','success');
+  try{ renderEstoque(); }catch(e){}
+  try{ renderAtividades(); }catch(e){}
+  showToast((existente?'Registro atualizado':'Registro criado')
+    +(resumo.criadas?(' · '+resumo.criadas+' entrada(s) de estoque'):'')
+    +(resumo.tarefas?(' · '+resumo.tarefas+' tarefa(s) de cadastro'):''),'success');
+}
+
+/* ── A compra vira entrada de estoque ─────────────────────────────
+   Não existe mais formulário de entrada separado: cada produto da compra é
+   uma entrada, criada aqui. Dois lugares para lançar a mesma mercadoria
+   davam duas chances de lançar duas vezes.
+
+   As entradas nascem "aguardando conferência" e só são liberadas para o robô
+   quando a compra é marcada como conferida. Mandar para a Base no momento do
+   cadastro somaria ao estoque uma mercadoria que ainda está a caminho — e o
+   marketplace venderia o que não chegou.
+
+   Entrada já lançada nunca é mexida: o que foi para a Base foi. Editar a
+   compra depois disso muda a compra, não o que já entrou. */
+function _acpSincronizarEntradas(compra){
+  const fora={criadas:0,tarefas:0};
+  if(!compra || compra.tipo!=='compra') return fora;
+  if(!Array.isArray(appState.entradasEstoque)) appState.entradasEstoque=[];
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+
+  const conferida=_acpConferida(compra);
+  const itens=_acpItens(compra);
+  const agora=new Date();
+
+  itens.forEach((x,i)=>{
+    const ja=appState.entradasEstoque.find(e=>e && e.origemCompraId===compra.id && e.origemIndice===i);
+    if(ja && ja.status!=='aguardando' && ja.status!=='pendente') return;   // já foi para a Base
+    const campos={
+      sku:x.sku||'', nome:x.nome||'', ean:x.ean||'',
+      quantidade:x.qtd, custo:x.custo,
+      armazem:compra.armazem||'',
+      novoNaBase:!x.sku,
+      obs:['compra', compra.rastreio||'', compra.loja||''].filter(Boolean).join(' · ').slice(0,200),
+      status: conferida?'pendente':'aguardando'
+    };
+    if(ja){ Object.assign(ja,campos); }
+    else{
+      appState.entradasEstoque.push({
+        id:'ent_'+agora.getTime().toString(36)+'_'+i+'_'+Math.random().toString(36).slice(2,6),
+        origemCompraId:compra.id, origemIndice:i,
+        precoMl:null, precoAtacado:null,
+        ...campos,
+        criadoPor:(currentUser&&currentUser.name)||'', criadoPorKey:(currentUser&&currentUser.key)||'',
+        criadoEm:agora.toLocaleString('pt-BR'), ts:agora.getTime()+i
+      });
+      fora.criadas++;
+    }
+  });
+
+  /* Produto tirado da compra some da fila — desde que ainda não tenha ido
+     para a Base. */
+  appState.entradasEstoque=appState.entradasEstoque.filter(e=>{
+    if(!e || e.origemCompraId!==compra.id) return true;
+    if(e.status!=='aguardando' && e.status!=='pendente') return true;
+    return e.origemIndice<itens.length;
+  });
+
+  /* A tarefa de cadastro nasce no ato, e não quando o robô reclamar: cadastro
+     na Base leva tempo, e a mercadoria chega antes. Uma por produto novo. */
+  itens.forEach((x,i)=>{
+    if(x.sku) return;
+    const e=appState.entradasEstoque.find(y=>y && y.origemCompraId===compra.id && y.origemIndice===i);
+    if(!e || e.tarefaCadastroId) return;
+    if(appState.atividades.some(t=>t && t.origemEntradaEstoqueId===e.id)) return;
+    try{ _entCriarTarefaCadastro(e); fora.tarefas++; }catch(err){ console.warn('[acp] tarefa:',err); }
+  });
+  return fora;
+}
+
+/* Tarefa de cadastro do produto na Base, na área Anúncios — é lá que mora
+   quem cadastra e integra produto. Prioridade alta porque mercadoria
+   conferida e sem cadastro é dinheiro parado na prateleira. */
+function _entCriarTarefaCadastro(reg){
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const agora=Date.now();
+  const t={
+    id:'atv_ent_'+agora+'_'+Math.random().toString(36).slice(2,6),
+    areaTarefa:'anuncios',
+    origemEntradaEstoqueId:reg.id,
+    titulo:'Cadastrar na Base: '+(reg.nome||reg.sku||'produto sem nome'),
+    observacao:[
+      reg.sku?('SKU: '+reg.sku):'SKU: ainda não tem — criar na Base',
+      'Nome: '+(reg.nome||'—'),
+      'EAN: '+(reg.ean||'—'),
+      'Warehouse de destino: '+(reg.armazem||'—'),
+      'Chegaram '+reg.quantidade+' un. a '+_pedFmt(reg.custo)+' cada',
+      reg.obs?('Origem: '+reg.obs):'',
+      '',
+      'A entrada já está na fila do Estoque. Assim que o produto existir na',
+      'Base, o robô lança sozinho na próxima rodada — não precisa refazer.'
+    ].filter(Boolean).join('\n'),
+    vencimento:_hojeISO(),
+    prioridade:'alta',
+    status:'aberta',
+    responsavel:(currentUser&&currentUser.key)||'',
+    responsaveis:(currentUser&&currentUser.key)?[currentUser.key]:[],
+    criadoEm:_agoraCarimbo(),
+    criadoPor:(currentUser&&currentUser.name)||'',
+    criadoPorKey:(currentUser&&currentUser.key)||'',
+    ordemManual:agora,
+    comentarios:[]
+  };
+  appState.atividades.push(t);
+  reg.tarefaCadastroId=t.id;
+  return t;
+}
+
+function _acpConferida(a){
+  return /conferido|lançado no estoque|lancado no estoque/i.test(String((a&&a.status)||''));
 }
 
 function acpArquivar(id){
@@ -12469,16 +12732,15 @@ function acpVer(id){
       <span style="font-size:11.5px;color:var(--text-muted);min-width:130px;">${r}</span>
       <span style="font-size:12.5px;color:var(--text-primary);">${v}</span></div>`:'';
   const itens=_acpItens(a);
-  /* Só compra e transferência dão entrada de estoque. Devolução volta para
-     o estoque por outro caminho (a Base baixa no cancelamento), e lançar de
-     novo aqui somaria a mesma unidade duas vezes. */
-  const podeEntrada=(a.tipo==='compra'||a.tipo==='transferencia') && _acpPodeMexer();
+  const filhas=(appState.entradasEstoque||[]).filter(e=>e&&e.origemCompraId===a.id);
   document.getElementById('acp-ver-corpo').innerHTML=
       linha('Data', _pedDataBR(a.data))
     + linha(T.loja, a.loja)
     + linha(T.cliente, a.cliente)
     + linha('Transportadora', a.transportadora)
     + linha('Rastreio', a.rastreio)
+    + linha('Warehouse de destino', a.armazem)
+    + linha('Taxa de entrega', Number(a.taxaEntrega)?_pedFmt(a.taxaEntrega):'')
     + linha('Status', `<span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span>`)
     + linha('Previsão', a.previsao?_pedDataBR(a.previsao):'')
     + linha('Última atualização', a.atualizadoEm)
@@ -12490,34 +12752,18 @@ function acpVer(id){
             <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-primary);min-width:78px;">${p.sku||'—'}</span>
             <span style="font-size:11.5px;color:var(--text-secondary);flex:1;">${p.nome||'—'}</span>
             <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${p.qtd||1} un.</span>
-            ${podeEntrada?`<button class="ped-acao" onclick="acpDarEntrada('${a.id}',${i})">Dar entrada</button>`:''}
+            ${p.custo?`<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${_pedFmt(p.custo)}</span>`:''}
           </div>`).join('')
       + '</div>'
+      + (filhas.length?`<div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.7;">
+            ${filhas.filter(e=>e.status==='aguardando').length
+              ? 'As entradas de estoque estão <b>aguardando conferência</b>. Mude o status desta compra para <b>Produto entregue e conferido</b> e elas vão para a Base.'
+              : 'As entradas de estoque desta compra já foram liberadas para a Base — veja a fila na aba Estoque.'}
+          </div>`:'')
       : '<div style="margin-top:14px;font-size:11.5px;color:var(--text-muted);">Nenhum produto listado neste registro.</div>');
   ov.classList.add('open');
 }
 function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(o) o.classList.remove('open'); }
-
-/* Da conferência para a entrada, sem redigitar. É este o caminho que o
-   pessoal faz na prática: a caixa chegou, confere item por item, e cada
-   item conferido vira entrada. */
-function acpDarEntrada(id,i){
-  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
-  const p=_acpItens(a)[i]; if(!p) return;
-  acpFecharVer();
-  switchTab('estoque');
-  try{ renderEstoque(); }catch(e){}
-  setTimeout(()=>{
-    entAbrir();
-    const set=(cid,v)=>{const el=document.getElementById(cid); if(el && v!=null) el.value=v;};
-    set('ent-sku',p.sku||'');
-    set('ent-qtd',p.qtd||1);
-    set('ent-obs',[ACP_TIPOS[a.tipo].um, a.rastreio||'', a.loja||''].filter(Boolean).join(' · ').slice(0,200));
-    if(!p.sku) set('ent-nome',p.nome||'');
-    try{ entPrever(); }catch(e){}
-    const c=document.getElementById('ent-custo'); if(c) c.focus();
-  },90);
-}
 
 function renderAcompanhamento(){
   const seg=document.querySelectorAll('#acp-seg .seg-btn');
@@ -12657,223 +12903,6 @@ function renderAcompanhamento(){
      processadoEm, erro                                              */
 let _entVerConcluidas=false;
 
-function _entProdutoPorSku(sku){
-  const alvo=String(sku||'').trim().toLowerCase();
-  if(!alvo) return null;
-  return (appState.produtos||[]).find(p=>p && String(p.sku||'').trim().toLowerCase()===alvo)||null;
-}
-
-function _entArmazensConhecidos(){
-  const nomes=[];
-  (appState.produtos||[]).forEach(p=>(Array.isArray(p&&p.armazens)?p.armazens:[]).forEach(a=>{
-    const n=String((a&&a.nome)||'').trim();
-    if(n && nomes.indexOf(n)<0) nomes.push(n);
-  }));
-  return nomes.sort((a,b)=>a.localeCompare(b,'pt-BR'));
-}
-
-function entAbrir(){
-  const ov=document.getElementById('ent-overlay'); if(!ov) return;
-  ['ent-sku','ent-nome','ent-ean','ent-qtd','ent-custo','ent-preco-ml','ent-preco-atacado','ent-obs']
-    .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
-  const err=document.getElementById('ent-erro'); if(err){ err.style.display='none'; err.textContent=''; }
-
-  /* A lista de SKUs e a de armazéns saem do catálogo já lido. Sem catálogo
-     os dois campos ficam livres: melhor aceitar digitado e deixar o robô
-     recusar com motivo do que travar quem precisa lançar agora. */
-  const dl=document.getElementById('ent-skus');
-  if(dl) dl.innerHTML=(appState.produtos||[]).filter(Boolean)
-    .map(p=>`<option value="${String(p.sku||'').replace(/"/g,'&quot;')}">${String(p.nome||'').slice(0,60).replace(/"/g,'&quot;')}</option>`).join('');
-  const sel=document.getElementById('ent-armazem');
-  if(sel){
-    const nomes=_entArmazensConhecidos();
-    sel.innerHTML=nomes.length
-      ? nomes.map(n=>`<option>${n}</option>`).join('')
-      : '<option value="">(catálogo ainda não lido — rode o fluxo do estoque)</option>';
-  }
-  entPrever();
-  ov.classList.add('open');
-  setTimeout(()=>{const s=document.getElementById('ent-sku'); if(s) s.focus();},60);
-}
-
-function entFechar(){
-  const ov=document.getElementById('ent-overlay');
-  if(ov) ov.classList.remove('open');
-}
-
-function entPrever(){
-  const sku=(document.getElementById('ent-sku')||{}).value||'';
-  const qtd=Number((document.getElementById('ent-qtd')||{}).value)||0;
-  const custo=Number((document.getElementById('ent-custo')||{}).value)||0;
-  const prod=_entProdutoPorSku(sku);
-
-  const achou=document.getElementById('ent-achou');
-  const elNome=document.getElementById('ent-nome');
-  const elEan=document.getElementById('ent-ean');
-
-  /* Produto conhecido: nome e EAN vêm do catálogo e ficam travados. Deixar
-     editável convidaria a corrigir aqui um dado que só a Base manda — e a
-     correção sumiria no próximo sincronismo, sem ninguém entender por quê. */
-  const conhecido=!!prod;
-  [elNome,elEan].forEach(el=>{ if(el){ el.readOnly=conhecido; el.style.opacity=conhecido?'.7':'1'; } });
-  if(conhecido){
-    if(elNome) elNome.value=prod.nome||'';
-    if(elEan)  elEan.value=prod.ean||'';
-  }
-  /* Sem produto conhecido, nome e EAN passam a ser obrigatórios: é com eles
-     que a tarefa de cadastro na Base nasce com o que a pessoa precisa. */
-  const req=!conhecido;
-  const rn=document.getElementById('ent-req-nome'); if(rn) rn.style.display=req?'':'none';
-  const re=document.getElementById('ent-req-ean');  if(re) re.style.display=req?'':'none';
-
-  if(achou){
-    if(prod){ achou.textContent='No catálogo: '+(prod.nome||'(sem nome)'); achou.className='ok'; }
-    else if(String(sku).trim()){ achou.textContent='SKU fora do catálogo lido — preencha nome e EAN; vira tarefa de cadastro se a Base também não tiver'; achou.className='nao'; }
-    else { achou.textContent='Sem SKU: o produto vai ser cadastrado na Base por uma tarefa'; achou.className='nao'; }
-  }
-
-  const box=document.getElementById('ent-previa');
-  if(!box) return;
-  if(!prod || !qtd || !custo){ box.style.display='none'; return; }
-
-  const saldo=Number(prod.total)||0;
-  const medio=Number(prod.precoMedio)||0;
-  const depois=saldo+qtd;
-  /* Média ponderada, a mesma conta da Base. Saldo negativo NÃO entra: com
-     ele a fórmula devolve custo distorcido, e já vimos saldo negativo no
-     catálogo. Nesse caso a previsão é o custo desta compra e o texto diz
-     por quê — em vez de mostrar um número bonito e errado. */
-  let previsto, aviso='';
-  if(saldo<=0 || medio<=0){
-    previsto=custo;
-    aviso = saldo<0 ? ' (saldo negativo na Base — a média parte só desta compra)'
-                    : ' (sem saldo ou sem custo anterior)';
-  }else{
-    previsto=((saldo*medio)+(qtd*custo))/depois;
-  }
-  box.style.display='block';
-  box.innerHTML='<b>Previsão</b>, pela última leitura da Base:<br>'
-    +'estoque '+saldo+' → <b>'+depois+'</b> un.<br>'
-    +'custo médio '+(medio>0?_pedFmt(medio):'—')+' → <b>'+_pedFmt(previsto)+'</b>'+aviso
-    +'<br><span style="color:var(--text-muted);">A conta que vale é a do lançamento, com o saldo do momento.</span>';
-}
-
-function entEnviar(){
-  const err=document.getElementById('ent-erro');
-  const falhar=m=>{ if(err){ err.textContent=m; err.style.display='block'; } };
-  const sku=String((document.getElementById('ent-sku')||{}).value||'').trim();
-  const qtd=Number((document.getElementById('ent-qtd')||{}).value);
-  const custo=Number((document.getElementById('ent-custo')||{}).value);
-  const armazem=String((document.getElementById('ent-armazem')||{}).value||'').trim();
-  const precoMl=(document.getElementById('ent-preco-ml')||{}).value;
-  const precoAtacado=(document.getElementById('ent-preco-atacado')||{}).value;
-
-  const nome=String((document.getElementById('ent-nome')||{}).value||'').trim();
-  const ean=String((document.getElementById('ent-ean')||{}).value||'').replace(/\D/g,'');
-  const prod=_entProdutoPorSku(sku);
-
-  if(!(qtd>0) || Math.round(qtd)!==qtd) return falhar('A quantidade precisa ser um número inteiro maior que zero.');
-  if(!(custo>0)) return falhar('Informe o custo unitário desta compra.');
-  if(!armazem) return falhar('Escolha o armazém. Se a lista está vazia, o catálogo ainda não foi lido da Base.');
-  /* SKU deixou de ser obrigatório: produto novo chega sem ele. O que passa a
-     ser obrigatório é o que a Base vai precisar para cadastrar — nome e EAN.
-     Tarefa de cadastro sem esses dois nasce inútil, e quem a receber vai ter
-     de voltar perguntando o que chegou. */
-  if(!prod){
-    if(!sku && !nome) return falhar('Sem SKU, o nome do produto é obrigatório — é por ele que a Base vai ser cadastrada.');
-    if(!nome) return falhar('Informe o nome do produto.');
-    if(!ean)  return falhar('Informe o EAN. É ele que evita cadastrar duas vezes o mesmo produto na Base.');
-    if(ean.length<8 || ean.length>14) return falhar('EAN com '+ean.length+' dígitos não existe — use o código de barras da embalagem (8 a 14 dígitos).');
-  }
-
-  /* Preço vazio significa "não mexe". Zero significaria "põe zero", e um
-     produto com preço zero vai para o marketplace de graça — por isso o
-     campo vazio nunca vira 0 no caminho. */
-  const nOuNulo=v=>{ const t=String(v==null?'':v).trim(); if(!t) return null; const n=Number(t); return (isFinite(n)&&n>0)?n:null; };
-
-  const agora=new Date();
-  const reg={
-    id:'ent_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,7),
-    sku, quantidade:qtd, custo,
-    /* Nome e EAN viajam junto sempre, mesmo quando o produto é conhecido:
-       o registro precisa dizer o que entrou sem depender de o catálogo ainda
-       existir do jeito que estava no dia. */
-    nome: nome || (prod && prod.nome) || '',
-    ean:  ean  || (prod && String(prod.ean||'').replace(/\D/g,'')) || '',
-    /* Marcado aqui pelo que a tela sabe. Quem decide de verdade é o robô,
-       que pergunta à Base — a tela pode estar com catálogo velho. */
-    novoNaBase: !prod,
-    precoMl:nOuNulo(precoMl), precoAtacado:nOuNulo(precoAtacado),
-    armazem, obs:String((document.getElementById('ent-obs')||{}).value||'').trim(),
-    status:'pendente',
-    criadoPor:(currentUser&&currentUser.name)||'',
-    criadoPorKey:(currentUser&&currentUser.key)||'',
-    criadoEm:agora.toLocaleString('pt-BR'),
-    ts:agora.getTime()
-  };
-  if(!Array.isArray(appState.entradasEstoque)) appState.entradasEstoque=[];
-  appState.entradasEstoque.push(reg);
-  try{
-    saveState(appState);
-  }catch(e){
-    appState.entradasEstoque=appState.entradasEstoque.filter(x=>x!==reg);
-    return falhar('Não consegui salvar: '+(e&&e.message||e));
-  }
-  /* A tarefa nasce no ato da conferência, não depois que o robô reclamar.
-     Esperar a resposta da Base atrasaria o cadastro em até cinco minutos, e
-     nesse meio tempo a mercadoria já está na prateleira sem existir no
-     sistema. Se a Base tiver o produto, o robô fecha a tarefa sozinho. */
-  let tarefa=null;
-  if(!prod){
-    try{ tarefa=_entCriarTarefaCadastro(reg); }
-    catch(e){ console.warn('[entrada] tarefa não criada:',e); }
-  }
-  entFechar();
-  renderEstoque();
-  try{ renderAtividades(); }catch(e){}
-  showToast('✔ Entrada de '+qtd+'× '+(sku||reg.nome)+' na fila'
-    +(tarefa?' — e tarefa de cadastro na Base criada':' — o robô lança na Base'),'success');
-}
-
-/* Tarefa de cadastro do produto na Base, na área Anúncios — é lá que mora
-   quem cadastra e integra produto. Prioridade alta porque mercadoria
-   conferida e sem cadastro é dinheiro parado na prateleira. */
-function _entCriarTarefaCadastro(reg){
-  if(!Array.isArray(appState.atividades)) appState.atividades=[];
-  const agora=Date.now();
-  const t={
-    id:'atv_ent_'+agora+'_'+Math.random().toString(36).slice(2,6),
-    areaTarefa:'anuncios',
-    origemEntradaEstoqueId:reg.id,
-    titulo:'Cadastrar na Base: '+(reg.nome||reg.sku||'produto sem nome'),
-    observacao:[
-      reg.sku?('SKU: '+reg.sku):'SKU: ainda não tem — criar na Base',
-      'Nome: '+(reg.nome||'—'),
-      'EAN: '+(reg.ean||'—'),
-      'Armazém: '+reg.armazem,
-      'Chegaram '+reg.quantidade+' un. a '+_pedFmt(reg.custo)+' cada',
-      reg.obs?('Obs.: '+reg.obs):'',
-      '',
-      'A mercadoria já foi conferida e está na fila de entrada. Assim que o',
-      'produto existir na Base, refaça a entrada na aba Estoque.'
-    ].filter(Boolean).join('\n'),
-    vencimento:_hojeISO(),
-    prioridade:'alta',
-    status:'aberta',
-    responsavel:(currentUser&&currentUser.key)||'',
-    responsaveis:(currentUser&&currentUser.key)?[currentUser.key]:[],
-    criadoEm:_agoraCarimbo(),
-    criadoPor:(currentUser&&currentUser.name)||'',
-    criadoPorKey:(currentUser&&currentUser.key)||'',
-    ordemManual:agora,
-    comentarios:[]
-  };
-  appState.atividades.push(t);
-  reg.tarefaCadastroId=t.id;
-  saveState(appState);
-  return t;
-}
-
 function entAlternarConcluidas(){
   _entVerConcluidas=!_entVerConcluidas;
   const b=document.getElementById('ent-btn-ver');
@@ -12883,24 +12912,34 @@ function entAlternarConcluidas(){
 
 /* Refazer é criar outro pedido, nunca reabrir o antigo: o lançamento que
    falhou pode ter falhado DEPOIS de mexer na Base, e reprocessar o mesmo
-   registro somaria a quantidade duas vezes. O antigo fica no histórico. */
+   registro somaria a quantidade duas vezes. O antigo fica no histórico com o
+   motivo, e a cópia entra na fila limpa. */
 function entRefazer(id){
   const a=(appState.entradasEstoque||[]).find(x=>x&&x.id===id);
   if(!a) return;
-  entAbrir();
-  const p=(cid,v)=>{const el=document.getElementById(cid); if(el && v!=null && v!=='') el.value=v;};
-  p('ent-sku',a.sku); p('ent-nome',a.nome); p('ent-ean',a.ean);
-  p('ent-qtd',a.quantidade); p('ent-custo',a.custo);
-  p('ent-preco-ml',a.precoMl); p('ent-preco-atacado',a.precoAtacado);
-  p('ent-obs',a.obs);
-  const sel=document.getElementById('ent-armazem');
-  if(sel && a.armazem && [...sel.options].some(o=>o.value===a.armazem||o.text===a.armazem)) sel.value=a.armazem;
-  entPrever();
+  if(!confirm('Refazer a entrada de '+a.quantidade+'× '+(a.sku||a.nome)+'?\n\n'
+    +'Uma cópia nova entra na fila. A tentativa que falhou fica no histórico.')) return;
+  const agora=new Date();
+  appState.entradasEstoque.push({
+    ...a,
+    id:'ent_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+    /* Sem vínculo com a compra: senão a próxima edição dela sobrescreveria
+       esta cópia, que é justamente a que precisa sobreviver. */
+    origemCompraId:null, origemIndice:null, tarefaCadastroId:null,
+    status:'pendente', erro:null, processadoEm:null,
+    produtoId:null, nomeProduto:null,
+    estoqueAntes:null, estoqueDepois:null, custoAntes:null, custoDepois:null,
+    criadoPor:(currentUser&&currentUser.name)||'', criadoPorKey:(currentUser&&currentUser.key)||'',
+    criadoEm:agora.toLocaleString('pt-BR'), ts:agora.getTime()
+  });
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
+  renderEstoque();
+  showToast('Entrada recolocada na fila','success');
 }
 
 function entCancelar(id){
   const a=(appState.entradasEstoque||[]).find(x=>x&&x.id===id);
-  if(!a || a.status!=='pendente') return;
+  if(!a || (a.status!=='pendente' && a.status!=='aguardando')) return;
   if(!confirm('Cancelar a entrada de '+a.quantidade+'× '+a.sku+'?\n\nEla sai da fila e o robô não vai lançar.')) return;
   appState.entradasEstoque=(appState.entradasEstoque||[]).filter(x=>x&&x.id!==id);
   try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
@@ -12908,6 +12947,7 @@ function entCancelar(id){
 }
 
 const _ENT_SIT={
+  aguardando:  {c:'aguardando',  r:'Aguardando conferência'},
   pendente:    {c:'pendente',    r:'Na fila'},
   lancado:     {c:'lancado',     r:'Lançado'},
   sem_cadastro:{c:'semcadastro', r:'Sem cadastro na Base'},
@@ -12922,13 +12962,15 @@ function renderEntradasEstoque(){
   if(!todas.length){ bloco.style.display='none'; return; }
   bloco.style.display='';
 
+  const aguardando=todas.filter(a=>a.status==='aguardando').length;
   const pendentes=todas.filter(a=>a.status==='pendente').length;
   const problemas=todas.filter(a=>a.status==='sem_cadastro'||a.status==='erro').length;
   const resumo=document.getElementById('ent-resumo');
   if(resumo) resumo.textContent=[
+    aguardando?(aguardando+' aguardando conferência'):'',
     pendentes?(pendentes+' na fila'):'',
     problemas?(problemas+' precisando de gente'):'',
-    (!pendentes&&!problemas)?'tudo lançado':''
+    (!aguardando&&!pendentes&&!problemas)?'tudo lançado':''
   ].filter(Boolean).join(' · ');
 
   /* Por padrão a lista mostra o que ainda pede alguma coisa. Entrada
@@ -12962,7 +13004,7 @@ function renderEntradasEstoque(){
       <td style="color:var(--text-secondary);">${a.criadoPor||'—'}</td>
       <td style="text-align:right;white-space:nowrap;">
         ${(a.status==='sem_cadastro'||a.status==='erro')?`<button class="ped-acao" onclick="entRefazer('${a.id}')">Refazer</button>`:''}
-        ${(a.status==='pendente'&&podeMexer(a))?`<button class="ped-acao perigo" onclick="entCancelar('${a.id}')">Cancelar</button>`:''}
+        ${((a.status==='pendente'||a.status==='aguardando')&&podeMexer(a))?`<button class="ped-acao perigo" onclick="entCancelar('${a.id}')">Cancelar</button>`:''}
       </td>`;
     frag.appendChild(tr);
   });
