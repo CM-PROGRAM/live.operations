@@ -9233,7 +9233,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23s';
+const APP_VERSAO='2026.08.23t';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23526,13 +23526,15 @@ function mktVoltarPlataformas(){ mktAbrirPlataforma(''); }
 
 function _mktResumoPlataforma(pf){
   const lojas=(pf.stores||[]).length;
-  const atalhos=(pf.stores||[]).reduce((n,st)=>n+((st.links||[]).length),0);
+  /* "Atalhos" descrevia o que o botão É; "conferências" descreve o que ele
+     serve para fazer — e é a palavra que a equipe usa. */
+  const conferencias=(pf.stores||[]).reduce((n,st)=>n+((st.links||[]).length),0);
   let feitas=0, total=0;
   (pf.stores||[]).forEach(st=>(st.links||[]).forEach(lk=>{
     const tarefa=_mktTarefaDoLink(pf.platform,st.store,lk.label);
     if(tarefa){ total++; if(_mktTarefaConcluida(tarefa)) feitas++; }
   }));
-  return {lojas, atalhos, feitas, total};
+  return {lojas, conferencias, feitas, total};
 }
 
 function _mktGradeHtml(){
@@ -23549,7 +23551,7 @@ function _mktGradeHtml(){
     return `<button class="ini-quadro" onclick="mktAbrirPlataforma('${String(pf.platform).replace(/'/g,"\\'")}')" style="text-align:center;">
       <span class="ini-ic" data-icone="marketplaces" style="color:${cor};"></span>
       <span class="ini-tit">${pf.platform}</span>
-      <span class="ini-sub">${r.lojas} loja${r.lojas>1?'s':''} · ${r.atalhos} atalhos${segunda}</span>
+      <span class="ini-sub">${r.lojas} loja${r.lojas>1?'s':''} · ${r.conferencias} confer${r.conferencias===1?'ência':'ências'}${segunda}</span>
     </button>`;
   }).join('');
 }
@@ -23561,7 +23563,10 @@ function renderMktLinks(){
 
   if(!_mktAberta){
     const grade=document.createElement('div');
-    grade.className='ini-quadros';
+    /* Três por linha e maiores: com cinco numa fileira o card fica estreito e
+       o nome da plataforma — que é a única coisa que se lê aqui — sobra
+       apertado no meio de espaço vazio à direita. */
+    grade.className='ini-quadros tres-colunas quadros-maiores';
     grade.innerHTML=_mktGradeHtml();
     panel.appendChild(grade);
     try{ preencherIconesDeclarados(panel); }catch(e){}
@@ -23600,16 +23605,22 @@ function renderMktLinks(){
     pctBadge.textContent=pct+'%';
     const headRow=document.createElement('div');
     headRow.style.cssText='display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;';
-    headRow.appendChild(head);
+    /* O nome da plataforma em neon só faz sentido na grade, onde ele
+       distingue um card do outro. Aqui dentro a pessoa acabou de clicar
+       nele — repetir é ocupar a linha com o que ela já sabe. Fica só o
+       percentual, e quem nomeia cada bloco é a loja. */
+    if(!_mktAberta) headRow.appendChild(head);
     headRow.appendChild(pctBadge);
+    if(_mktAberta) headRow.style.justifyContent='flex-end';
     card.appendChild(headRow);
     const body=document.createElement('div');
     body.style.cssText='display:flex;flex-direction:column;gap:8px;';
     pf.stores.forEach(st=>{
       const row=document.createElement('div');
       row.style.cssText='display:flex;align-items:center;gap:8px;flex-wrap:wrap;';
-      // Cor do tile por plataforma/loja (mesma paleta dos painéis por plataforma)
-      const tc='#8fa8d8';
+      /* Com o nome da plataforma fora, é a loja que identifica o bloco —
+         então ela herda a cor da plataforma em vez do azul genérico. */
+      const tc=(_mktAberta && MKT_NEON[pf.platform]) ? ('rgb('+MKT_NEON[pf.platform]+')') : '#8fa8d8';
       const storeLbl=document.createElement('span');
       storeLbl.className='mkt-loja';
       storeLbl.style.cssText=`min-width:170px;text-align:center;background:linear-gradient(135deg,${_hexA(tc,0.12)},${_hexA(tc,0.02)});border:1.5px solid ${_hexA(tc,0.5)};border-radius:10px;padding:6px 12px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;`;
