@@ -568,6 +568,18 @@ html{overflow-x:hidden;}
 .est-kpi .rot{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);}
 .est-kpi .val{display:block;font-family:var(--font-sans);font-size:26px;font-weight:800;line-height:1.25;letter-spacing:-.02em;color:var(--text-primary);margin-top:6px;}
 .est-kpi .sub{display:block;font-size:11px;color:var(--text-muted);margin-top:1px;}
+.est-por-armazem{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:13px 18px 14px;margin-bottom:16px;}
+.est-por-armazem .tit{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);margin-bottom:10px;}
+.est-por-armazem .linhas{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px 22px;}
+.est-por-armazem .li{display:flex;align-items:baseline;gap:8px;}
+.est-por-armazem .li .nm{font-size:12px;font-weight:600;color:var(--text-primary);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.est-por-armazem .li .pt{flex:1;border-bottom:1px dotted var(--glass-border);min-width:12px;}
+.est-por-armazem .li .qt{font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--text-primary);}
+.est-por-armazem .li .qt.neg{color:#fca5a5;}
+.est-por-armazem .li .pc{font-size:11px;color:var(--text-muted);min-width:38px;text-align:right;}
+:root[data-theme="light"] .est-por-armazem .li .qt.neg{color:#b91c1c;}
 .est-kpi .ic{position:absolute;top:15px;right:16px;width:18px;height:18px;color:var(--text-muted);opacity:.65;}
 .est-kpi .ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
 /* Legibilidade da lista de estoque.
@@ -2856,6 +2868,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <div id="est-kpis" class="est-kpis"></div>
+
+      <!-- DE ONDE VEM O SALDO. O número de "Estoque Total" é a soma de todos
+           os armazéns, e soma grande sem origem visível é número em que não
+           se confia. Aqui ele aparece quebrado por armazém, do maior para o
+           menor: se um deles está inflando o total, dá para ver de relance. -->
+      <div id="est-por-armazem" class="est-por-armazem" style="display:none;"></div>
 
       <!-- FILA DE ENTRADAS — o que foi pedido e o que a Base respondeu.
            Só aparece quando existe alguma; tela vazia não anuncia recurso. -->
@@ -9280,7 +9298,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23w';
+const APP_VERSAO='2026.08.23x';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12415,6 +12433,52 @@ function _estQtdNoArmazem(p,nome){
   return a ? (Number(a.qtd)||0) : 0;
 }
 
+/* Número grande sem ponto vira borrão: "1002160" ninguém lê, "1.002.160"
+   qualquer um lê. Vale para os três cartões. */
+function _estNum(n){ return (Number(n)||0).toLocaleString('pt-BR'); }
+
+/* Soma o saldo por armazém, olhando o catálogo inteiro. É a mesma conta que
+   alimenta o cartão "Estoque Total" — por isso a quebra fecha com ele. */
+function _estSomarPorArmazem(todos){
+  const mapa=new Map();
+  (todos||[]).forEach(p=>{
+    _estArmazens(p).forEach(a=>{
+      const nome=String(a.nome||'').trim()||'—';
+      mapa.set(nome,(mapa.get(nome)||0)+(Number(a.qtd)||0));
+    });
+  });
+  return [...mapa.entries()].map(([nome,qtd])=>({nome,qtd}))
+    .sort((a,b)=>Math.abs(b.qtd)-Math.abs(a.qtd));
+}
+
+/* O subtítulo do cartão diz de quantos armazéns aquele total é a soma. Sem
+   isso o número parece o saldo de um lugar só, e não é. */
+function _estSubTotal(todos){
+  const n=_estSomarPorArmazem(todos).length;
+  if(!n) return 'Unidades totais';
+  return n===1 ? 'Unidades em 1 armazém' : ('Unidades somando '+n+' armazéns');
+}
+
+function _estRenderPorArmazem(todos){
+  const box=document.getElementById('est-por-armazem');
+  if(!box) return;
+  const linhas=_estSomarPorArmazem(todos);
+  /* Com um armazém só a quebra repete o cartão. Não mostra. */
+  if(linhas.length<2){ box.style.display='none'; box.innerHTML=''; return; }
+  const bruto=linhas.reduce((a,x)=>a+Math.abs(x.qtd),0)||1;
+  /* O nome do armazém vem da Base, não daqui. Texto de fora entra escapado. */
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  box.style.display='block';
+  box.innerHTML='<span class="tit">Estoque Total por armazém</span>'
+    +'<div class="linhas">'+linhas.map(x=>{
+        const pc=Math.round(Math.abs(x.qtd)/bruto*100);
+        return '<div class="li"><span class="nm">'+esc(x.nome)+'</span>'
+          +'<span class="pt"></span>'
+          +'<span class="qt'+(x.qtd<0?' neg':'')+'">'+_estNum(x.qtd)+'</span>'
+          +'<span class="pc">'+pc+'%</span></div>';
+      }).join('')+'</div>';
+}
+
 const _EST_ICONES={
   caixa:'<svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>',
   subindo:'<svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>',
@@ -12544,12 +12608,13 @@ function renderEstoque(){
     const card=(rot,val,sub,ic)=>`<div class="est-kpi"><span class="ic">${ic}</span>`
       +`<span class="rot">${rot}</span><span class="val">${val}</span><span class="sub">${sub}</span></div>`;
     kp.innerHTML =
-        card('Total de Produtos', todos.length, 'SKUs únicos', _EST_ICONES.caixa)
-      + card('Estoque Total', unidades, 'Unidades totais', _EST_ICONES.subindo)
+        card('Total de Produtos', _estNum(todos.length), 'SKUs únicos', _EST_ICONES.caixa)
+      + card('Estoque Total', _estNum(unidades), _estSubTotal(todos), _EST_ICONES.subindo)
       + card('Valor Total', _pedFmt(valor),
              semCusto?(semCusto+' com saldo e sem custo, fora da conta'):'Valor em estoque',
              _EST_ICONES.dinheiro);
   }
+  _estRenderPorArmazem(todos);
 
   const vazio=document.getElementById('est-vazio');
   tbody.innerHTML='';
@@ -12577,11 +12642,11 @@ function renderEstoque(){
       <td class="est-sku">${_estSkuHtml(p)}</td>
       <td class="est-nome">${_estNomeHtml(p)}</td>
       <td class="est-ean">${p.ean||'—'}</td>
-      <td><span class="est-saldo ${classe}">${total}</span></td>
+      <td><span class="est-saldo ${classe}">${_estNum(total)}</span></td>
       <td>${armazens.length
         ? `<div class="est-arm">${armazens.map(a=>{
             const q=Number(a.qtd)||0;
-            return `<div><span class="nome">${a.nome||'—'}</span><span class="qtd${q<0?' neg':''}">${q} un.</span></div>`;
+            return `<div><span class="nome">${a.nome||'—'}</span><span class="qtd${q<0?' neg':''}">${_estNum(q)} un.</span></div>`;
           }).join('')}</div>`
         : '<span style="color:var(--text-muted);">—</span>'}</td>
       <td class="est-custo" style="color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
