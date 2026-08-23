@@ -1,0 +1,527 @@
+{
+  "name": "LiveOps → Base · Entrada de estoque",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        60
+      ],
+      "id": "A cada 5 minutos",
+      "name": "A cada 5 minutos"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -720,
+        -100
+      ],
+      "id": "Rodar agora",
+      "name": "Rodar agora"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/entradasEstoque.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -500,
+        -20
+      ],
+      "id": "Ler a fila",
+      "name": "Ler a fila",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Uma entrada por vez, a mais antiga primeiro.\n\n   Uma por execução de propósito. Duas entradas do mesmo SKU processadas em\n   paralelo leriam o mesmo saldo antigo e a segunda apagaria a primeira — o\n   estoque somaria uma compra só. Como a Base não tem \"soma isso aqui\", só\n   \"o estoque agora é X\", ler e escrever precisa acontecer em fila. */\nconst resp = $input.first().json || {};\nif (resp.error) throw new Error('Não consegui ler a fila no LiveOps: ' + JSON.stringify(resp.error).slice(0, 300));\n\nconst todas = Object.entries(resp || {})\n  .filter(([k, v]) => v && typeof v === 'object' && v.status === 'pendente')\n  .map(([k, v]) => ({ chave: k, ...v }))\n  .sort((a, b) => (Number(a.ts) || 0) - (Number(b.ts) || 0));\n\nif (!todas.length) { console.log('nada na fila'); return []; }\n\nconst a = todas[0];\nconsole.log('processando ' + a.quantidade + '× ' + a.sku + ' (' + (todas.length) + ' na fila) — pedida por ' + (a.criadoPor || '?'));\nreturn [{ json: a }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -300,
+        -20
+      ],
+      "id": "Fila do LiveOps",
+      "name": "Fila do LiveOps"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryWarehouses"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -100,
+        -20
+      ],
+      "id": "Base · armazéns",
+      "name": "Base · armazéns",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventories"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        -20
+      ],
+      "id": "Base · catálogos",
+      "name": "Base · catálogos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Catálogo e mapa de armazéns.\n\n   O pedido guarda o NOME do armazém (\"Estoque ES\"), porque nome é o que a\n   equipe conhece; a Base quer a chave (\"bl_43152\"). A tradução é aqui, e o\n   nome que não existir mais na Base para o lançamento com motivo — melhor\n   recusar do que lançar no armazém errado. */\nconst cat = $input.first().json || {};\nif (cat.status !== 'SUCCESS') throw new Error('Não consegui listar os catálogos: ' + (cat.error_message || 'motivo não informado'));\nconst inventarios = Object.keys(cat.inventories || {});\nif (!inventarios.length) throw new Error('A Base não devolveu nenhum catálogo.');\n\nconst arm = $('Base · armazéns').first().json || {};\nconst porNome = {};\n(arm.warehouses || []).forEach(w => {\n  porNome[String(w.name || '')] = String(w.warehouse_type || '') + '_' + String(w.warehouse_id || '');\n});\nreturn [{ json: { inventory_id: inventarios[0], armazensPorNome: porNome } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        300,
+        -20
+      ],
+      "id": "Catálogo e armazéns",
+      "name": "Catálogo e armazéns"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryProductsList"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ inventory_id: $json.inventory_id, filter_sku: $('Fila do LiveOps').first().json.sku }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -20
+      ],
+      "id": "Base · procurar o SKU",
+      "name": "Base · procurar o SKU",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Achou o SKU na Base?\n\n   Quando não acha, o pedido NÃO vira erro: vira \"sem cadastro na Base\", que\n   é outra coisa e pede outra ação — alguém precisa cadastrar o produto lá.\n   O fluxo antigo mandava um WhatsApp pedindo isso; aqui a situação fica na\n   própria tela de quem lançou, junto com o botão de refazer. */\nconst pedido = $('Fila do LiveOps').first().json;\nconst r = $input.first().json || {};\n\nif (r.status !== 'SUCCESS') {\n  return [[], [{ json: { ...pedido, _falha: 'A Base recusou a busca: ' + (r.error_message || r.error_code || 'motivo não informado') } }]];\n}\nconst achados = Object.keys(r.products || {});\nif (!achados.length) {\n  return [[], [{ json: { ...pedido, _semCadastro: true } }]];\n}\nif (achados.length > 1) {\n  return [[], [{ json: { ...pedido, _falha: 'Há ' + achados.length + ' produtos com este SKU na Base (' + achados.join(', ') + '). Não dá para saber em qual lançar.' } }]];\n}\nreturn [[{ json: { ...pedido, produtoId: achados[0], inventory_id: $('Catálogo e armazéns').first().json.inventory_id } }], []];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        -20
+      ],
+      "id": "Achou na Base?",
+      "name": "Achou na Base?"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryProductsData"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ inventory_id: $json.inventory_id, products: [$json.produtoId] }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        -140
+      ],
+      "id": "Base · dados do produto",
+      "name": "Base · dados do produto",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* A conta do lançamento — feita AGORA, com o saldo que a Base acabou de\n   devolver, e não com o que a tela mostrava.\n\n   Média ponderada: (saldo × custo atual + quantidade × custo da compra) /\n   saldo final.\n\n   Duas guardas que o fluxo antigo não tinha, e as duas doem de verdade:\n\n   1) Saldo negativo. O catálogo tem produto com saldo negativo — vimos -5.\n      Com saldo -5, custo 100 e uma compra de 10 a 50, a fórmula dá\n      (-500 + 500) / 5 = 0: o produto perde o custo inteiro e passa a valer\n      zero no estoque. Quando o saldo atual não é positivo, o custo médio\n      novo é o custo desta compra, que é a única informação confiável.\n\n   2) Preço negativo. A fórmula do preço base (preço × 0,88 − 19,95) devolve\n      número negativo para qualquer preço abaixo de R$ 22,67 — e preço\n      negativo entra na Base e vai para o marketplace. Preço calculado que\n      não seja positivo é descartado e o preço antigo permanece. */\nconst TAXA = 0.88, TARIFA = 19.95;\n\nconst pedido = $('Achou na Base?').first().json;\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  return [[], [{ json: { ...pedido, _falha: 'Não consegui ler o produto na Base: ' + (r.error_message || 'motivo não informado') } }]];\n}\nconst dados = (r.products || {})[pedido.produtoId];\nif (!dados) {\n  return [[], [{ json: { ...pedido, _falha: 'A Base não devolveu os dados do produto ' + pedido.produtoId } }]];\n}\n\nconst mapa = $('Catálogo e armazéns').first().json.armazensPorNome || {};\nconst chaveArmazem = mapa[pedido.armazem];\nif (!chaveArmazem) {\n  return [[], [{ json: { ...pedido, _falha: 'O armazém \"' + pedido.armazem + '\" não existe mais na Base. Existem: ' + Object.keys(mapa).join(', ') } }]];\n}\n\nconst saldoAntes = Number((dados.stock || {})[chaveArmazem]) || 0;\nconst custoAntes = Number(dados.average_cost) || 0;\nconst qtd = Number(pedido.quantidade) || 0;\nconst custoCompra = Number(pedido.custo) || 0;\nconst saldoDepois = saldoAntes + qtd;\n\nlet custoDepois;\nif (saldoAntes <= 0 || custoAntes <= 0) custoDepois = custoCompra;\nelse custoDepois = ((saldoAntes * custoAntes) + (qtd * custoCompra)) / saldoDepois;\ncustoDepois = Math.round(custoDepois * 10000) / 10000;\n\n/* Preço só entra no pacote quando foi pedido E o cálculo deu positivo.\n   Campo ausente é a forma de dizer \"não mexe\" — mandar o preço antigo de\n   volta funcionaria, mas gravaria por cima de uma alteração que alguém\n   tenha feito na Base entre a leitura e a escrita. */\nconst precos = {};\nlet precoBase = null, precoAtacado = null;\nif (pedido.precoMl != null) {\n  const calc = (Number(pedido.precoMl) * TAXA) - TARIFA;\n  if (calc > 0) { precoBase = Math.round(calc * 100) / 100; }\n  else console.log('preço ML de ' + pedido.precoMl + ' daria ' + calc.toFixed(2) + ' — descartado, o preço antigo fica');\n}\nif (pedido.precoAtacado != null) {\n  const v = Number(pedido.precoAtacado);\n  if (v > 0) precoAtacado = Math.round(v * 100) / 100;\n}\n\n/* Os ids das tabelas de preço saem do próprio produto: a primeira é a base\n   e a segunda o atacado no cadastro atual. Cravar número aqui quebraria em\n   silêncio no dia em que a Base renumerar as tabelas. */\nconst idsPreco = Object.keys(dados.prices || {});\nif (precoBase != null && idsPreco[0]) precos[idsPreco[0]] = precoBase;\nif (precoAtacado != null && idsPreco[1]) precos[idsPreco[1]] = precoAtacado;\n\nconst pacote = {\n  inventory_id: pedido.inventory_id,\n  product_id: String(pedido.produtoId),\n  stock: { [chaveArmazem]: saldoDepois },\n  average_cost: custoDepois\n};\nif (Object.keys(precos).length) pacote.prices = precos;\n\nconsole.log(pedido.sku + ': ' + saldoAntes + ' → ' + saldoDepois + ' un. | custo '\n  + custoAntes.toFixed(2) + ' → ' + custoDepois.toFixed(2)\n  + (precoBase != null ? (' | preço base → ' + precoBase.toFixed(2)) : '')\n  + (saldoAntes < 0 ? '  ⚠ saldo estava negativo, média partiu desta compra' : ''));\n\nreturn [[{ json: {\n  pacote,\n  resultado: {\n    produtoId: String(pedido.produtoId),\n    nomeProduto: (dados.text_fields && dados.text_fields.name) || dados.name || '',\n    estoqueAntes: saldoAntes, estoqueDepois: saldoDepois,\n    custoAntes: custoAntes || null, custoDepois: custoDepois,\n    precoBase: precoBase, precoAtacadoAplicado: precoAtacado\n  },\n  chave: pedido.chave\n} }], []];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        -140
+      ],
+      "id": "Calcular o lançamento",
+      "name": "Calcular o lançamento"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "addInventoryProduct"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify($json.pacote) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1300,
+        -240
+      ],
+      "id": "Base · lançar estoque",
+      "name": "Base · lançar estoque",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Só marca como lançado se a Base confirmou. Um PATCH escrito a partir de\n   uma resposta que não veio SUCCESS diria que deu certo quando não deu, e a\n   mercadoria ficaria fora do estoque com o pedido marcado como resolvido —\n   o pior dos dois mundos, porque ninguém volta a olhar. */\nconst r = $input.first().json || {};\nconst base = $('Calcular o lançamento').first().json;\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nif (r.status !== 'SUCCESS') {\n  return [{ json: { chave: base.chave, patch: {\n    status: 'erro',\n    erro: 'A Base recusou o lançamento: ' + (r.error_message || r.error_code || 'motivo não informado'),\n    processadoEm: carimbo, _by: 'n8n'\n  } } }];\n}\nreturn [{ json: { chave: base.chave, patch: { ...base.resultado, status: 'lancado', erro: null, processadoEm: carimbo, _by: 'n8n' } } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1500,
+        -240
+      ],
+      "id": "Confirmar ou explicar",
+      "name": "Confirmar ou explicar"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Os dois desfechos que não mexem na Base. Ambos voltam para a tela de quem\n   lançou, com o motivo escrito — é lá que a pessoa decide o que fazer. */\nconst p = $input.first().json;\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nreturn [{ json: { chave: p.chave, patch: {\n  status: p._semCadastro ? 'sem_cadastro' : 'erro',\n  erro: p._semCadastro\n    ? ('O SKU ' + p.sku + ' não existe no catálogo da Base. Cadastre o produto lá e refaça a entrada.')\n    : p._falha,\n  processadoEm: carimbo, _by: 'n8n'\n} } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        140
+      ],
+      "id": "Marcar o problema",
+      "name": "Marcar o problema"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/entradasEstoque/{{ $json.chave }}.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.patch) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1720,
+        -40
+      ],
+      "id": "Escrever no LiveOps",
+      "name": "Escrever no LiveOps",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Rodar agora": {
+      "main": [
+        [
+          {
+            "node": "Ler a fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A cada 5 minutos": {
+      "main": [
+        [
+          {
+            "node": "Ler a fila",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ler a fila": {
+      "main": [
+        [
+          {
+            "node": "Fila do LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fila do LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Base · armazéns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · armazéns": {
+      "main": [
+        [
+          {
+            "node": "Base · catálogos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · catálogos": {
+      "main": [
+        [
+          {
+            "node": "Catálogo e armazéns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Catálogo e armazéns": {
+      "main": [
+        [
+          {
+            "node": "Base · procurar o SKU",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · procurar o SKU": {
+      "main": [
+        [
+          {
+            "node": "Achou na Base?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Achou na Base?": {
+      "main": [
+        [
+          {
+            "node": "Base · dados do produto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar o problema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · dados do produto": {
+      "main": [
+        [
+          {
+            "node": "Calcular o lançamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular o lançamento": {
+      "main": [
+        [
+          {
+            "node": "Base · lançar estoque",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Marcar o problema",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · lançar estoque": {
+      "main": [
+        [
+          {
+            "node": "Confirmar ou explicar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar ou explicar": {
+      "main": [
+        [
+          {
+            "node": "Escrever no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar o problema": {
+      "main": [
+        [
+          {
+            "node": "Escrever no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

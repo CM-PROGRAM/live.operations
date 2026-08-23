@@ -558,6 +558,21 @@ html{overflow-x:hidden;}
 .est-kpi .ic{position:absolute;top:15px;right:16px;width:18px;height:18px;color:var(--text-muted);opacity:.65;}
 .est-kpi .ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
 .est-tabela td{vertical-align:top;padding-top:13px;padding-bottom:13px;}
+.ent-campo{display:flex;flex-direction:column;gap:4px;}
+.ent-campo > span{font-size:11px;font-weight:700;color:var(--text-secondary);}
+.ent-campo > span b{color:var(--accent);font-weight:700;}
+.ent-campo input,.ent-campo select{width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);
+  border-radius:9px;color:var(--text-primary);font-size:12.5px;font-family:var(--font-sans);padding:8px 11px;outline:none;}
+.ent-campo small{font-size:10.5px;color:var(--text-muted);min-height:13px;}
+.ent-campo small.ok{color:#86efac;}
+.ent-campo small.nao{color:#f0b429;}
+/* Situação da entrada. Cada estado tem uma cor porque cada um pede uma ação
+   diferente de quem olha — e "sem cadastro" pede a mais urgente. */
+.ent-sit{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap;}
+.ent-sit.pendente{background:rgba(240,180,41,.14);border:1px solid rgba(240,180,41,.45);color:#f5cd6b;}
+.ent-sit.lancado{background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);color:#86efac;}
+.ent-sit.semcadastro{background:rgba(249,115,98,.14);border:1px solid rgba(249,115,98,.45);color:#fca5a5;}
+.ent-sit.erro{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#fca5a5;}
 /* Saldo total. Zero fica apagado e negativo fica vermelho, porque negativo
    não é "pouco estoque": é conta que não fecha, e precisa saltar. */
 .est-saldo{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;
@@ -2406,9 +2421,37 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <h2 class="pag-titulo">Estoque</h2>
           <p class="pag-sub">Gerencie o estoque de produtos em múltiplos armazéns</p>
         </div>
+        <div class="pag-acoes">
+          <button id="est-btn-entrada" class="btn btn-sm" style="width:auto;white-space:nowrap;display:none;" onclick="entAbrir()">
+            + Entrada de estoque
+          </button>
+        </div>
       </div>
 
       <div id="est-kpis" class="est-kpis"></div>
+
+      <!-- FILA DE ENTRADAS — o que foi pedido e o que a Base respondeu.
+           Só aparece quando existe alguma; tela vazia não anuncia recurso. -->
+      <div id="est-fila" class="ped-bloco" style="display:none;overflow:hidden;margin-bottom:14px;">
+        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:13px;font-weight:800;color:var(--text-primary);">Entradas de estoque</span>
+          <span id="ent-resumo" style="font-size:11.5px;color:var(--text-muted);"></span>
+          <div style="flex:1;"></div>
+          <button class="btn-sec" style="width:auto;" onclick="entAlternarConcluidas()" id="ent-btn-ver">Ver as concluídas</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="ped-tabela">
+            <thead>
+              <tr>
+                <th>SKU</th><th>Qtd</th><th>Custo un.</th><th>Situa&ccedil;&atilde;o</th>
+                <th>Estoque</th><th>Custo m&eacute;dio</th><th>Pedida por</th>
+                <th style="text-align:right;">A&ccedil;&otilde;es</th>
+              </tr>
+            </thead>
+            <tbody id="ent-rows"></tbody>
+          </table>
+        </div>
+      </div>
 
       <div class="ped-bloco" style="padding:15px 18px 16px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:800;color:var(--text-primary);">Filtros</div>
@@ -4628,6 +4671,48 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="toast"></div>
+<!-- ENTRADA DE ESTOQUE — o formulário só monta o pedido. Quem mexe na Base
+     é o n8n, e é ele que devolve o que aconteceu de verdade. -->
+<div class="modal-overlay" id="ent-overlay">
+  <div class="modal" style="width:460px;">
+    <div class="modal-title">Entrada de estoque</div>
+    <p style="font-size:11.5px;color:var(--text-muted);line-height:1.65;margin:2px 0 14px;">
+      O pedido entra na fila e o robô lança na Base. O custo médio é recalculado
+      lá, com o saldo que a Base tiver na hora — não com o que esta tela mostra.
+    </p>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <label class="ent-campo"><span>SKU <b>*</b></span>
+        <input id="ent-sku" type="text" list="ent-skus" autocomplete="off" placeholder="AST12840" oninput="entPrever()">
+        <datalist id="ent-skus"></datalist>
+        <small id="ent-achou"></small>
+      </label>
+      <div style="display:flex;gap:10px;">
+        <label class="ent-campo" style="flex:1;"><span>Quantidade <b>*</b></span>
+          <input id="ent-qtd" type="number" min="1" step="1" placeholder="10" oninput="entPrever()"></label>
+        <label class="ent-campo" style="flex:1;"><span>Custo unitário (R$) <b>*</b></span>
+          <input id="ent-custo" type="number" min="0" step="0.01" placeholder="52,30" oninput="entPrever()"></label>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <label class="ent-campo" style="flex:1;"><span>Preço Mercado Livre</span>
+          <input id="ent-preco-ml" type="number" min="0" step="0.01" placeholder="deixe vazio p/ manter"></label>
+        <label class="ent-campo" style="flex:1;"><span>Preço atacado</span>
+          <input id="ent-preco-atacado" type="number" min="0" step="0.01" placeholder="deixe vazio p/ manter"></label>
+      </div>
+      <label class="ent-campo"><span>Armazém <b>*</b></span>
+        <select id="ent-armazem"></select></label>
+      <label class="ent-campo"><span>Observação</span>
+        <input id="ent-obs" type="text" maxlength="200" placeholder="nota fiscal, fornecedor, lote…"></label>
+      <div id="ent-previa" style="display:none;font-size:11.5px;line-height:1.75;color:var(--text-secondary);
+        background:var(--veu-medio);border:1px solid var(--glass-border);border-radius:10px;padding:10px 12px;"></div>
+      <div id="ent-erro" style="display:none;font-size:11.5px;color:#fca5a5;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="entFechar()">Cancelar</button>
+      <button class="btn btn-sm" onclick="entEnviar()">Mandar para a fila</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal">
     <div class="modal-title" id="modal-title">Confirmar</div>
@@ -4784,6 +4869,7 @@ function defaultState(){
     pedidosWpp:[],
     pedidosBase:[],
     produtos:[],
+    entradasEstoque:[],
     drogData:{pacheco:[],saopaulo:[]},
     conferencia:[],
     cnpjMkt:{},
@@ -4872,6 +4958,7 @@ function loadLocal(){
     if(!Array.isArray(s.pedidosWpp)) s.pedidosWpp=[];
     if(!Array.isArray(s.pedidosBase)) s.pedidosBase=[];
     if(!Array.isArray(s.produtos)) s.produtos=[];
+    if(!Array.isArray(s.entradasEstoque)) s.entradasEstoque=[];
     if(!s.tasks) s.tasks=defaultState().tasks;
     if(!s.tasks.devolucoes) s.tasks.devolucoes=[];
     if(!Array.isArray(s.tasks.atendimentos)) s.tasks.atendimentos=[];
@@ -6851,7 +6938,10 @@ const COLECOES_REG={
   pedidosBase:   {get:s=>s.pedidosBase,                set:(s,v)=>{s.pedidosBase=v;}},
   /* Catálogo da Base, um registro por produto. Mesma razão de sempre:
      lista grande não viaja no pacote. */
-  produtos:      {get:s=>s.produtos,                   set:(s,v)=>{s.produtos=v;}}
+  produtos:      {get:s=>s.produtos,                   set:(s,v)=>{s.produtos=v;}},
+  /* Fila de entrada de estoque. A tela escreve pedindo, o n8n executa na
+     Base e escreve de volta o que aconteceu. */
+  entradasEstoque:{get:s=>s.entradasEstoque,           set:(s,v)=>{s.entradasEstoque=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -7508,6 +7598,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.pedidosWpp)) data.pedidosWpp = [];
   if(!Array.isArray(data.pedidosBase)) data.pedidosBase = [];
   if(!Array.isArray(data.produtos)) data.produtos = [];
+  if(!Array.isArray(data.entradasEstoque)) data.entradasEstoque = [];
   if(!data.tasks) data.tasks = defaultState().tasks;
   if(!data.tasks.devolucoes) data.tasks.devolucoes = [];
   if(!Array.isArray(data.tasks.atendimentos)) data.tasks.atendimentos = [];
@@ -8795,7 +8886,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23d';
+const APP_VERSAO='2026.08.23e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11828,6 +11919,9 @@ const _EST_ICONES={
 
 function renderEstoque(){
   const tbody=document.getElementById('est-rows'); if(!tbody) return;
+  try{ renderEntradasEstoque(); }catch(e){ console.warn('renderEntradasEstoque:',e); }
+  const btnEnt=document.getElementById('est-btn-entrada');
+  if(btnEnt) btnEnt.style.display=(currentUser&&(currentUser.master||(currentUser.perms||[]).includes('entrada')))?'':'none';
   const todos=(appState.produtos||[]).filter(Boolean);
 
   /* A lista de armazéns sai do próprio dado, não de uma lista fixa: a Base
@@ -11942,6 +12036,248 @@ function renderEstoque(){
           }).join('')}</div>`
         : '<span style="color:var(--text-muted);">—</span>'}</td>
       <td style="text-align:right;font-family:var(--font-mono);color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+/* ===== ENTRADA DE ESTOQUE ==========================================
+   Matheus e Carlos lançam a mercadoria que chegou. A tela só monta o
+   pedido e põe na fila; quem mexe na Base é o n8n.
+
+   Essa divisão não é burocracia. O custo médio depende do saldo e do custo
+   que a Base tem **no instante do lançamento**, e a tela só conhece a
+   última leitura — que pode ter horas. Calcular aqui e mandar pronto
+   gravaria um custo errado com cara de certo. Então a tela mostra uma
+   *previsão* e diz que é previsão; a conta que vale é feita lá.
+
+   Registro em suplelive/reg/entradasEstoque/<id>:
+     id, sku, quantidade, custo, precoMl, precoAtacado, armazem, obs
+     status        'pendente' | 'lancado' | 'sem_cadastro' | 'erro'
+     criadoPor, criadoPorKey, criadoEm, ts
+     ── o n8n preenche o resto ──
+     produtoId, nomeProduto, estoqueAntes, estoqueDepois,
+     custoAntes, custoDepois, precoBase, precoAtacadoAplicado,
+     processadoEm, erro                                              */
+let _entVerConcluidas=false;
+
+function _entProdutoPorSku(sku){
+  const alvo=String(sku||'').trim().toLowerCase();
+  if(!alvo) return null;
+  return (appState.produtos||[]).find(p=>p && String(p.sku||'').trim().toLowerCase()===alvo)||null;
+}
+
+function _entArmazensConhecidos(){
+  const nomes=[];
+  (appState.produtos||[]).forEach(p=>(Array.isArray(p&&p.armazens)?p.armazens:[]).forEach(a=>{
+    const n=String((a&&a.nome)||'').trim();
+    if(n && nomes.indexOf(n)<0) nomes.push(n);
+  }));
+  return nomes.sort((a,b)=>a.localeCompare(b,'pt-BR'));
+}
+
+function entAbrir(){
+  const ov=document.getElementById('ent-overlay'); if(!ov) return;
+  ['ent-sku','ent-qtd','ent-custo','ent-preco-ml','ent-preco-atacado','ent-obs']
+    .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
+  const err=document.getElementById('ent-erro'); if(err){ err.style.display='none'; err.textContent=''; }
+
+  /* A lista de SKUs e a de armazéns saem do catálogo já lido. Sem catálogo
+     os dois campos ficam livres: melhor aceitar digitado e deixar o robô
+     recusar com motivo do que travar quem precisa lançar agora. */
+  const dl=document.getElementById('ent-skus');
+  if(dl) dl.innerHTML=(appState.produtos||[]).filter(Boolean)
+    .map(p=>`<option value="${String(p.sku||'').replace(/"/g,'&quot;')}">${String(p.nome||'').slice(0,60).replace(/"/g,'&quot;')}</option>`).join('');
+  const sel=document.getElementById('ent-armazem');
+  if(sel){
+    const nomes=_entArmazensConhecidos();
+    sel.innerHTML=nomes.length
+      ? nomes.map(n=>`<option>${n}</option>`).join('')
+      : '<option value="">(catálogo ainda não lido — rode o fluxo do estoque)</option>';
+  }
+  entPrever();
+  ov.classList.add('open');
+  setTimeout(()=>{const s=document.getElementById('ent-sku'); if(s) s.focus();},60);
+}
+
+function entFechar(){
+  const ov=document.getElementById('ent-overlay');
+  if(ov) ov.classList.remove('open');
+}
+
+function entPrever(){
+  const sku=(document.getElementById('ent-sku')||{}).value||'';
+  const qtd=Number((document.getElementById('ent-qtd')||{}).value)||0;
+  const custo=Number((document.getElementById('ent-custo')||{}).value)||0;
+  const prod=_entProdutoPorSku(sku);
+
+  const achou=document.getElementById('ent-achou');
+  if(achou){
+    if(!String(sku).trim()){ achou.textContent=''; achou.className=''; }
+    else if(prod){ achou.textContent=prod.nome||'(sem nome)'; achou.className='ok'; }
+    else { achou.textContent='SKU fora do catálogo lido — o robô vai procurar na Base assim mesmo'; achou.className='nao'; }
+  }
+
+  const box=document.getElementById('ent-previa');
+  if(!box) return;
+  if(!prod || !qtd || !custo){ box.style.display='none'; return; }
+
+  const saldo=Number(prod.total)||0;
+  const medio=Number(prod.precoMedio)||0;
+  const depois=saldo+qtd;
+  /* Média ponderada, a mesma conta da Base. Saldo negativo NÃO entra: com
+     ele a fórmula devolve custo distorcido, e já vimos saldo negativo no
+     catálogo. Nesse caso a previsão é o custo desta compra e o texto diz
+     por quê — em vez de mostrar um número bonito e errado. */
+  let previsto, aviso='';
+  if(saldo<=0 || medio<=0){
+    previsto=custo;
+    aviso = saldo<0 ? ' (saldo negativo na Base — a média parte só desta compra)'
+                    : ' (sem saldo ou sem custo anterior)';
+  }else{
+    previsto=((saldo*medio)+(qtd*custo))/depois;
+  }
+  box.style.display='block';
+  box.innerHTML='<b>Previsão</b>, pela última leitura da Base:<br>'
+    +'estoque '+saldo+' → <b>'+depois+'</b> un.<br>'
+    +'custo médio '+(medio>0?_pedFmt(medio):'—')+' → <b>'+_pedFmt(previsto)+'</b>'+aviso
+    +'<br><span style="color:var(--text-muted);">A conta que vale é a do lançamento, com o saldo do momento.</span>';
+}
+
+function entEnviar(){
+  const err=document.getElementById('ent-erro');
+  const falhar=m=>{ if(err){ err.textContent=m; err.style.display='block'; } };
+  const sku=String((document.getElementById('ent-sku')||{}).value||'').trim();
+  const qtd=Number((document.getElementById('ent-qtd')||{}).value);
+  const custo=Number((document.getElementById('ent-custo')||{}).value);
+  const armazem=String((document.getElementById('ent-armazem')||{}).value||'').trim();
+  const precoMl=(document.getElementById('ent-preco-ml')||{}).value;
+  const precoAtacado=(document.getElementById('ent-preco-atacado')||{}).value;
+
+  if(!sku) return falhar('Informe o SKU.');
+  if(!(qtd>0) || Math.round(qtd)!==qtd) return falhar('A quantidade precisa ser um número inteiro maior que zero.');
+  if(!(custo>0)) return falhar('Informe o custo unitário desta compra.');
+  if(!armazem) return falhar('Escolha o armazém. Se a lista está vazia, o catálogo ainda não foi lido da Base.');
+
+  /* Preço vazio significa "não mexe". Zero significaria "põe zero", e um
+     produto com preço zero vai para o marketplace de graça — por isso o
+     campo vazio nunca vira 0 no caminho. */
+  const nOuNulo=v=>{ const t=String(v==null?'':v).trim(); if(!t) return null; const n=Number(t); return (isFinite(n)&&n>0)?n:null; };
+
+  const agora=new Date();
+  const reg={
+    id:'ent_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,7),
+    sku, quantidade:qtd, custo,
+    precoMl:nOuNulo(precoMl), precoAtacado:nOuNulo(precoAtacado),
+    armazem, obs:String((document.getElementById('ent-obs')||{}).value||'').trim(),
+    status:'pendente',
+    criadoPor:(currentUser&&currentUser.name)||'',
+    criadoPorKey:(currentUser&&currentUser.key)||'',
+    criadoEm:agora.toLocaleString('pt-BR'),
+    ts:agora.getTime()
+  };
+  if(!Array.isArray(appState.entradasEstoque)) appState.entradasEstoque=[];
+  appState.entradasEstoque.push(reg);
+  try{
+    saveState(appState);
+  }catch(e){
+    appState.entradasEstoque=appState.entradasEstoque.filter(x=>x!==reg);
+    return falhar('Não consegui salvar: '+(e&&e.message||e));
+  }
+  entFechar();
+  renderEstoque();
+  showToast('✔ Entrada de '+qtd+'× '+sku+' na fila — o robô lança na Base','success');
+}
+
+function entAlternarConcluidas(){
+  _entVerConcluidas=!_entVerConcluidas;
+  const b=document.getElementById('ent-btn-ver');
+  if(b) b.textContent=_entVerConcluidas?'Só as pendentes':'Ver as concluídas';
+  renderEstoque();
+}
+
+/* Refazer é criar outro pedido, nunca reabrir o antigo: o lançamento que
+   falhou pode ter falhado DEPOIS de mexer na Base, e reprocessar o mesmo
+   registro somaria a quantidade duas vezes. O antigo fica no histórico. */
+function entRefazer(id){
+  const a=(appState.entradasEstoque||[]).find(x=>x&&x.id===id);
+  if(!a) return;
+  entAbrir();
+  const p=(cid,v)=>{const el=document.getElementById(cid); if(el && v!=null && v!=='') el.value=v;};
+  p('ent-sku',a.sku); p('ent-qtd',a.quantidade); p('ent-custo',a.custo);
+  p('ent-preco-ml',a.precoMl); p('ent-preco-atacado',a.precoAtacado);
+  p('ent-obs',a.obs);
+  const sel=document.getElementById('ent-armazem');
+  if(sel && a.armazem && [...sel.options].some(o=>o.value===a.armazem||o.text===a.armazem)) sel.value=a.armazem;
+  entPrever();
+}
+
+function entCancelar(id){
+  const a=(appState.entradasEstoque||[]).find(x=>x&&x.id===id);
+  if(!a || a.status!=='pendente') return;
+  if(!confirm('Cancelar a entrada de '+a.quantidade+'× '+a.sku+'?\n\nEla sai da fila e o robô não vai lançar.')) return;
+  appState.entradasEstoque=(appState.entradasEstoque||[]).filter(x=>x&&x.id!==id);
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
+  renderEstoque();
+}
+
+const _ENT_SIT={
+  pendente:    {c:'pendente',    r:'Na fila'},
+  lancado:     {c:'lancado',     r:'Lançado'},
+  sem_cadastro:{c:'semcadastro', r:'Sem cadastro na Base'},
+  erro:        {c:'erro',        r:'Erro'}
+};
+
+function renderEntradasEstoque(){
+  const bloco=document.getElementById('est-fila');
+  const tbody=document.getElementById('ent-rows');
+  if(!bloco||!tbody) return;
+  const todas=(appState.entradasEstoque||[]).filter(Boolean);
+  if(!todas.length){ bloco.style.display='none'; return; }
+  bloco.style.display='';
+
+  const pendentes=todas.filter(a=>a.status==='pendente').length;
+  const problemas=todas.filter(a=>a.status==='sem_cadastro'||a.status==='erro').length;
+  const resumo=document.getElementById('ent-resumo');
+  if(resumo) resumo.textContent=[
+    pendentes?(pendentes+' na fila'):'',
+    problemas?(problemas+' precisando de gente'):'',
+    (!pendentes&&!problemas)?'tudo lançado':''
+  ].filter(Boolean).join(' · ');
+
+  /* Por padrão a lista mostra o que ainda pede alguma coisa. Entrada
+     lançada é histórico, e histórico enterra o que precisa de ação. */
+  const lista=todas.filter(a=>_entVerConcluidas || a.status!=='lancado')
+                   .sort((a,b)=>(Number(b.ts)||0)-(Number(a.ts)||0));
+  tbody.innerHTML='';
+  if(!lista.length){
+    tbody.innerHTML='<tr><td colspan="8" style="padding:22px;text-align:center;color:var(--text-muted);font-family:var(--font-mono);font-size:11.5px;">Nada pendente. Tudo que foi pedido já entrou na Base.</td></tr>';
+    return;
+  }
+  const podeMexer=a=>currentUser && (currentUser.master || a.criadoPorKey===currentUser.key);
+  const frag=document.createDocumentFragment();
+  lista.forEach(a=>{
+    const sit=_ENT_SIT[a.status]||_ENT_SIT.pendente;
+    const tr=document.createElement('tr');
+    const seta=(de,para)=>(de==null&&para==null)?'—'
+      :`<span style="color:var(--text-muted);">${de==null?'—':de}</span> → <b>${para==null?'—':para}</b>`;
+    tr.innerHTML=`
+      <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${a.sku||'—'}
+        ${a.nomeProduto?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);white-space:normal;max-width:230px;">${a.nomeProduto}</div>`:''}
+        ${a.obs?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);white-space:normal;max-width:230px;">${a.obs}</div>`:''}</td>
+      <td style="font-family:var(--font-mono);">+${a.quantidade||0}</td>
+      <td style="font-family:var(--font-mono);">${_pedFmt(a.custo)}</td>
+      <td><span class="ent-sit ${sit.c}">${sit.r}</span>
+        ${a.erro?`<div style="font-size:9.5px;color:#fca5a5;white-space:normal;max-width:220px;">${a.erro}</div>`:''}
+        <div style="font-size:9px;color:var(--text-muted);">${a.processadoEm||a.criadoEm||''}</div></td>
+      <td style="font-family:var(--font-mono);">${a.status==='lancado'?seta(a.estoqueAntes,a.estoqueDepois):'—'}</td>
+      <td style="font-family:var(--font-mono);">${a.status==='lancado'
+          ? seta(a.custoAntes!=null?_pedFmt(a.custoAntes):null, a.custoDepois!=null?_pedFmt(a.custoDepois):null) : '—'}</td>
+      <td style="color:var(--text-secondary);">${a.criadoPor||'—'}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        ${(a.status==='sem_cadastro'||a.status==='erro')?`<button class="ped-acao" onclick="entRefazer('${a.id}')">Refazer</button>`:''}
+        ${(a.status==='pendente'&&podeMexer(a))?`<button class="ped-acao perigo" onclick="entCancelar('${a.id}')">Cancelar</button>`:''}
+      </td>`;
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
