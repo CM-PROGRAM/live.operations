@@ -1859,8 +1859,19 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <select id="base-f-status" onchange="renderPedidosBase()" title="Status na Base"
               style="width:auto;min-width:170px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:8px 14px;cursor:pointer;outline:none;"></select>
             <button class="btn btn-sm" onclick="renderPedidosBase()" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
+            <input type="file" id="base-import-arq" accept=".csv,text/csv" style="display:none;" onchange="baseImportarArquivo(this)">
+            <button id="base-btn-import" class="btn-sec" style="display:none;width:auto;white-space:nowrap;"
+              onclick="document.getElementById('base-import-arq').click()"
+              title="Trazer os pedidos antigos exportados do Arquivo da Base">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M4 20h16"/></svg>
+              Importar Arquivo
+            </button>
           </div>
         </div>
+
+        <!-- Conferência antes de gravar: o importador nunca escreve direto.
+             Ele lê, conta, e mostra o que vai fazer. -->
+        <div id="base-import-painel" class="ped-bloco" style="display:none;padding:16px 18px;margin-bottom:14px;"></div>
 
         <div class="ped-bloco" style="overflow:hidden;">
           <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
@@ -8592,7 +8603,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.22d';
+const APP_VERSAO='2026.08.23a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10831,12 +10842,58 @@ function _cliSemAcento(t){
   return String(t==null?'':t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
 }
 
+/* CPF e telefone de recheio.
+
+   No histórico do Arquivo apareceu um CPF em 18 pedidos de 13 pessoas
+   diferentes, e junto dele um telefone em 16 pedidos de 11 pessoas: é o que
+   o atendente digita quando o cliente não passa o dado. Usar isso como chave
+   criaria um cliente Frankenstein com 18 compras e destruiria o Total Gasto
+   e o RFM de quem olhasse.
+
+   A lista não é fixa no código de propósito — duas razões. Um CPF real não
+   entra num arquivo público, e uma lista fixa envelhece: no dia em que
+   alguém adotar outro número de recheio, ninguém lembraria de vir aqui.
+   Então o recheio se denuncia sozinho, pelo formato: a mesma chave sob três
+   ou mais nomes distintos. O corte em três é folgado — no arquivo medido
+   nenhuma chave tinha entre 3 e 11 nomes; casal e família param em dois, e o
+   recheio saltou para doze. */
+const CLI_NOMES_ATE_VIRAR_RECHEIO=3;
+
+function _cliChavesDeRecheio(pedidos){
+  const nomes={cpf:new Map(), telefone:new Map()};
+  pedidos.forEach(p=>{
+    const nome=_cliSemAcento(String(p.cliente||'').trim());
+    if(!nome) return;
+    ['cpf','telefone'].forEach(campo=>{
+      const k=_cliSoDigitos(p[campo]);
+      if(!k) return;
+      if(!nomes[campo].has(k)) nomes[campo].set(k,new Set());
+      nomes[campo].get(k).add(nome);
+    });
+  });
+  const fora={cpf:new Set(), telefone:new Set()};
+  ['cpf','telefone'].forEach(campo=>{
+    nomes[campo].forEach((set,k)=>{
+      if(set.size>=CLI_NOMES_ATE_VIRAR_RECHEIO) fora[campo].add(k);
+    });
+  });
+  return fora;
+}
+
 /* Um registro por pessoa, montado na hora a partir de appState.pedidosBase */
 function agruparClientes(){
   const porChave=new Map();
-  (appState.pedidosBase||[]).filter(Boolean).forEach(p=>{
-    const cpf=_cliSoDigitos(p.cpf);
-    const fone=_cliSoDigitos(p.telefone);
+  const pedidos=(appState.pedidosBase||[]).filter(Boolean);
+  const recheio=_cliChavesDeRecheio(pedidos);
+  pedidos.forEach(p=>{
+    let cpf=_cliSoDigitos(p.cpf);
+    let fone=_cliSoDigitos(p.telefone);
+    /* Dado de recheio não agrupa e não aparece na ficha: exibi-lo seria
+       afirmar que aquele é o CPF da pessoa, e não é. */
+    if(recheio.cpf.has(cpf)) cpf='';
+    if(recheio.telefone.has(fone)) fone='';
+    p=(cpf===_cliSoDigitos(p.cpf) && fone===_cliSoDigitos(p.telefone))
+      ? p : {...p, cpf:cpf?p.cpf:'', telefone:fone?p.telefone:''};
     const nome=String(p.cliente||'').trim();
     const chave = cpf ? ('cpf:'+cpf) : (fone ? ('fone:'+fone) : (nome ? ('nome:'+_cliSemAcento(nome)) : null));
     if(!chave) return;
@@ -11312,8 +11369,212 @@ function fecharLogCliente(){
   if(ov) ov.style.display='none';
 }
 
+/* ── Importar o Arquivo da Base ───────────────────────────────────────
+   A Base arquiva sozinha o que passa de três meses, e o Arquivo é um banco
+   separado: a API (getOrders) não o alcança por parâmetro nenhum. Então o
+   histórico antigo só entra por onde ele sai de lá — a exportação em CSV do
+   modelo "LiveOps · Pedidos WhatsApp".
+
+   Duas coisas o leitor precisa aguentar, porque medimos as duas no arquivo
+   real de 22/08/2026:
+
+   1) A exportação pode vir sem quebra de linha — os 524 pedidos grudados
+      numa linha só. Por isso os registros são achados por formato (13 campos
+      entre aspas separados por ponto e vírgula) e não por linha. Com quebra
+      de linha o mesmo padrão continua valendo.
+   2) Nada é gravado direto. Lê, confere, mostra a conta, e só grava depois
+      que alguém aprovar na tela. */
+const ARQ_COLUNAS=['numero','data','cliente_entrega','cliente_comprador','cpf',
+                   'telefone','email','valor_pedido','preco_frete',
+                   'itens_produtos','itens_total','status','origem'];
+let _arqImport=null;   // o que foi lido, esperando confirmação
+
+function _arqNum(v){
+  const t=String(v==null?'':v).trim();
+  if(!t) return 0;
+  const n=parseFloat(t.replace(/\./g,'').replace(',','.'));
+  return isFinite(n)?n:0;
+}
+
+/* "22/05/2026 16:59:00" → {data:"2026-05-22", hora:"16:59"} */
+function _arqData(v){
+  const m=String(v||'').match(/(\d{2})\/(\d{2})\/(\d{4})(?:[ ,]+(\d{2}):(\d{2}))?/);
+  if(!m) return {data:'',hora:''};
+  return {data:m[3]+'-'+m[2]+'-'+m[1], hora:(m[4]?(m[4]+':'+m[5]):'')};
+}
+
+/* O Arquivo exporta o telefone já com o +55 na frente, mas nem sempre: seis
+   registros do arquivo real traziam nome ou e-mail digitado neste campo, e
+   três vinham com 14 dígitos. Telefone que não fecha em 12 ou 13 dígitos com
+   55 na frente não é telefone — vira vazio, e o pedido cai no nome. */
+function _arqFone(v){
+  let n=String(v==null?'':v).replace(/\D/g,'');
+  if(n.length===10||n.length===11) n='55'+n;
+  return (n.length===12||n.length===13) && n.slice(0,2)==='55' ? n : '';
+}
+
+function _arqCpf(v){
+  const n=String(v==null?'':v).replace(/\D/g,'');
+  return (n.length===11||n.length===14) ? n : '';
+}
+
+/* Separa os registros do texto exportado. Devolve {colunas, linhas, sobra}:
+   'sobra' é tudo que não coube em nenhum registro — se vier com conteúdo, o
+   arquivo tem campo com aspas dentro e o alinhamento das colunas não é
+   confiável. Nesse caso o importador para em vez de gravar torto. */
+function _arqLerCsv(texto){
+  const t=String(texto||'').replace(/^﻿/,'');
+  const q=t.indexOf('"');
+  const cab=(q<0?t:t.slice(0,q)).trim().split(/[\r\n]+/).pop()||'';
+  const colunas=cab.split(';').map(c=>c.trim().toLowerCase());
+  const n=colunas.length||ARQ_COLUNAS.length;
+  const corpo=q<0?'':t.slice(q);
+  const re=new RegExp('(?:"[^"]*";){'+(n-1)+'}"[^"]*"','g');
+  const achados=corpo.match(re)||[];
+  const linhas=achados.map(r=>{
+    const campos=(r.match(/"[^"]*"/g)||[]).map(c=>c.slice(1,-1));
+    const o={};
+    colunas.forEach((c,i)=>{ o[c]=campos[i]==null?'':campos[i]; });
+    return o;
+  });
+  const sobra=corpo.replace(re,'').replace(/[\s;\r\n]/g,'');
+  return {colunas, linhas, sobra};
+}
+
+function baseImportarArquivo(input){
+  const arq=input&&input.files&&input.files[0];
+  input.value='';
+  if(!arq) return;
+  const fim=txt=>{
+    let lido;
+    try{ lido=_arqLerCsv(txt); }
+    catch(e){ showToast('Não consegui ler o arquivo: '+(e&&e.message||e),'warn'); return; }
+    _arqPreparar(arq.name, lido);
+  };
+  const fr=new FileReader();
+  fr.onerror=()=>showToast('Não consegui abrir o arquivo.','warn');
+  fr.onload=()=>fim(String(fr.result||''));
+  fr.readAsText(arq,'utf-8');
+}
+
+/* Monta o que seria gravado e conta tudo, sem tocar em appState */
+function _arqPreparar(nomeArq, lido){
+  const painel=document.getElementById('base-import-painel');
+  const faltando=ARQ_COLUNAS.filter(c=>lido.colunas.indexOf(c)<0);
+  const erro=msg=>{
+    _arqImport=null;
+    if(painel){
+      painel.style.display='block';
+      painel.innerHTML='<div style="font-size:12.5px;font-weight:700;color:var(--red);margin-bottom:6px;">Não dá para importar este arquivo</div>'
+        +'<div style="font-size:11.5px;color:var(--text-secondary);line-height:1.8;">'+msg+'</div>'
+        +'<div style="margin-top:12px;"><button class="btn-sec" style="width:auto;" onclick="baseFecharImport()">Fechar</button></div>';
+    }
+  };
+  if(faltando.length) return erro('Faltam colunas no cabeçalho: <b>'+faltando.join(', ')+'</b>.<br>'
+    +'Exporte pelo modelo <b>LiveOps · Pedidos WhatsApp [CSV]</b>, em Pedidos → Imprimir e exportar.');
+  if(!lido.linhas.length) return erro('Não encontrei nenhum pedido no arquivo.');
+  if(lido.sobra) return erro('O arquivo tem '+lido.sobra.length+' caracteres fora dos registros — provavelmente algum '
+    +'nome ou endereço com aspas dentro, o que desalinha as colunas. Não vou gravar dado torto. '
+    +'Vale conferir o pedido com aspas na Base e exportar de novo.');
+
+  const jaTem=new Set((appState.pedidosBase||[]).filter(Boolean).map(p=>String(p.numero||'')));
+  const vistos=new Set();
+  const novos=[], repetidos=[], duplicadosNoArquivo=[];
+  const carimbo=new Date().toLocaleString('pt-BR');
+  lido.linhas.forEach(l=>{
+    const numero=String(l.numero||'').trim();
+    if(!numero) return;
+    if(vistos.has(numero)){ duplicadosNoArquivo.push(numero); return; }
+    vistos.add(numero);
+    if(jaTem.has(numero)){ repetidos.push(numero); return; }
+    const dh=_arqData(l.data);
+    novos.push({
+      id:'base_'+numero,
+      numero,
+      externo:'',
+      cliente:(l.cliente_comprador||l.cliente_entrega||'').trim(),
+      telefone:_arqFone(l.telefone),
+      cpf:_arqCpf(l.cpf),
+      email:String(l.email||'').trim(),
+      valor:_arqNum(l.valor_pedido),
+      frete:_arqNum(l.preco_frete),
+      itens:Math.round(_arqNum(l.itens_total))||0,
+      status:String(l.status||'').trim(),
+      canal:String(l.origem||'WhatsApp').trim()||'WhatsApp',
+      data:dh.data, hora:dh.hora,
+      link:'https://panel-u.baselinker.com/orders.php#order:'+numero,
+      /* De onde veio. O pedido do Arquivo não volta a ser lido pelo n8n
+         (a API não o alcança), então ele fica congelado — e a marca serve
+         para saber, depois, o que é histórico importado e o que é espelho
+         vivo da Base. */
+      doArquivo:true,
+      sincronizadoEm:carimbo,
+      importadoPor:(currentUser&&currentUser.name)||''
+    });
+  });
+  _arqImport={nomeArq, novos, repetidos, duplicadosNoArquivo, lidos:lido.linhas.length};
+  _arqRenderConferencia();
+}
+
+function _arqRenderConferencia(){
+  const painel=document.getElementById('base-import-painel');
+  if(!painel||!_arqImport) return;
+  const I=_arqImport, N=I.novos;
+  const soma=N.reduce((a,p)=>a+(Number(p.valor)||0),0);
+  const cancel=N.filter(p=>/cancel/i.test(p.status||''));
+  const semFone=N.filter(p=>!p.telefone).length;
+  const semCpf=N.filter(p=>!p.cpf).length;
+  const semEmail=N.filter(p=>!p.email).length;
+  const semData=N.filter(p=>!p.data).length;
+  const datas=N.map(p=>p.data).filter(Boolean).sort();
+  const canais=[...new Set(N.map(p=>p.canal).filter(Boolean))];
+  const linha=(rot,val,obs)=>`<div style="display:flex;gap:10px;align-items:baseline;padding:4px 0;">
+      <span style="font-size:11.5px;color:var(--text-muted);min-width:190px;">${rot}</span>
+      <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);">${val}</span>
+      ${obs?`<span style="font-size:10.5px;color:var(--text-muted);">${obs}</span>`:''}</div>`;
+  painel.style.display='block';
+  painel.innerHTML=
+    `<div style="font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:2px;">Conferência antes de gravar</div>
+     <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;">${I.nomeArq}</div>`
+    +linha('Pedidos lidos no arquivo', I.lidos)
+    +linha('Já existem no LiveOps', I.repetidos.length, I.repetidos.length?'não serão tocados':'')
+    +(I.duplicadosNoArquivo.length?linha('Repetidos dentro do arquivo', I.duplicadosNoArquivo.length,'só o primeiro entra'):'')
+    +linha('<b style="color:var(--text-secondary);">Vão ser gravados</b>', '<span style="color:var(--green);">'+N.length+'</span>')
+    +linha('Soma dos valores', _pedFmt(soma), cancel.length?(cancel.length+' cancelado'+(cancel.length>1?'s':'')+' · '+_pedFmt(soma-cancel.reduce((a,p)=>a+(Number(p.valor)||0),0))+' sem eles'):'')
+    +linha('Período', datas.length?(_pedDataBR(datas[0])+' a '+_pedDataBR(datas[datas.length-1])):'—', semData?(semData+' sem data'):'')
+    +linha('Origem', canais.join(', ')||'—')
+    +linha('Sem telefone utilizável', semFone, semFone?'entram pelo nome na aba Clientes':'')
+    +linha('Sem CPF', semCpf)
+    +linha('Sem e-mail', semEmail)
+    +`<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="btn btn-sm" style="width:auto;" onclick="baseConfirmarImport()"${N.length?'':' disabled'}>Gravar ${N.length} pedido${N.length===1?'':'s'}</button>
+        <button class="btn-sec" style="width:auto;" onclick="baseFecharImport()">Cancelar</button>
+        <span style="font-size:10.5px;color:var(--text-muted);">A gravação sobe para a nuvem e aparece para todo mundo.</span>
+      </div>`;
+}
+
+function baseFecharImport(){
+  _arqImport=null;
+  const p=document.getElementById('base-import-painel');
+  if(p){ p.style.display='none'; p.innerHTML=''; }
+}
+
+function baseConfirmarImport(){
+  if(!_arqImport||!_arqImport.novos.length) return baseFecharImport();
+  const N=_arqImport.novos, nomeArq=_arqImport.nomeArq;
+  if(!Array.isArray(appState.pedidosBase)) appState.pedidosBase=[];
+  appState.pedidosBase=appState.pedidosBase.concat(N);
+  baseFecharImport();
+  saveState();
+  renderPedidosBase();
+  try{ if(document.getElementById('tab-clientes')) renderClientes(); }catch(e){}
+  showToast('✔ '+N.length+' pedido'+(N.length===1?'':'s')+' do Arquivo gravados — '+nomeArq,'success');
+}
+
 function renderPedidosBase(){
   const tbody=document.getElementById('base-rows'); if(!tbody) return;
+  const btnImp=document.getElementById('base-btn-import');
+  if(btnImp) btnImp.style.display=(currentUser&&currentUser.master)?'':'none';
   const todos=(appState.pedidosBase||[]).filter(Boolean);
 
   const sel=document.getElementById('base-f-status');

@@ -341,3 +341,90 @@ Rodar de novo é seguro: pedido que já está igual no LiveOps não é regravado
 Numa carga de milhares isso é a diferença entre alguns minutos e uma hora — e
 evita que a tela de quem estiver trabalhando pisque a cada página.
 
+
+---
+
+## 10. O importador do Arquivo
+
+Botão **Importar Arquivo** em Pedidos, visível só para o master. Lê o CSV
+exportado pelo modelo `LiveOps · Pedidos WhatsApp` e grava em `pedidosBase`,
+os mesmos registros que o n8n escreve — com `doArquivo: true`, porque esse
+pedido não volta a ser lido (a API não alcança o Arquivo) e fica congelado.
+
+### 10.1 O modelo de exportação
+
+Base → **Pedidos → Imprimir e exportar**, tipo CSV, português, com **só a
+seção "Pedido" marcada** — marcar "Produto" faz o pedido de vários itens
+repetir SKU e nome dentro da linha, e as colunas deixam de bater.
+
+Seção `[RAIZ]`:
+
+```
+numero;data;cliente_entrega;cliente_comprador;cpf;telefone;email;valor_pedido;preco_frete;itens_produtos;itens_total;status;origem
+[PEDIDOS]
+```
+
+Seção `[PEDIDOS]`:
+
+```
+"[numero_do_pedido]";"[data_compra]";"[nome_sobrenome_entrega]";"[nome_sobrenome_comprador]";"[CPF_CNPJ_comprador]";"[telefone_cliente]";"[email_cliente]";"[valor_pedido]";"[preco_frete]";"[contagem_produtos_pedido]";"[contagem_total_itens]";"[nome_status]";"[nome_fonte_pedido]"
+```
+
+`[valor_pedido]` **já inclui o frete** — conferido no pedido 47264387:
+`price_brutto 158,99 × 1` + `delivery_price 19,77` = `178,76`, igual ao
+`payment_done`. O `preco_frete` entra em coluna própria só para consulta; o
+total do LiveOps é o `valor_pedido` sozinho, senão o frete conta duas vezes.
+
+### 10.2 Três coisas que o arquivo real cobrou
+
+**A exportação pode vir sem quebra de linha.** No arquivo de 22/08/2026 os
+524 pedidos vieram grudados numa linha só, depois do cabeçalho. Por isso o
+leitor acha registro **por formato** — treze campos entre aspas separados por
+ponto e vírgula — e não por linha. Com quebra de linha o mesmo padrão vale, e
+não é preciso reexportar quando ela falta.
+
+Se sobrar qualquer coisa fora dos registros, o importador **para**: isso
+significa aspas dentro de um campo, e aí o alinhamento das colunas não é
+confiável. Gravar torto é pior que não gravar.
+
+**Telefone nem sempre é telefone.** Seis registros traziam nome ou e-mail
+digitado no campo, e três vinham com 14 dígitos. O que não fecha em 12 ou 13
+dígitos com `55` na frente vira vazio, e o pedido cai no nome na hora de
+agrupar. Vazio é honesto; telefone inventado gruda dois clientes.
+
+**CPF de recheio.** Um mesmo CPF apareceu em 18 pedidos de 13 pessoas
+diferentes, e junto dele um telefone em 16 pedidos de 11 pessoas — é o que o
+atendente digita quando o cliente não passa o dado. Como o CPF é a primeira
+chave do agrupamento, isso criaria um cliente com 18 compras que não existe, e
+o Total Gasto e o RFM de quem olhasse seriam ficção.
+
+A defesa está em `_cliChavesDeRecheio`, no agrupamento — não no importador,
+porque o mesmo lixo pode chegar pelo n8n. A regra é de formato: **a mesma
+chave sob três ou mais nomes distintos não agrupa nada** e some da ficha. Não
+há CPF fixo no código, por dois motivos: CPF real não entra em arquivo
+público, e lista fixa envelhece no dia em que alguém adotar outro número de
+recheio. O corte em três é folgado — no arquivo medido nenhuma chave tinha
+entre 3 e 11 nomes: casal e família param em dois, o recheio saltou para doze.
+
+### 10.3 Nada é gravado direto
+
+O importador lê, conta e mostra: quantos leu, quantos já existem, quantos vão
+entrar, a soma com e sem cancelados, o período, e quantos vêm sem telefone,
+sem CPF e sem e-mail. Só grava depois que alguém clica.
+
+Reimportar o mesmo arquivo é seguro: pedido já existente pelo número não é
+tocado, e repetido dentro do próprio arquivo entra uma vez só.
+
+### 10.4 O que entrou
+
+Carga de 22/08/2026, os 524 pedidos do Arquivo com origem WhatsApp:
+
+```
+período           26/06/2025 a 22/05/2026
+soma              R$ 190.739,08   (R$ 178.286,77 sem os 10 cancelados)
+sem telefone      45      sem CPF 18      sem e-mail 47
+clientes gerados  376     maior deles com 10 pedidos
+```
+
+O n8n alcança de 24/05/2026 em diante. **Não há sobreposição** — os dois se
+encaixam sem duplicar pedido nenhum.
