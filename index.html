@@ -543,6 +543,20 @@ html{overflow-x:hidden;}
   border:1px solid var(--glass-border);background:var(--grad-vidro);color:var(--text-secondary);transition:all .15s;}
 .ped-chip:hover{border-color:rgba(143,168,216,.5);color:var(--text-primary);}
 .ped-chip.on{border-color:rgba(143,168,216,.6);background:rgba(143,168,216,.18);color:#b8ccee;}
+/* Cinco KPIs, e é para os cinco caberem lado a lado: quebrar o último para a
+   linha de baixo dá a ele um destaque que ele não tem. */
+#base-kpis{grid-template-columns:repeat(auto-fit,minmax(158px,1fr));}
+.ped-tabela th.ord{cursor:pointer;user-select:none;}
+.ped-tabela th.ord:hover{color:var(--text-primary);}
+.ped-tabela th .seta{opacity:.45;font-size:9px;margin-left:4px;}
+.ped-tabela th.ord.ativa .seta{opacity:1;color:var(--tom-aco,#8fa8d8);}
+/* Sim/não das colunas 2ª Compra e Recompra. Ícone de traço, no padrão do
+   resto do sistema: o "sim" ganha cor porque é a exceção que interessa; o
+   "não" fica apagado para não competir com a leitura da linha. */
+.ped-sim,.ped-nao{display:inline-flex;align-items:center;justify-content:center;width:19px;height:19px;}
+.ped-sim svg,.ped-nao svg{width:15px;height:15px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+.ped-sim{color:var(--green);}
+.ped-nao{color:var(--text-muted);opacity:.5;}
 .ped-acao{background:none;border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);cursor:pointer;
   font-size:10.5px;padding:3px 11px;transition:all .15s;}
 .ped-acao:hover{color:var(--text-primary);border-color:rgba(143,168,216,.55);background:rgba(143,168,216,.12);}
@@ -1838,6 +1852,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="section-title">Pedidos</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
+      <div style="font-size:12px;color:var(--text-muted);margin:-10px 0 16px;">Acompanhe os pedidos e as vendas dos clientes</div>
 
       <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
            uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
@@ -1849,15 +1864,29 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div id="reg-base" style="display:none;">
         <div id="base-kpis" class="ped-kpis"></div>
 
-        <div class="ped-bloco" style="padding:14px 16px;margin-bottom:14px;">
+        <div class="ped-bloco" style="padding:15px 16px 13px;margin-bottom:14px;">
+          <div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:11px;">Busca &amp; Filtros</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:7px 14px;flex:1;min-width:220px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
               <span style="font-size:12px;color:var(--text-muted);">🔎</span>
               <input id="base-busca" type="text" placeholder="Buscar por pedido, cliente, telefone ou status..." oninput="renderPedidosBase()"
                 style="background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);width:100%;">
             </div>
-            <select id="base-f-status" onchange="renderPedidosBase()" title="Status na Base"
-              style="width:auto;min-width:170px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:8px 14px;cursor:pointer;outline:none;"></select>
+            <div class="seg" id="base-seg">
+              <button class="seg-btn active" data-f="todos"      onclick="baseSetFiltro('todos')">Todos</button>
+              <button class="seg-btn"        data-f="andamento"  onclick="baseSetFiltro('andamento')">Em andamento</button>
+              <button class="seg-btn"        data-f="concluidos" onclick="baseSetFiltro('concluidos')">Concluídos</button>
+              <button class="seg-btn"        data-f="cancelados" onclick="baseSetFiltro('cancelados')">Cancelados</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:11px;">
+            <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;">
+              <input type="checkbox" id="base-f-semfone" onchange="renderPedidosBase()" style="width:auto;margin:0;cursor:pointer;">
+              Apenas sem telefone
+            </label>
+            <select id="base-f-status" onchange="renderPedidosBase()" title="Status exato na Base"
+              style="width:auto;min-width:170px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:7px 14px;cursor:pointer;outline:none;"></select>
+            <div style="flex:1;"></div>
             <button class="btn btn-sm" onclick="renderPedidosBase()" style="width:auto;white-space:nowrap;">⟳ Atualizar</button>
             <input type="file" id="base-import-arq" accept=".csv,text/csv" style="display:none;" onchange="baseImportarArquivo(this)">
             <button id="base-btn-import" class="btn-sec" style="display:none;width:auto;white-space:nowrap;"
@@ -1885,8 +1914,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <table class="ped-tabela">
               <thead>
                 <tr>
-                  <th>Pedido</th><th>Cliente</th><th>Telefone</th><th>Valor</th>
-                  <th>Status na Base</th><th>Data</th><th style="text-align:right;">Abrir</th>
+                  <th class="ord" data-o="numero"  onclick="baseOrdenar('numero')">Pedido <span class="seta">&#8597;</span></th>
+                  <th class="ord" data-o="cliente" onclick="baseOrdenar('cliente')">Cliente <span class="seta">&#8597;</span></th>
+                  <th class="ord" data-o="valor"   onclick="baseOrdenar('valor')">Valor <span class="seta">&#8597;</span></th>
+                  <th>Status</th>
+                  <th class="ord" data-o="data"    onclick="baseOrdenar('data')">Data <span class="seta">&#8597;</span></th>
+                  <th title="Este pedido é a segunda compra do cliente ou uma depois dela">2&ordf; Compra</th>
+                  <th title="O cliente voltou a comprar depois deste pedido">Recompra</th>
+                  <th style="text-align:right;">A&ccedil;&otilde;es</th>
                 </tr>
               </thead>
               <tbody id="base-rows"></tbody>
@@ -8603,7 +8638,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23a';
+const APP_VERSAO='2026.08.23b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11571,25 +11606,134 @@ function baseConfirmarImport(){
   showToast('✔ '+N.length+' pedido'+(N.length===1?'':'s')+' do Arquivo gravados — '+nomeArq,'success');
 }
 
+/* ── O painel de Pedidos ──────────────────────────────────────────────
+   Somente leitura, e é por isso que a tela não tem "Adicionar pedido" nem
+   "Editar": quem cria e corrige pedido é a Base. Um botão aqui abriria a
+   porta para os dois lados discordarem, e ninguém saberia qual está certo.
+   Ação é "Ver cliente" e "Abrir na Base" — ir olhar, não mexer. */
+let _baseFiltro='todos';
+let _baseOrdem={campo:'data', desc:true};
+
+function baseSetFiltro(f){
+  _baseFiltro=f||'todos';
+  renderPedidosBase();
+}
+function baseOrdenar(campo){
+  /* Clicar de novo na mesma coluna inverte. O padrão de cada uma é o que a
+     pessoa quer ver primeiro: nome de A a Z, números do maior, data da mais
+     recente. */
+  if(_baseOrdem.campo===campo) _baseOrdem.desc=!_baseOrdem.desc;
+  else _baseOrdem={campo, desc: campo!=='cliente'};
+  renderPedidosBase();
+}
+
+/* Três estados, tirados do texto do status porque é isso que a Base manda —
+   e o texto muda conforme o canal ("Entregue", "Concluído", "Cancelado com
+   NF"). O que não é nem entregue nem cancelado está em andamento: pode ser
+   "Enviado", "Pago", "Pedidos Antigos". Chamar isso de concluído seria
+   inventar um desfecho que a Base não afirmou. */
+function _baseClasse(status){
+  const s=String(status||'').toLowerCase();
+  if(/cancel|extravi|devolv/.test(s)) return 'cancelado';
+  if(/entreg|conclu|finaliz/.test(s)) return 'concluido';
+  return 'andamento';
+}
+const _BASE_CORES={
+  concluido:{txt:'#86efac', bg:'rgba(34,197,94,.13)',  bd:'rgba(34,197,94,.4)'},
+  cancelado:{txt:'#fca5a5', bg:'rgba(239,68,68,.13)',  bd:'rgba(239,68,68,.4)'},
+  andamento:{txt:'#b8ccee', bg:'rgba(143,168,216,.12)',bd:'rgba(143,168,216,.4)'}
+};
+
+const _ICO_SIM='<svg viewBox="0 0 24 24" stroke="currentColor"><path d="M20 6 9 17l-5-5"/></svg>';
+const _ICO_NAO='<svg viewBox="0 0 24 24" stroke="currentColor"><path d="M5 12h14"/></svg>';
+
+/* Ordem de compra de cada pedido, por cliente.
+
+   Devolve, para cada id de pedido: se ele é a segunda compra da pessoa ou uma
+   depois dela, se veio outra compra em seguida (e quando), e a chave do
+   cliente para abrir a ficha.
+
+   Pedido cancelado não conta como compra — nem para virar "2ª", nem para
+   contar como recompra de quem veio antes. Contar seria dizer que a pessoa
+   comprou de novo quando ela justamente desistiu. Ele continua aparecendo na
+   lista, só não move a contagem.
+
+   O agrupamento é o mesmo da aba Clientes, então CPF e telefone de recheio
+   já saíram do caminho antes de chegar aqui. */
+function _baseOrdemDeCompra(){
+  const mapa=new Map();
+  let clientes=[];
+  try{ clientes=agruparClientes()||[]; }catch(e){ clientes=[]; }
+  clientes.forEach(c=>{
+    const validos=c.pedidos
+      .filter(p=>p && _baseClasse(p.status)!=='cancelado')
+      .slice()
+      .sort((a,b)=>String(a.data||'').localeCompare(String(b.data||''))
+                 || String(a.hora||'').localeCompare(String(b.hora||'')));
+    const pos=new Map();
+    validos.forEach((p,i)=>pos.set(p.id, i));
+    c.pedidos.forEach(p=>{
+      if(!p||!p.id) return;
+      const i=pos.has(p.id)?pos.get(p.id):-1;
+      const depois=(i>=0 && i<validos.length-1)?validos[i+1]:null;
+      mapa.set(p.id, {
+        chave:c.chave,
+        nomeCliente:c.nome,
+        segunda:i>=1,
+        recompra:!!depois,
+        recompraEm:depois?depois.data:''
+      });
+    });
+  });
+  return mapa;
+}
+
 function renderPedidosBase(){
   const tbody=document.getElementById('base-rows'); if(!tbody) return;
   const btnImp=document.getElementById('base-btn-import');
   if(btnImp) btnImp.style.display=(currentUser&&currentUser.master)?'':'none';
   const todos=(appState.pedidosBase||[]).filter(Boolean);
+  const ordem=_baseOrdemDeCompra();
 
+  // O select lista os status exatos que existem hoje, não uma lista fixa:
+  // a Base cria status novo sem avisar ninguém.
   const sel=document.getElementById('base-f-status');
   if(sel){
     const atual=sel.value;
     const sts=[...new Set(todos.map(p=>p.status).filter(Boolean))].sort();
     sel.innerHTML='<option value="">Todos os status</option>'+sts.map(x=>`<option${x===atual?' selected':''}>${x}</option>`).join('');
   }
+
+  document.querySelectorAll('#base-seg .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===_baseFiltro));
+
   const q=((document.getElementById('base-busca')||{}).value||'').toLowerCase().trim();
   const fst=((document.getElementById('base-f-status')||{}).value||'');
+  const soSemFone=!!((document.getElementById('base-f-semfone')||{}).checked);
+
   const lista=todos.filter(p=>{
     if(fst && p.status!==fst) return false;
+    if(_baseFiltro!=='todos' && _baseClasse(p.status)!==({andamento:'andamento',concluidos:'concluido',cancelados:'cancelado'}[_baseFiltro])) return false;
+    if(soSemFone && String(p.telefone||'').replace(/\D/g,'')) return false;
     if(!q) return true;
     return [p.numero,p.externo,p.cliente,p.telefone,p.status].map(x=>String(x||'').toLowerCase()).join(' ').includes(q);
-  }).sort((a,b)=>String(b.data||'').localeCompare(String(a.data||''))||String(b.hora||'').localeCompare(String(a.hora||'')));
+  });
+
+  const dir=_baseOrdem.desc?-1:1;
+  lista.sort((a,b)=>{
+    switch(_baseOrdem.campo){
+      case 'numero':  return dir*((Number(a.numero)||0)-(Number(b.numero)||0));
+      case 'cliente': return dir*String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR');
+      case 'valor':   return dir*((Number(a.valor)||0)-(Number(b.valor)||0));
+      default:        return dir*(String(a.data||'').localeCompare(String(b.data||''))
+                                 || String(a.hora||'').localeCompare(String(b.hora||'')));
+    }
+  });
+  document.querySelectorAll('.ped-tabela th.ord').forEach(th=>{
+    const ativa=th.dataset.o===_baseOrdem.campo;
+    th.classList.toggle('ativa',ativa);
+    const seta=th.querySelector('.seta');
+    if(seta) seta.textContent = ativa ? (_baseOrdem.desc?'▾':'▴') : '↕';
+  });
 
   const total=lista.reduce((a,p)=>a+(Number(p.valor)||0),0);
   const cnt=document.getElementById('base-count'); if(cnt) cnt.textContent=lista.length;
@@ -11601,18 +11745,24 @@ function renderPedidosBase(){
   const sync=document.getElementById('base-sync');
   if(sync) sync.textContent=ultimo?('Base lida em '+ultimo):'';
 
-  // KPIs
+  /* KPIs — sempre sobre a base inteira, nunca sobre o filtro. Número de
+     painel que muda quando se digita na busca não serve para decidir nada.
+     Receita e ticket ignoram cancelado: dinheiro que não entrou. */
   const kp=document.getElementById('base-kpis');
   if(kp){
-    const hoje=todayStr();
-    const doDia=todos.filter(p=>p.data===hoje);
-    const {start,end}=getWeekRange(0);
-    const daSemana=todos.filter(p=>p.data>=start&&p.data<=end);
-    const somar=arr=>arr.reduce((a,p)=>a+(Number(p.valor)||0),0);
+    const porClasse=c=>todos.filter(p=>_baseClasse(p.status)===c);
+    const andamento=porClasse('andamento'), concluidos=porClasse('concluido'), cancelados=porClasse('cancelado');
+    const valem=todos.filter(p=>_baseClasse(p.status)!=='cancelado');
+    const receita=valem.reduce((a,p)=>a+(Number(p.valor)||0),0);
+    const ticket=valem.length?(receita/valem.length):0;
+    const semFone=todos.filter(p=>!String(p.telefone||'').replace(/\D/g,'')).length;
     const card=(rot,val,sub,cor)=>`<div class="ped-kpi" style="--kc:${cor};"><span class="val">${val}</span><span class="rot">${rot}</span>${sub?`<span class="sub">${sub}</span>`:''}</div>`;
-    kp.innerHTML = card('Pedidos hoje', doDia.length, _pedFmt(somar(doDia)), '#8fa8d8')
-      + card('Pedidos na semana', daSemana.length, _pedFmt(somar(daSemana)), 'var(--green)')
-      + card('Total puxado da Base', todos.length, todos.length?('mais antigo em '+_pedDataBR(todos.map(p=>p.data).filter(Boolean).sort()[0])):'', '#a78bfa');
+    kp.innerHTML =
+        card('Em andamento', andamento.length, andamento.length?_pedFmt(andamento.reduce((a,p)=>a+(Number(p.valor)||0),0)):'', '#f0b429')
+      + card('Concluídos', concluidos.length, cancelados.length?(cancelados.length+' cancelado'+(cancelados.length>1?'s':'')):'', 'var(--green)')
+      + card('Receita total', _pedFmt(receita), 'sem os cancelados', '#8fa8d8')
+      + card('Ticket médio', _pedFmt(ticket), valem.length?('em '+valem.length+' pedidos'):'', '#a78bfa')
+      + card('Sem telefone', semFone, semFone?'não dá para chamar no WhatsApp':'todos com telefone', semFone?'#f97362':'var(--text-muted)');
   }
 
   const vazio=document.getElementById('base-vazio');
@@ -11628,19 +11778,34 @@ function renderPedidosBase(){
   }
   if(vazio) vazio.style.display='none';
 
+  const frag=document.createDocumentFragment();
   lista.forEach(p=>{
     const tr=document.createElement('tr');
     const fone=String(p.telefone||'').replace(/\D/g,'');
+    const cor=_BASE_CORES[_baseClasse(p.status)];
+    const o=ordem.get(p.id)||{};
+    const marca=(ok,titulo)=>ok
+      ? `<span class="ped-sim" title="${titulo}">${_ICO_SIM}</span>`
+      : `<span class="ped-nao" title="Não">${_ICO_NAO}</span>`;
     tr.innerHTML=`
-      <td style="font-weight:700;color:var(--text-primary);font-family:var(--font-mono);">${p.numero||'—'}${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">canal: ${p.externo}</div>`:''}</td>
-      <td style="color:var(--text-secondary);">${p.cliente||'—'}</td>
-      <td style="font-family:var(--font-mono);color:var(--text-muted);">${fone?_fmtFoneVis(fone):'—'}</td>
+      <td style="font-weight:700;font-family:var(--font-mono);">
+        ${p.link?`<a href="${p.link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">#${p.numero||'—'} ↗</a>`
+                :`<span style="color:var(--text-primary);">#${p.numero||'—'}</span>`}
+        ${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">canal: ${p.externo}</div>`:''}
+        ${p.doArquivo?`<div style="font-size:9px;font-weight:400;color:var(--text-muted);" title="Veio do Arquivo da Base — não é mais relido pela integração">arquivo</div>`:''}
+      </td>
+      <td style="color:var(--text-secondary);white-space:normal;max-width:280px;">${p.cliente||'—'}
+        ${fone?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${_fmtFoneVis(fone)}</div>`:''}
+      </td>
       <td style="font-weight:700;color:var(--green);font-family:var(--font-mono);">${_pedFmt(p.valor)}</td>
-      <td><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);color:#b8ccee;">${p.status||'—'}</span></td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(p.data)}${p.hora?(' · '+p.hora):''}</td>
-      <td style="text-align:right;">${p.link?`<a class="ped-acao" href="${p.link}" target="_blank" rel="noopener" style="text-decoration:none;">Abrir na Base ↗</a>`:''}</td>`;
-    tbody.appendChild(tr);
+      <td><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${cor.bg};border:1px solid ${cor.bd};color:${cor.txt};">${p.status||'—'}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(p.data)}${p.hora?`<div style="font-size:9.5px;color:var(--text-muted);">${p.hora}</div>`:''}</td>
+      <td>${marca(o.segunda,'Segunda compra ou depois')}</td>
+      <td>${marca(o.recompra, o.recompraEm?('Comprou de novo em '+_pedDataBR(o.recompraEm)):'Comprou de novo')}</td>
+      <td style="text-align:right;">${o.chave?`<button class="ped-acao" onclick="abrirLogCliente('${String(o.chave).replace(/'/g,"\\'")}')">Ver cliente</button>`:''}</td>`;
+    frag.appendChild(tr);
   });
+  tbody.appendChild(frag);
 }
 
 // Telefone só para exibição: (27) 99998-7802

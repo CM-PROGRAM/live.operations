@@ -428,3 +428,50 @@ clientes gerados  376     maior deles com 10 pedidos
 
 O n8n alcança de 24/05/2026 em diante. **Não há sobreposição** — os dois se
 encaixam sem duplicar pedido nenhum.
+
+---
+
+## 11. O painel de Pedidos
+
+Cinco números no topo, um bloco de busca e filtros, e a lista.
+
+```
+Em andamento   nem entregue nem cancelado — "Enviado", "Pago", "Pedidos Antigos"
+Concluídos     entregue/concluído/finalizado, com o nº de cancelados embaixo
+Receita total  soma sem os cancelados
+Ticket médio   receita ÷ pedidos que valem
+Sem telefone   não dá para chamar no WhatsApp
+```
+
+Os KPIs são sempre sobre a base inteira, **nunca sobre o filtro**: número de
+painel que muda quando alguém digita na busca não serve para decidir nada.
+
+O estado sai do **texto** do status, não de um id, porque o texto é o que a
+Base manda e ele muda conforme o canal. O que não é nem entregue nem
+cancelado fica em "em andamento" — chamar de concluído seria inventar um
+desfecho que a Base não afirmou.
+
+### 11.1 As duas colunas derivadas
+
+**2ª Compra** — este pedido é a segunda compra da pessoa, ou uma depois dela.
+**Recompra** — a pessoa voltou a comprar *depois* deste pedido.
+
+As duas saem do mesmo agrupamento da aba Clientes, então o CPF e o telefone
+de recheio já ficaram de fora (§10.2). **Pedido cancelado não conta como
+compra** — nem para virar "2ª", nem para valer como recompra de quem veio
+antes: contar seria dizer que a pessoa comprou de novo justamente quando ela
+desistiu. Ele continua na lista, só não mexe na contagem.
+
+Os totais das duas colunas batem sempre, e não é coincidência: para um
+cliente com *n* compras, são *n−1* pedidos que têm alguém antes e *n−1* que
+têm alguém depois.
+
+### 11.2 O que a tela não tem, e por quê
+
+Não há **"Adicionar pedido"** nem **"Editar"**. Quem cria e corrige pedido é
+a Base; um botão aqui abriria a porta para os dois lados discordarem e
+ninguém saber qual está certo. As ações são **Ver cliente** e **Abrir na
+Base** — ir olhar, não mexer.
+
+Também não há caixa de seleção por linha. Selecionar serve para agir em lote,
+e não existe ação em lote numa tela que não altera nada.
