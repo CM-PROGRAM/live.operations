@@ -9134,7 +9134,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23l';
+const APP_VERSAO='2026.08.23m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12271,6 +12271,27 @@ const _EST_ICONES={
    Eles continuam gravados (a Base é a fonte, e apagar dado dela na
    importação é decidir por ela), mas ficam fora da lista e das contas, com
    o número aparecendo no rodapé. Some da tela sem sumir do registro. */
+/* O nome vira link só quando temos um endereço que realmente abre.
+
+   O primeiro que eu escrevi — products_catalog.php#product:<id> — foi
+   deduzido por analogia com o link de pedido, que é orders.php#order:<id> e
+   funciona. A Base responde 500 nele. Deduzir endereço de painel alheio é
+   chute, e chute em link vira erro na cara de quem clicou.
+
+   Enquanto o formato certo não for confirmado no painel, o nome fica sem
+   link: texto que não promete nada é melhor que link que quebra. */
+function _estLinkValido(url){
+  const u=String(url||'').trim();
+  if(!u) return '';
+  if(/products_catalog\.php#product:/i.test(u)) return '';   // o formato que dá 500
+  return u;
+}
+function _estNomeHtml(p){
+  const nome=String((p&&p.nome)||'') || '—';
+  const url=_estLinkValido(p&&p.link);
+  return url ? `<a href="${url}" target="_blank" rel="noopener">${nome}</a>` : nome;
+}
+
 function _estUtil(p){
   return !!(String((p&&p.sku)||'').trim() || String((p&&p.nome)||'').trim());
 }
@@ -12387,9 +12408,7 @@ function renderEstoque(){
     const tr=document.createElement('tr');
     tr.innerHTML=`
       <td class="est-sku">${p.sku||'—'}</td>
-      <td class="est-nome">
-        ${p.link?`<a href="${p.link}" target="_blank" rel="noopener">${p.nome||'—'}</a>`:(p.nome||'—')}
-      </td>
+      <td class="est-nome">${_estNomeHtml(p)}</td>
       <td class="est-ean">${p.ean||'—'}</td>
       <td><span class="est-saldo ${classe}">${total}</span></td>
       <td>${armazens.length
