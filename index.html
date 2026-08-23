@@ -7855,8 +7855,13 @@ function _marcarPacoteRecebido(data){
   if(!data || typeof data!=='object') return;
   Object.keys(_pacoteEnviado).forEach(k=>delete _pacoteEnviado[k]);
   Object.keys(data).forEach(k=>{
-    if(k==='tasks') return;
+    if(k==='tasks' || k==='users') return;
     try{ _pacoteEnviado[k]=JSON.stringify(data[k]); }catch(e){}
+  });
+  // users entra usuário a usuário, no mesmo formato em que é gravado
+  const usuarios=data.users||{};
+  Object.keys(usuarios).forEach(k=>{
+    try{ _pacoteEnviado['users.'+k]=JSON.stringify(usuarios[k]); }catch(e){}
   });
   const tasks=data.tasks||{};
   Object.keys(tasks).forEach(k=>{
@@ -7876,8 +7881,22 @@ function _gravarPacotePorPartes(payload){
     mudou++;
   };
   Object.keys(payload).forEach(k=>{
-    if(k==='tasks' || k==='_version' || k==='_savedBy') return;
+    if(k==='tasks' || k==='_version' || k==='_savedBy' || k==='users') return;
     conferir(k, FB_PATH+'/'+k, payload[k]);
+  });
+
+  /* ── users é gravado usuário por usuário, nunca em bloco ──
+     Em bloco, uma sessão com a lista desatualizada substituía o nó inteiro:
+     quem foi cadastrado depois daquela cópia sumia do banco sem erro nenhum
+     na tela. Bastava um navegador que não tivesse conseguido ler a lista da
+     nuvem antes de gravar.
+
+     Agora cada usuário vai no seu próprio caminho, e ausência NÃO é remoção:
+     não conhecer alguém não autoriza apagá-lo. Remover é ato explícito, feito
+     no Administrador, que grava o null direto no caminho daquele usuário. */
+  const users=payload.users||{};
+  Object.keys(users).forEach(k=>{
+    conferir('users.'+k, FB_PATH+'/users/'+k, users[k]);
   });
   const tasks=payload.tasks||{};
   Object.keys(tasks).forEach(k=>{
@@ -7891,7 +7910,7 @@ function _gravarPacotePorPartes(payload){
     console.error('[Firebase] ERRO AO SALVAR:', err.message);
     // Desfaz as marcas para a próxima gravação tentar de novo
     Object.keys(updates).forEach(caminho=>{
-      const k=caminho.replace(FB_PATH+'/','').replace('tasks/','tasks.');
+      const k=caminho.replace(FB_PATH+'/','').replace('tasks/','tasks.').replace('users/','users.');
       delete _pacoteEnviado[k];
     });
     _avisarFalhaDeGravacao(err);
@@ -9441,7 +9460,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ad';
+const APP_VERSAO='2026.08.23ae';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19233,7 +19252,17 @@ async function redefinirSenha(key){
 function removeUser(key){
   const ok=window.confirm('REMOVER USUÁRIO\n\nTem certeza que deseja remover "'+appState.users[key]?.name+'"?\n\nConfirmar?');
   if(!ok) return;
-  delete appState.users[key];saveState(appState);renderUsersGrid();showToast('Usuário removido','success');
+  delete appState.users[key];
+  /* A remoção precisa ser dita em voz alta. O pacote grava usuário por
+     usuário e nunca deduz remoção de ausência — foi essa dedução que deixava
+     uma sessão desatualizada apagar quem ela não conhecia. Aqui é o oposto:
+     alguém clicou em remover, então o caminho daquele usuário recebe null. */
+  if(db && fbConnected){
+    db.ref(FB_PATH+'/users/'+_regChave(key)).set(null)
+      .catch(err=>console.warn('[users] remoção não subiu:',err&&err.message));
+  }
+  try{ delete _pacoteEnviado['users.'+key]; }catch(e){}
+  saveState(appState);renderUsersGrid();showToast('Usuário removido','success');
 }
 
 function resetDayIfWeekEnd(){
