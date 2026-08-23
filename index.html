@@ -2128,8 +2128,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div class="section-header">
         <span class="section-title">Canceladas com NF</span>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
-      <div style="max-width:620px;margin-bottom:24px;">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:-6px 0 14px;">
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</span>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm" onclick="cancAbrirForm('cancnf')" style="width:auto;white-space:nowrap;">+ Nova solicitação</button>
+      </div>
+      <div id="cancnf-form-box" style="max-width:620px;margin-bottom:24px;display:none;">
         <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
           <div class="input-group">
             <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
@@ -2169,31 +2173,53 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
         </div>
       </div>
-      <div class="section-header" style="margin-top:8px;">
-        <span class="section-title" style="font-size:14px;">Solicitações</span>
-      </div>
-      <div style="margin:6px 0 14px;">
-        <input id="cancnf-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('cancnf')"
-          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-            <span id="cancnf-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+      <!-- A lista é tabela, no mesmo desenho de Pedidos. Dois quadros de
+           cartões lado a lado obrigavam a ler os dois para achar um pedido, e
+           cada cartão repetia os rótulos ("CPF:", "Telefone:") em todas as
+           linhas. Em coluna o rótulo aparece uma vez, no cabeçalho, e o olho
+           desce reto. O filtro A Fazer / Concluídas não some: virou segmento. -->
+      <div class="ped-bloco" style="padding:15px 16px 13px;margin:12px 0 14px;">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:11px;">Busca &amp; Filtros</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:7px 14px;flex:1;min-width:220px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+            <span style="font-size:12px;color:var(--text-muted);">🔎</span>
+            <input id="cancnf-search" type="text" placeholder="Buscar por pedido, cliente, CPF, telefone ou plataforma..." oninput="renderCanceladas('cancnf')"
+              style="background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);width:100%;">
           </div>
-          <div id="cancnf-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="cancnf-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-        </div>
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-            <span id="cancnf-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          <div class="seg" id="cancnf-seg">
+            <button class="seg-btn active" data-f="todas"      onclick="cancSetFiltro('cancnf','todas')">Todas</button>
+            <button class="seg-btn"        data-f="abertas"    onclick="cancSetFiltro('cancnf','abertas')">A Fazer</button>
+            <button class="seg-btn"        data-f="concluidas" onclick="cancSetFiltro('cancnf','concluidas')">Concluídas</button>
           </div>
-          <div id="cancnf-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="cancnf-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-          <div id="cancnf-nota-ano" style="display:none;margin-top:10px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></div>
         </div>
+      </div>
+
+      <div class="ped-bloco" style="overflow:hidden;">
+        <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
+          <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);">Canceladas com NF</span>
+          <span id="cancnf-count" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          <div style="flex:1;"></div>
+          <span id="cancnf-resumo" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="ped-tabela">
+            <thead>
+              <tr>
+                <th class="ord" data-oc="pedido"     onclick="cancOrdenar('cancnf','pedido')">Pedido <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="cliente"    onclick="cancOrdenar('cancnf','cliente')">Cliente <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="plataforma" onclick="cancOrdenar('cancnf','plataforma')">Plataforma <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="status"     onclick="cancOrdenar('cancnf','status')">Status <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="data"       onclick="cancOrdenar('cancnf','data')">Data <span class="seta">&#8597;</span></th>
+                <th>Solicitante</th>
+                <th style="text-align:right;">A&ccedil;&otilde;es</th>
+              </tr>
+            </thead>
+            <tbody id="cancnf-rows"></tbody>
+          </table>
+        </div>
+        <div id="cancnf-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+        <div id="cancnf-pag" class="pag-rodape"></div>
+        <div id="cancnf-nota-ano" style="display:none;padding:0 16px 13px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></div>
       </div>
     </div>
 
@@ -2201,8 +2227,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div class="section-header">
         <span class="section-title">Canceladas</span>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
-      <div style="max-width:620px;margin-bottom:24px;">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:-6px 0 14px;">
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</span>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm" onclick="cancAbrirForm('canc')" style="width:auto;white-space:nowrap;">+ Nova solicitação</button>
+      </div>
+      <!-- O formulário começa fechado: quem abre esta tela quase sempre vem
+           consultar, não cadastrar. Cadastro à mão é a exceção — a regra é o
+           que a Base manda. -->
+      <div id="canc-form-box" style="max-width:620px;margin-bottom:24px;display:none;">
         <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
           <div class="input-group">
             <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
@@ -2242,31 +2275,50 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
         </div>
       </div>
-      <div class="section-header" style="margin-top:8px;">
-        <span class="section-title" style="font-size:14px;">Solicitações</span>
-      </div>
-      <div style="margin:6px 0 14px;">
-        <input id="canc-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('canc')"
-          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-            <span id="canc-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+      <!-- Mesma tabela da lista irmã. As duas se leem do mesmo jeito porque
+           são a mesma pergunta com uma diferença só: se a nota já saiu. -->
+      <div class="ped-bloco" style="padding:15px 16px 13px;margin:12px 0 14px;">
+        <div style="font-size:12.5px;font-weight:700;color:var(--text-primary);margin-bottom:11px;">Busca &amp; Filtros</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:7px 14px;flex:1;min-width:220px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+            <span style="font-size:12px;color:var(--text-muted);">🔎</span>
+            <input id="canc-search" type="text" placeholder="Buscar por pedido, cliente, CPF, telefone ou plataforma..." oninput="renderCanceladas('canc')"
+              style="background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);width:100%;">
           </div>
-          <div id="canc-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="canc-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-        </div>
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-            <span id="canc-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          <div class="seg" id="canc-seg">
+            <button class="seg-btn active" data-f="todas"      onclick="cancSetFiltro('canc','todas')">Todas</button>
+            <button class="seg-btn"        data-f="abertas"    onclick="cancSetFiltro('canc','abertas')">A Fazer</button>
+            <button class="seg-btn"        data-f="concluidas" onclick="cancSetFiltro('canc','concluidas')">Concluídas</button>
           </div>
-          <div id="canc-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="canc-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-          <div id="canc-nota-ano" style="display:none;margin-top:10px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></div>
         </div>
+      </div>
+
+      <div class="ped-bloco" style="overflow:hidden;">
+        <div style="padding:13px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-bottom:1px solid var(--glass-border);">
+          <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);">Canceladas</span>
+          <span id="canc-count" style="background:var(--accent-glow);border:1px solid var(--accent-dim);border-radius:10px;color:var(--accent);font-size:10.5px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          <div style="flex:1;"></div>
+          <span id="canc-resumo" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="ped-tabela">
+            <thead>
+              <tr>
+                <th class="ord" data-oc="pedido"     onclick="cancOrdenar('canc','pedido')">Pedido <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="cliente"    onclick="cancOrdenar('canc','cliente')">Cliente <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="plataforma" onclick="cancOrdenar('canc','plataforma')">Plataforma <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="status"     onclick="cancOrdenar('canc','status')">Status <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oc="data"       onclick="cancOrdenar('canc','data')">Data <span class="seta">&#8597;</span></th>
+                <th>Solicitante</th>
+                <th style="text-align:right;">A&ccedil;&otilde;es</th>
+              </tr>
+            </thead>
+            <tbody id="canc-rows"></tbody>
+          </table>
+        </div>
+        <div id="canc-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+        <div id="canc-pag" class="pag-rodape"></div>
+        <div id="canc-nota-ano" style="display:none;padding:0 16px 13px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></div>
       </div>
     </div>
 
@@ -9298,7 +9350,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23y';
+const APP_VERSAO='2026.08.23z';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12314,7 +12366,9 @@ const _pagRender={
   pedidos:  ()=>renderPedidosBase(),
   clientes: ()=>renderClientes(),
   estoque:  ()=>renderEstoque(),
-  acomp:    ()=>renderAcompanhamento()
+  acomp:    ()=>renderAcompanhamento(),
+  canc:     ()=>renderCanceladas('canc'),
+  cancnf:   ()=>renderCanceladas('cancnf')
 };
 
 function _pagLer(chave){
@@ -24454,6 +24508,18 @@ function initCanceladaForm(p){
   renderCanceladas(p);
 }
 
+/* Abre e fecha o formulário. Sem argumento, alterna — é o que o botão faz. */
+function cancAbrirForm(p,abrir){
+  const box=document.getElementById(p+'-form-box'); if(!box) return;
+  const aberto=box.style.display!=='none';
+  const novo=(typeof abrir==='boolean')?abrir:!aberto;
+  box.style.display=novo?'block':'none';
+  if(novo){
+    const el=document.getElementById(p+'-cliente');
+    if(el) el.focus();
+  }
+}
+
 function limparCancelada(p){
   ['cliente','cpf','telefone'].forEach(campo=>{
     const el=document.getElementById(p+'-'+campo); if(el) el.value='';
@@ -24490,6 +24556,7 @@ function salvarCancelada(p){
   item.tarefaGerada=true;
   saveState(appState);
   limparCancelada(p);
+  cancAbrirForm(p,false);
   renderCanceladas(p);
   try{ renderAtividades(); }catch(e){}
   showToast('✓ Solicitação criada e tarefa gerada','success');
@@ -24521,53 +24588,107 @@ function excluirCancelada(p,id){
   showToast('Solicitação excluída','success');
 }
 
+/* ── A lista, em linha ────────────────────────────────────────────────
+   Filtro e ordenação vivem aqui e não no registro: são jeito de olhar, não
+   dado. Cada lista tem o seu, porque quem está conferindo as com NF não quer
+   que o filtro mude sozinho quando trocar de aba. */
+const _cancFiltro={canc:'todas', cancnf:'todas'};
+const _cancOrdem={canc:{campo:'data',desc:true}, cancnf:{campo:'data',desc:true}};
+
+function cancSetFiltro(p,f){
+  _cancFiltro[p]=f;
+  const seg=document.getElementById(p+'-seg');
+  if(seg) seg.querySelectorAll('.seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.f===f));
+  pagVoltarAoInicio(p);
+  renderCanceladas(p);
+}
+
+function cancOrdenar(p,campo){
+  const o=_cancOrdem[p]||(_cancOrdem[p]={campo:'data',desc:true});
+  if(o.campo===campo) o.desc=!o.desc;
+  /* Data e pedido começam do mais novo; texto começa de A. É o que a pessoa
+     espera de cada um sem ter de clicar duas vezes para descobrir. */
+  else { o.campo=campo; o.desc=(campo==='data'||campo==='pedido'); }
+  pagVoltarAoInicio(p);
+  renderCanceladas(p);
+}
+
+/* O momento do registro: a data do pedido quando ele veio da Base, o carimbo
+   de criação quando alguém abriu a solicitação à mão. */
+function _cancMs(item){
+  const iso=String((item&&item.dataPedido)||'').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(iso) return new Date(Number(iso[1]),Number(iso[2])-1,Number(iso[3])).getTime();
+  return Number(item&&item.ordemManual)||0;
+}
+function _cancDataBR(item){
+  const ms=_cancMs(item);
+  if(!ms) return '—';
+  return new Date(ms).toLocaleDateString('pt-BR');
+}
+function _cancEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* O CPF vem da Base só com dígitos. Onze números colados ninguém confere
+   contra um documento; pontuado, confere. */
+function _cancCpfVis(v){
+  const d=String(v||'').replace(/\D/g,'');
+  if(d.length!==11) return String(v||'').trim();
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');
+}
+
+/* O número leva direto ao pedido na Base — mesmo endereço que a lista de
+   Pedidos já usa, e que está confirmado. Sem número, texto comum. */
+function _cancPedidoHtml(item){
+  const n=String((item&&item.pedidoBase)||'').trim();
+  if(!n) return '<span style="color:var(--text-muted);">—</span>';
+  return '<a href="https://panel-u.baselinker.com/orders.php#order:'+encodeURIComponent(n)+'"'
+    +' target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">#'+_cancEsc(n)+' ↗</a>';
+}
+
 function renderCanceladas(p){
   const c=_cancCtx(p);
-  const listaA=document.getElementById(p+'-list-afazer');
-  const listaC=document.getElementById(p+'-list-conc');
-  if(!listaA||!listaC) return;
+  const tbody=document.getElementById(p+'-rows');
+  if(!tbody) return;
   const q=((document.getElementById(p+'-search')||{}).value||'').toLowerCase().trim();
-  listaA.innerHTML=''; listaC.innerHTML='';
-  let nA=0,nC=0;
+  const filtro=_cancFiltro[p]||'todas';
 
-  const escondidos=_cancLista(p).length-_cancListaVisivel(p).length;
-  _cancListaVisivel(p).slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0)).forEach(item=>{
-    if(q && ![item.cliente,item.cpf,item.telefone,item.plataforma,item.criadoPor,item.pedidoBase]
-             .some(v=>String(v||'').toLowerCase().includes(q))) return;
+  const todos=_cancListaVisivel(p);
+  const escondidos=_cancLista(p).length-todos.length;
+  const abertas=todos.filter(x=>x.status!=='concluida').length;
+
+  let lista=todos.filter(item=>{
     const concluida=item.status==='concluida';
-    const card=document.createElement('div');
-    card.style.cssText=`background:var(--grad-vidro);border:1px solid var(--glass-border);border-left:3px solid ${concluida?'var(--green)':'var(--amber)'};border-radius:10px;padding:10px 12px;box-shadow:var(--sombra-card);`;
-    const linha=(rot,val)=>val?`<div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">${rot}: <span style="color:var(--text-secondary);font-weight:600;">${String(val).replace(/</g,'&lt;')}</span></div>`:'';
-    card.innerHTML=`
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">${String(item.cliente||'—').replace(/</g,'&lt;')}</div>
-          ${linha('CPF',item.cpf)}
-          ${linha('Telefone',item.telefone)}
-          ${linha('Plataforma',item.plataforma)}
-          ${linha('Pedido Base',item.pedidoBase)}
-        </div>
-        <div id="${p}-acoes-${item.id}" style="display:flex;gap:4px;flex-shrink:0;"></div>
-      </div>
-      <div style="margin-top:8px;padding-top:7px;border-top:1px solid var(--linha-sutil);display:flex;justify-content:space-between;gap:6px;flex-wrap:wrap;font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">
-        <span>Por ${String(item.criadoPor||'—').replace(/</g,'&lt;')} · ${item.criadoEm||''}</span>
-        <span>${concluida?('Concluída '+(item.concluidoEm||'')):('Prazo '+_cancPrazoLabel(item))}</span>
-      </div>`;
-    const acoes=card.querySelector(`#${p}-acoes-${item.id}`);
-    if(acoes && (currentUser.master || item.criadoPorKey===currentUser.key)){
-      const btn=document.createElement('button');
-      btn.className='btn-orb v-danger sm'; btn.title='Excluir';
-      btn.innerHTML='<svg viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>';
-      btn.onclick=()=>excluirCancelada(p,item.id);
-      acoes.appendChild(btn);
+    if(filtro==='abertas' && concluida) return false;
+    if(filtro==='concluidas' && !concluida) return false;
+    if(!q) return true;
+    return [item.cliente,item.cpf,item.telefone,item.plataforma,item.criadoPor,item.pedidoBase,item.statusBase]
+      .some(v=>String(v||'').toLowerCase().includes(q));
+  });
+
+  const ord=_cancOrdem[p]||{campo:'data',desc:true};
+  const dir=ord.desc?-1:1;
+  const txt=v=>String(v||'').toLowerCase();
+  lista=lista.slice().sort((a,b)=>{
+    switch(ord.campo){
+      case 'pedido':     return dir*((Number(a.pedidoBase)||0)-(Number(b.pedidoBase)||0));
+      case 'cliente':    return dir*txt(a.cliente).localeCompare(txt(b.cliente),'pt-BR');
+      case 'plataforma': return dir*txt(a.plataforma).localeCompare(txt(b.plataforma),'pt-BR');
+      case 'status':     return dir*((a.status==='concluida'?1:0)-(b.status==='concluida'?1:0));
+      default:           return dir*(_cancMs(a)-_cancMs(b));
     }
-    if(concluida){ listaC.appendChild(card); nC++; } else { listaA.appendChild(card); nA++; }
+  });
+
+  document.querySelectorAll('#reg-'+p+' th[data-oc]').forEach(th=>{
+    const ativa=th.dataset.oc===ord.campo;
+    th.classList.toggle('ativa',ativa);
+    const seta=th.querySelector('.seta');
+    if(seta) seta.textContent = ativa ? (ord.desc?'▾':'▴') : '↕';
   });
 
   const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
-  set(p+'-count-afazer',nA); set(p+'-count-conc',nC);
-  const vazio=(id,mostrar)=>{ const el=document.getElementById(id); if(el) el.style.display=mostrar?'block':'none'; };
-  vazio(p+'-empty-afazer',nA===0); vazio(p+'-empty-conc',nC===0);
+  set(p+'-count',lista.length);
+  set(p+'-resumo', todos.length
+    ? (abertas+' a fazer · '+(todos.length-abertas)+' concluída'+((todos.length-abertas)===1?'':'s'))
+    : '');
 
   /* Diz que existe coisa antes de 2026, em vez de deixar o número encolher
      sem explicação — quem lembra de um cancelamento de 2025 e não o acha
@@ -24579,6 +24700,59 @@ function renderCanceladas(p){
       : '';
     nota.style.display = escondidos?'block':'none';
   }
+
+  const vazio=document.getElementById(p+'-vazio');
+  tbody.innerHTML='';
+  if(!lista.length){
+    pagRodape(p,p+'-pag',0);
+    if(vazio){
+      vazio.style.display='block';
+      vazio.textContent = todos.length
+        ? 'Nenhuma com esse filtro.'
+        : 'Nenhuma solicitação registrada.';
+    }
+    return;
+  }
+  if(vazio) vazio.style.display='none';
+
+  pagRodape(p,p+'-pag',lista.length);
+  const podeApagar=item=>!!currentUser && (currentUser.master || item.criadoPorKey===currentUser.key);
+  const frag=document.createDocumentFragment();
+  pagFatiar(p,lista).forEach(item=>{
+    const concluida=item.status==='concluida';
+    const cor=concluida
+      ? {bg:'rgba(34,197,94,.12)', bd:'rgba(34,197,94,.4)', txt:'var(--green)'}
+      : {bg:'rgba(240,180,41,.12)', bd:'rgba(240,180,41,.42)', txt:'#f0b429'};
+    const doc=String(item.cpf||'').trim();
+    const fone=String(item.telefone||'').replace(/\D/g,'');
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="font-weight:700;font-family:var(--font-mono);">${_cancPedidoHtml(item)}</td>
+      <td style="color:var(--text-primary);white-space:normal;max-width:280px;">${_cancEsc(item.cliente||'—')}
+        ${doc?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">CPF ${_cancEsc(_cancCpfVis(doc))}</div>`:''}
+        ${fone?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${_fmtFoneVis(fone)}</div>`:''}
+      </td>
+      <td style="color:var(--text-secondary);">${_cancEsc(item.plataforma||'—')}</td>
+      <td><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${cor.bg};border:1px solid ${cor.bd};color:${cor.txt};">${concluida?'Concluída':'A fazer'}</span>
+        <div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:3px;">${concluida?_cancEsc(item.concluidoEm||''):('prazo '+_cancPrazoLabel(item))}</div>
+        ${item.statusBase?`<div style="font-size:9px;color:var(--text-muted);">${_cancEsc(item.statusBase)}</div>`:''}
+      </td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_cancDataBR(item)}</td>
+      <td style="color:var(--text-secondary);">${_cancEsc(item.criadoPor||'—')}
+        ${item.criadoEm?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${_cancEsc(item.criadoEm)}</div>`:''}
+      </td>
+      <td style="text-align:right;"></td>`;
+    if(podeApagar(item)){
+      const btn=document.createElement('button');
+      btn.className='ped-acao';
+      btn.textContent='Excluir';
+      btn.title='Excluir a solicitação e a tarefa gerada por ela';
+      btn.onclick=()=>excluirCancelada(p,item.id);
+      tr.lastElementChild.appendChild(btn);
+    }
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
 }
 
 // ── Solicitações que chegam de fora (n8n) ──────────────────────────
