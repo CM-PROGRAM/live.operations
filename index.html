@@ -2097,6 +2097,166 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div style="font-size:12px;color:var(--text-muted);margin:-10px 0 16px;">Acompanhe os pedidos e as vendas dos clientes</div>
 
+      <!-- Sub-abas: o pedido cancelado e o cancelado com NF são pedidos, e
+           viviam em duas abas separadas no menu. Quem procura um pedido
+           procura em Pedidos — ter três portas para a mesma coisa é o que
+           faz alguém abrir a errada e concluir que não existe.
+           "Canceladas com NF" vem antes por pedido da operação: é a fila que
+           trava dinheiro, e a que precisa ser vista primeiro. -->
+      <div id="reg-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 16px;">
+        <button class="atv-stab2 active" data-sub="base"   onclick="regSetSubTab('base')">Pedidos
+          <span id="reg-cnt-base" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span></button>
+        <button class="atv-stab2" data-sub="cancnf" onclick="regSetSubTab('cancnf')">Canceladas com NF
+          <span id="reg-cnt-cancnf" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span></button>
+        <button class="atv-stab2" data-sub="canc"   onclick="regSetSubTab('canc')">Cancelados
+          <span id="reg-cnt-canc" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span></button>
+      </div>
+
+      <div id="reg-cancnf" style="display:none;">
+      <div class="section-header">
+        <span class="section-title">Canceladas com NF</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
+      <div style="max-width:620px;margin-bottom:24px;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
+          <div class="input-group">
+            <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <input type="text" id="cancnf-cliente" maxlength="120" placeholder="Nome do cliente">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>CPF <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="cancnf-cpf" maxlength="14" inputmode="numeric" placeholder="Somente números" oninput="cancFormatarCpf(this)">
+            </div>
+            <div class="input-group">
+              <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="cancnf-telefone" maxlength="16" inputmode="tel" placeholder="(00) 00000-0000" oninput="cancFormatarTelefone(this)">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Plataforma Vendas <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <select id="cancnf-plataforma"></select>
+          </div>
+          <div class="input-group">
+            <label>Considerações</label>
+            <div class="canc-fixo" id="cancnf-consideracoes"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>Colaborador responsável</label>
+              <div class="canc-fixo" id="cancnf-responsaveis" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div class="input-group">
+              <label>Prazo conclusão</label>
+              <div class="canc-fixo" id="cancnf-prazo"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <button class="btn btn-ghost" onclick="limparCancelada('cancnf')" style="flex:1;">Limpar</button>
+            <button class="btn" onclick="salvarCancelada('cancnf')" style="flex:1;">Criar Solicitação</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:8px;">
+        <span class="section-title" style="font-size:14px;">Solicitações</span>
+      </div>
+      <div style="margin:6px 0 14px;">
+        <input id="cancnf-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('cancnf')"
+          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+            <span id="cancnf-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="cancnf-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="cancnf-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+            <span id="cancnf-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="cancnf-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="cancnf-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+      </div>
+    </div>
+
+      <div id="reg-canc" style="display:none;">
+      <div class="section-header">
+        <span class="section-title">Pedidos Cancelados</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
+      <div style="max-width:620px;margin-bottom:24px;">
+        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
+          <div class="input-group">
+            <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <input type="text" id="canc-cliente" maxlength="120" placeholder="Nome do cliente">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>CPF <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="canc-cpf" maxlength="14" inputmode="numeric" placeholder="Somente números" oninput="cancFormatarCpf(this)">
+            </div>
+            <div class="input-group">
+              <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+              <input type="text" id="canc-telefone" maxlength="16" inputmode="tel" placeholder="(00) 00000-0000" oninput="cancFormatarTelefone(this)">
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Plataforma Vendas <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
+            <select id="canc-plataforma"></select>
+          </div>
+          <div class="input-group">
+            <label>Considerações</label>
+            <div class="canc-fixo" id="canc-consideracoes"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="input-group">
+              <label>Colaborador responsável</label>
+              <div class="canc-fixo" id="canc-responsaveis" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+            </div>
+            <div class="input-group">
+              <label>Prazo conclusão</label>
+              <div class="canc-fixo" id="canc-prazo"></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:6px;">
+            <button class="btn btn-ghost" onclick="limparCancelada('canc')" style="flex:1;">Limpar</button>
+            <button class="btn" onclick="salvarCancelada('canc')" style="flex:1;">Criar Solicitação</button>
+          </div>
+        </div>
+      </div>
+      <div class="section-header" style="margin-top:8px;">
+        <span class="section-title" style="font-size:14px;">Solicitações</span>
+      </div>
+      <div style="margin:6px 0 14px;">
+        <input id="canc-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('canc')"
+          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
+            <span id="canc-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="canc-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="canc-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
+            <span id="canc-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
+          </div>
+          <div id="canc-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
+          <div id="canc-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+        </div>
+      </div>
+    </div>
+
+
       <!-- PEDIDOS — a lista é o painel: os gráficos saíram porque respondiam
            uma pergunta que ninguém fazia, e ocupavam a tela toda antes de
            chegar no que importa, que é o pedido em si. -->
@@ -3304,150 +3464,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <!-- VENDAS — CANCELADAS -->
-    <div class="tab-panel" id="tab-canceladas">
-      <div class="section-header">
-        <span class="section-title">Pedidos Cancelados</span>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
-      <div style="max-width:620px;margin-bottom:24px;">
-        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
-          <div class="input-group">
-            <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-            <input type="text" id="canc-cliente" maxlength="120" placeholder="Nome do cliente">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="input-group">
-              <label>CPF <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-              <input type="text" id="canc-cpf" maxlength="14" inputmode="numeric" placeholder="Somente números" oninput="cancFormatarCpf(this)">
-            </div>
-            <div class="input-group">
-              <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-              <input type="text" id="canc-telefone" maxlength="16" inputmode="tel" placeholder="(00) 00000-0000" oninput="cancFormatarTelefone(this)">
-            </div>
-          </div>
-          <div class="input-group">
-            <label>Plataforma Vendas <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-            <select id="canc-plataforma"></select>
-          </div>
-          <div class="input-group">
-            <label>Considerações</label>
-            <div class="canc-fixo" id="canc-consideracoes"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="input-group">
-              <label>Colaborador responsável</label>
-              <div class="canc-fixo" id="canc-responsaveis" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-            </div>
-            <div class="input-group">
-              <label>Prazo conclusão</label>
-              <div class="canc-fixo" id="canc-prazo"></div>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:6px;">
-            <button class="btn btn-ghost" onclick="limparCancelada('canc')" style="flex:1;">Limpar</button>
-            <button class="btn" onclick="salvarCancelada('canc')" style="flex:1;">Criar Solicitação</button>
-          </div>
-        </div>
-      </div>
-      <div class="section-header" style="margin-top:8px;">
-        <span class="section-title" style="font-size:14px;">Solicitações</span>
-      </div>
-      <div style="margin:6px 0 14px;">
-        <input id="canc-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('canc')"
-          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-            <span id="canc-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
-          </div>
-          <div id="canc-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="canc-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-        </div>
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-            <span id="canc-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
-          </div>
-          <div id="canc-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="canc-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-        </div>
-      </div>
-    </div>
+    
 
     <!-- VENDAS — CANCELADAS COM NF -->
-    <div class="tab-panel" id="tab-canceladasnf">
-      <div class="section-header">
-        <span class="section-title">Canceladas com NF</span>
-      </div>
-      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin:-6px 0 14px;">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</div>
-      <div style="max-width:620px;margin-bottom:24px;">
-        <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
-          <div class="input-group">
-            <label>Cliente <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-            <input type="text" id="cancnf-cliente" maxlength="120" placeholder="Nome do cliente">
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="input-group">
-              <label>CPF <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-              <input type="text" id="cancnf-cpf" maxlength="14" inputmode="numeric" placeholder="Somente números" oninput="cancFormatarCpf(this)">
-            </div>
-            <div class="input-group">
-              <label>Telefone <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-              <input type="text" id="cancnf-telefone" maxlength="16" inputmode="tel" placeholder="(00) 00000-0000" oninput="cancFormatarTelefone(this)">
-            </div>
-          </div>
-          <div class="input-group">
-            <label>Plataforma Vendas <span style="color:var(--text-muted);font-weight:400;">(da Base)</span></label>
-            <select id="cancnf-plataforma"></select>
-          </div>
-          <div class="input-group">
-            <label>Considerações</label>
-            <div class="canc-fixo" id="cancnf-consideracoes"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-            <div class="input-group">
-              <label>Colaborador responsável</label>
-              <div class="canc-fixo" id="cancnf-responsaveis" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
-            </div>
-            <div class="input-group">
-              <label>Prazo conclusão</label>
-              <div class="canc-fixo" id="cancnf-prazo"></div>
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;margin-top:6px;">
-            <button class="btn btn-ghost" onclick="limparCancelada('cancnf')" style="flex:1;">Limpar</button>
-            <button class="btn" onclick="salvarCancelada('cancnf')" style="flex:1;">Criar Solicitação</button>
-          </div>
-        </div>
-      </div>
-      <div class="section-header" style="margin-top:8px;">
-        <span class="section-title" style="font-size:14px;">Solicitações</span>
-      </div>
-      <div style="margin:6px 0 14px;">
-        <input id="cancnf-search" type="text" placeholder="🔎 Buscar (cliente, CPF, telefone, plataforma, solicitante)..." oninput="renderCanceladas('cancnf')"
-          style="width:100%;box-sizing:border-box;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 16px;outline:none;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--amber);">A Fazer</span>
-            <span id="cancnf-count-afazer" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
-          </div>
-          <div id="cancnf-list-afazer" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="cancnf-empty-afazer" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-        </div>
-        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--green);">Concluídas</span>
-            <span id="cancnf-count-conc" style="background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);border-radius:10px;color:var(--green);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;">0</span>
-          </div>
-          <div id="cancnf-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
-          <div id="cancnf-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
-        </div>
-      </div>
-    </div>
+    
 
     <!-- CENTRAL DE TAREFAS — CRIAR TAREFA -->
 
@@ -9258,7 +9278,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23u';
+const APP_VERSAO='2026.08.23v';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9427,7 +9447,8 @@ function buildTabs(){
     {id:'estoque', icon:'estoque', label:'Estoque', perm:'admin'},
     {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
-      {id:'canceladas', label:'Pedidos Cancelados'},
+      /* "Pedidos Cancelados" e "Canceladas com NF" saíram do menu: viraram
+         sub-abas de Pedidos, que é onde se procura por pedido. */
       // A consulta de CPF é de todo mundo: quem atende cliente precisa do
       // telefone, e trancar isso só criava pedido de liberação para o master
       {id:'consultacpf', label:'Consulta CPF', perm:null}
@@ -9449,7 +9470,6 @@ function buildTabs(){
        novo se a migração tiver saído torta. Para trazer a aba de volta, basta
        devolver a linha de baixo.
          {id:'devolucoes', label:'Lançamentos'},                              */
-    {id:'canceladasnf', icon:'devolucoes', label:'Canceladas com NF', perm:'devolucoes'},
     {id:'templates',  icon:'templates',    label:'Templates',       perm:'admin'},
     {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'admin'},
     /* "Rastreador Live" virou "Acompanhamento": o nome antigo dizia a
@@ -11453,10 +11473,17 @@ function finSetSubTab(qual){
    função continua existindo porque outros pontos ainda a chamam, e trocar
    todos por nada seria mexer em coisa que funciona sem ganho. */
 function regSetSubTab(qual){
-  _regSubTab='base';
-  const base=document.getElementById('reg-base');
-  if(base) base.style.display='block';
-  renderPedidosBase();
+  _regSubTab=qual||'base';
+  const secoes={base:'reg-base', cancnf:'reg-cancnf', canc:'reg-canc'};
+  Object.entries(secoes).forEach(([k,id])=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=(k===_regSubTab)?'block':'none';
+  });
+  document.querySelectorAll('#reg-subtabs .atv-stab2').forEach(b=>
+    b.classList.toggle('active', b.dataset.sub===_regSubTab));
+  if(_regSubTab==='base'){ renderPedidosBase(); }
+  if(_regSubTab==='cancnf'){ try{ initCanceladaForm('cancnf'); }catch(e){ console.warn('cancnf:',e); } }
+  if(_regSubTab==='canc'){   try{ initCanceladaForm('canc');   }catch(e){ console.warn('canc:',e); } }
 }
 
 /* ── Pedidos vindos da Base (BaseLinker) ──────────────────────
@@ -24300,8 +24327,11 @@ function cancFormatarTelefone(inp){
 // Canais de venda: os mesmos de Devoluções, mais a loja própria. Deixa o dado
 // padronizado com o resto do sistema (e é a lista que o n8n vai ter de mapear).
 function cancPlataformas(){
+  /* Cancelamento acontece em qualquer canal de venda, não só nos
+     marketplaces — o WhatsApp faltava e era justamente de onde vem a maior
+     parte dos pedidos. */
   const base=(typeof DEV_PLATAFORMAS!=='undefined')?DEV_PLATAFORMAS:[];
-  return ['LOJA INTEGRADA',...base];
+  return ['WHATSAPP','LOJA INTEGRADA',...base];
 }
 
 function initCanceladaForm(p){
