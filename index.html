@@ -9233,7 +9233,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23r';
+const APP_VERSAO='2026.08.23s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23507,11 +23507,73 @@ function _mktLinkClick(e,platform,store,label,url,internal){
   navExternalLink(e,_mktLinkKey(platform,store,label),platform+' · '+store+' · '+label,url);
 }
 
+/* Marketplaces em dois níveis: a grade de plataformas e, dentro dela, as
+   lojas e os atalhos daquela.
+
+   Antes era tudo de uma vez — seis plataformas, dez lojas e mais de quarenta
+   atalhos empilhados numa tela só. Quem entra aqui quer UM marketplace,
+   não todos; o resto era ruído que ainda obrigava a rolar para achar o que
+   queria. A grade responde "qual deles?" primeiro, que é a pergunta que a
+   pessoa já tem na cabeça quando clica no menu. */
+let _mktAberta='';
+
+function mktAbrirPlataforma(nome){
+  _mktAberta=nome||'';
+  renderMktLinks();
+  try{ document.querySelector('.tab-panel.active').scrollIntoView({block:'start'}); }catch(e){}
+}
+function mktVoltarPlataformas(){ mktAbrirPlataforma(''); }
+
+function _mktResumoPlataforma(pf){
+  const lojas=(pf.stores||[]).length;
+  const atalhos=(pf.stores||[]).reduce((n,st)=>n+((st.links||[]).length),0);
+  let feitas=0, total=0;
+  (pf.stores||[]).forEach(st=>(st.links||[]).forEach(lk=>{
+    const tarefa=_mktTarefaDoLink(pf.platform,st.store,lk.label);
+    if(tarefa){ total++; if(_mktTarefaConcluida(tarefa)) feitas++; }
+  }));
+  return {lojas, atalhos, feitas, total};
+}
+
+function _mktGradeHtml(){
+  return MKT_LINKS.map(pf=>{
+    const r=_mktResumoPlataforma(pf);
+    const cor=MKT_NEON[pf.platform] ? ('rgb('+MKT_NEON[pf.platform]+')') : '#8fa8d8';
+    /* A conta do dia só entra quando existe rotina para a plataforma. Sem
+       rotina, "0 de 0" faria parecer que há trabalho parado — e repetir a
+       contagem de lojas na segunda linha era dizer a mesma coisa duas vezes. */
+    const pronto = r.total && r.feitas>=r.total;
+    const segunda = r.total
+      ? `<br><b style="color:${pronto?'var(--green)':'var(--text-secondary)'};">${r.feitas} de ${r.total} conferências feitas hoje</b>`
+      : '';
+    return `<button class="ini-quadro" onclick="mktAbrirPlataforma('${String(pf.platform).replace(/'/g,"\\'")}')" style="text-align:center;">
+      <span class="ini-ic" data-icone="marketplaces" style="color:${cor};"></span>
+      <span class="ini-tit">${pf.platform}</span>
+      <span class="ini-sub">${r.lojas} loja${r.lojas>1?'s':''} · ${r.atalhos} atalhos${segunda}</span>
+    </button>`;
+  }).join('');
+}
+
 function renderMktLinks(){
   const panel=document.getElementById('mkt-links-panel');
   if(!panel) return;
   panel.innerHTML='';
-  MKT_LINKS.forEach((pf,_mktIdx)=>{
+
+  if(!_mktAberta){
+    const grade=document.createElement('div');
+    grade.className='ini-quadros';
+    grade.innerHTML=_mktGradeHtml();
+    panel.appendChild(grade);
+    try{ preencherIconesDeclarados(panel); }catch(e){}
+    return;
+  }
+
+  const voltar=document.createElement('div');
+  voltar.style.cssText='margin-bottom:14px;';
+  voltar.innerHTML='<button class="btn-sec" style="width:auto;" onclick="mktVoltarPlataformas()">← Todos os marketplaces</button>';
+  panel.appendChild(voltar);
+
+  MKT_LINKS.filter(pf=>pf.platform===_mktAberta).forEach((pf,_mktIdx)=>{
     const card=document.createElement('div');
     card.style.cssText=`position:relative;background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:12px 14px;box-shadow:var(--sombra-card);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;`;
     card.onmouseover=()=>{card.style.transform='translateY(-2px)';card.style.boxShadow='var(--sombra-card-alta)';};
