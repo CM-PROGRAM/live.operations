@@ -533,12 +533,25 @@ html{overflow-x:hidden;}
 .ped-meta-barra>b{position:absolute;top:-2px;bottom:-2px;width:2px;background:rgba(255,255,255,.85);}
 
 .ped-bloco{background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);}
-.ped-tabela{width:100%;border-collapse:collapse;font-size:12.5px;}
-.ped-tabela th{text-align:left;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  color:var(--text-muted);font-family:var(--font-mono);padding:10px 16px;border-bottom:1px solid var(--border);white-space:nowrap;}
-.ped-tabela td{padding:11px 16px;border-bottom:1px solid var(--linha-sutil);vertical-align:middle;white-space:nowrap;}
+/* Tipografia das tabelas.
+
+   O cabeçalho era 10px em caixa alta, monoespaçado e com espaçamento de
+   letra — desenho de rótulo, não de leitura. Caixa alta tira a forma da
+   palavra, que é por onde o olho reconhece sem soletrar; numa lista longa
+   que alguém varre procurando uma linha, isso cansa rápido. Vira caixa
+   normal, 12px, na fonte do texto.
+
+   Linha alternada: com muitas colunas o olho perde a linha no meio do
+   caminho, e a faixa é o que segura a leitura da esquerda para a direita. */
+.ped-tabela{width:100%;border-collapse:collapse;font-size:13.5px;}
+.ped-tabela th{text-align:left;font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;
+  color:var(--text-secondary);font-family:var(--font-sans);padding:13px 16px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.ped-tabela td{padding:13px 16px;border-bottom:1px solid var(--linha-sutil);vertical-align:middle;white-space:nowrap;}
 .ped-tabela tbody tr:last-child td{border-bottom:none;}
-.ped-tabela tbody tr:hover{background:rgba(255,255,255,.03);}
+.ped-tabela tbody tr:nth-child(even){background:rgba(255,255,255,.022);}
+.ped-tabela tbody tr:hover{background:rgba(255,255,255,.05);}
+:root[data-theme="light"] .ped-tabela tbody tr:nth-child(even){background:rgba(20,30,55,.025);}
+:root[data-theme="light"] .ped-tabela tbody tr:hover{background:rgba(20,30,55,.055);}
 .ped-chip{font-size:11px;font-weight:600;font-family:var(--font-sans);padding:5px 13px;border-radius:20px;cursor:pointer;
   border:1px solid var(--glass-border);background:var(--grad-vidro);color:var(--text-secondary);transition:all .15s;}
 .ped-chip:hover{border-color:rgba(143,168,216,.5);color:var(--text-primary);}
@@ -568,11 +581,10 @@ html{overflow-x:hidden;}
    E o nome do produto sobe de secundário para primário. Ele é o que a
    pessoa está procurando; deixá-lo mais apagado que a linha inteira era
    pedir para ela aproximar o rosto da tela. */
-.est-tabela{font-size:13.5px;}
-.est-tabela th{font-size:12px;font-weight:600;letter-spacing:0;text-transform:none;
-  color:var(--text-secondary);padding-top:14px;padding-bottom:12px;}
+/* O que sobrou de específico do estoque: célula alinhada ao topo, porque a
+   coluna de armazéns empilha três linhas e o resto tem de acompanhar. */
 .est-tabela th.ord:hover{color:var(--text-primary);}
-.est-tabela td{vertical-align:top;padding:13px 16px;line-height:1.45;}
+.est-tabela td{vertical-align:top;line-height:1.45;}
 .est-tabela .est-sku{font-family:var(--font-mono);font-size:12.5px;font-weight:700;
   color:var(--text-primary);letter-spacing:.02em;}
 .est-tabela .est-nome{font-size:13.5px;color:var(--text-primary);white-space:normal;
@@ -583,15 +595,10 @@ html{overflow-x:hidden;}
 .est-tabela .est-custo{text-align:right;font-family:var(--font-mono);font-size:13px;font-weight:700;}
 /* Linhas alternadas. Com sete colunas largas, o olho perde a linha no meio
    do caminho — a faixa é o que segura a leitura da esquerda para a direita. */
-.est-tabela tbody tr:nth-child(even){background:rgba(255,255,255,.022);}
-.est-tabela tbody tr:hover{background:rgba(255,255,255,.05);}
-
 /* Tema claro. As cores de status são pensadas para fundo escuro: o azul
    claro do saldo e o vermelho do negativo somem sobre branco — o número
    dentro do balão fica ilegível, que é justamente o número que a pessoa foi
    ali ver. No claro eles escurecem, mantendo o mesmo significado. */
-:root[data-theme="light"] .est-tabela tbody tr:nth-child(even){background:rgba(20,30,55,.025);}
-:root[data-theme="light"] .est-tabela tbody tr:hover{background:rgba(20,30,55,.055);}
 :root[data-theme="light"] .est-saldo{background:rgba(20,30,55,.05);color:#4f5b73;}
 :root[data-theme="light"] .est-saldo.tem{background:rgba(37,99,235,.1);border-color:rgba(37,99,235,.35);color:#1d4ed8;}
 :root[data-theme="light"] .est-saldo.neg{background:rgba(220,38,38,.09);border-color:rgba(220,38,38,.35);color:#b91c1c;}
@@ -800,7 +807,11 @@ input:-webkit-autofill:active{
 .atv-prior-menu{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#151a28;border:1px solid var(--glass-border);border-radius:var(--radius);box-shadow:0 10px 30px rgba(0,0,0,.5);z-index:50;overflow:hidden;}
 .atv-prior-opt{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:14px;color:var(--text-primary);cursor:pointer;transition:background .15s;}
 .atv-prior-opt:hover{background:var(--veu-medio);}
-.input-group label{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:0.5px;font-weight:500;}
+/* Rótulo de campo era 11px monoespaçado, apagado e com espaçamento de
+   letra. Monoespaçada é fonte para código e número, não para frase: cada
+   letra ocupa a mesma largura e a palavra perde o desenho. Aqui vira a
+   fonte do texto, 12px, no cinza de leitura e não no de rodapé. */
+.input-group label{font-size:12px;color:var(--text-secondary);font-family:var(--font-sans);letter-spacing:0;font-weight:600;}
 /* ── Projetos: notas livres com neon branco na borda ── */
 .proj-nota{
   position:relative;display:flex;flex-direction:column;
@@ -1212,17 +1223,20 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .tabela-cab{padding:16px 18px 12px;}
 .tc-titulo{font-family:var(--font-sans);font-size:15.5px;font-weight:800;color:var(--text-primary);}
 .tabela-rolagem{overflow-x:auto;}
-.tab-dados{width:100%;border-collapse:collapse;font-size:12.5px;min-width:840px;}
-.tab-dados thead th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;letter-spacing:.3px;
-  color:var(--text-muted);border-top:1px solid var(--linha-sutil);border-bottom:1px solid var(--linha-sutil);
+.tab-dados{width:100%;border-collapse:collapse;font-size:13.5px;min-width:840px;}
+.tab-dados thead th{text-align:left;padding:13px 14px;font-size:12px;font-weight:600;letter-spacing:0;
+  color:var(--text-secondary);border-top:1px solid var(--linha-sutil);border-bottom:1px solid var(--linha-sutil);
   white-space:nowrap;background:var(--veu-suave);}
 .tab-dados th.ord{cursor:pointer;user-select:none;}
 .tab-dados th.ord:hover{color:var(--text-primary);}
 .tab-dados th .seta{opacity:.45;font-size:9px;margin-left:4px;}
 .tab-dados th.ord.ativa .seta{opacity:1;color:var(--tom-aco,#8fa8d8);}
-.tab-dados tbody td{padding:12px 14px;border-bottom:1px solid var(--linha-sutil);vertical-align:middle;color:var(--text-secondary);}
+.tab-dados tbody td{padding:14px;border-bottom:1px solid var(--linha-sutil);vertical-align:middle;color:var(--text-secondary);}
 .tab-dados tbody tr:last-child td{border-bottom:none;}
-.tab-dados tbody tr:hover{background:var(--veu-suave);}
+.tab-dados tbody tr:nth-child(even){background:rgba(255,255,255,.022);}
+.tab-dados tbody tr:hover{background:rgba(255,255,255,.05);}
+:root[data-theme="light"] .tab-dados tbody tr:nth-child(even){background:rgba(20,30,55,.025);}
+:root[data-theme="light"] .tab-dados tbody tr:hover{background:rgba(20,30,55,.055);}
 .tab-vazia td{text-align:center;color:var(--text-muted);padding:34px 14px;}
 
 .cli-av{width:34px;height:34px;border-radius:10px;background:var(--grad-avatar);
@@ -9117,7 +9131,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23j';
+const APP_VERSAO='2026.08.23k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13261,7 +13275,7 @@ function renderPedidosBase(){
         ${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">canal: ${p.externo}</div>`:''}
         ${p.doArquivo?`<div style="font-size:9px;font-weight:400;color:var(--text-muted);" title="Veio do Arquivo da Base — não é mais relido pela integração">arquivo</div>`:''}
       </td>
-      <td style="color:var(--text-secondary);white-space:normal;max-width:280px;">${p.cliente||'—'}
+      <td style="color:var(--text-primary);white-space:normal;max-width:280px;">${p.cliente||'—'}
         ${fone?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${_fmtFoneVis(fone)}</div>`:''}
       </td>
       <td style="font-weight:700;color:var(--green);font-family:var(--font-mono);">${_pedFmt(p.valor)}</td>
