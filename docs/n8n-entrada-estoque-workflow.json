@@ -96,8 +96,8 @@
         -100,
         -20
       ],
-      "id": "Base · armazéns",
-      "name": "Base · armazéns",
+      "id": "Base · armazéns (entrada)",
+      "name": "Base · armazéns (entrada)",
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -134,8 +134,8 @@
         100,
         -20
       ],
-      "id": "Base · catálogos",
-      "name": "Base · catálogos",
+      "id": "Base · catálogos (entrada)",
+      "name": "Base · catálogos (entrada)",
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -146,7 +146,7 @@
     },
     {
       "parameters": {
-        "jsCode": "/* Catálogo e mapa de armazéns.\n\n   O pedido guarda o NOME do armazém (\"Estoque ES\"), porque nome é o que a\n   equipe conhece; a Base quer a chave (\"bl_43152\"). A tradução é aqui, e o\n   nome que não existir mais na Base para o lançamento com motivo — melhor\n   recusar do que lançar no armazém errado. */\nconst cat = $input.first().json || {};\nif (cat.status !== 'SUCCESS') throw new Error('Não consegui listar os catálogos: ' + (cat.error_message || 'motivo não informado'));\nconst inventarios = Object.keys(cat.inventories || {});\nif (!inventarios.length) throw new Error('A Base não devolveu nenhum catálogo.');\n\nconst arm = $('Base · armazéns').first().json || {};\nconst porNome = {};\n(arm.warehouses || []).forEach(w => {\n  porNome[String(w.name || '')] = String(w.warehouse_type || '') + '_' + String(w.warehouse_id || '');\n});\nreturn [{ json: { inventory_id: inventarios[0], armazensPorNome: porNome } }];\n"
+        "jsCode": "/* Catálogo e mapa de armazéns.\n\n   O pedido guarda o NOME do armazém (\"Estoque ES\"), porque nome é o que a\n   equipe conhece; a Base quer a chave (\"bl_43152\"). A tradução é aqui, e o\n   nome que não existir mais na Base para o lançamento com motivo — melhor\n   recusar do que lançar no armazém errado. */\nconst cat = $input.first().json || {};\nif (cat.status !== 'SUCCESS') throw new Error('Não consegui listar os catálogos: ' + (cat.error_message || 'motivo não informado'));\nconst inventarios = Object.keys(cat.inventories || {});\nif (!inventarios.length) throw new Error('A Base não devolveu nenhum catálogo.');\n\nconst arm = $('Base · armazéns (entrada)').first().json || {};\nconst porNome = {};\n(arm.warehouses || []).forEach(w => {\n  porNome[String(w.name || '')] = String(w.warehouse_type || '') + '_' + String(w.warehouse_id || '');\n});\nreturn [{ json: { inventory_id: inventarios[0], armazensPorNome: porNome } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -388,25 +388,25 @@
       "main": [
         [
           {
-            "node": "Base · armazéns",
+            "node": "Base · armazéns (entrada)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Base · armazéns": {
+    "Base · armazéns (entrada)": {
       "main": [
         [
           {
-            "node": "Base · catálogos",
+            "node": "Base · catálogos (entrada)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Base · catálogos": {
+    "Base · catálogos (entrada)": {
       "main": [
         [
           {
