@@ -753,9 +753,24 @@ html{overflow-x:hidden;}
 .ped-sim svg,.ped-nao svg{width:15px;height:15px;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
 .ped-sim{color:var(--green);}
 .ped-nao{color:var(--text-muted);opacity:.5;}
-.ped-acao{background:none;border:1px solid var(--glass-border);border-radius:50px;color:var(--text-muted);cursor:pointer;
+/* O botão de ação era cinza-apagado sobre fundo escuro, com borda quase
+   invisível. Um por linha passava; cinco por linha viraram uma parede
+   ilegível. Sobe o texto para o cinza de leitura e a borda ganha corpo. */
+.ped-acao{background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);cursor:pointer;
   font-size:10.5px;padding:3px 11px;transition:all .15s;}
-.ped-acao:hover{color:var(--text-primary);border-color:rgba(143,168,216,.55);background:rgba(143,168,216,.12);}
+.ped-acao:hover{color:var(--text-primary);border-color:rgba(143,168,216,.65);background:rgba(143,168,216,.16);}
+/* A ação principal da linha se destaca das outras: numa fileira de botões
+   iguais, a pessoa lê todos antes de escolher. */
+.ped-acao.destaque{background:var(--accent-glow);border-color:var(--accent-dim);color:var(--accent);font-weight:700;}
+.ped-acao.destaque:hover{background:rgba(143,168,216,.22);color:var(--text-primary);}
+.ped-acao[disabled]{opacity:.45;cursor:default;}
+/* Menu das ações que não são do dia a dia. */
+.acp-mais{position:relative;display:inline-block;}
+.acp-mais > .menu{display:none;position:absolute;top:100%;right:0;margin-top:5px;z-index:70;min-width:150px;
+  background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:10px;
+  box-shadow:var(--sombra-painel);padding:5px;backdrop-filter:blur(24px);}
+.acp-mais.aberto > .menu{display:block;}
+:root[data-theme="light"] .ped-acao{background:rgba(20,30,55,.04);color:#3d4763;}
 .ped-acao.perigo:hover{color:#fca5a5;border-color:rgba(239,68,68,.6);background:rgba(239,68,68,.12);}
 
 /* ── Adm. Master: dobra e cartões de situação ──────────────────
@@ -9218,7 +9233,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23q';
+const APP_VERSAO='2026.08.23r';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12599,6 +12614,17 @@ function acpOrdenar(c){
 }
 
 
+function acpMais(ev,btn){
+  if(ev) ev.stopPropagation();
+  const cx=btn.parentElement;
+  const abrir=!cx.classList.contains('aberto');
+  document.querySelectorAll('.acp-mais.aberto').forEach(x=>x.classList.remove('aberto'));
+  if(abrir){
+    cx.classList.add('aberto');
+    setTimeout(()=>document.addEventListener('click',()=>cx.classList.remove('aberto'),{once:true}),0);
+  }
+}
+
 function acpMenuAdd(ev){
   if(ev) ev.stopPropagation();
   const m=document.getElementById('acp-menu'); if(!m) return;
@@ -13523,15 +13549,30 @@ function _acpCelula(col,a,pode){
       }
       const fotos=(Array.isArray(a.fotos)?a.fotos.length:0);
       const ehDev=_acpTipo==='devolucao';
+      /* Só o que se faz todo dia fica na linha. Editar, Ver e Arquivar vão
+         para o "⋯": eram três botões repetidos em cada linha para uma coisa
+         que se usa de vez em quando, e é essa repetição que transforma a
+         coluna numa parede cinza. Foto sem foto some em vez de ficar
+         apagada — botão desligado ainda ocupa o olho. */
+      const mais=`<span class="acp-mais">
+          <button class="ped-acao" title="Mais ações" onclick="acpMais(event,this)">&#8943;</button>
+          <div class="menu">
+            ${pode?`<button class="acp-mi" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
+            <button class="acp-mi" onclick="acpVer('${a.id}')">Ver detalhes</button>
+            ${pode?`<button class="acp-mi" onclick="acpArquivar('${a.id}')">${a.arquivado?'Tirar do arquivo':'Arquivar'}</button>`:''}
+          </div></span>`;
+      if(!ehDev){
+        return `<td style="text-align:right;white-space:nowrap;">
+          ${pode?`<button class="ped-acao destaque" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
+          <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
+          ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
+        </td>`;
+      }
       return `<td style="text-align:right;white-space:nowrap;">
-        ${ehDev?(fotos
-          ? `<button class="ped-acao" title="Ver as ${fotos} foto(s) anexadas" onclick="acpVerFotos('${a.id}')">Imagem</button>`
-          : `<button class="ped-acao" title="Nenhuma foto anexada" disabled style="opacity:.4;cursor:default;">Imagem</button>`):''}
-        ${(ehDev&&pode)?`<button class="ped-acao" title="Chegou: conferir, anexar foto e, se for o caso, pedir o estorno" onclick="acpConferirDevolucao('${a.id}')">Conferir</button>`:''}
-        ${(ehDev&&pode)?_acpBotaoEstorno(a):''}
-        ${pode?`<button class="ped-acao" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
-        <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
-        ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" title="${a.arquivado?'Tirar do arquivo':'Arquivar'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
+        ${fotos?`<button class="ped-acao" title="Ver as ${fotos} foto(s) anexadas" onclick="acpVerFotos('${a.id}')">Imagem</button>`:''}
+        ${pode?`<button class="ped-acao${a.conferido?'':' destaque'}" title="${a.conferido?'Conferir de novo — trocar status, foto ou observação':'Chegou: conferir, anexar foto e, se for o caso, pedir o estorno'}" onclick="acpConferirDevolucao('${a.id}')">Conferir</button>`:''}
+        ${pode?_acpBotaoEstorno(a):''}
+        ${mais}
       </td>`;
     }
     default:
@@ -13548,7 +13589,9 @@ function _acpBotaoEstorno(a){
     return `<button class="ped-acao" disabled style="opacity:.45;cursor:default;" title="Estorno concluído">NF estornada</button>`;
   if(a.tarefaEstornoId)
     return `<button class="ped-acao" title="A tarefa já foi criada — abrir na Central de Tarefas" onclick="acpAbrirTarefaEstorno('${a.id}')">Estorno pedido</button>`;
-  return `<button class="ped-acao" title="Cria a tarefa do estorno da NF de saída para o Carlos Red" onclick="acpEstornarNF('${a.id}')">Estornar NF</button>`;
+  /* Vira o destaque depois da conferência: é aí que ele deixa de ser uma
+     opção e passa a ser o próximo passo. */
+  return `<button class="ped-acao${a.conferido?' destaque':''}" title="Cria a tarefa do estorno da NF de saída para o Carlos Red" onclick="acpEstornarNF('${a.id}')">Estornar NF</button>`;
 }
 
 function acpAbrirTarefaEstorno(id){
