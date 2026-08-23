@@ -9188,15 +9188,42 @@ function doLogin(){
 
   async function authenticate(users){
     const hashDigitado=await _hashSenha(p);
-    const entradas=Object.entries(users||{});
+    const entradas=Object.entries(users||{}).filter(([,v])=>!!v);
+
+    /* Lista de usuários vazia não é "usuário errado", é o sistema sem os
+       dados — e dizer "não achei esse usuário" nessa hora faz a pessoa
+       concluir que a conta dela foi apagada. São problemas diferentes e
+       precisam de frases diferentes. */
+    if(!entradas.length){
+      recusar('Não consegui carregar a lista de usuários. Confira a internet e tente de novo em alguns segundos.');
+      return;
+    }
+
     // Localiza o usuário por e-mail, chave ou nome — a senha é conferida depois
-    const achou=entradas.find(([k,v])=>{
-      if(!v) return false;
-      return (k===u)
-        || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u
-        || (v.email && String(v.email).toLowerCase()===uOriginal);
-    });
-    if(!achou){ recusar('Não achei esse usuário. Confira o e-mail ou o nome de acesso.'); return; }
+    let achou=entradas.find(([k,v])=>
+         (k===u)
+      || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u
+      /* trim no cadastro: um espaço sobrando no fim do e-mail, invisível na
+         tela do Administrador, fazia a comparação falhar por nada. */
+      || (v.email && String(v.email).trim().toLowerCase()===uOriginal));
+
+    /* Quem tem e-mail de trabalho digita o e-mail, não o nome de acesso — e o
+       e-mail só casa se estiver cadastrado no usuário. Quando não está, a
+       parte antes do @ quase sempre é a própria chave ("cmandrade@empresa"
+       para o usuário "cmandrade"). Tentar por aí não afrouxa nada: isto só
+       escolhe QUAL registro conferir, e a senha continua sendo exigida do
+       mesmo jeito, aqui e na nuvem. */
+    if(!achou && uOriginal.indexOf('@')>0){
+      const antesDoArroba=uOriginal.split('@')[0].trim();
+      achou=entradas.find(([k,v])=>
+           k===antesDoArroba
+        || String(v.name||'').toLowerCase().replace(/\s+/g,'')===antesDoArroba);
+    }
+
+    if(!achou){
+      recusar('Não achei esse usuário. Tente o nome de acesso (sem o @), ou peça ao master para conferir seu cadastro.');
+      return;
+    }
     const [chave,dados]=achou;
     const senhaLocalConfere = dados.passHash
       ? (!!hashDigitado && dados.passHash===hashDigitado)
@@ -9414,7 +9441,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ac';
+const APP_VERSAO='2026.08.23ad';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
