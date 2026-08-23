@@ -1,204 +1,178 @@
-# n8n → LiveOps: Canceladas e Canceladas com NF
+# Base → LiveOps: Canceladas e Canceladas com NF
 
-Como fazer o n8n ler os pedidos cancelados na Base (Baselinker) e criar sozinho
-a solicitação no LiveOps. A tarefa em Tarefas Diárias o próprio sistema gera —
-o n8n grava **um único registro** e para por aí.
+Fluxo pronto: **`docs/n8n-cancelados-workflow.json`** — 12 nós, importar no n8n
+em *Workflows → Import from File*.
+
+Ele lê os pedidos cancelados na Base (BaseLinker) e grava a solicitação no
+LiveOps. A tarefa em Tarefas Diárias o próprio sistema gera — o n8n grava **um
+registro** e para por aí.
 
 ---
 
-## Como funciona por baixo
-
-O LiveOps guarda cada solicitação num nó separado do Firebase:
+## 1. Onde o registro cai
 
 ```
-suplelive/reg/canceladas/<id>       ← aba Canceladas
-suplelive/reg/canceladasNF/<id>     ← aba Canceladas com NF
+suplelive/reg/canceladas/<id>       ← sub-aba Pedidos → Canceladas
+suplelive/reg/canceladasNF/<id>     ← sub-aba Pedidos → Canceladas com NF
 ```
+
+O id é `canc_<número do pedido>` ou `cancnf_<número do pedido>`.
 
 Todo navegador aberto escuta essas duas árvores. Assim que um registro aparece:
 
-1. o card aparece na aba, sem ninguém atualizar a página;
+1. a linha aparece na tabela, sem ninguém atualizar a página;
 2. o sistema percebe que a solicitação não tem tarefa e cria a tarefa diária,
    com Gustavo e CM Andrade como responsáveis e prazo de 24h;
-3. os dois recebem a notificação, atribuída a quem consta em `criadoPor`.
+3. os dois recebem a notificação.
 
-O id da tarefa é derivado do id da solicitação (`atv_canc_<id>`), então dois
-navegadores abertos ao mesmo tempo geram exatamente o mesmo registro — não
-duplica.
-
-**Por que o n8n não cria a tarefa também:** as regras (quem é responsável, o
-prazo, o texto das considerações) ficam num lugar só, dentro do sistema. Se um
-dia mudarem, muda no LiveOps e o n8n continua igual.
+**Por que o n8n não cria a tarefa também:** as regras (quem responde, o prazo, o
+texto das considerações) ficam num lugar só, dentro do sistema. Mudou lá, o n8n
+continua igual.
 
 ---
 
-## Passo 1 — Credencial do Firebase no n8n
+## 2. As duas credenciais
 
-O n8n vai gravar no Firebase como **conta de serviço**. Conta de serviço tem
-acesso total ao banco e **não passa pelas regras de segurança** — ou seja, não é
-preciso mexer nas regras que já estão publicadas.
-
-1. Firebase Console → engrenagem → **Configurações do projeto** → aba **Contas de serviço**
-2. **Gerar nova chave privada** → baixa um `.json`
-3. No n8n: **Credentials** → **New** → `Google Service Account API`
-   - **Service Account Email**: o campo `client_email` do json
-   - **Private Key**: o campo `private_key` do json (cole inteiro, com as linhas
-     `-----BEGIN PRIVATE KEY-----` e `-----END PRIVATE KEY-----`)
-   - Ligue **Set up for use in HTTP Request node**
-   - **Scopes**:
-     ```
-     https://www.googleapis.com/auth/firebase.database
-     https://www.googleapis.com/auth/userinfo.email
-     ```
-
-> Guarde o `.json` fora do repositório. Quem tem esse arquivo escreve em
-> qualquer lugar do banco.
-
----
-
-## Passo 2 — Ler os cancelados na Base
-
-Nó **HTTP Request**:
-
-- **Method**: `POST`
-- **URL**: `https://api.baselinker.com/connector.php`
-- **Headers**: `X-BLToken: <seu token da Base>`
-- **Body** (form-urlencoded):
-  - `method` = `getOrders`
-  - `parameters` = `{"status_id": 330390, "date_confirmed_from": {{ $now.minus(1, 'hours').toSeconds() }}}`
-
-`330390` é o status **Canceladas com NF** (é o id que já aparece no link do
-painel). Para a aba **Canceladas** use o id do outro status — dá para conferir
-na URL do filtro dentro do painel da Base.
-
-A resposta vem em `orders[]`. Os campos que interessam:
-
-| Campo na Base | Vira no LiveOps |
+| Nó | Credencial |
 |---|---|
-| `order_id` | `pedidoBase` e o id do registro |
-| `invoice_fullname` (ou `delivery_fullname`) | `cliente` |
-| `invoice_nip` | `cpf` |
-| `phone` | `telefone` |
-| `order_source` | `plataforma` |
+| `Base · status (canceladas)`, `Base · página de cancelados` | **Header Auth** chamada `Base (BaseLinker)` — Name `X-BLToken`, Value = o token |
+| os quatro nós do Firebase | **Google Service Account API** chamada `Firebase (conta de serviço)` |
 
-> Confirme qual campo carrega o CPF na sua conta. Em contas brasileiras costuma
-> ser `invoice_nip`, mas pode estar num campo extra (`extra_field_1`).
-
----
-
-## Passo 3 — Montar o registro
-
-Nó **Code** (rode uma vez por item):
-
-```js
-// Nomes das plataformas: precisam bater com a lista do LiveOps
-const MAPA = {
-  'shopee suplenium'      : 'SHP SUPLENIUM',
-  'shopee primevitaminas' : 'SHP PRIMEVITAMINAS',
-  'mercado livre vitalife': 'M.L VITALIFE',
-  'mercado livre vxshop'  : 'M.L VXSHOP',
-  'magalu 4vita'          : 'MAGALU 4VITA',
-  'magalu vixsupps'       : 'MAGALU VIXSUPPS',
-  'drogaria sao paulo'    : 'DROG. S. PAULO',
-  'drogaria pacheco'      : 'DROG. PACHECO',
-  'web continental'       : 'WEB CONTINENTAL',
-  'rd marketplace'        : 'RD MARKETPLACE',
-  'loja integrada'        : 'LOJA INTEGRADA'
-};
-
-const p = $json;
-const bruto = String(p.order_source || '').toLowerCase().trim();
-const plataforma = MAPA[bruto] || '';   // vazio = revisar o mapa
-
-const agora = Date.now();
-const prefixo = 'canc_';                // 'cancnf_' no fluxo de Canceladas com NF
-
-return {
-  json: {
-    id           : prefixo + p.order_id,
-    pedidoBase   : String(p.order_id),
-    cliente      : p.invoice_fullname || p.delivery_fullname || '',
-    cpf          : p.invoice_nip || '',
-    telefone     : p.phone || '',
-    plataforma   : plataforma,
-    consideracoes: 'Entrar em contato com o cliente e fazer o estorno da NF caso necessário',
-    responsaveis : ['gustavo', 'cmandrade'],
-    prazoHoras   : 24,
-    prazoLimite  : agora + 24 * 3600 * 1000,
-    status       : 'aberta',
-    criadoEm     : new Date().toLocaleDateString('pt-BR'),
-    criadoPor    : 'Base (n8n)',
-    criadoPorKey : 'n8n',
-    ordemManual  : agora
-  }
-};
-```
-
-Três detalhes que importam:
-
-- **`id` = `canc_` + o número do pedido.** É o que impede duplicata: se o fluxo
-  rodar de novo e pegar o mesmo pedido, ele grava por cima do mesmo registro em
-  vez de criar outro card.
-- **O `id` não pode ter `.`, `#`, `$`, `/`, `[` ou `]`** — são caracteres
-  proibidos em chave do Firebase.
-- **Não mande o campo `_by`.** É como o sistema reconhece o que veio de fora.
-
-### Valores aceitos em `plataforma`
+Não existe credencial "Firebase" no n8n — o tipo é **Google API**. Escopos:
 
 ```
-LOJA INTEGRADA · SHP SUPLENIUM · SHP PRIMEVITAMINAS · M.L VITALIFE
-M.L VXSHOP · MAGALU 4VITA · MAGALU VIXSUPPS · DROG. S. PAULO
-DROG. PACHECO · WEB CONTINENTAL · RD MARKETPLACE
+https://www.googleapis.com/auth/firebase.database
+https://www.googleapis.com/auth/userinfo.email
 ```
 
-Se o mapa devolver vazio, o card ainda aparece — só fica sem plataforma. Vale
-pôr um nó de aviso (e-mail, Slack) quando `plataforma` sair em branco, para o
-mapa não envelhecer em silêncio.
+Ligue **Set up for use in HTTP Request node**. Conta de serviço não passa pelas
+regras de segurança do banco, então não é preciso mexer nas regras publicadas —
+e é por isso que o `.json` da chave privada nunca entra no repositório.
 
 ---
 
-## Passo 4 — Gravar no LiveOps
+## 3. O que cada nó faz
 
-Nó **HTTP Request**:
+```
+Rodar agora ┐
+A cada hora ┘→ Base · status (canceladas)
+                → Quais status são cancelamento
+                  → Canceladas já gravadas        (GET ?shallow=true)
+                    → Com NF já gravadas          (GET ?shallow=true)
+                      → Ponto de partida (canceladas)
+                        → Base · página de cancelados ←──────┐
+                          → Separar cancelamentos            │
+                             ├→ Gravar canceladas            │
+                             ├→ Gravar canceladas com NF     │
+                             └→ Pausa 1s (canceladas) ───────┘
+```
 
-- **Method**: `PUT`
-- **URL**:
-  ```
-  https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/canceladas/{{ $json.id }}.json
-  ```
-  Para a outra aba, troque `canceladas` por `canceladasNF`.
-- **Authentication**: `Predefined Credential Type` → `Google Service Account API` → a credencial do Passo 1
-- **Send Body**: ligado, **Body Content Type**: `JSON`
-- **Specify Body**: `Using JSON` → `{{ JSON.stringify($json) }}`
+### Quais status são cancelamento
 
-`PUT` grava o registro inteiro naquela chave. Rodou duas vezes com o mesmo
-pedido, sobrescreve — não vira card repetido.
+Pergunta à Base (`getOrderStatusList`) em vez de cravar id. Todo status com
+"cancel" no nome entra; os que também dizem "NF" ou "nota fiscal" vão para a
+fila com NF, o resto (inclusive "Cancelado com Devolução") vai para Canceladas.
+
+Id de status muda de conta para conta e ninguém lembra de voltar aqui no dia em
+que mudar. Se nenhum status casar, o fluxo **para com erro** e o log lista todos
+os status existentes — falha visível em vez de zero silencioso.
+
+### O laço de páginas
+
+`getOrders` devolve **no máximo 100 pedidos por chamada**. Uma leitura só traria
+100 e calaria sobre o resto, então a varredura pagina por `id_from`: cada volta
+pede os pedidos com id maior que o último recebido, e termina sozinha quando uma
+página volta vazia (o nó Code devolve zero itens e nada segue adiante).
+
+**Por que varre tudo em vez de só os ids novos:** cancelamento acontece *depois*
+que o pedido foi criado. O pedido de terça cancelado hoje não é novo — o
+cancelamento é. Olhar só a ponta da lista deixaria ele passar. Como a Base só
+entrega os últimos 90 dias, "tudo" é uma janela fechada.
+
+### Separar cancelamentos
+
+O filtro de status é feito **no código**, não na chamada: o
+`filter_order_status_id` da BaseLinker é ignorado em silêncio — devolve pedidos
+de outro status como se tivesse funcionado (medido em 22/08/2026). Filtro que
+falha calado é pior que filtro nenhum.
+
+Também aplica o corte de ano (2026 em diante, o mesmo da tela) e traduz o
+`order_source` para nome legível:
+
+| `order_source` | Vira |
+|---|---|
+| `personal`, `omnik` | WHATSAPP |
+| `shop` | LOJA INTEGRADA |
+| `melibr` | MERCADO LIVRE |
+| `shopeebr` | SHOPEE |
+| `magalu` | MAGALU |
+
+Origem fora da lista entra em maiúsculas como veio — a linha aparece, e o nome
+esquisito na tela é o aviso de que falta uma entrada aqui.
+
+### Registro que já existe **nunca** é regravado
+
+Os dois GETs usam `?shallow=true`: o Firebase devolve só as chaves
+(`{"canc_123": true}`), não os registros. É tudo que a comparação precisa, e
+evita baixar a base inteira de hora em hora.
+
+Chave que já existe é pulada. Isso não é economia, é correção: depois de criado,
+o registro tem vida própria — alguém marca como concluída, o prazo corre, a
+tarefa é gerada. Regravar por cima devolveria tudo para "a fazer" a cada rodada,
+e a fila de ontem ressuscitaria toda hora.
+
+### As duas gravações
+
+`PATCH` em `reg/canceladas.json` e `PATCH` em `reg/canceladasNF.json`,
+separadas.
+
+**Não junte as duas num PATCH só em `reg.json`.** O PATCH do Firebase mescla
+apenas no primeiro nível do corpo enviado: um `PATCH /reg.json` com
+`{"canceladas": {…}}` substitui o nó `canceladas` inteiro pelo que foi mandado —
+todos os cancelamentos anteriores somem. Cada coleção no seu próprio endereço, e
+o merge acontece por registro.
 
 ---
 
-## Passo 5 — Agendar
+## 4. O que ele **não** alcança
 
-Um **Schedule Trigger** de hora em hora resolve. Combine a janela do
-`date_confirmed_from` com o intervalo do agendamento (1 hora de busca para 1
-hora de intervalo, com uma folga) para não perder pedido na virada.
+`getOrders` enxerga **90 dias** e nada além disso. Rodando em 23/08/2026, ele
+chega até ~25/05/2026. Cancelamentos de **janeiro a maio de 2026 não vêm por
+API** — estão no Arquivo, que é um banco separado da Base e não é alcançado por
+nenhum parâmetro (o mesmo limite documentado em `base-pedidos-whatsapp.md` §9).
+
+Para esses, o caminho é a exportação em CSV pelo painel da Base, como foi feito
+com os 524 pedidos de WhatsApp.
 
 ---
 
-## Testando
+## 5. Testar antes de ativar
 
-1. Rode o fluxo com o Schedule desligado, num pedido cancelado só.
-2. Firebase Console → Realtime Database → confira que apareceu em
-   `suplelive/reg/canceladas/canc_<pedido>`.
-3. Abra o LiveOps: o card deve aparecer em **Vendas → Canceladas** sem atualizar
-   a página, e a tarefa em **Tarefas Diárias** logo depois.
-4. Rode o mesmo fluxo de novo: tem que continuar **um** card.
+1. Importe o fluxo e ligue as duas credenciais nos nós.
+2. Deixe o Schedule **desligado** e clique em **Rodar agora (canceladas)**.
+3. Leia o log do nó `Quais status são cancelamento`: ele imprime quais status a
+   Base tem com "cancel" no nome, e de que lado cada um caiu. É aqui que se
+   descobre um status escrito diferente do esperado.
+4. Leia o log do nó `Separar cancelamentos` no fim da varredura: quantas
+   páginas, quantos pedidos lidos, quantos cancelamentos novos, quantos já
+   estavam.
+5. Abra o LiveOps em **Pedidos → Canceladas** e **Canceladas com NF**: as linhas
+   devem estar lá sem atualizar a página.
+6. **Rode de novo.** O log tem que dizer `0 cancelamento(s) novo(s)` e a tela
+   não pode mudar. Se mudar, pare e me chame antes de ativar.
+
+Só depois disso ative o `A cada hora (canceladas)`.
+
+---
 
 ## Quando algo não aparece
 
 | Sintoma | Onde olhar |
 |---|---|
-| `401`/`403` no nó de gravação | Escopos da credencial, ou a chave privada colada pela metade |
-| `400 invalid key` | O `id` tem `.`, `#`, `$`, `/`, `[` ou `]` |
-| Card aparece, tarefa não | Nenhum navegador aberto — a tarefa nasce quando alguém abre o sistema |
-| Card duplicado | O `id` está variando entre execuções (não use `Date.now()` no id) |
-| Plataforma em branco | Falta a entrada no `MAPA` do Passo 3 |
+| `401`/`403` na gravação | Escopos da credencial do Google, ou a chave privada colada pela metade |
+| Erro "Não consegui ler os status" | Token da Base no Header Auth — Name tem que ser exatamente `X-BLToken` |
+| Erro "Nenhum status com cancel no nome" | O log do nó lista os status da conta; algum está escrito de outro jeito |
+| Nada é gravado e o log diz `0 novos` | Já estava tudo lá — é o comportamento certo |
+| Linha aparece, tarefa não | Nenhum navegador aberto — a tarefa nasce quando alguém abre o sistema |
+| Linha duplicada | Duas chaves para o mesmo pedido: confira se o número veio diferente entre as rodadas |
+| Cancelamento de janeiro não veio | Limite de 90 dias — ver a seção 4 |

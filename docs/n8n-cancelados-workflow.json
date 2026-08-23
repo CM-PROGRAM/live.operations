@@ -6,11 +6,11 @@
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
       "position": [
-        -880,
-        -100
+        -1100,
+        -120
       ],
-      "id": "Rodar agora",
-      "name": "Rodar agora"
+      "id": "Rodar agora (canceladas)",
+      "name": "Rodar agora (canceladas)"
     },
     {
       "parameters": {
@@ -26,11 +26,11 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
       "position": [
-        -880,
-        80
+        -1100,
+        60
       ],
-      "id": "A cada 1 hora",
-      "name": "A cada 1 hora"
+      "id": "A cada hora (canceladas)",
+      "name": "A cada hora (canceladas)"
     },
     {
       "parameters": {
@@ -57,11 +57,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -660,
-        -10
+        -880,
+        -30
       ],
-      "id": "Base · status dos pedidos",
-      "name": "Base · status dos pedidos",
+      "id": "Base · status (canceladas)",
+      "name": "Base · status (canceladas)",
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -72,13 +72,13 @@
     },
     {
       "parameters": {
-        "jsCode": "/* Quais status da Base são cancelamento — perguntando a ela, não cravando id.\n\n   Os ids mudam de conta para conta e ninguém lembra de vir aqui no dia em\n   que mudarem. E há mais de um: no painel aparecem \"Cancelado\", \"Cancelado\n   com Devolução\" e \"Cancelado com NF\". Os dois primeiros vão para a lista\n   Cancelados; o terceiro tem fila própria porque envolve estorno de nota. */\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Não consegui ler os status da Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst lista = Array.isArray(r.statuses) ? r.statuses\n            : Object.entries(r.statuses || {}).map(([id, v]) => ({ id, name: (v && v.name) || String(v) }));\n\nconst comNF = [], simples = [];\nlista.forEach(s => {\n  const nome = String(s.name || '');\n  if (!/cancel/i.test(nome)) return;\n  /* \"com NF\" e \"nota fiscal\" são a mesma coisa escrita de dois jeitos; a\n     leitura é pelo texto porque é o texto que a operação lê no painel. */\n  if (/\\bnf\\b|nota\\s*fiscal/i.test(nome)) comNF.push({ id: String(s.id), nome });\n  else simples.push({ id: String(s.id), nome });\n});\n\nif (!comNF.length && !simples.length) {\n  throw new Error('Nenhum status com \"cancel\" no nome. Status existentes: '\n    + lista.map(s => s.id + '=' + s.name).join(' | '));\n}\nconsole.log('cancelamento simples: ' + (simples.map(s => s.nome).join(', ') || '—')\n  + ' | com NF: ' + (comNF.map(s => s.nome).join(', ') || '—'));\n\nreturn [{ json: { comNF, simples, desde: '2026-01-01' } }];\n"
+        "jsCode": "/* Quais status da Base são cancelamento — perguntando a ela, não cravando id.\n\n   Os ids mudam de conta para conta e ninguém lembra de vir aqui no dia em\n   que mudarem. E há mais de um: no painel aparecem \"Cancelado\", \"Cancelado\n   com Devolução\" e \"Cancelado com NF\". Os dois primeiros vão para a lista\n   Canceladas; o terceiro tem fila própria porque envolve estorno de nota. */\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Não consegui ler os status da Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst lista = Array.isArray(r.statuses) ? r.statuses\n            : Object.entries(r.statuses || {}).map(([id, v]) => ({ id, name: (v && v.name) || String(v) }));\n\nconst comNF = [], simples = [];\nlista.forEach(s => {\n  const nome = String(s.name || '');\n  if (!/cancel/i.test(nome)) return;\n  /* \"com NF\" e \"nota fiscal\" são a mesma coisa escrita de dois jeitos; a\n     leitura é pelo texto porque é o texto que a operação lê no painel. */\n  if (/\\bnf\\b|nota\\s*fiscal/i.test(nome)) comNF.push({ id: String(s.id), nome });\n  else simples.push({ id: String(s.id), nome });\n});\n\nif (!comNF.length && !simples.length) {\n  throw new Error('Nenhum status com \"cancel\" no nome. Status existentes: '\n    + lista.map(s => s.id + '=' + s.name).join(' | '));\n}\nconsole.log('cancelamento simples: ' + (simples.map(s => s.nome).join(', ') || '—')\n  + ' | com NF: ' + (comNF.map(s => s.nome).join(', ') || '—'));\n\nreturn [{ json: { comNF, simples, anoMinimo: 2026 } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        -440,
-        -10
+        -660,
+        -30
       ],
       "id": "Quais status são cancelamento",
       "name": "Quais status são cancelamento"
@@ -86,26 +86,73 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/.json",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/canceladas.json?shallow=true",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleApi",
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        -220,
-        -10
+        -440,
+        -30
       ],
-      "id": "O que já está no LiveOps",
-      "name": "O que já está no LiveOps",
+      "id": "Canceladas já gravadas",
+      "name": "Canceladas já gravadas",
       "credentials": {
         "googleApi": {
           "id": "",
           "name": "Firebase (conta de serviço)"
         }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/canceladasNF.json?shallow=true",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
-      "onError": "continueRegularOutput"
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        -30
+      ],
+      "id": "Com NF já gravadas",
+      "name": "Com NF já gravadas",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Ponto de partida da varredura.\n\n   id_from = 0 varre tudo que a Base ainda entrega. Parece exagero para um\n   fluxo de hora em hora, e não é: cancelamento acontece DEPOIS que o pedido\n   foi criado. Se a varredura só olhasse os ids novos, o pedido de terça\n   cancelado hoje nunca seria visto — ele não é novo, o cancelamento é. Como\n   a Base só devolve os últimos 90 dias, \"tudo\" é uma janela fechada.\n\n   O contador zera aqui, e não no fim: dado estático do n8n sobrevive entre\n   execuções, e um contador que não zera vira número inventado no log. */\nconst est = $getWorkflowStaticData('global');\nest.canc = { paginas: 0, lidos: 0, novos: 0, jaTinha: 0, foraDoAno: 0, semData: 0 };\nreturn [{ json: { proximoId: 0 } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -30
+      ],
+      "id": "Ponto de partida (canceladas)",
+      "name": "Ponto de partida (canceladas)"
     },
     {
       "parameters": {
@@ -123,7 +170,7 @@
             },
             {
               "name": "parameters",
-              "value": "={{ JSON.stringify({ date_from: Math.floor(new Date($('Quais status são cancelamento').first().json.desde+'T00:00:00Z').getTime()/1000), get_unconfirmed_orders: true, include_custom_extra_fields: false }) }}"
+              "value": "={{ JSON.stringify({ id_from: $json.proximoId, get_unconfirmed_orders: true, include_custom_extra_fields: false }) }}"
             }
           ]
         },
@@ -132,11 +179,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        0,
-        -10
+        220,
+        -30
       ],
-      "id": "Base · pedidos",
-      "name": "Base · pedidos",
+      "id": "Base · página de cancelados",
+      "name": "Base · página de cancelados",
       "credentials": {
         "httpHeaderAuth": {
           "id": "",
@@ -147,68 +194,123 @@
     },
     {
       "parameters": {
-        "jsCode": "/* Monta as duas listas a partir dos pedidos da Base.\n\n   O filtro de status é feito AQUI e não na chamada: o filter_order_status_id\n   da BaseLinker é ignorado em silêncio — devolve pedidos de outro status\n   como se tivesse funcionado. Foi medido em 22/08/2026 e é o motivo de\n   este fluxo ler tudo e separar depois.\n\n   O que já existe no LiveOps não é recriado: o registro guarda o número do\n   pedido, e é por ele que a comparação acontece. Sem isso, cada rodada\n   criaria de novo a mesma solicitação e a fila do dia viraria uma pilha de\n   duplicatas. */\nconst cfg = $('Quais status são cancelamento').first().json;\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou a leitura de pedidos: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst pedidos = r.orders || [];\n\nconst jaTem = $('O que já está no LiveOps').first().json || {};\nconst numeros = new Set();\n['canceladas', 'canceladasNF'].forEach(k => {\n  Object.values((jaTem && jaTem[k]) || {}).forEach(v => {\n    if (v && v.pedidoBase) numeros.add(String(v.pedidoBase));\n  });\n});\n\nconst idsNF = new Set(cfg.comNF.map(s => s.id));\nconst idsSimples = new Set(cfg.simples.map(s => s.id));\nconst nomePorId = {};\ncfg.comNF.concat(cfg.simples).forEach(s => { nomePorId[s.id] = s.nome; });\n\n/* Nome de canal legível. O order_source vem como \"personal\", \"shop\",\n   \"melibr\"… — código de máquina que ninguém reconhece na tela. */\nconst CANAL = {\n  personal: 'WHATSAPP', shop: 'LOJA INTEGRADA', melibr: 'MERCADO LIVRE',\n  shopeebr: 'SHOPEE', magalu: 'MAGALU', omnik: 'WHATSAPP'\n};\n\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst saida = { canceladas: {}, canceladasNF: {} };\nlet novos = 0, repetidos = 0, foraDoAno = 0;\n\npedidos.forEach(p => {\n  const idStatus = String(p.order_status_id);\n  const ehNF = idsNF.has(idStatus);\n  const ehSimples = idsSimples.has(idStatus);\n  if (!ehNF && !ehSimples) return;\n\n  const quando = new Date((Number(p.date_add) || 0) * 1000);\n  const ano = quando.getFullYear();\n  /* Só de 2026 em diante, como a tela mostra. Trazer 2025 encheria a fila de\n     coisa que ninguém vai tratar. */\n  if (ano < 2026) { foraDoAno++; return; }\n\n  const numero = String(p.order_id);\n  if (numeros.has(numero)) { repetidos++; return; }\n\n  const dois = n => String(n).padStart(2, '0');\n  const iso = quando.getFullYear() + '-' + dois(quando.getMonth() + 1) + '-' + dois(quando.getDate());\n  const br = dois(quando.getDate()) + '/' + dois(quando.getMonth() + 1) + '/' + quando.getFullYear()\n    + ', ' + dois(quando.getHours()) + ':' + dois(quando.getMinutes());\n\n  const chave = (ehNF ? 'cancnf_' : 'canc_') + numero;\n  const registro = {\n    id: chave,\n    cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n    cpf: String(p.invoice_nip || '').replace(/\\D/g, ''),\n    telefone: String(p.phone || '').replace(/\\D/g, ''),\n    plataforma: CANAL[String(p.order_source || '')] || String(p.order_source || '').toUpperCase(),\n    pedidoBase: numero,\n    dataPedido: iso,\n    statusBase: nomePorId[idStatus] || ('status ' + idStatus),\n    status: 'aberta',\n    criadoEm: br,\n    criadoPor: 'Base',\n    ordemManual: quando.getTime(),\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n  saida[ehNF ? 'canceladasNF' : 'canceladas'][chave] = registro;\n  novos++;\n});\n\nconsole.log(novos + ' novo(s) — ' + Object.keys(saida.canceladas).length + ' cancelados, '\n  + Object.keys(saida.canceladasNF).length + ' com NF | ' + repetidos + ' já existiam | '\n  + foraDoAno + ' de antes de 2026 ignorados');\n\nif (!novos) return [];\nreturn [{ json: saida }];\n"
+        "jsCode": "/* Uma página da Base vira registros das duas listas.\n\n   ── Por que o filtro de status é feito aqui, e não na chamada ────────\n   O filter_order_status_id da BaseLinker é ignorado em silêncio: devolve\n   pedidos de outro status como se tivesse funcionado. Medido em 22/08/2026.\n   Filtro que falha calado é pior que filtro nenhum, então a leitura traz\n   tudo e a separação acontece neste código.\n\n   ── Por que registro que já existe NUNCA é regravado ─────────────────\n   O registro no LiveOps tem vida própria depois de criado: alguém marca\n   como concluída, o prazo corre, a tarefa é gerada. Regravar em cima\n   devolveria tudo para \"a fazer\" a cada rodada — a fila do dia seria\n   ressuscitada de hora em hora. Por isso a comparação é por CHAVE, e a\n   chave é o número do pedido: existe, não toca. */\nconst r = $json || {};\nif (r.status && r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou a leitura de pedidos: ' + (r.error_message || r.error_code || JSON.stringify(r).slice(0, 300)));\n}\nconst pedidos = r.orders || [];\nconst est = $getWorkflowStaticData('global');\nconst c = est.canc || (est.canc = { paginas: 0, lidos: 0, novos: 0, jaTinha: 0, foraDoAno: 0, semData: 0 });\n\n/* Página vazia = acabou. Devolver zero itens encerra o laço sozinho: sem\n   item, nada segue adiante e a repetição para. */\nif (!pedidos.length) {\n  console.log('── varredura terminada ──');\n  console.log(c.paginas + ' página(s) · ' + c.lidos + ' pedido(s) lidos');\n  console.log(c.novos + ' cancelamento(s) novo(s) · ' + c.jaTinha + ' já estavam no LiveOps · '\n    + c.foraDoAno + ' de antes do corte de ano');\n  return [];\n}\n\nconst cfg = $('Quais status são cancelamento').first().json;\nconst idsNF = new Set(cfg.comNF.map(s => s.id));\nconst idsSimples = new Set(cfg.simples.map(s => s.id));\nconst nomePorId = {};\ncfg.comNF.concat(cfg.simples).forEach(s => { nomePorId[s.id] = s.nome; });\n\n/* Resposta vazia do Firebase volta como null, e Object.keys(null) explode. */\nconst obj = v => (v && typeof v === 'object') ? v : {};\n/* ?shallow=true devolve só as chaves ({\"canc_123\": true}), não os registros.\n   É tudo que a comparação precisa e evita baixar a base inteira a cada hora. */\nconst jaExiste = new Set(\n  Object.keys(obj($('Canceladas já gravadas').first().json))\n    .concat(Object.keys(obj($('Com NF já gravadas').first().json)))\n);\n\n/* Nome de canal legível. O order_source vem como \"personal\", \"shop\",\n   \"melibr\"… — código de máquina que ninguém reconhece na tela. */\nconst CANAL = {\n  personal: 'WHATSAPP', shop: 'LOJA INTEGRADA', melibr: 'MERCADO LIVRE',\n  shopeebr: 'SHOPEE', magalu: 'MAGALU', omnik: 'WHATSAPP'\n};\n\nconst TZ = 'America/Sao_Paulo';\nconst partes = ts => {\n  const d = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })\n    .format(new Date(Number(ts) * 1000));\n  const h = new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })\n    .format(new Date(Number(ts) * 1000));\n  const [a, m, dia] = d.split('-');\n  return { iso: d, ano: Number(a), br: dia + '/' + m + '/' + a + ', ' + h };\n};\n\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: TZ });\nconst canceladas = {}, canceladasNF = {};\nlet maior = 0, novosAqui = 0;\n\npedidos.forEach(p => {\n  const id = Number(p.order_id) || 0;\n  if (id > maior) maior = id;\n  c.lidos++;\n\n  const idStatus = String(p.order_status_id);\n  const ehNF = idsNF.has(idStatus);\n  if (!ehNF && !idsSimples.has(idStatus)) return;\n\n  const quando = Number(p.date_add || p.date_confirmed || 0);\n  if (!quando) { c.semData++; return; }\n  const q = partes(quando);\n  /* Mesmo corte de ano da tela. Sem ele, uma rodada em janeiro traria a\n     virada do ano anterior para uma fila que ninguém vai tratar. */\n  if (q.ano < Number(cfg.anoMinimo || 2026)) { c.foraDoAno++; return; }\n\n  const numero = String(p.order_id);\n  const chave = (ehNF ? 'cancnf_' : 'canc_') + numero;\n  if (jaExiste.has(chave)) { c.jaTinha++; return; }\n\n  const registro = {\n    id: chave,\n    cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n    cpf: String(p.invoice_nip || '').replace(/\\D/g, ''),\n    telefone: String(p.phone || '').replace(/\\D/g, ''),\n    plataforma: CANAL[String(p.order_source || '')] || String(p.order_source || '').toUpperCase(),\n    pedidoBase: numero,\n    dataPedido: q.iso,\n    statusBase: nomePorId[idStatus] || ('status ' + idStatus),\n    status: 'aberta',\n    criadoEm: q.br,\n    criadoPor: 'Base',\n    ordemManual: Number(quando) * 1000,\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n  (ehNF ? canceladasNF : canceladas)[chave] = registro;\n  jaExiste.add(chave);\n  novosAqui++; c.novos++;\n});\n\nc.paginas++;\nconsole.log('página ' + c.paginas + ': ' + pedidos.length + ' pedido(s) · '\n  + novosAqui + ' cancelamento(s) novo(s) · próximo id ' + (maior + 1));\n\n/* Um item só, e três caminhos saem dele: as duas gravações e a pausa que\n   devolve o laço para a página seguinte. O nó Code tem uma saída só. */\nreturn [{ json: { canceladas, canceladasNF, proximoId: maior + 1 } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        220,
-        -10
+        440,
+        -30
       ],
-      "id": "Montar cancelados",
-      "name": "Montar cancelados"
+      "id": "Separar cancelamentos",
+      "name": "Separar cancelamentos"
     },
     {
       "parameters": {
         "method": "PATCH",
-        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg.json",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/canceladas.json",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "googleApi",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json) }}",
-        "options": {}
+        "jsonBody": "={{ JSON.stringify($json.canceladas) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        440,
-        -10
+        680,
+        -180
       ],
-      "id": "Gravar no LiveOps",
-      "name": "Gravar no LiveOps",
+      "id": "Gravar canceladas",
+      "name": "Gravar canceladas",
       "credentials": {
         "googleApi": {
           "id": "",
           "name": "Firebase (conta de serviço)"
         }
-      }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/canceladasNF.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.canceladasNF) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        -30
+      ],
+      "id": "Gravar canceladas com NF",
+      "name": "Gravar canceladas com NF",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        680,
+        120
+      ],
+      "id": "Pausa 1s (canceladas)",
+      "name": "Pausa 1s (canceladas)",
+      "webhookId": "canc-pausa-1s"
     }
   ],
   "connections": {
-    "Rodar agora": {
+    "Rodar agora (canceladas)": {
       "main": [
         [
           {
-            "node": "Base · status dos pedidos",
+            "node": "Base · status (canceladas)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "A cada 1 hora": {
+    "A cada hora (canceladas)": {
       "main": [
         [
           {
-            "node": "Base · status dos pedidos",
+            "node": "Base · status (canceladas)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Base · status dos pedidos": {
+    "Base · status (canceladas)": {
       "main": [
         [
           {
@@ -223,40 +325,83 @@
       "main": [
         [
           {
-            "node": "O que já está no LiveOps",
+            "node": "Canceladas já gravadas",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "O que já está no LiveOps": {
+    "Canceladas já gravadas": {
       "main": [
         [
           {
-            "node": "Base · pedidos",
+            "node": "Com NF já gravadas",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Base · pedidos": {
+    "Com NF já gravadas": {
       "main": [
         [
           {
-            "node": "Montar cancelados",
+            "node": "Ponto de partida (canceladas)",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Montar cancelados": {
+    "Ponto de partida (canceladas)": {
       "main": [
         [
           {
-            "node": "Gravar no LiveOps",
+            "node": "Base · página de cancelados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · página de cancelados": {
+      "main": [
+        [
+          {
+            "node": "Separar cancelamentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separar cancelamentos": {
+      "main": [
+        [
+          {
+            "node": "Gravar canceladas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gravar canceladas com NF",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pausa 1s (canceladas)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa 1s (canceladas)": {
+      "main": [
+        [
+          {
+            "node": "Base · página de cancelados",
             "type": "main",
             "index": 0
           }
