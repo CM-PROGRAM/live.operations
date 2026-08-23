@@ -2180,6 +2180,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
           <div id="cancnf-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
           <div id="cancnf-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          <div id="cancnf-nota-ano" style="display:none;margin-top:10px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></div>
         </div>
       </div>
     </div>
@@ -2252,6 +2253,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
           <div id="canc-list-conc" style="display:flex;flex-direction:column;gap:8px;"></div>
           <div id="canc-empty-conc" style="display:none;padding:20px;text-align:center;color:var(--text-muted);font-size:11px;font-family:var(--font-mono);">Nenhuma.</div>
+          <div id="canc-nota-ano" style="display:none;margin-top:10px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></div>
         </div>
       </div>
     </div>
@@ -9278,7 +9280,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23v';
+const APP_VERSAO='2026.08.23w';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -24308,6 +24310,34 @@ function _cancLista(p){
   return appState[c.chave];
 }
 
+/* As duas listas mostram de 2026 em diante.
+
+   O que veio antes continua gravado — o corte é de exibição, não de dado.
+   Apagar cancelamento antigo tiraria a única prova de que ele existiu, e é
+   justamente o registro que alguém procura quando um estorno de 2025 volta
+   a ser questionado.
+
+   A data sai do carimbo de criação (ordemManual, que é timestamp) e, quando
+   o registro veio da Base, da data do próprio pedido — que é a que importa
+   ali, e não o dia em que a leitura rodou. */
+const CANC_ANO_MINIMO=2026;
+
+function _cancAno(item){
+  if(!item) return 0;
+  const iso=String(item.dataPedido||'').match(/^(\d{4})-\d{2}-\d{2}/);
+  if(iso) return Number(iso[1]);
+  const ts=Number(item.ordemManual)||0;
+  if(ts>0) return new Date(ts).getFullYear();
+  const br=String(item.criadoEm||'').match(/\d{2}\/\d{2}\/(\d{4})/);
+  if(br) return Number(br[1]);
+  /* Sem data nenhuma o registro é velho o bastante para não ter carimbo —
+     e some da lista junto com os outros de antes de 2026. */
+  return 0;
+}
+function _cancListaVisivel(p){
+  return _cancLista(p).filter(x=>_cancAno(x)>=CANC_ANO_MINIMO);
+}
+
 function cancFormatarCpf(inp){
   let v=(inp.value||'').replace(/\D/g,'').slice(0,11);
   if(v.length>9)      v=v.replace(/(\d{3})(\d{3})(\d{3})(\d{1,2})/,'$1.$2.$3-$4');
@@ -24435,7 +24465,8 @@ function renderCanceladas(p){
   listaA.innerHTML=''; listaC.innerHTML='';
   let nA=0,nC=0;
 
-  _cancLista(p).slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0)).forEach(item=>{
+  const escondidos=_cancLista(p).length-_cancListaVisivel(p).length;
+  _cancListaVisivel(p).slice().sort((a,b)=>(b.ordemManual||0)-(a.ordemManual||0)).forEach(item=>{
     if(q && ![item.cliente,item.cpf,item.telefone,item.plataforma,item.criadoPor,item.pedidoBase]
              .some(v=>String(v||'').toLowerCase().includes(q))) return;
     const concluida=item.status==='concluida';
@@ -24472,6 +24503,17 @@ function renderCanceladas(p){
   set(p+'-count-afazer',nA); set(p+'-count-conc',nC);
   const vazio=(id,mostrar)=>{ const el=document.getElementById(id); if(el) el.style.display=mostrar?'block':'none'; };
   vazio(p+'-empty-afazer',nA===0); vazio(p+'-empty-conc',nC===0);
+
+  /* Diz que existe coisa antes de 2026, em vez de deixar o número encolher
+     sem explicação — quem lembra de um cancelamento de 2025 e não o acha
+     conclui que ele sumiu. */
+  const nota=document.getElementById(p+'-nota-ano');
+  if(nota){
+    nota.textContent = escondidos
+      ? (escondidos+' registro(s) anteriores a '+CANC_ANO_MINIMO+' seguem gravados, fora desta lista.')
+      : '';
+    nota.style.display = escondidos?'block':'none';
+  }
 }
 
 // ── Solicitações que chegam de fora (n8n) ──────────────────────────

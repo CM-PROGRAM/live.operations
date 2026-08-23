@@ -1,0 +1,271 @@
+{
+  "name": "Base → LiveOps · Pedidos cancelados",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        -100
+      ],
+      "id": "Rodar agora",
+      "name": "Rodar agora"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -880,
+        80
+      ],
+      "id": "A cada 1 hora",
+      "name": "A cada 1 hora"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrderStatusList"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -660,
+        -10
+      ],
+      "id": "Base · status dos pedidos",
+      "name": "Base · status dos pedidos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Quais status da Base são cancelamento — perguntando a ela, não cravando id.\n\n   Os ids mudam de conta para conta e ninguém lembra de vir aqui no dia em\n   que mudarem. E há mais de um: no painel aparecem \"Cancelado\", \"Cancelado\n   com Devolução\" e \"Cancelado com NF\". Os dois primeiros vão para a lista\n   Cancelados; o terceiro tem fila própria porque envolve estorno de nota. */\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Não consegui ler os status da Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst lista = Array.isArray(r.statuses) ? r.statuses\n            : Object.entries(r.statuses || {}).map(([id, v]) => ({ id, name: (v && v.name) || String(v) }));\n\nconst comNF = [], simples = [];\nlista.forEach(s => {\n  const nome = String(s.name || '');\n  if (!/cancel/i.test(nome)) return;\n  /* \"com NF\" e \"nota fiscal\" são a mesma coisa escrita de dois jeitos; a\n     leitura é pelo texto porque é o texto que a operação lê no painel. */\n  if (/\\bnf\\b|nota\\s*fiscal/i.test(nome)) comNF.push({ id: String(s.id), nome });\n  else simples.push({ id: String(s.id), nome });\n});\n\nif (!comNF.length && !simples.length) {\n  throw new Error('Nenhum status com \"cancel\" no nome. Status existentes: '\n    + lista.map(s => s.id + '=' + s.name).join(' | '));\n}\nconsole.log('cancelamento simples: ' + (simples.map(s => s.nome).join(', ') || '—')\n  + ' | com NF: ' + (comNF.map(s => s.nome).join(', ') || '—'));\n\nreturn [{ json: { comNF, simples, desde: '2026-01-01' } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -440,
+        -10
+      ],
+      "id": "Quais status são cancelamento",
+      "name": "Quais status são cancelamento"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -220,
+        -10
+      ],
+      "id": "O que já está no LiveOps",
+      "name": "O que já está no LiveOps",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrders"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ date_from: Math.floor(new Date($('Quais status são cancelamento').first().json.desde+'T00:00:00Z').getTime()/1000), get_unconfirmed_orders: true, include_custom_extra_fields: false }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        0,
+        -10
+      ],
+      "id": "Base · pedidos",
+      "name": "Base · pedidos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Monta as duas listas a partir dos pedidos da Base.\n\n   O filtro de status é feito AQUI e não na chamada: o filter_order_status_id\n   da BaseLinker é ignorado em silêncio — devolve pedidos de outro status\n   como se tivesse funcionado. Foi medido em 22/08/2026 e é o motivo de\n   este fluxo ler tudo e separar depois.\n\n   O que já existe no LiveOps não é recriado: o registro guarda o número do\n   pedido, e é por ele que a comparação acontece. Sem isso, cada rodada\n   criaria de novo a mesma solicitação e a fila do dia viraria uma pilha de\n   duplicatas. */\nconst cfg = $('Quais status são cancelamento').first().json;\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou a leitura de pedidos: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst pedidos = r.orders || [];\n\nconst jaTem = $('O que já está no LiveOps').first().json || {};\nconst numeros = new Set();\n['canceladas', 'canceladasNF'].forEach(k => {\n  Object.values((jaTem && jaTem[k]) || {}).forEach(v => {\n    if (v && v.pedidoBase) numeros.add(String(v.pedidoBase));\n  });\n});\n\nconst idsNF = new Set(cfg.comNF.map(s => s.id));\nconst idsSimples = new Set(cfg.simples.map(s => s.id));\nconst nomePorId = {};\ncfg.comNF.concat(cfg.simples).forEach(s => { nomePorId[s.id] = s.nome; });\n\n/* Nome de canal legível. O order_source vem como \"personal\", \"shop\",\n   \"melibr\"… — código de máquina que ninguém reconhece na tela. */\nconst CANAL = {\n  personal: 'WHATSAPP', shop: 'LOJA INTEGRADA', melibr: 'MERCADO LIVRE',\n  shopeebr: 'SHOPEE', magalu: 'MAGALU', omnik: 'WHATSAPP'\n};\n\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\nconst saida = { canceladas: {}, canceladasNF: {} };\nlet novos = 0, repetidos = 0, foraDoAno = 0;\n\npedidos.forEach(p => {\n  const idStatus = String(p.order_status_id);\n  const ehNF = idsNF.has(idStatus);\n  const ehSimples = idsSimples.has(idStatus);\n  if (!ehNF && !ehSimples) return;\n\n  const quando = new Date((Number(p.date_add) || 0) * 1000);\n  const ano = quando.getFullYear();\n  /* Só de 2026 em diante, como a tela mostra. Trazer 2025 encheria a fila de\n     coisa que ninguém vai tratar. */\n  if (ano < 2026) { foraDoAno++; return; }\n\n  const numero = String(p.order_id);\n  if (numeros.has(numero)) { repetidos++; return; }\n\n  const dois = n => String(n).padStart(2, '0');\n  const iso = quando.getFullYear() + '-' + dois(quando.getMonth() + 1) + '-' + dois(quando.getDate());\n  const br = dois(quando.getDate()) + '/' + dois(quando.getMonth() + 1) + '/' + quando.getFullYear()\n    + ', ' + dois(quando.getHours()) + ':' + dois(quando.getMinutes());\n\n  const chave = (ehNF ? 'cancnf_' : 'canc_') + numero;\n  const registro = {\n    id: chave,\n    cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n    cpf: String(p.invoice_nip || '').replace(/\\D/g, ''),\n    telefone: String(p.phone || '').replace(/\\D/g, ''),\n    plataforma: CANAL[String(p.order_source || '')] || String(p.order_source || '').toUpperCase(),\n    pedidoBase: numero,\n    dataPedido: iso,\n    statusBase: nomePorId[idStatus] || ('status ' + idStatus),\n    status: 'aberta',\n    criadoEm: br,\n    criadoPor: 'Base',\n    ordemManual: quando.getTime(),\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n  saida[ehNF ? 'canceladasNF' : 'canceladas'][chave] = registro;\n  novos++;\n});\n\nconsole.log(novos + ' novo(s) — ' + Object.keys(saida.canceladas).length + ' cancelados, '\n  + Object.keys(saida.canceladasNF).length + ' com NF | ' + repetidos + ' já existiam | '\n  + foraDoAno + ' de antes de 2026 ignorados');\n\nif (!novos) return [];\nreturn [{ json: saida }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -10
+      ],
+      "id": "Montar cancelados",
+      "name": "Montar cancelados"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        -10
+      ],
+      "id": "Gravar no LiveOps",
+      "name": "Gravar no LiveOps",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Rodar agora": {
+      "main": [
+        [
+          {
+            "node": "Base · status dos pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A cada 1 hora": {
+      "main": [
+        [
+          {
+            "node": "Base · status dos pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · status dos pedidos": {
+      "main": [
+        [
+          {
+            "node": "Quais status são cancelamento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Quais status são cancelamento": {
+      "main": [
+        [
+          {
+            "node": "O que já está no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "O que já está no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Base · pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · pedidos": {
+      "main": [
+        [
+          {
+            "node": "Montar cancelados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar cancelados": {
+      "main": [
+        [
+          {
+            "node": "Gravar no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
