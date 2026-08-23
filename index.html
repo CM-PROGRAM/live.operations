@@ -2191,6 +2191,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <button class="seg-btn"        data-f="abertas"    onclick="cancSetFiltro('cancnf','abertas')">A Fazer</button>
             <button class="seg-btn"        data-f="concluidas" onclick="cancSetFiltro('cancnf','concluidas')">Concluídas</button>
           </div>
+          <select id="cancnf-ano" onchange="cancSetAno('cancnf',this.value)" title="Ano do pedido"
+            style="width:auto;min-width:130px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:7px 14px;cursor:pointer;outline:none;"></select>
           <input type="file" id="cancnf-import-arq" accept=".csv,text/csv" style="display:none;" onchange="cancImportarArquivo(this,'cancnf')">
           <button class="btn-sec" style="width:auto;white-space:nowrap;"
             onclick="document.getElementById('cancnf-import-arq').click()"
@@ -2300,6 +2302,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <button class="seg-btn"        data-f="abertas"    onclick="cancSetFiltro('canc','abertas')">A Fazer</button>
             <button class="seg-btn"        data-f="concluidas" onclick="cancSetFiltro('canc','concluidas')">Concluídas</button>
           </div>
+          <select id="canc-ano" onchange="cancSetAno('canc',this.value)" title="Ano do pedido"
+            style="width:auto;min-width:130px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:7px 14px;cursor:pointer;outline:none;"></select>
           <input type="file" id="canc-import-arq" accept=".csv,text/csv" style="display:none;" onchange="cancImportarArquivo(this,'canc')">
           <button class="btn-sec" style="width:auto;white-space:nowrap;"
             onclick="document.getElementById('canc-import-arq').click()"
@@ -9047,6 +9051,14 @@ function _resetErro(msg,cor){
 function enviarCodigoRedefinicao(){
   const email=String((document.getElementById('reset-email')||{}).value||'').trim().toLowerCase();
   if(!_emailValido(email)){ _resetErro('Informe um e-mail válido'); return; }
+  /* Conta sem e-mail de verdade entra na nuvem como <usuário>@liveops.local,
+     que é um endereço que não existe: nenhum link chega nele, nunca. Mandar
+     assim mesmo deixaria a pessoa esperando um e-mail que não vem. */
+  if(/@liveops\.local$/i.test(email)){
+    _resetErro('Este usuário não tem e-mail cadastrado, então não há para onde mandar o link. '
+      +'Peça ao master para cadastrar seu e-mail no Administrador e tente de novo.');
+    return;
+  }
   if(typeof firebase==='undefined' || !firebase.auth){ _resetErro('Sem conexão com o serviço de acesso'); return; }
   _resetErro('Enviando…','#8fa8d8');
   // O link do e-mail volta para o próprio sistema, já com o código
@@ -9100,7 +9112,12 @@ function confirmarNovaSenha(){
          Então a limpeza vai direto ao banco, sem depender da sincronização.
          A cópia local é atualizada junto, para o login funcionar sem
          internet. */
-      const par=Object.entries(appState.users||{}).find(([,v])=>v && String(v.email||'').toLowerCase()===emailDono);
+      /* Acha o usuário pelo e-mail cadastrado OU pelo endereço derivado da
+         chave — é assim que o login monta o e-mail de quem não tem um. Sem a
+         segunda forma, a limpeza da marca "precisa redefinir" não achava o
+         registro e a exigência voltava no login seguinte. */
+      const par=Object.entries(appState.users||{}).find(([k,v])=>v && (
+        String(v.email||'').toLowerCase()===emailDono || (k+'@liveops.local')===emailDono));
       if(par && hash){
         par[1].passHash=hash; delete par[1].pass;
         delete par[1].precisaRedefinir; delete par[1].hashAntesDoReset;
@@ -9156,9 +9173,17 @@ function doLogin(){
   const u=uOriginal.replace(/\s+/g,'');
   const p=document.getElementById('login-pass').value;
 
-  function recusar(){
+  /* "Usuário ou senha incorretos" para toda recusa é o que faz alguém tentar a
+     mesma senha cinco vezes e concluir que o sistema está quebrado. Nem toda
+     recusa é senha errada: pode ser usuário que não existe, pode ser a nuvem
+     recusando enquanto a senha local confere. Cada uma pede uma reação
+     diferente, então cada uma diz o que é. */
+  function recusar(motivo){
     const e=document.getElementById('login-error');
-    e.style.display='block'; setTimeout(()=>e.style.display='none',3000);
+    if(!e) return;
+    e.textContent = motivo || 'Usuário ou senha incorretos';
+    e.style.display='block';
+    setTimeout(()=>{ e.style.display='none'; e.textContent='Usuário ou senha incorretos'; },7000);
   }
 
   async function authenticate(users){
@@ -9171,7 +9196,7 @@ function doLogin(){
         || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u
         || (v.email && String(v.email).toLowerCase()===uOriginal);
     });
-    if(!achou){ recusar(); return; }
+    if(!achou){ recusar('Não achei esse usuário. Confira o e-mail ou o nome de acesso.'); return; }
     const [chave,dados]=achou;
     const senhaLocalConfere = dados.passHash
       ? (!!hashDigitado && dados.passHash===hashDigitado)
@@ -9194,7 +9219,23 @@ function doLogin(){
         liberado=false; // a nuvem tem outra senha — prevalece
       }
     }
-    if(!liberado){ recusar(); return; }
+    if(!liberado){
+      /* A conta que a nuvem conhece é a que manda, e é ela que precisa
+         aparecer: quando o e-mail do sign-in não é o e-mail que a pessoa
+         acha que usa, redefinir senha no endereço errado não muda nada —
+         e o laço de "minha senha está errada de novo" nasce aí. */
+      const conta=_emailDoUsuario(chave);
+      if(senhaLocalConfere && temNuvem){
+        recusar('A senha desta máquina confere, mas a nuvem recusou — a senha da conta '+conta+' foi trocada. Use a nova.');
+      }else if(_ultimoErroAuth==='auth/too-many-requests'){
+        recusar('Muitas tentativas seguidas. O Firebase bloqueou por alguns minutos — espere e tente de novo.');
+      }else if(_ultimoErroAuth==='auth/network-request-failed'){
+        recusar('Sem conexão com o serviço de acesso. Confira a internet.');
+      }else{
+        recusar('Senha incorreta para a conta '+conta+'.');
+      }
+      return;
+    }
 
     // Primeira entrada após a mudança: troca a senha legível pela impressão
     if(!dados.passHash && hashDigitado){ dados.passHash=hashDigitado; delete dados.pass; }
@@ -9235,7 +9276,11 @@ function doLogin(){
     // A conta na nuvem já existe neste ponto, então o e-mail sai agora.
     if(dados.precisaRedefinir){
       try{ saveState(appState); }catch(e){}
-      abrirRedefinicao(dados.email||'');
+      /* O e-mail que abre a redefinição tem que ser o MESMO que o login usa
+         para entrar na nuvem — não o que estiver no cadastro. Quando os dois
+         diferem, a senha é trocada numa conta e conferida em outra: a troca
+         "dá certo", o login recusa, e o sistema pede a troca de novo. */
+      abrirRedefinicao(_emailDoUsuario(chave));
       _resetErro('Sua senha precisa ser redefinida antes de entrar. Enviando o e-mail…','#f59e0b');
       setTimeout(()=>enviarCodigoRedefinicao(),400);
       return;
@@ -9369,7 +9414,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ab';
+const APP_VERSAO='2026.08.23ac';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -24508,18 +24553,18 @@ function _cancLista(p){
   return appState[c.chave];
 }
 
-/* As duas listas mostram de 2026 em diante.
+/* O ano virou filtro, não regra.
 
-   O que veio antes continua gravado — o corte é de exibição, não de dado.
-   Apagar cancelamento antigo tiraria a única prova de que ele existiu, e é
-   justamente o registro que alguém procura quando um estorno de 2025 volta
-   a ser questionado.
+   Antes as listas cortavam em 2026 por dentro: o que era mais antigo ficava
+   gravado mas invisível. Com o histórico completo entrando pelo Arquivo, um
+   corte fixo esconderia justamente o que foi importado — quem carrega três
+   anos de cancelamento quer ver os três. Agora o ano é uma caixa de seleção
+   na barra de filtros, montada com os anos que existem no dado. Nenhum
+   registro some sozinho.
 
    A data sai do carimbo de criação (ordemManual, que é timestamp) e, quando
    o registro veio da Base, da data do próprio pedido — que é a que importa
    ali, e não o dia em que a leitura rodou. */
-const CANC_ANO_MINIMO=2026;
-
 function _cancAno(item){
   if(!item) return 0;
   const iso=String(item.dataPedido||'').match(/^(\d{4})-\d{2}-\d{2}/);
@@ -24528,12 +24573,32 @@ function _cancAno(item){
   if(ts>0) return new Date(ts).getFullYear();
   const br=String(item.criadoEm||'').match(/\d{2}\/\d{2}\/(\d{4})/);
   if(br) return Number(br[1]);
-  /* Sem data nenhuma o registro é velho o bastante para não ter carimbo —
-     e some da lista junto com os outros de antes de 2026. */
   return 0;
 }
+
+/* Ano escolhido em cada lista. '' é todos — e é o padrão, porque esconder
+   dado por conta própria é como se perde a confiança num painel. */
+const _cancAnoFiltro={canc:'', cancnf:''};
+
+function _cancAnosDisponiveis(p){
+  const anos=new Set();
+  _cancLista(p).forEach(x=>{ const a=_cancAno(x); if(a) anos.add(a); });
+  return [...anos].sort((a,b)=>b-a);
+}
+
+function cancSetAno(p,valor){
+  _cancAnoFiltro[p]=String(valor||'');
+  pagVoltarAoInicio(p);
+  renderCanceladas(p);
+}
+
+/* Sem ano no registro (importação antiga, sem data) ele aparece em "todos" e
+   fica de fora quando alguém escolhe um ano — não dá para afirmar que é
+   daquele ano, e chutar seria pior. */
 function _cancListaVisivel(p){
-  return _cancLista(p).filter(x=>_cancAno(x)>=CANC_ANO_MINIMO);
+  const ano=Number(_cancAnoFiltro[p]||0);
+  if(!ano) return _cancLista(p).slice();
+  return _cancLista(p).filter(x=>_cancAno(x)===ano);
 }
 
 function cancFormatarCpf(inp){
@@ -24775,7 +24840,7 @@ function _cancArqPreparar(p, nomeArq, lido){
 
   const vistos=new Set();
   const novos={canc:[], cancnf:[]};
-  let repetidos=0, duplicadosNoArquivo=0, naoCancelados=0, foraDoAno=0, semNumero=0;
+  let repetidos=0, duplicadosNoArquivo=0, naoCancelados=0, semData=0, semNumero=0;
   const carimbo=new Date().toLocaleString('pt-BR');
 
   lido.linhas.forEach(l=>{
@@ -24792,9 +24857,12 @@ function _cancArqPreparar(p, nomeArq, lido){
     vistos.add(chave);
     if(jaTem.has(chave)){ repetidos++; return; }
 
+    /* Sem corte de data: o histórico entra inteiro. O que era antes um filtro
+       silencioso no meio da importação virou a caixa de ano na tela — decidir
+       o que entra é de quem exportou, não daqui. */
     const dh=_arqData(l.data);
     const ano=Number(String(dh.data||'').slice(0,4))||0;
-    if(ano<CANC_ANO_MINIMO){ foraDoAno++; return; }
+    if(!ano) semData++;
 
     const ms=dh.data?new Date(dh.data+'T'+(dh.hora||'00:00')+':00').getTime():0;
     novos[p2].push({
@@ -24818,7 +24886,7 @@ function _cancArqPreparar(p, nomeArq, lido){
   });
 
   _cancArqImport={p, nomeArq, novos, repetidos, duplicadosNoArquivo,
-                  naoCancelados, foraDoAno, semNumero, lidos:lido.linhas.length};
+                  naoCancelados, semData, semNumero, lidos:lido.linhas.length};
   _cancArqPainel(p);
 }
 
@@ -24841,7 +24909,7 @@ function _cancArqPainel(p){
       +linha('Vão para <b>Canceladas com NF</b>', nN, 'var(--green)')
       +linha('Já estavam no sistema', I.repetidos)
       +linha('Não são cancelamento', I.naoCancelados)
-      +linha('Anteriores a '+CANC_ANO_MINIMO, I.foraDoAno)
+      +linha('Sem data no arquivo', I.semData)
       +linha('Repetidos dentro do arquivo', I.duplicadosNoArquivo)
       +linha('Sem número de pedido', I.semNumero, 'var(--red)')
     +`</div>`
@@ -24912,6 +24980,21 @@ function renderCanceladas(p){
   const q=((document.getElementById(p+'-search')||{}).value||'').toLowerCase().trim();
   const filtro=_cancFiltro[p]||'todas';
 
+  /* A caixa de ano é montada com os anos que existem no dado, e antes de
+     filtrar: quando o Arquivo traz 2024 pela primeira vez, o ano aparece
+     sozinho na lista. Ano que deixou de existir volta para "todos", em vez de
+     deixar a tela vazia sem motivo aparente. */
+  const selAno=document.getElementById(p+'-ano');
+  if(selAno){
+    const anos=_cancAnosDisponiveis(p);
+    const escolhido=String(_cancAnoFiltro[p]||'');
+    const desejado='<option value="">Todos os anos</option>'
+      +anos.map(a=>`<option value="${a}">${a}</option>`).join('');
+    if(selAno.innerHTML!==desejado) selAno.innerHTML=desejado;
+    _cancAnoFiltro[p] = anos.indexOf(Number(escolhido))>=0 ? escolhido : '';
+    selAno.value=_cancAnoFiltro[p];
+  }
+
   const todos=_cancListaVisivel(p);
   const escondidos=_cancLista(p).length-todos.length;
   const abertas=todos.filter(x=>x.status!=='concluida').length;
@@ -24951,13 +25034,12 @@ function renderCanceladas(p){
     ? (abertas+' a fazer · '+(todos.length-abertas)+' concluída'+((todos.length-abertas)===1?'':'s'))
     : '');
 
-  /* Diz que existe coisa antes de 2026, em vez de deixar o número encolher
-     sem explicação — quem lembra de um cancelamento de 2025 e não o acha
-     conclui que ele sumiu. */
+  /* Quando um ano está escolhido, a nota diz quantos ficaram fora — o número
+     encolhendo sem explicação é o que faz alguém concluir que sumiu dado. */
   const nota=document.getElementById(p+'-nota-ano');
   if(nota){
     nota.textContent = escondidos
-      ? (escondidos+' registro(s) anteriores a '+CANC_ANO_MINIMO+' seguem gravados, fora desta lista.')
+      ? (escondidos+' registro(s) de outros anos, fora deste filtro.')
       : '';
     nota.style.display = escondidos?'block':'none';
   }

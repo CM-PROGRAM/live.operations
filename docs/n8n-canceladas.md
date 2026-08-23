@@ -96,8 +96,10 @@ O filtro de status é feito **no código**, não na chamada: o
 de outro status como se tivesse funcionado (medido em 22/08/2026). Filtro que
 falha calado é pior que filtro nenhum.
 
-Também aplica o corte de ano (2026 em diante, o mesmo da tela) e traduz o
-`order_source` para nome legível:
+Não há corte de data: o que a Base entregar, entra. Na tela o ano é um filtro
+que a pessoa escolhe, e filtro é decisão de quem olha — não do robô.
+
+Traduz o `order_source` para nome legível:
 
 | `order_source` | Vira |
 |---|---|
@@ -150,7 +152,8 @@ Em **Pedidos → Canceladas** (ou **Canceladas com NF**), botão **Importar
 Arquivo**.
 
 1. Na Base: **Pedidos → Lista de pedidos → Arquivo**, filtre o período que
-   falta (janeiro a maio de 2026) e exporte em **CSV**.
+   quiser — o importador não corta por data, dá para trazer o histórico
+   inteiro — e exporte em **CSV**.
 2. O arquivo precisa ter pelo menos as colunas `numero`, `data` e `status`. O
    modelo usado nos pedidos de WhatsApp já serve — as outras colunas
    (`cliente_comprador`, `cpf`, `telefone`, `origem`) são aproveitadas quando
@@ -159,8 +162,8 @@ Arquivo**.
    de cancelamento sem é o `status` escrito na linha, não quem exportou — não
    precisa exportar duas vezes.
 4. Nada é gravado direto: aparece um painel de conferência com quantos vão para
-   cada lista, quantos já estavam, quantos não são cancelamento, quantos são
-   anteriores a 2026 e quantos vieram repetidos dentro do próprio arquivo.
+   cada lista, quantos já estavam, quantos não são cancelamento, quantos vieram
+   sem data e quantos vieram repetidos dentro do próprio arquivo.
 5. **Por padrão o histórico entra como concluído.** São meses de cancelamento já
    resolvido; abrir tudo encheria o quadro do dia com trabalho que ninguém vai
    refazer. A caixa **"Trazer como A Fazer"** existe para o caso contrário — e
@@ -168,6 +171,9 @@ Arquivo**.
 
 Importar o mesmo arquivo duas vezes não duplica: a chave é o número do pedido.
 As linhas vindas daí aparecem com a marca **arquivo** embaixo do número.
+
+Na barra de filtros das duas listas há a caixa **Todos os anos**, montada com os
+anos que existem no dado. Ela começa em "todos": nenhum registro some sozinho.
 
 ---
 
