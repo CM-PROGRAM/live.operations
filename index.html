@@ -567,6 +567,24 @@ html{overflow-x:hidden;}
 .acp-busca span{font-size:11px;color:var(--text-muted);flex:0 0 auto;}
 .acp-busca input{background:none;border:none;outline:none;color:var(--text-primary);font-size:11.5px;
   font-family:var(--font-sans);width:100%;min-width:0;}
+/* Duas colunas no formulário, uma só quando a tela é estreita — o modal tem
+   560px e num celular isso não cabe lado a lado. */
+.acp-linha{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
+@media (max-width:560px){ .acp-linha{grid-template-columns:1fr;} }
+.acp-rot{display:flex;align-items:center;gap:6px;}
+.acp-rot::before{content:'';width:13px;height:13px;flex:0 0 auto;background-color:currentColor;opacity:.75;
+  -webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:contain;mask-size:contain;
+  -webkit-mask-position:center;mask-position:center;}
+.acp-rot[data-ic="calendario"]::before{-webkit-mask-image:var(--ic-cal);mask-image:var(--ic-cal);}
+.acp-rot[data-ic="caminhao"]::before{-webkit-mask-image:var(--ic-cam);mask-image:var(--ic-cam);}
+.acp-rot[data-ic="caixa"]::before{-webkit-mask-image:var(--ic-cx);mask-image:var(--ic-cx);}
+:root{
+  --ic-cal:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>');
+  --ic-cam:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3h13v13H1z"/><path d="M14 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2"/><circle cx="17.5" cy="18.5" r="2"/></svg>');
+  --ic-cx:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/></svg>');
+}
+.acp-x{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;padding:4px 6px;border-radius:7px;}
+.acp-x:hover{background:var(--veu-medio);color:var(--text-primary);}
 .acp-mi{display:block;width:100%;text-align:left;background:none;border:none;border-radius:7px;cursor:pointer;
   color:var(--text-secondary);font-family:var(--font-sans);font-size:12px;padding:7px 11px;}
 .acp-mi:hover{background:var(--veu-medio);color:var(--text-primary);}
@@ -4772,34 +4790,47 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 <div id="toast"></div>
 <!-- COMPRA / DEVOLUÇÃO / TRANSFERÊNCIA -->
 <div class="modal-overlay" id="acp-overlay">
-  <div class="modal" style="width:520px;">
-    <div class="modal-title" id="acp-modal-titulo">Nova compra</div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
-      <div style="display:flex;gap:10px;">
-        <label class="ent-campo" style="flex:1;"><span>Data <b>*</b></span>
+  <div class="modal" style="width:560px;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="flex:1;">
+        <div class="modal-title" id="acp-modal-titulo" style="margin:0;">Nova Compra</div>
+        <div id="acp-modal-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">Adicione uma nova compra para rastreamento</div>
+      </div>
+      <button class="acp-x" onclick="acpFechar()" title="Fechar" aria-label="Fechar">&#10005;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:16px;">
+      <div class="acp-linha">
+        <label class="ent-campo"><span class="acp-rot" data-ic="calendario" id="acp-rot-data">Data da Compra <b>*</b></span>
           <input id="acp-data" type="date"></label>
-        <label class="ent-campo" style="flex:1;"><span>Previsão de chegada</span>
+        <label class="ent-campo"><span class="acp-rot" data-ic="caminhao">Transportadora <b>*</b></span>
+          <select id="acp-transportadora"></select></label>
+      </div>
+      <div class="acp-linha">
+        <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-loja">Nome da Loja <b>*</b></span>
+          <input id="acp-loja" type="text" maxlength="120" placeholder="Ex: Growth Suplementos"></label>
+        <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-cliente">Nome do Cliente <b>*</b></span>
+          <input id="acp-cliente" type="text" maxlength="120" placeholder="Ex: João Silva"></label>
+      </div>
+      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Código de Rastreio <b>*</b></span>
+        <input id="acp-rastreio" type="text" maxlength="60" placeholder="Ex: AA123456789BR"></label>
+      <div class="acp-linha" id="acp-linha-edicao" style="display:none;">
+        <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Status <b>*</b></span>
+          <select id="acp-status"></select></label>
+        <label class="ent-campo"><span class="acp-rot" data-ic="calendario">Previsão de chegada</span>
           <input id="acp-previsao" type="date"></label>
       </div>
-      <label class="ent-campo"><span id="acp-rot-loja">Fornecedor / Loja</span>
-        <input id="acp-loja" type="text" maxlength="120" placeholder="Não informado"></label>
-      <div style="display:flex;gap:10px;">
-        <label class="ent-campo" style="flex:2;"><span>Código de rastreio</span>
-          <input id="acp-rastreio" type="text" maxlength="60" placeholder="LX089799933NL"></label>
-        <label class="ent-campo" style="flex:1;"><span>Status <b>*</b></span>
-          <select id="acp-status"></select></label>
-      </div>
-      <label class="ent-campo"><span>Produtos <small style="font-weight:400;color:var(--text-muted);">— um por linha: SKU · nome · quantidade</small></span>
-        <textarea id="acp-produtos" rows="4" placeholder="AST12840 · Creatina 1kg AST · 12&#10;· Whey Growth 900g · 24"
+      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Produtos <small style="font-weight:400;color:var(--text-muted);">(opcional) — um por linha: SKU · nome · quantidade</small></span>
+        <textarea id="acp-produtos" rows="3" placeholder="AST12840 · Creatina 1kg AST · 12&#10;· Whey Growth 900g · 24"
           style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-mono);padding:9px 11px;outline:none;resize:vertical;"></textarea>
         <small id="acp-itens-conta"></small></label>
-      <label class="ent-campo"><span>Observação</span>
-        <input id="acp-obs" type="text" maxlength="200" placeholder="nota fiscal, transportadora, quem recebeu…"></label>
+      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Observações <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
+        <textarea id="acp-obs" rows="3" maxlength="400" placeholder="Adicione observações sobre este registro…"
+          style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 11px;outline:none;resize:vertical;"></textarea></label>
       <div id="acp-erro" style="display:none;font-size:11.5px;color:#fca5a5;"></div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost btn-sm" onclick="acpFechar()">Cancelar</button>
-      <button class="btn btn-sm" onclick="acpSalvar()">Salvar</button>
+      <button class="btn btn-sm" id="acp-btn-salvar" onclick="acpSalvar()">Criar Compra</button>
     </div>
   </div>
 </div>
@@ -9042,7 +9073,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23f';
+const APP_VERSAO='2026.08.23g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12215,11 +12246,23 @@ function renderEstoque(){
      produtos [{sku,nome,qtd}]
      arquivado bool, atualizadoEm, ts, criadoPor, criadoPorKey, criadoEm  */
 const ACP_TIPOS={
-  compra:        {rot:'Compras',        um:'compra',        loja:'Fornecedor / Loja'},
-  devolucao:     {rot:'Devoluções',     um:'devolução',     loja:'Cliente / Loja'},
-  transferencia: {rot:'Transferências', um:'transferência', loja:'De → Para'},
-  envio:         {rot:'Enviados',       um:'envio',         loja:'Cliente'}
+  compra:        {rot:'Compras',        um:'compra',        botao:'Criar Compra', titulo:'Nova Compra',
+                  loja:'Nome da Loja',  cliente:'Comprado por', data:'Data da Compra',
+                  exLoja:'Ex: Growth Suplementos', exCliente:'Ex: Matheus'},
+  devolucao:     {rot:'Devoluções',     um:'devolução',     botao:'Criar Devolução', titulo:'Nova Devolução',
+                  loja:'Nome da Loja',  cliente:'Nome do Cliente', data:'Data de Devolução',
+                  exLoja:'Ex: Mercado Livre', exCliente:'Ex: João Silva'},
+  transferencia: {rot:'Transferências', um:'transferência', botao:'Criar Transferência', titulo:'Nova Transferência',
+                  loja:'Origem',        cliente:'Destino',  data:'Data da Transferência',
+                  exLoja:'Ex: Estoque ES', exCliente:'Ex: Estoque SP'},
+  envio:         {rot:'Enviados',       um:'envio',         botao:'Criar Envio', titulo:'Novo Envio',
+                  loja:'Nome da Loja',  cliente:'Nome do Cliente', data:'Data do Envio',
+                  exLoja:'Ex: Mercado Livre', exCliente:'Ex: João Silva'}
 };
+/* Lista fixa, e "Outra" no fim para o caso que ela não cobre. Digitar livre
+   viraria "jadlog", "JadLog" e "Jad Log" na mesma coluna. */
+const ACP_TRANSPORTADORAS=['Correios','Jadlog','Loggi','Azul Cargo','JeT','Mercado Envios',
+  'Shopee Xpress','Total Express','Braspress','Manda Bem','Melhor Envio','Retirada','Outra'];
 /* A lista é fechada porque status é o que a tela filtra e colore; texto
    livre viraria trinta grafias da mesma coisa e nenhum filtro funcionaria. */
 const ACP_STATUS=[
@@ -12299,14 +12342,43 @@ function acpAbrir(tipo,id){
   ov.dataset.tipo=t;
   ov.dataset.id=a?a.id:'';
   const T=ACP_TIPOS[t]||ACP_TIPOS.compra;
-  document.getElementById('acp-modal-titulo').textContent=(a?'Editar ':'Nova ')+T.um;
-  document.getElementById('acp-rot-loja').textContent=T.loja;
+  const rot=(cid,txt,obrig)=>{const el=document.getElementById(cid);
+    if(el) el.innerHTML=txt+(obrig?' <b>*</b>':'');};
+  /* Título vindo de um campo próprio, e não cortado do plural: tirar o 's'
+     de "Devoluções" dá "Devoluçõe". */
+  document.getElementById('acp-modal-titulo').textContent=a?('Editar '+T.um):T.titulo;
+  document.getElementById('acp-modal-sub').textContent=a
+    ? 'Altere os dados deste registro'
+    : ('Adicione uma nova '+T.um+' para rastreamento');
+  rot('acp-rot-data',   T.data,    true);
+  rot('acp-rot-loja',   T.loja,    true);
+  rot('acp-rot-cliente',T.cliente, true);
+  const bs=document.getElementById('acp-btn-salvar');
+  if(bs) bs.textContent=a?'Salvar alterações':T.botao;
+
+  /* Status e previsão só na edição. Registro novo nasce "Aguardando
+     rastreamento" — perguntar o status de algo que acabou de ser cadastrado
+     é pedir para alguém escolher a única resposta possível. */
+  const linhaEd=document.getElementById('acp-linha-edicao');
+  if(linhaEd) linhaEd.style.display=a?'grid':'none';
+
   const sel=document.getElementById('acp-status');
   if(sel) sel.innerHTML=ACP_STATUS.map(s=>`<option${a&&a.status===s.v?' selected':''}>${s.v}</option>`).join('');
+  const st=document.getElementById('acp-transportadora');
+  if(st){
+    const atual=a?String(a.transportadora||''):'';
+    const lista=ACP_TRANSPORTADORAS.slice();
+    if(atual && lista.indexOf(atual)<0) lista.unshift(atual);
+    st.innerHTML='<option value="">Selecione a transportadora</option>'
+      +lista.map(x=>`<option${x===atual?' selected':''}>${x}</option>`).join('');
+  }
   const p=(cid,v)=>{const el=document.getElementById(cid); if(el) el.value=v==null?'':v;};
+  const ph=(cid,v)=>{const el=document.getElementById(cid); if(el) el.placeholder=v;};
+  ph('acp-loja',T.exLoja); ph('acp-cliente',T.exCliente);
   p('acp-data',      a?a.data:_hojeISO());
   p('acp-previsao',  a?a.previsao:'');
   p('acp-loja',      a?a.loja:'');
+  p('acp-cliente',   a?a.cliente:'');
   p('acp-rastreio',  a?a.rastreio:'');
   p('acp-obs',       a?a.obs:'');
   p('acp-produtos',  a?_acpEscreverProdutos(a.produtos):'');
@@ -12328,21 +12400,39 @@ function acpSalvar(){
   const err=document.getElementById('acp-erro');
   const falhar=m=>{ if(err){ err.textContent=m; err.style.display='block'; } };
   const v=id=>String((document.getElementById(id)||{}).value||'').trim();
-  const data=v('acp-data');
-  if(!data) return falhar('Informe a data.');
-  const status=v('acp-status');
-  if(!status) return falhar('Escolha o status.');
-  const produtos=_acpLerProdutos(v('acp-produtos'));
-
-  const agora=new Date();
   const id=ov.dataset.id;
   const existente=id?(appState.acompanhamentos||[]).find(x=>x&&x.id===id):null;
+  const tipo=ov.dataset.tipo||'compra';
+  const T=ACP_TIPOS[tipo]||ACP_TIPOS.compra;
+
+  const data=v('acp-data');
+  if(!data) return falhar('Informe a '+T.data.toLowerCase()+'.');
+  if(!v('acp-transportadora')) return falhar('Escolha a transportadora.');
+  if(!v('acp-loja'))     return falhar('Informe "'+T.loja+'".');
+  if(!v('acp-cliente'))  return falhar('Informe "'+T.cliente+'".');
+  const rastreio=v('acp-rastreio');
+  if(!rastreio) return falhar('Informe o código de rastreio — é por ele que este registro é acompanhado.');
+  /* Rastreio repetido no mesmo tipo quase sempre é a mesma caixa cadastrada
+     duas vezes, e duas linhas para a mesma caixa fazem a conferência ser
+     feita duas vezes — ou nenhuma, porque cada um acha que o outro fez. */
+  const igual=(appState.acompanhamentos||[]).find(x=>x && x!==existente && x.tipo===tipo
+    && String(x.rastreio||'').trim().toLowerCase()===rastreio.toLowerCase());
+  if(igual) return falhar('Já existe '+T.um+' com o rastreio '+rastreio+' (de '+_pedDataBR(igual.data)+'). Edite aquela em vez de criar outra.');
+
+  const produtos=_acpLerProdutos(v('acp-produtos'));
+  const agora=new Date();
   const campos={
-    tipo:ov.dataset.tipo||'compra',
-    data, previsao:v('acp-previsao'), loja:v('acp-loja'),
-    rastreio:v('acp-rastreio'), status, obs:v('acp-obs'), produtos,
+    tipo,
+    data, loja:v('acp-loja'), cliente:v('acp-cliente'),
+    transportadora:v('acp-transportadora'),
+    rastreio, obs:v('acp-obs'), produtos,
     atualizadoEm:agora.toLocaleDateString('pt-BR')
   };
+  /* Na criação, status e previsão não estão na tela — não podem ser lidos de
+     um campo escondido, senão o registro novo nasceria com o valor que
+     sobrou da última edição aberta. */
+  if(existente){ campos.status=v('acp-status'); campos.previsao=v('acp-previsao'); }
+  else{ campos.status='Aguardando rastreamento'; campos.previsao=''; }
   if(!Array.isArray(appState.acompanhamentos)) appState.acompanhamentos=[];
   if(existente){ Object.assign(existente,campos); }
   else{
@@ -12386,6 +12476,8 @@ function acpVer(id){
   document.getElementById('acp-ver-corpo').innerHTML=
       linha('Data', _pedDataBR(a.data))
     + linha(T.loja, a.loja)
+    + linha(T.cliente, a.cliente)
+    + linha('Transportadora', a.transportadora)
     + linha('Rastreio', a.rastreio)
     + linha('Status', `<span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span>`)
     + linha('Previsão', a.previsao?_pedDataBR(a.previsao):'')
@@ -12525,7 +12617,8 @@ function renderAcompanhamento(){
     const rast=String(a.rastreio||'').trim();
     tr.innerHTML=`
       <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(a.data)}</td>
-      <td style="color:var(--text-secondary);white-space:normal;max-width:200px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}</td>
+      <td style="color:var(--text-secondary);white-space:normal;max-width:210px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}
+        ${a.cliente?`<div style="font-size:9.5px;color:var(--text-muted);">${a.cliente}</div>`:''}</td>
       <td style="font-family:var(--font-mono);">${rast
         ? `<a href="https://www.google.com/search?q=${encodeURIComponent(rast)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${rast} ↗</a>`
         : '<span style="color:var(--text-muted);">—</span>'}</td>
