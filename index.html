@@ -9069,7 +9069,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23h';
+const APP_VERSAO='2026.08.23i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12101,10 +12101,23 @@ const _EST_ICONES={
   dinheiro:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg>'
 };
 
+/* Produto sem SKU e sem nome não serve para nada aqui: não dá para buscar,
+   não dá para dar entrada, e não dá nem para saber o que é. A Base tem
+   alguns assim — rascunhos, componentes de kit, cadastros pela metade.
+
+   Eles continuam gravados (a Base é a fonte, e apagar dado dela na
+   importação é decidir por ela), mas ficam fora da lista e das contas, com
+   o número aparecendo no rodapé. Some da tela sem sumir do registro. */
+function _estUtil(p){
+  return !!(String((p&&p.sku)||'').trim() || String((p&&p.nome)||'').trim());
+}
+
 function renderEstoque(){
   const tbody=document.getElementById('est-rows'); if(!tbody) return;
   try{ renderEntradasEstoque(); }catch(e){ console.warn('renderEntradasEstoque:',e); }
-  const todos=(appState.produtos||[]).filter(Boolean);
+  const brutos=(appState.produtos||[]).filter(Boolean);
+  const todos=brutos.filter(_estUtil);
+  const ocultos=brutos.length-todos.length;
 
   /* A lista de armazéns sai do próprio dado, não de uma lista fixa: a Base
      ganha e perde armazém sem avisar, e uma lista fixa mentiria calada. */
@@ -12151,7 +12164,8 @@ function renderEstoque(){
   });
 
   const achados=document.getElementById('est-achados');
-  if(achados) achados.textContent=lista.length+' produto(s) encontrado(s)';
+  if(achados) achados.textContent=lista.length+' produto(s) encontrado(s)'
+    +(ocultos?(' · '+ocultos+' sem SKU e sem nome, fora da lista'):'');
   const ultimo=todos.map(p=>p.sincronizadoEm).filter(Boolean).sort().pop();
   const sync=document.getElementById('est-sync');
   if(sync) sync.textContent=ultimo?('Base lida em '+ultimo):'';
