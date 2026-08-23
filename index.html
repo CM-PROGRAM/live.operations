@@ -546,6 +546,31 @@ html{overflow-x:hidden;}
 /* Cinco KPIs, e é para os cinco caberem lado a lado: quebrar o último para a
    linha de baixo dá a ele um destaque que ele não tem. */
 #base-kpis{grid-template-columns:repeat(auto-fit,minmax(158px,1fr));}
+/* ── Estoque ─────────────────────────────────────────────────────
+   Três cartões: rótulo em cima, número grande, e a unidade embaixo — a
+   ordem importa, porque quem bate o olho quer saber do que é o número
+   antes de ler o número. */
+.est-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:16px;}
+.est-kpi{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;position:relative;}
+.est-kpi .rot{display:block;font-size:12px;font-weight:700;color:var(--text-secondary);}
+.est-kpi .val{display:block;font-family:var(--font-sans);font-size:26px;font-weight:800;line-height:1.25;letter-spacing:-.02em;color:var(--text-primary);margin-top:6px;}
+.est-kpi .sub{display:block;font-size:11px;color:var(--text-muted);margin-top:1px;}
+.est-kpi .ic{position:absolute;top:15px;right:16px;width:18px;height:18px;color:var(--text-muted);opacity:.65;}
+.est-kpi .ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
+.est-tabela td{vertical-align:top;padding-top:13px;padding-bottom:13px;}
+/* Saldo total. Zero fica apagado e negativo fica vermelho, porque negativo
+   não é "pouco estoque": é conta que não fecha, e precisa saltar. */
+.est-saldo{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 8px;
+  border-radius:11px;font-family:var(--font-mono);font-size:11.5px;font-weight:700;
+  background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-muted);}
+.est-saldo.tem{background:rgba(143,168,216,.18);border-color:rgba(143,168,216,.5);color:#cfe0ff;}
+.est-saldo.neg{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.45);color:#fca5a5;}
+.est-arm{display:flex;flex-direction:column;gap:5px;}
+.est-arm > div{display:flex;align-items:center;gap:8px;}
+.est-arm .nome{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px;white-space:nowrap;
+  background:var(--veu-medio);border:1px solid var(--glass-border);color:var(--text-secondary);}
+.est-arm .qtd{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);}
+.est-arm .qtd.neg{color:#fca5a5;}
 .ped-tabela th.ord{cursor:pointer;user-select:none;}
 .ped-tabela th.ord:hover{color:var(--text-primary);}
 .ped-tabela th .seta{opacity:.45;font-size:9px;margin-left:4px;}
@@ -2373,16 +2398,58 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
     </div>
 
+    <!-- ESTOQUE — espelho do catálogo da Base. Somente leitura: quem move
+         estoque é a Base, aqui a gente enxerga. -->
     <div class="tab-panel" id="tab-estoque">
-      <div class="section-header">
-        <span class="section-title">Estoque</span>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Estoque</h2>
+          <p class="pag-sub">Gerencie o estoque de produtos em múltiplos armazéns</p>
+        </div>
       </div>
-      <div class="date-header">Saldo e movimentação dos produtos</div>
-      <div class="aba-futura">
-        <div class="af-ic" data-icone="estoque"></div>
-        <h3>Estoque</h3>
-        <p>Saldo por SKU, entradas e saídas, e o histórico de cada alteração. Os dados virão da Base, pelo mesmo caminho que já traz os pedidos.</p>
-        <span class="af-selo">em construção</span>
+
+      <div id="est-kpis" class="est-kpis"></div>
+
+      <div class="ped-bloco" style="padding:15px 18px 16px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:800;color:var(--text-primary);">Filtros</div>
+        <div style="font-size:11.5px;color:var(--text-muted);margin:2px 0 12px;">Pesquise e filtre produtos no estoque</div>
+        <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:8px 14px;flex:1;min-width:230px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
+            <span style="font-size:12px;color:var(--text-muted);">🔎</span>
+            <input id="est-busca" type="text" placeholder="Pesquisar por SKU, nome ou EAN..." oninput="renderEstoque()"
+              style="background:none;border:none;outline:none;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);width:100%;">
+          </div>
+          <select id="est-f-armazem" onchange="renderEstoque()" title="Filtrar por armazém"
+            style="width:auto;min-width:185px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:8px 14px;cursor:pointer;outline:none;"></select>
+          <button class="btn-sec" style="width:auto;" onclick="estLimparFiltros()">Limpar</button>
+        </div>
+      </div>
+
+      <div class="ped-bloco" style="overflow:hidden;">
+        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);">
+          <div style="font-size:13px;font-weight:800;color:var(--text-primary);">Produtos em Estoque</div>
+          <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+            <span id="est-achados" style="font-size:11.5px;color:var(--text-muted);">0 produto(s) encontrado(s)</span>
+            <div style="flex:1;"></div>
+            <span id="est-sync" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="ped-tabela est-tabela">
+            <thead>
+              <tr>
+                <th class="ord" data-oe="sku"   onclick="estOrdenar('sku')">SKU <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oe="nome"  onclick="estOrdenar('nome')">Nome <span class="seta">&#8597;</span></th>
+                <th>EAN</th>
+                <th class="ord" data-oe="total" onclick="estOrdenar('total')">Estoque Total <span class="seta">&#8597;</span></th>
+                <th>Armaz&eacute;ns</th>
+                <th class="ord" data-oe="preco" onclick="estOrdenar('preco')" style="text-align:right;">Pre&ccedil;o M&eacute;dio <span class="seta">&#8597;</span></th>
+              </tr>
+            </thead>
+            <tbody id="est-rows"></tbody>
+          </table>
+        </div>
+        <div id="est-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
       </div>
     </div>
 
@@ -4716,6 +4783,7 @@ function defaultState(){
     vendasWpp:{},
     pedidosWpp:[],
     pedidosBase:[],
+    produtos:[],
     drogData:{pacheco:[],saopaulo:[]},
     conferencia:[],
     cnpjMkt:{},
@@ -4803,6 +4871,7 @@ function loadLocal(){
     if(!s.vendasWpp) s.vendasWpp={};
     if(!Array.isArray(s.pedidosWpp)) s.pedidosWpp=[];
     if(!Array.isArray(s.pedidosBase)) s.pedidosBase=[];
+    if(!Array.isArray(s.produtos)) s.produtos=[];
     if(!s.tasks) s.tasks=defaultState().tasks;
     if(!s.tasks.devolucoes) s.tasks.devolucoes=[];
     if(!Array.isArray(s.tasks.atendimentos)) s.tasks.atendimentos=[];
@@ -6779,7 +6848,10 @@ const COLECOES_REG={
   /* Pedidos puxados da Base (BaseLinker) pelo n8n. Registro a registro pelo
      mesmo motivo das vendas: o robô grava de hora em hora e não pode
      reescrever a lista inteira por cima de quem está mexendo na tela. */
-  pedidosBase:   {get:s=>s.pedidosBase,                set:(s,v)=>{s.pedidosBase=v;}}
+  pedidosBase:   {get:s=>s.pedidosBase,                set:(s,v)=>{s.pedidosBase=v;}},
+  /* Catálogo da Base, um registro por produto. Mesma razão de sempre:
+     lista grande não viaja no pacote. */
+  produtos:      {get:s=>s.produtos,                   set:(s,v)=>{s.produtos=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -7435,6 +7507,7 @@ function applyRemoteState(data){
   if(!data.vendasWpp) data.vendasWpp = {};
   if(!Array.isArray(data.pedidosWpp)) data.pedidosWpp = [];
   if(!Array.isArray(data.pedidosBase)) data.pedidosBase = [];
+  if(!Array.isArray(data.produtos)) data.produtos = [];
   if(!data.tasks) data.tasks = defaultState().tasks;
   if(!data.tasks.devolucoes) data.tasks.devolucoes = [];
   if(!Array.isArray(data.tasks.atendimentos)) data.tasks.atendimentos = [];
@@ -8994,6 +9067,7 @@ function buildTabs(){
     if(id==='notificacoes'){ try{ renderNotifPagina(); }catch(e){ console.warn('renderNotifPagina:',e); } }
     if(id==='inicio'){ try{ renderInicio(); }catch(e){ console.warn('renderInicio:',e); } }
     if(id==='integracoes'){ try{ renderIntegracoesTab(); }catch(e){ console.warn('renderIntegracoesTab:',e); } }
+    if(id==='estoque'){ try{ renderEstoque(); }catch(e){ console.warn('renderEstoque:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -11699,6 +11773,178 @@ function baseConfirmarImport(){
   renderPedidosBase();
   try{ if(document.getElementById('tab-clientes')) renderClientes(); }catch(e){}
   showToast('✔ '+N.length+' pedido'+(N.length===1?'':'s')+' do Arquivo gravados — '+nomeArq,'success');
+}
+
+/* ===== ESTOQUE =====================================================
+   Espelho do catálogo da Base. Somente leitura, pelo mesmo motivo dos
+   pedidos: quem move estoque é a Base, e um segundo lugar onde dá para
+   mexer é um segundo lugar onde a conta pode divergir.
+
+   Formato de cada registro (é isto que o n8n grava em
+   suplelive/reg/produtos/<id>):
+     id            "prod_<id do produto na Base>"
+     sku           código interno                    ex "AST12840"
+     nome          nome do produto
+     ean           código de barras (texto, nunca número:
+                   EAN começa com zero e número come o zero)
+     total         soma das quantidades, número
+     armazens      [{nome:"Estoque SP", qtd:3}, ...]  na ordem que vier
+     precoMedio    custo médio unitário, número — ou null quando a Base
+                   não tem custo para esse produto
+     link          URL do produto no painel da Base
+     sincronizadoEm quando a leitura rodou
+     _by           "n8n"
+
+   O `total` vem pronto do fluxo em vez de ser somado aqui de propósito:
+   produto pode ter armazém que a nossa leitura não trouxe, e somar o que
+   chegou daria um total menor que o verdadeiro sem ninguém perceber. */
+let _estOrdem={campo:'sku', desc:false};
+
+function estOrdenar(campo){
+  if(_estOrdem.campo===campo) _estOrdem.desc=!_estOrdem.desc;
+  else _estOrdem={campo, desc:(campo==='total'||campo==='preco')};
+  renderEstoque();
+}
+
+function estLimparFiltros(){
+  const b=document.getElementById('est-busca'); if(b) b.value='';
+  const a=document.getElementById('est-f-armazem'); if(a) a.value='';
+  renderEstoque();
+  if(b) b.focus();
+}
+
+function _estArmazens(p){ return Array.isArray(p && p.armazens) ? p.armazens.filter(Boolean) : []; }
+
+function _estQtdNoArmazem(p,nome){
+  const a=_estArmazens(p).find(x=>String(x.nome||'')===nome);
+  return a ? (Number(a.qtd)||0) : 0;
+}
+
+const _EST_ICONES={
+  caixa:'<svg viewBox="0 0 24 24"><path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/></svg>',
+  subindo:'<svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/></svg>',
+  dinheiro:'<svg viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 12h.01M18 12h.01"/></svg>'
+};
+
+function renderEstoque(){
+  const tbody=document.getElementById('est-rows'); if(!tbody) return;
+  const todos=(appState.produtos||[]).filter(Boolean);
+
+  /* A lista de armazéns sai do próprio dado, não de uma lista fixa: a Base
+     ganha e perde armazém sem avisar, e uma lista fixa mentiria calada. */
+  const nomes=[];
+  todos.forEach(p=>_estArmazens(p).forEach(a=>{
+    const n=String(a.nome||'').trim();
+    if(n && nomes.indexOf(n)<0) nomes.push(n);
+  }));
+  nomes.sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const sel=document.getElementById('est-f-armazem');
+  if(sel){
+    const atual=sel.value;
+    sel.innerHTML='<option value="">Todos os armazéns</option>'
+      +nomes.map(n=>`<option${n===atual?' selected':''}>${n}</option>`).join('');
+    if(atual && nomes.indexOf(atual)<0) sel.value='';
+  }
+
+  const q=((document.getElementById('est-busca')||{}).value||'').toLowerCase().trim();
+  const arm=((document.getElementById('est-f-armazem')||{}).value||'');
+
+  const lista=todos.filter(p=>{
+    /* Filtrar por armazém mostra quem TEM saldo nele. Trazer também os
+       zerados encheria a tela de linhas que não dizem nada sobre o armazém
+       escolhido — que é justamente a pergunta que a pessoa fez. */
+    if(arm && _estQtdNoArmazem(p,arm)===0) return false;
+    if(!q) return true;
+    return [p.sku,p.nome,p.ean].map(x=>String(x||'').toLowerCase()).join(' ').includes(q);
+  });
+
+  const dir=_estOrdem.desc?-1:1;
+  lista.sort((a,b)=>{
+    switch(_estOrdem.campo){
+      case 'nome':  return dir*String(a.nome||'').localeCompare(String(b.nome||''),'pt-BR');
+      case 'total': return dir*((Number(a.total)||0)-(Number(b.total)||0));
+      case 'preco': return dir*((Number(a.precoMedio)||0)-(Number(b.precoMedio)||0));
+      default:      return dir*String(a.sku||'').localeCompare(String(b.sku||''),'pt-BR',{numeric:true});
+    }
+  });
+  document.querySelectorAll('.est-tabela th.ord').forEach(th=>{
+    const ativa=th.dataset.oe===_estOrdem.campo;
+    th.classList.toggle('ativa',ativa);
+    const seta=th.querySelector('.seta');
+    if(seta) seta.textContent = ativa ? (_estOrdem.desc?'▾':'▴') : '↕';
+  });
+
+  const achados=document.getElementById('est-achados');
+  if(achados) achados.textContent=lista.length+' produto(s) encontrado(s)';
+  const ultimo=todos.map(p=>p.sincronizadoEm).filter(Boolean).sort().pop();
+  const sync=document.getElementById('est-sync');
+  if(sync) sync.textContent=ultimo?('Base lida em '+ultimo):'';
+
+  /* Os três números são sempre do catálogo inteiro, nunca do filtro — pelo
+     mesmo motivo dos KPIs de Pedidos: painel que muda quando alguém digita
+     na busca não serve para decidir nada.
+
+     Valor em estoque só conta quem tem saldo E custo. Produto com saldo e
+     sem custo entraria como zero e faria o total parecer menor do que é, o
+     que é pior que não contar: some do valor sem aparecer em lugar nenhum.
+     Por isso, quando existe esse caso, o cartão diz quantos ficaram de
+     fora. */
+  const kp=document.getElementById('est-kpis');
+  if(kp){
+    const unidades=todos.reduce((a,p)=>a+(Number(p.total)||0),0);
+    let valor=0, semCusto=0;
+    todos.forEach(p=>{
+      const t=Number(p.total)||0, c=Number(p.precoMedio)||0;
+      if(t>0 && c>0) valor+=t*c;
+      else if(t>0) semCusto++;
+    });
+    const card=(rot,val,sub,ic)=>`<div class="est-kpi"><span class="ic">${ic}</span>`
+      +`<span class="rot">${rot}</span><span class="val">${val}</span><span class="sub">${sub}</span></div>`;
+    kp.innerHTML =
+        card('Total de Produtos', todos.length, 'SKUs únicos', _EST_ICONES.caixa)
+      + card('Estoque Total', unidades, 'Unidades totais', _EST_ICONES.subindo)
+      + card('Valor Total', _pedFmt(valor),
+             semCusto?(semCusto+' com saldo e sem custo, fora da conta'):'Valor em estoque',
+             _EST_ICONES.dinheiro);
+  }
+
+  const vazio=document.getElementById('est-vazio');
+  tbody.innerHTML='';
+  if(!lista.length){
+    if(vazio){
+      vazio.style.display='block';
+      vazio.innerHTML = todos.length
+        ? 'Nenhum produto com esse filtro.'
+        : 'Nenhum produto lido da Base ainda.<br><span style="font-size:11px;">O catálogo chega pelo fluxo do n8n, no mesmo caminho que já traz os pedidos.</span>';
+    }
+    return;
+  }
+  if(vazio) vazio.style.display='none';
+
+  const frag=document.createDocumentFragment();
+  lista.forEach(p=>{
+    const total=Number(p.total)||0;
+    const classe=total<0?'neg':(total>0?'tem':'');
+    const custo=Number(p.precoMedio)||0;
+    const armazens=_estArmazens(p);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${p.sku||'—'}</td>
+      <td style="color:var(--text-secondary);white-space:normal;max-width:420px;">
+        ${p.link?`<a href="${p.link}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">${p.nome||'—'}</a>`:(p.nome||'—')}
+      </td>
+      <td style="font-family:var(--font-mono);color:var(--text-muted);">${p.ean||'—'}</td>
+      <td><span class="est-saldo ${classe}">${total}</span></td>
+      <td>${armazens.length
+        ? `<div class="est-arm">${armazens.map(a=>{
+            const q=Number(a.qtd)||0;
+            return `<div><span class="nome">${a.nome||'—'}</span><span class="qtd${q<0?' neg':''}">${q} un.</span></div>`;
+          }).join('')}</div>`
+        : '<span style="color:var(--text-muted);">—</span>'}</td>
+      <td style="text-align:right;font-family:var(--font-mono);color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
 }
 
 /* ── O painel de Pedidos ──────────────────────────────────────────────

@@ -1,0 +1,390 @@
+{
+  "name": "Base → LiveOps · Catálogo e estoque",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -460,
+        -40
+      ],
+      "id": "Começar a leitura",
+      "name": "Começar a leitura"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 4
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -460,
+        140
+      ],
+      "id": "A cada 4 horas",
+      "name": "A cada 4 horas"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryWarehouses"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -240,
+        40
+      ],
+      "id": "Base · armazéns",
+      "name": "Base · armazéns",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventories"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -40,
+        40
+      ],
+      "id": "Base · catálogos",
+      "name": "Base · catálogos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Escolhe o catálogo e monta o mapa de armazéns.\n\n   O estoque de cada produto vem com a chave do armazém (\"bl_1\", \"shop_3\"),\n   não com o nome. Sem este mapa a tela mostraria \"bl_1\" para a equipe, que\n   não significa nada para ninguém. Chave que não estiver no mapa aparece\n   como veio e é anotada no log — errar caladinho é o que não pode.  */\nconst est = $getWorkflowStaticData('global');\nest.pagina = 1;\nest.gravados = 0;\nest.custoAchadoEm = '';\nest.chavesSemNome = [];\n\nconst cat = $('Base · catálogos').first().json || {};\nif (cat.status !== 'SUCCESS') {\n  throw new Error('Não consegui listar os catálogos: ' + (cat.error_message || JSON.stringify(cat).slice(0, 300)));\n}\nconst inventarios = Object.entries(cat.inventories || {});\nif (!inventarios.length) throw new Error('A Base não devolveu nenhum catálogo.');\n\n/* Um catálogo só. Se um dia houver mais de um, o log avisa qual foi lido em\n   vez de escolher em silêncio. */\nconst [idCatalogo, dadosCatalogo] = inventarios[0];\n\nconst arm = $('Base · armazéns').first().json || {};\nconst mapa = {};\n(arm.warehouses || []).forEach(w => {\n  const chave = String(w.warehouse_type || '') + '_' + String(w.warehouse_id || '');\n  mapa[chave] = w.name || chave;\n});\n\nconsole.log('catálogo:', idCatalogo, '·', (dadosCatalogo && dadosCatalogo.name) || '(sem nome)',\n            '| catálogos disponíveis:', inventarios.length,\n            '| armazéns:', Object.keys(mapa).length, '→', Object.values(mapa).join(', '));\n\nreturn [{ json: { inventory_id: idCatalogo, mapaArmazens: mapa, pagina: 1 } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        40
+      ],
+      "id": "De onde começar",
+      "name": "De onde começar"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryProductsList"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ inventory_id: $json.inventory_id, page: $json.proximaPagina || 1 }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        380,
+        40
+      ],
+      "id": "Base · página de produtos",
+      "name": "Base · página de produtos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Ids da página. Página vazia encerra o laço devolvendo zero itens — o n8n\n   não tem \"pare aqui\", quem para é a ausência de item. */\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Página de produtos recusada pela Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst ids = Object.keys(r.products || {});\nconst inicio = $('De onde começar').first().json;\n\nif (!ids.length) {\n  const est = $getWorkflowStaticData('global');\n  console.log('fim da varredura — ' + est.gravados + ' produtos gravados em ' + (est.pagina - 1) + ' páginas'\n    + (est.custoAchadoEm ? (' | custo médio lido do campo \"' + est.custoAchadoEm + '\"')\n                         : ' | NENHUM campo de custo médio encontrado — ver o log de \"Montar produtos\"')\n    + (est.chavesSemNome.length ? (' | armazéns sem nome no mapa: ' + est.chavesSemNome.join(', ')) : ''));\n  return [];\n}\n\nreturn [{ json: { ids, inventory_id: inicio.inventory_id } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        580,
+        40
+      ],
+      "id": "Ids da página",
+      "name": "Ids da página"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryProductsData"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ inventory_id: $json.inventory_id, products: $json.ids }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        40
+      ],
+      "id": "Base · dados dos produtos",
+      "name": "Base · dados dos produtos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Um registro por produto.\n\n   O campo do custo médio é a única coisa que eu não pude conferir contra a\n   conta antes de escrever: a rede daqui não alcança a Base. Então em vez de\n   cravar um nome e devolver zero calado, o código procura entre os nomes\n   plausíveis, usa o primeiro que existir e DIZ no log qual foi. Se nenhum\n   existir, o preço fica nulo e a tela mostra um traço — que é a verdade —\n   e o log despeja os campos que o produto realmente tem, para acertarmos o\n   nome de uma vez. */\nconst CANDIDATOS_CUSTO = ['average_cost', 'average_landed_cost', 'purchase_price', 'cost_price', 'average_purchase_price'];\n\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Dados dos produtos recusados pela Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst est = $getWorkflowStaticData('global');\nconst inicio = $('De onde começar').first().json;\nconst mapa = inicio.mapaArmazens || {};\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nconst produtos = Object.entries(r.products || {});\nif (produtos.length && !est.custoAchadoEm) {\n  const amostra = produtos[0][1] || {};\n  const achou = CANDIDATOS_CUSTO.find(c => amostra[c] !== undefined && amostra[c] !== null);\n  if (achou) est.custoAchadoEm = achou;\n  else console.log('nenhum campo de custo entre [' + CANDIDATOS_CUSTO.join(', ') + ']. '\n    + 'Campos que este produto tem: ' + Object.keys(amostra).join(', '));\n}\n\nconst pagina = {};\nprodutos.forEach(([id, p]) => {\n  /* O estoque vem como { \"bl_1\": 3, \"shop_2\": 0 }. A ordem é a que a Base\n     mandou; não reordeno porque a ordem dela agrupa por tipo de armazém e\n     isso ajuda a ler. */\n  const armazens = Object.entries(p.stock || {}).map(([chave, qtd]) => {\n    if (!mapa[chave] && est.chavesSemNome.indexOf(chave) < 0) est.chavesSemNome.push(chave);\n    return { nome: mapa[chave] || chave, qtd: Number(qtd) || 0 };\n  });\n  const total = armazens.reduce((a, x) => a + x.qtd, 0);\n  const custo = est.custoAchadoEm ? Number(p[est.custoAchadoEm]) : NaN;\n\n  pagina['prod_' + id] = {\n    id: 'prod_' + id,\n    sku: String(p.sku || ''),\n    /* EAN é texto, sempre. Ele começa com zero e número come o zero:\n       \"07897570128400\" viraria 7897570128400 e não bate mais com a etiqueta. */\n    ean: String(p.ean || ''),\n    nome: String(p.name || p.text_fields && p.text_fields.name || ''),\n    total: total,\n    armazens: armazens,\n    precoMedio: (isFinite(custo) && custo > 0) ? custo : null,\n    link: 'https://panel-u.baselinker.com/products_catalog.php#product:' + id,\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n});\n\nest.gravados += Object.keys(pagina).length;\nest.pagina += 1;\nconsole.log('página ' + (est.pagina - 1) + ': ' + Object.keys(pagina).length + ' produtos'\n  + (est.custoAchadoEm ? ' | custo em \"' + est.custoAchadoEm + '\"' : ' | sem custo'));\n\n/* Dois ramos: um grava, o outro segue para a próxima página levando o número\n   junto. Ler o contador de um nó que rodou muitas vezes é o que quebrava a\n   carga histórica; aqui o número viaja dentro do item. */\nreturn [\n  [{ json: { pagina: pagina } }],\n  [{ json: { proximaPagina: est.pagina, inventory_id: inicio.inventory_id } }]\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        40
+      ],
+      "id": "Montar produtos",
+      "name": "Montar produtos"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/produtos.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.pagina) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        -60
+      ],
+      "id": "Gravar a página",
+      "name": "Gravar a página",
+      "credentials": {
+        "googleApi": {
+          "id": "",
+          "name": "Firebase (conta de serviço)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1200,
+        160
+      ],
+      "id": "Pausa 1s",
+      "name": "Pausa 1s",
+      "webhookId": "estoque-pausa"
+    }
+  ],
+  "connections": {
+    "Começar a leitura": {
+      "main": [
+        [
+          {
+            "node": "Base · armazéns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A cada 4 horas": {
+      "main": [
+        [
+          {
+            "node": "Base · armazéns",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · armazéns": {
+      "main": [
+        [
+          {
+            "node": "Base · catálogos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · catálogos": {
+      "main": [
+        [
+          {
+            "node": "De onde começar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "De onde começar": {
+      "main": [
+        [
+          {
+            "node": "Base · página de produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · página de produtos": {
+      "main": [
+        [
+          {
+            "node": "Ids da página",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ids da página": {
+      "main": [
+        [
+          {
+            "node": "Base · dados dos produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · dados dos produtos": {
+      "main": [
+        [
+          {
+            "node": "Montar produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar produtos": {
+      "main": [
+        [
+          {
+            "node": "Gravar a página",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Pausa 1s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa 1s": {
+      "main": [
+        [
+          {
+            "node": "Base · página de produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
