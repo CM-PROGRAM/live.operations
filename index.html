@@ -558,6 +558,26 @@ html{overflow-x:hidden;}
 .est-kpi .ic{position:absolute;top:15px;right:16px;width:18px;height:18px;color:var(--text-muted);opacity:.65;}
 .est-kpi .ic svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;}
 .est-tabela td{vertical-align:top;padding-top:13px;padding-bottom:13px;}
+/* ── Acompanhamento ─────────────────────────────────────────── */
+/* Largura fixa nas buscas. Sem ela o input de dentro pede o tamanho do seu
+   próprio placeholder, os dois campos incham e a barra de filtros quebra em
+   três linhas — foi o que aconteceu na primeira medição. */
+.acp-busca{display:flex;align-items:center;gap:7px;background:var(--grad-vidro);border:1px solid var(--glass-border);
+  border-radius:50px;padding:6px 13px;flex:0 0 auto;width:186px;box-shadow:inset 0 2px 6px rgba(0,0,0,.2);}
+.acp-busca span{font-size:11px;color:var(--text-muted);flex:0 0 auto;}
+.acp-busca input{background:none;border:none;outline:none;color:var(--text-primary);font-size:11.5px;
+  font-family:var(--font-sans);width:100%;min-width:0;}
+.acp-mi{display:block;width:100%;text-align:left;background:none;border:none;border-radius:7px;cursor:pointer;
+  color:var(--text-secondary);font-family:var(--font-sans);font-size:12px;padding:7px 11px;}
+.acp-mi:hover{background:var(--veu-medio);color:var(--text-primary);}
+/* O status é a coluna que a pessoa lê primeiro, então ele carrega a cor.
+   Verde é desfecho bom, vermelho é coisa parada esperando gente. */
+.acp-st{font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;white-space:nowrap;display:inline-block;}
+.acp-st.espera{background:rgba(240,180,41,.14);border:1px solid rgba(240,180,41,.45);color:#f5cd6b;}
+.acp-st.andando{background:rgba(143,168,216,.12);border:1px solid rgba(143,168,216,.4);color:#b8ccee;}
+.acp-st.pronto{background:rgba(34,197,94,.13);border:1px solid rgba(34,197,94,.4);color:#86efac;}
+.acp-st.parado{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.45);color:#fca5a5;}
+.acp-tabela tr.arquivado td{opacity:.5;}
 .ent-campo{display:flex;flex-direction:column;gap:4px;}
 .ent-campo > span{font-size:11px;font-weight:700;color:var(--text-secondary);}
 .ent-campo > span b{color:var(--accent);font-weight:700;}
@@ -2017,10 +2037,88 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
     <!-- ENVIOS -->
     <div class="tab-panel" id="tab-envios">
-      <div class="section-header">
-        <span class="section-title">Acompanhamento</span>
-        <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Acompanhamento</h2>
+          <p class="pag-sub">Gerencie compras, devoluções, transferências e envios</p>
+        </div>
+        <div class="pag-acoes" style="position:relative;">
+          <button id="acp-btn-add" class="btn btn-sm" style="width:auto;white-space:nowrap;display:none;" onclick="acpMenuAdd(event)">+ Adicionar</button>
+          <div id="acp-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;z-index:60;
+            background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:10px;
+            box-shadow:var(--sombra-painel);padding:5px;min-width:186px;backdrop-filter:blur(24px);">
+            <button class="acp-mi" onclick="acpNovo('compra')">Nova Compra</button>
+            <button class="acp-mi" onclick="acpNovo('devolucao')">Nova Devolução</button>
+            <button class="acp-mi" onclick="acpNovo('transferencia')">Nova Transferência</button>
+            <button class="acp-mi" onclick="acpNovo('envio')">Novo Envio</button>
+          </div>
+        </div>
       </div>
+
+      <!-- Quatro tipos. Os três primeiros são o que entra e vivem na mesma
+           tabela; "Enviados" é o Live Track dos envios ao cliente, que o n8n
+           alimenta e que tem tela própria desde antes. -->
+      <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
+        <div class="seg" id="acp-seg">
+          <button class="seg-btn active" data-t="compra"        onclick="acpSetTipo('compra')">Compras</button>
+          <button class="seg-btn"        data-t="devolucao"     onclick="acpSetTipo('devolucao')">Devoluções</button>
+          <button class="seg-btn"        data-t="transferencia" onclick="acpSetTipo('transferencia')">Transferências</button>
+          <button class="seg-btn"        data-t="envio"         onclick="acpSetTipo('envio')">Enviados</button>
+        </div>
+        <div id="acp-filtros" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
+          <div class="acp-busca"><span>🔎</span><input id="acp-q-rastreio" type="text" placeholder="Buscar rastreio..." oninput="renderAcompanhamento()"></div>
+          <div class="acp-busca"><span>📦</span><input id="acp-q-produto" type="text" placeholder="Buscar produto..." oninput="renderAcompanhamento()"></div>
+          <button class="btn-sec" style="width:auto;padding:7px 11px;" title="Atualizar" onclick="renderAcompanhamento()">⟳</button>
+          <select id="acp-f-status" onchange="renderAcompanhamento()"
+            style="width:auto;min-width:165px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:7px 14px;cursor:pointer;outline:none;"></select>
+          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
+            <input type="checkbox" id="acp-f-arquivados" onchange="renderAcompanhamento()" style="width:auto;margin:0;cursor:pointer;">
+            Mostrar arquivados
+          </label>
+        </div>
+      </div>
+
+      <!-- COMPRAS / DEVOLUÇÕES / TRANSFERÊNCIAS -->
+      <div id="acp-bloco" class="ped-bloco" style="overflow:hidden;">
+        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+          <span id="acp-titulo" style="font-size:13px;font-weight:800;color:var(--text-primary);">Compras</span>
+          <span id="acp-conta" style="font-size:11.5px;color:var(--text-muted);"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="ped-tabela acp-tabela">
+            <thead>
+              <tr>
+                <th class="ord" data-oa="data"    onclick="acpOrdenar('data')">Data <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oa="loja"    onclick="acpOrdenar('loja')">Loja/Cliente <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oa="rastreio" onclick="acpOrdenar('rastreio')">Rastreio <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oa="itens"   onclick="acpOrdenar('itens')">Produtos <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oa="status"  onclick="acpOrdenar('status')">Status <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oa="atualizado" onclick="acpOrdenar('atualizado')">Última Atualização <span class="seta">&#8597;</span></th>
+                <th class="ord" data-oa="previsao"   onclick="acpOrdenar('previsao')">Previsão <span class="seta">&#8597;</span></th>
+                <th style="text-align:right;">A&ccedil;&otilde;es</th>
+              </tr>
+            </thead>
+            <tbody id="acp-rows"></tbody>
+          </table>
+        </div>
+        <div id="acp-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+        <div id="acp-rodape" style="padding:11px 18px;border-top:1px solid var(--glass-border);display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:11.5px;color:var(--text-muted);">Linhas por página</span>
+          <select id="acp-por-pagina" onchange="acpPorPagina()"
+            style="width:auto;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:8px;color:var(--text-secondary);font-size:11.5px;padding:4px 9px;cursor:pointer;outline:none;">
+            <option>10</option><option>25</option><option>50</option><option>100</option>
+          </select>
+          <div style="flex:1;"></div>
+          <span id="acp-pagina" style="font-size:11.5px;color:var(--text-muted);"></span>
+          <button class="ped-acao" onclick="acpIrPara(1)"          title="Primeira">&laquo;</button>
+          <button class="ped-acao" onclick="acpIrPara(_acpPag-1)"  title="Anterior">&lsaquo;</button>
+          <button class="ped-acao" onclick="acpIrPara(_acpPag+1)"  title="Próxima">&rsaquo;</button>
+          <button class="ped-acao" onclick="acpIrPara(1e9)"        title="Última">&raquo;</button>
+        </div>
+      </div>
+
+      <!-- ENVIADOS — o Live Track de sempre, agora dentro da aba -->
+      <div id="acp-envios">
       <div class="date-header" id="env-date"></div>
 
       <!-- GRUPO 1: PEDIDOS TRANSPORTADORA -->
@@ -2077,6 +2175,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <!-- Pasta Entregues (expande abaixo) -->
         <div id="rst-entregues-rows" style="display:none;max-height:400px;overflow-y:auto;background:rgba(143,168,216,.03);border-top:1px solid var(--green-dim);"></div>
       </div>
+      </div><!-- /acp-envios -->
 
       <!-- MODAL registrar pedidos -->
       <div id="env-count-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;align-items:center;justify-content:center;">
@@ -4671,6 +4770,51 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </div>
 
 <div id="toast"></div>
+<!-- COMPRA / DEVOLUÇÃO / TRANSFERÊNCIA -->
+<div class="modal-overlay" id="acp-overlay">
+  <div class="modal" style="width:520px;">
+    <div class="modal-title" id="acp-modal-titulo">Nova compra</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px;">
+      <div style="display:flex;gap:10px;">
+        <label class="ent-campo" style="flex:1;"><span>Data <b>*</b></span>
+          <input id="acp-data" type="date"></label>
+        <label class="ent-campo" style="flex:1;"><span>Previsão de chegada</span>
+          <input id="acp-previsao" type="date"></label>
+      </div>
+      <label class="ent-campo"><span id="acp-rot-loja">Fornecedor / Loja</span>
+        <input id="acp-loja" type="text" maxlength="120" placeholder="Não informado"></label>
+      <div style="display:flex;gap:10px;">
+        <label class="ent-campo" style="flex:2;"><span>Código de rastreio</span>
+          <input id="acp-rastreio" type="text" maxlength="60" placeholder="LX089799933NL"></label>
+        <label class="ent-campo" style="flex:1;"><span>Status <b>*</b></span>
+          <select id="acp-status"></select></label>
+      </div>
+      <label class="ent-campo"><span>Produtos <small style="font-weight:400;color:var(--text-muted);">— um por linha: SKU · nome · quantidade</small></span>
+        <textarea id="acp-produtos" rows="4" placeholder="AST12840 · Creatina 1kg AST · 12&#10;· Whey Growth 900g · 24"
+          style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-mono);padding:9px 11px;outline:none;resize:vertical;"></textarea>
+        <small id="acp-itens-conta"></small></label>
+      <label class="ent-campo"><span>Observação</span>
+        <input id="acp-obs" type="text" maxlength="200" placeholder="nota fiscal, transportadora, quem recebeu…"></label>
+      <div id="acp-erro" style="display:none;font-size:11.5px;color:#fca5a5;"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="acpFechar()">Cancelar</button>
+      <button class="btn btn-sm" onclick="acpSalvar()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- FICHA — o que chegou, e o botão que leva para a entrada de estoque -->
+<div class="modal-overlay" id="acp-ver-overlay">
+  <div class="modal" style="width:540px;max-height:86vh;overflow-y:auto;">
+    <div class="modal-title" id="acp-ver-titulo">Detalhe</div>
+    <div id="acp-ver-corpo" style="margin-top:12px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost btn-sm" onclick="acpFecharVer()">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ENTRADA DE ESTOQUE — o formulário só monta o pedido. Quem mexe na Base
      é o n8n, e é ele que devolve o que aconteceu de verdade. -->
 <div class="modal-overlay" id="ent-overlay">
@@ -4876,6 +5020,7 @@ function defaultState(){
     pedidosBase:[],
     produtos:[],
     entradasEstoque:[],
+    acompanhamentos:[],
     drogData:{pacheco:[],saopaulo:[]},
     conferencia:[],
     cnpjMkt:{},
@@ -4965,6 +5110,7 @@ function loadLocal(){
     if(!Array.isArray(s.pedidosBase)) s.pedidosBase=[];
     if(!Array.isArray(s.produtos)) s.produtos=[];
     if(!Array.isArray(s.entradasEstoque)) s.entradasEstoque=[];
+    if(!Array.isArray(s.acompanhamentos)) s.acompanhamentos=[];
     if(!s.tasks) s.tasks=defaultState().tasks;
     if(!s.tasks.devolucoes) s.tasks.devolucoes=[];
     if(!Array.isArray(s.tasks.atendimentos)) s.tasks.atendimentos=[];
@@ -6947,7 +7093,10 @@ const COLECOES_REG={
   produtos:      {get:s=>s.produtos,                   set:(s,v)=>{s.produtos=v;}},
   /* Fila de entrada de estoque. A tela escreve pedindo, o n8n executa na
      Base e escreve de volta o que aconteceu. */
-  entradasEstoque:{get:s=>s.entradasEstoque,           set:(s,v)=>{s.entradasEstoque=v;}}
+  entradasEstoque:{get:s=>s.entradasEstoque,           set:(s,v)=>{s.entradasEstoque=v;}},
+  /* Compras, devoluções e transferências — o que ENTRA. Os envios ao
+     cliente continuam em tasks.rastreios, que o n8n alimenta. */
+  acompanhamentos:{get:s=>s.acompanhamentos,           set:(s,v)=>{s.acompanhamentos=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -7605,6 +7754,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.pedidosBase)) data.pedidosBase = [];
   if(!Array.isArray(data.produtos)) data.produtos = [];
   if(!Array.isArray(data.entradasEstoque)) data.entradasEstoque = [];
+  if(!Array.isArray(data.acompanhamentos)) data.acompanhamentos = [];
   if(!data.tasks) data.tasks = defaultState().tasks;
   if(!data.tasks.devolucoes) data.tasks.devolucoes = [];
   if(!Array.isArray(data.tasks.atendimentos)) data.tasks.atendimentos = [];
@@ -8892,7 +9042,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23e';
+const APP_VERSAO='2026.08.23f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9165,6 +9315,7 @@ function buildTabs(){
     if(id==='inicio'){ try{ renderInicio(); }catch(e){ console.warn('renderInicio:',e); } }
     if(id==='integracoes'){ try{ renderIntegracoesTab(); }catch(e){ console.warn('renderIntegracoesTab:',e); } }
     if(id==='estoque'){ try{ renderEstoque(); }catch(e){ console.warn('renderEstoque:',e); } }
+    if(id==='envios'){ try{ renderAcompanhamento(); }catch(e){ console.warn('renderAcompanhamento:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -12042,6 +12193,352 @@ function renderEstoque(){
           }).join('')}</div>`
         : '<span style="color:var(--text-muted);">—</span>'}</td>
       <td style="text-align:right;font-family:var(--font-mono);color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
+    frag.appendChild(tr);
+  });
+  tbody.appendChild(frag);
+}
+
+/* ===== ACOMPANHAMENTO ==============================================
+   Quatro tipos na mesma aba. Os três primeiros — compra, devolução e
+   transferência — são o que ENTRA, e vivem na mesma tabela porque a
+   pergunta é sempre a mesma: o que é, de onde vem, cadê, e já conferi?
+
+   O quarto, "Enviados", é o Live Track dos envios ao cliente. Ele não virou
+   linha desta tabela de propósito: quem escreve nele é o robô das
+   transportadoras, e reescrever a tela dele para caber aqui trocaria uma
+   coisa que funciona por uma que ainda ia precisar ser testada.
+
+   Registro em suplelive/reg/acompanhamentos/<id>:
+     id, tipo 'compra'|'devolucao'|'transferencia'
+     data "AAAA-MM-DD", previsao "AAAA-MM-DD" ou ''
+     loja, rastreio, status, obs
+     produtos [{sku,nome,qtd}]
+     arquivado bool, atualizadoEm, ts, criadoPor, criadoPorKey, criadoEm  */
+const ACP_TIPOS={
+  compra:        {rot:'Compras',        um:'compra',        loja:'Fornecedor / Loja'},
+  devolucao:     {rot:'Devoluções',     um:'devolução',     loja:'Cliente / Loja'},
+  transferencia: {rot:'Transferências', um:'transferência', loja:'De → Para'},
+  envio:         {rot:'Enviados',       um:'envio',         loja:'Cliente'}
+};
+/* A lista é fechada porque status é o que a tela filtra e colore; texto
+   livre viraria trinta grafias da mesma coisa e nenhum filtro funcionaria. */
+const ACP_STATUS=[
+  {v:'Aguardando rastreamento',            c:'espera'},
+  {v:'Em trânsito',                        c:'andando'},
+  {v:'Entregue',                           c:'andando'},
+  {v:'Produto entregue e conferido',       c:'pronto'},
+  {v:'Lançado no estoque',                 c:'pronto'},
+  {v:'PROBLEMA - NÃO CADASTRADO NO ESTOQUE',c:'parado'},
+  {v:'PROBLEMA - extraviado',              c:'parado'},
+  {v:'Cancelado',                          c:'parado'}
+];
+let _acpTipo='compra', _acpPag=1, _acpPorPag=10;
+let _acpOrdem={campo:'data', desc:true};
+
+function acpSetTipo(t){ _acpTipo=t||'compra'; _acpPag=1; renderAcompanhamento(); }
+function acpOrdenar(c){
+  if(_acpOrdem.campo===c) _acpOrdem.desc=!_acpOrdem.desc;
+  else _acpOrdem={campo:c, desc:(c==='data'||c==='atualizado'||c==='itens')};
+  renderAcompanhamento();
+}
+function acpPorPagina(){
+  _acpPorPag=Number((document.getElementById('acp-por-pagina')||{}).value)||10;
+  _acpPag=1; renderAcompanhamento();
+}
+function acpIrPara(p){ _acpPag=Math.max(1,p||1); renderAcompanhamento(); }
+
+function acpMenuAdd(ev){
+  if(ev) ev.stopPropagation();
+  const m=document.getElementById('acp-menu'); if(!m) return;
+  const abrir=m.style.display==='none';
+  m.style.display=abrir?'block':'none';
+  if(abrir) setTimeout(()=>document.addEventListener('click',_acpFecharMenu,{once:true}),0);
+}
+function _acpFecharMenu(){ const m=document.getElementById('acp-menu'); if(m) m.style.display='none'; }
+
+function _acpPodeMexer(){
+  return currentUser && (currentUser.master || (currentUser.perms||[]).includes('envios'));
+}
+function _acpClasseStatus(v){
+  const s=ACP_STATUS.find(x=>x.v===v);
+  return s?s.c:'andando';
+}
+function _acpItens(a){ return Array.isArray(a&&a.produtos)?a.produtos.filter(Boolean):[]; }
+function _acpQtd(a){ return _acpItens(a).reduce((n,p)=>n+(Number(p.qtd)||0),0); }
+
+/* "AST12840 · Creatina 1kg · 12" por linha. O separador é o ponto médio
+   porque nome de produto tem vírgula e tem hífen; ponto médio não tem. */
+function _acpLerProdutos(txt){
+  return String(txt||'').split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
+    const p=l.split('·').map(x=>x.trim());
+    const qtd=Number(String(p[2]==null?'':p[2]).replace(',','.'))||1;
+    return {sku:p[0]||'', nome:p[1]||p[0]||'', qtd:Math.max(1,Math.round(qtd))};
+  });
+}
+function _acpEscreverProdutos(lista){
+  return _acpItens({produtos:lista}).map(p=>[p.sku||'',p.nome||'',p.qtd||1].join(' · ')).join('\n');
+}
+
+function acpNovo(tipo){
+  _acpFecharMenu();
+  /* "Novo Envio" abre o cadastro do Live Track, que já existe e já conversa
+     com o robô das transportadoras. Fazer um segundo formulário criaria dois
+     lugares para cadastrar a mesma coisa. */
+  if(tipo==='envio'){
+    acpSetTipo('envio');
+    try{ openRstModal(null); }catch(e){ showToast('Cadastro de envio indisponível','warn'); }
+    return;
+  }
+  acpAbrir(tipo,null);
+}
+
+function acpAbrir(tipo,id){
+  const ov=document.getElementById('acp-overlay'); if(!ov) return;
+  const a=id?(appState.acompanhamentos||[]).find(x=>x&&x.id===id):null;
+  const t=a?a.tipo:(tipo||'compra');
+  ov.dataset.tipo=t;
+  ov.dataset.id=a?a.id:'';
+  const T=ACP_TIPOS[t]||ACP_TIPOS.compra;
+  document.getElementById('acp-modal-titulo').textContent=(a?'Editar ':'Nova ')+T.um;
+  document.getElementById('acp-rot-loja').textContent=T.loja;
+  const sel=document.getElementById('acp-status');
+  if(sel) sel.innerHTML=ACP_STATUS.map(s=>`<option${a&&a.status===s.v?' selected':''}>${s.v}</option>`).join('');
+  const p=(cid,v)=>{const el=document.getElementById(cid); if(el) el.value=v==null?'':v;};
+  p('acp-data',      a?a.data:_hojeISO());
+  p('acp-previsao',  a?a.previsao:'');
+  p('acp-loja',      a?a.loja:'');
+  p('acp-rastreio',  a?a.rastreio:'');
+  p('acp-obs',       a?a.obs:'');
+  p('acp-produtos',  a?_acpEscreverProdutos(a.produtos):'');
+  const err=document.getElementById('acp-erro'); if(err){ err.style.display='none'; err.textContent=''; }
+  const cta=document.getElementById('acp-itens-conta'); if(cta) cta.textContent='';
+  const ta=document.getElementById('acp-produtos');
+  if(ta) ta.oninput=()=>{
+    const l=_acpLerProdutos(ta.value);
+    const c=document.getElementById('acp-itens-conta');
+    if(c) c.textContent=l.length?(l.length+' produto(s), '+l.reduce((n,x)=>n+x.qtd,0)+' un.'):'';
+  };
+  if(ta) ta.oninput();
+  ov.classList.add('open');
+}
+function acpFechar(){ const o=document.getElementById('acp-overlay'); if(o) o.classList.remove('open'); }
+
+function acpSalvar(){
+  const ov=document.getElementById('acp-overlay');
+  const err=document.getElementById('acp-erro');
+  const falhar=m=>{ if(err){ err.textContent=m; err.style.display='block'; } };
+  const v=id=>String((document.getElementById(id)||{}).value||'').trim();
+  const data=v('acp-data');
+  if(!data) return falhar('Informe a data.');
+  const status=v('acp-status');
+  if(!status) return falhar('Escolha o status.');
+  const produtos=_acpLerProdutos(v('acp-produtos'));
+
+  const agora=new Date();
+  const id=ov.dataset.id;
+  const existente=id?(appState.acompanhamentos||[]).find(x=>x&&x.id===id):null;
+  const campos={
+    tipo:ov.dataset.tipo||'compra',
+    data, previsao:v('acp-previsao'), loja:v('acp-loja'),
+    rastreio:v('acp-rastreio'), status, obs:v('acp-obs'), produtos,
+    atualizadoEm:agora.toLocaleDateString('pt-BR')
+  };
+  if(!Array.isArray(appState.acompanhamentos)) appState.acompanhamentos=[];
+  if(existente){ Object.assign(existente,campos); }
+  else{
+    appState.acompanhamentos.push({
+      id:'acp_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+      ...campos, arquivado:false, ts:agora.getTime(),
+      criadoPor:(currentUser&&currentUser.name)||'', criadoPorKey:(currentUser&&currentUser.key)||'',
+      criadoEm:agora.toLocaleString('pt-BR')
+    });
+  }
+  try{ saveState(appState); }catch(e){ return falhar('Não consegui salvar: '+(e&&e.message||e)); }
+  acpFechar();
+  renderAcompanhamento();
+  showToast(existente?'Registro atualizado':'Registro criado','success');
+}
+
+function acpArquivar(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  /* Arquivar em vez de excluir. Compra some da lista mas o histórico do que
+     entrou continua existindo — é dele que sai qualquer conferência depois. */
+  a.arquivado=!a.arquivado;
+  a.atualizadoEm=new Date().toLocaleDateString('pt-BR');
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
+  renderAcompanhamento();
+  showToast(a.arquivado?'Arquivado':'Desarquivado','success');
+}
+
+function acpVer(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  const ov=document.getElementById('acp-ver-overlay'); if(!ov) return;
+  const T=ACP_TIPOS[a.tipo]||ACP_TIPOS.compra;
+  document.getElementById('acp-ver-titulo').textContent=T.um.charAt(0).toUpperCase()+T.um.slice(1)+(a.rastreio?(' · '+a.rastreio):'');
+  const linha=(r,v)=>v?`<div style="display:flex;gap:10px;padding:3px 0;">
+      <span style="font-size:11.5px;color:var(--text-muted);min-width:130px;">${r}</span>
+      <span style="font-size:12.5px;color:var(--text-primary);">${v}</span></div>`:'';
+  const itens=_acpItens(a);
+  /* Só compra e transferência dão entrada de estoque. Devolução volta para
+     o estoque por outro caminho (a Base baixa no cancelamento), e lançar de
+     novo aqui somaria a mesma unidade duas vezes. */
+  const podeEntrada=(a.tipo==='compra'||a.tipo==='transferencia') && _acpPodeMexer();
+  document.getElementById('acp-ver-corpo').innerHTML=
+      linha('Data', _pedDataBR(a.data))
+    + linha(T.loja, a.loja)
+    + linha('Rastreio', a.rastreio)
+    + linha('Status', `<span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span>`)
+    + linha('Previsão', a.previsao?_pedDataBR(a.previsao):'')
+    + linha('Última atualização', a.atualizadoEm)
+    + linha('Observação', a.obs)
+    + linha('Registrado por', a.criadoPor)
+    + (itens.length?`<div style="margin-top:14px;font-size:12px;font-weight:800;color:var(--text-primary);">Produtos</div>
+        <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">`
+      + itens.map((p,i)=>`<div style="display:flex;align-items:center;gap:9px;background:var(--veu-medio);border:1px solid var(--glass-border);border-radius:9px;padding:8px 11px;">
+            <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-primary);min-width:78px;">${p.sku||'—'}</span>
+            <span style="font-size:11.5px;color:var(--text-secondary);flex:1;">${p.nome||'—'}</span>
+            <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${p.qtd||1} un.</span>
+            ${podeEntrada?`<button class="ped-acao" onclick="acpDarEntrada('${a.id}',${i})">Dar entrada</button>`:''}
+          </div>`).join('')
+      + '</div>'
+      : '<div style="margin-top:14px;font-size:11.5px;color:var(--text-muted);">Nenhum produto listado neste registro.</div>');
+  ov.classList.add('open');
+}
+function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(o) o.classList.remove('open'); }
+
+/* Da conferência para a entrada, sem redigitar. É este o caminho que o
+   pessoal faz na prática: a caixa chegou, confere item por item, e cada
+   item conferido vira entrada. */
+function acpDarEntrada(id,i){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  const p=_acpItens(a)[i]; if(!p) return;
+  acpFecharVer();
+  switchTab('estoque');
+  try{ renderEstoque(); }catch(e){}
+  setTimeout(()=>{
+    entAbrir();
+    const set=(cid,v)=>{const el=document.getElementById(cid); if(el && v!=null) el.value=v;};
+    set('ent-sku',p.sku||'');
+    set('ent-qtd',p.qtd||1);
+    set('ent-obs',[ACP_TIPOS[a.tipo].um, a.rastreio||'', a.loja||''].filter(Boolean).join(' · ').slice(0,200));
+    if(!p.sku) set('ent-nome',p.nome||'');
+    try{ entPrever(); }catch(e){}
+    const c=document.getElementById('ent-custo'); if(c) c.focus();
+  },90);
+}
+
+function renderAcompanhamento(){
+  const seg=document.querySelectorAll('#acp-seg .seg-btn');
+  seg.forEach(b=>b.classList.toggle('active', b.dataset.t===_acpTipo));
+  const btnAdd=document.getElementById('acp-btn-add');
+  if(btnAdd) btnAdd.style.display=_acpPodeMexer()?'':'none';
+
+  /* Enviados troca a tabela pelo Live Track inteiro, filtros incluídos: os
+     filtros daqui (rastreio, produto, arquivados) não existem lá. */
+  const ehEnvio=_acpTipo==='envio';
+  const bloco=document.getElementById('acp-bloco');   if(bloco) bloco.style.display=ehEnvio?'none':'';
+  const envios=document.getElementById('acp-envios'); if(envios) envios.style.display=ehEnvio?'':'none';
+  /* 'flex' explícito, e não ''. String vazia apaga o estilo inline e o
+     elemento volta ao display do CSS, que aqui é block — os filtros viravam
+     uma coluna de cinco linhas encostada na direita. */
+  const filtros=document.getElementById('acp-filtros'); if(filtros) filtros.style.display=ehEnvio?'none':'flex';
+  const tit0=document.getElementById('acp-titulo');
+  if(tit0) tit0.textContent=(ACP_TIPOS[_acpTipo]||ACP_TIPOS.compra).rot;
+  if(ehEnvio){ try{ renderRastreios(); }catch(e){} return; }
+
+  const todos=(appState.acompanhamentos||[]).filter(Boolean).filter(a=>a.tipo===_acpTipo);
+
+  const sel=document.getElementById('acp-f-status');
+  if(sel){
+    const atual=sel.value;
+    const usados=[...new Set(todos.map(a=>a.status).filter(Boolean))];
+    const lista=ACP_STATUS.map(s=>s.v).filter(v=>usados.indexOf(v)>=0)
+      .concat(usados.filter(v=>!ACP_STATUS.some(s=>s.v===v)));
+    sel.innerHTML='<option value="">Todos os Status</option>'+lista.map(v=>`<option${v===atual?' selected':''}>${v}</option>`).join('');
+    if(atual && lista.indexOf(atual)<0) sel.value='';
+  }
+
+  const qr=((document.getElementById('acp-q-rastreio')||{}).value||'').toLowerCase().trim();
+  const qp=((document.getElementById('acp-q-produto')||{}).value||'').toLowerCase().trim();
+  const fst=((document.getElementById('acp-f-status')||{}).value||'');
+  const verArq=!!((document.getElementById('acp-f-arquivados')||{}).checked);
+
+  const lista=todos.filter(a=>{
+    if(!verArq && a.arquivado) return false;
+    if(fst && a.status!==fst) return false;
+    if(qr && !String(a.rastreio||'').toLowerCase().includes(qr)) return false;
+    if(qp && !_acpItens(a).some(p=>(String(p.sku||'')+' '+String(p.nome||'')).toLowerCase().includes(qp))) return false;
+    return true;
+  });
+
+  const dir=_acpOrdem.desc?-1:1;
+  lista.sort((a,b)=>{
+    switch(_acpOrdem.campo){
+      case 'loja':     return dir*String(a.loja||'').localeCompare(String(b.loja||''),'pt-BR');
+      case 'rastreio': return dir*String(a.rastreio||'').localeCompare(String(b.rastreio||''),'pt-BR');
+      case 'itens':    return dir*(_acpQtd(a)-_acpQtd(b));
+      case 'status':   return dir*String(a.status||'').localeCompare(String(b.status||''),'pt-BR');
+      case 'previsao': return dir*String(a.previsao||'').localeCompare(String(b.previsao||''));
+      case 'atualizado': return dir*((Number(a.ts)||0)-(Number(b.ts)||0));
+      default:         return dir*(String(a.data||'').localeCompare(String(b.data||'')) || ((Number(a.ts)||0)-(Number(b.ts)||0)));
+    }
+  });
+  document.querySelectorAll('.acp-tabela th.ord').forEach(th=>{
+    const ativa=th.dataset.oa===_acpOrdem.campo;
+    th.classList.toggle('ativa',ativa);
+    const s=th.querySelector('.seta');
+    if(s) s.textContent=ativa?(_acpOrdem.desc?'▾':'▴'):'↕';
+  });
+
+  const T=ACP_TIPOS[_acpTipo]||ACP_TIPOS.compra;
+  const tit=document.getElementById('acp-titulo'); if(tit) tit.textContent=T.rot;
+  const cnt=document.getElementById('acp-conta');
+  if(cnt) cnt.textContent=lista.length+' registro(s)'+(lista.length!==todos.length?(' de '+todos.length):'');
+
+  const paginas=Math.max(1,Math.ceil(lista.length/_acpPorPag));
+  if(_acpPag>paginas) _acpPag=paginas;
+  const pag=lista.slice((_acpPag-1)*_acpPorPag, _acpPag*_acpPorPag);
+  const rot=document.getElementById('acp-pagina');
+  if(rot) rot.textContent='Página '+_acpPag+' de '+paginas;
+  const rodape=document.getElementById('acp-rodape'); if(rodape) rodape.style.display=lista.length?'flex':'none';
+
+  const tbody=document.getElementById('acp-rows'); if(!tbody) return;
+  const vazio=document.getElementById('acp-vazio');
+  tbody.innerHTML='';
+  if(!pag.length){
+    if(vazio){
+      vazio.style.display='block';
+      vazio.innerHTML = todos.length
+        ? 'Nenhum registro com esse filtro.'
+        : ('Nenhuma '+T.um+' registrada ainda.'+(_acpPodeMexer()?'<br><span style="font-size:11px;">Use <b>+ Adicionar</b> no topo.</span>':''));
+    }
+    return;
+  }
+  if(vazio) vazio.style.display='none';
+
+  const pode=_acpPodeMexer();
+  const frag=document.createDocumentFragment();
+  pag.forEach(a=>{
+    const tr=document.createElement('tr');
+    if(a.arquivado) tr.className='arquivado';
+    const itens=_acpItens(a);
+    const rast=String(a.rastreio||'').trim();
+    tr.innerHTML=`
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(a.data)}</td>
+      <td style="color:var(--text-secondary);white-space:normal;max-width:200px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}</td>
+      <td style="font-family:var(--font-mono);">${rast
+        ? `<a href="https://www.google.com/search?q=${encodeURIComponent(rast)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">${rast} ↗</a>`
+        : '<span style="color:var(--text-muted);">—</span>'}</td>
+      <td style="color:var(--text-secondary);">${itens.length?(itens.length+' item(s)'):'—'}
+        ${itens.length?`<div style="font-size:9.5px;color:var(--text-muted);">${_acpQtd(a)} un.</div>`:''}</td>
+      <td><span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${a.atualizadoEm||'—'}</td>
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${a.previsao?_pedDataBR(a.previsao):'<span style="color:var(--text-muted);">N/A</span>'}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        ${pode?`<button class="ped-acao" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
+        <button class="ped-acao" title="Ver o que chegou" onclick="acpVer('${a.id}')">Ver</button>
+        ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" title="${a.arquivado?'Tirar do arquivo':'Arquivar'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
+      </td>`;
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
