@@ -2227,6 +2227,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
           <span id="acp-titulo" style="font-size:13px;font-weight:800;color:var(--text-primary);">Compras</span>
           <span id="acp-conta" style="font-size:11.5px;color:var(--text-muted);"></span>
+          <div style="flex:1;"></div>
+          <button id="acp-btn-migrar" class="btn-sec" style="display:none;width:auto;" onclick="acpMigrarDevolucoes()"></button>
         </div>
         <div style="overflow-x:auto;">
           <table class="ped-tabela acp-tabela">
@@ -4907,7 +4909,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div class="acp-linha">
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-loja">Nome da Loja <b>*</b></span>
-          <input id="acp-loja" type="text" maxlength="120" placeholder="Ex: Mercado Livre"></label>
+          <input id="acp-loja" type="text" maxlength="120" placeholder="Ex: Mercado Livre" list="acp-lojas" autocomplete="off">
+          <datalist id="acp-lojas"></datalist></label>
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa" id="acp-rot-cliente">Nome do Cliente <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
           <input id="acp-cliente" type="text" maxlength="120" placeholder="Ex: João Silva"></label>
       </div>
@@ -4916,6 +4919,18 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <input id="acp-rastreio" type="text" maxlength="60" placeholder="Ex: AA123456789BR"></label>
         <label class="ent-campo" id="acp-campo-frete"><span class="acp-rot" data-ic="cifrao">Taxa de Entrega <b>*</b></span>
           <input id="acp-frete" type="number" min="0" step="0.01" value="0"></label>
+      </div>
+      <div class="acp-linha" id="acp-linha-dev1" style="display:none;">
+        <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Pedido Base</span>
+          <input id="acp-nped" type="text" maxlength="40" placeholder="Ex: 35017581"></label>
+        <label class="ent-campo"><span class="acp-rot" data-ic="documento">Motivo</span>
+          <select id="acp-motivo"></select></label>
+      </div>
+      <div class="acp-linha" id="acp-linha-dev2" style="display:none;">
+        <label class="ent-campo"><span class="acp-rot" data-ic="documento">Link Base</span>
+          <input id="acp-link-base" type="url" placeholder="https://..."></label>
+        <label class="ent-campo"><span class="acp-rot" data-ic="documento">Link Plataforma</span>
+          <input id="acp-link-plat" type="url" placeholder="https://..."></label>
       </div>
       <div class="acp-linha" id="acp-linha-armazem">
         <label class="ent-campo"><span class="acp-rot" data-ic="predio">Warehouse de Destino <b>*</b></span>
@@ -4928,6 +4943,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <select id="acp-status"></select></label>
         <label class="ent-campo"><span class="acp-rot" data-ic="calendario">Previsão de chegada</span>
           <input id="acp-previsao" type="date"></label>
+      </div>
+      <div class="acp-linha" id="acp-linha-etapa" style="display:none;">
+        <label class="ent-campo"><span class="acp-rot" data-ic="documento">Etapa do estorno</span>
+          <select id="acp-etapa">
+            <option value="aberta">Em aberto</option>
+            <option value="pronto_estorno">Pronto para estorno</option>
+            <option value="concluida">Concluída</option>
+          </select></label>
+        <div></div>
       </div>
       <label class="ent-campo"><span class="acp-rot" data-ic="documento">Observação <small style="font-weight:400;color:var(--text-muted);">(opcional)</small></span>
         <textarea id="acp-obs" rows="3" maxlength="400" placeholder="Adicione observações sobre este registro…"
@@ -9154,7 +9178,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23o';
+const APP_VERSAO='2026.08.23p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9338,10 +9362,14 @@ function buildTabs(){
     // Projetos saiu do menu a pedido. O painel (tab-projnotas) e as notas
     // gravadas continuam no lugar: para trazer a aba de volta, basta
     // devolver esta linha. Apagar o painel apagaria o que já foi escrito.
-    {type:'group', id:'grp-devolucoes', icon:'devolucoes', label:'Devoluções', perm:'devolucoes', children:[
-      {id:'devolucoes', label:'Lançamentos'},
-      {id:'canceladasnf', label:'Canceladas com NF'}
-    ]},
+    /* "Lançamentos" saiu do menu: as devoluções passaram a viver em
+       Acompanhamento → Devoluções, com as fotos, o pedido base, os links e o
+       estorno. O painel (tab-devolucoes) e os registros continuam no lugar —
+       apagar agora seria jogar fora o único lugar de onde se pode tentar de
+       novo se a migração tiver saído torta. Para trazer a aba de volta, basta
+       devolver a linha de baixo.
+         {id:'devolucoes', label:'Lançamentos'},                              */
+    {id:'canceladasnf', icon:'devolucoes', label:'Canceladas com NF', perm:'devolucoes'},
     {id:'templates',  icon:'templates',    label:'Templates',       perm:'admin'},
     {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'admin'},
     /* "Rastreador Live" virou "Acompanhamento": o nome antigo dizia a
@@ -12506,9 +12534,18 @@ let _acpTipo='compra';
    porque quem devolve devolve o pedido, não uma carga. O que ela tem e as
    outras não é foto: o estado em que a mercadoria chegou é a prova. */
 const ACP_CAMPOS={
-  compra:        {frete:true,  armazem:true,  produtos:true,  fotos:false},
-  devolucao:     {frete:false, armazem:false, produtos:false, fotos:true},
-  transferencia: {frete:false, armazem:true,  produtos:true,  fotos:false}
+  compra:        {frete:true,  armazem:true,  produtos:true,  fotos:false, dev:false},
+  devolucao:     {frete:false, armazem:false, produtos:false, fotos:true,  dev:true},
+  transferencia: {frete:false, armazem:true,  produtos:true,  fotos:false, dev:false}
+};
+/* As etapas do estorno, que vieram da aba Devoluções. Elas não são o status
+   do pacote — são onde está a nota. Um produto pode estar "Entregue" e a NF
+   ainda não ter sido estornada; são duas perguntas diferentes e cada uma
+   tem quem a responda. */
+const ACP_ETAPAS={
+  aberta:         {rot:'Em aberto',           c:'espera'},
+  pronto_estorno: {rot:'Pronto para estorno', c:'andando'},
+  concluida:      {rot:'Estorno concluído',   c:'pronto'}
 };
 function _acpPerfil(tipo){ return ACP_CAMPOS[tipo]||ACP_CAMPOS.compra; }
 let _acpFotos=[];
@@ -12536,7 +12573,14 @@ function _acpPodeMexer(){
 }
 function _acpClasseStatus(v){
   const s=ACP_STATUS.find(x=>x.v===v);
-  return s?s.c:'andando';
+  if(s) return s.c;
+  /* A devolução tem status próprios e o master ainda pode criar outros.
+     Sem esta leitura pelo texto, tudo que ele criasse sairia cinza. */
+  const t=String(v||'').toLowerCase();
+  if(/cancel|extravi|problema/.test(t)) return 'parado';
+  if(/conclu|entreg|finaliz/.test(t))   return 'pronto';
+  if(/aguard|estorn|pendent/.test(t))   return 'espera';
+  return 'andando';
 }
 function _acpItens(a){ return Array.isArray(a&&a.produtos)?a.produtos.filter(Boolean):[]; }
 function _acpQtd(a){ return _acpItens(a).reduce((n,p)=>n+(Number(p.qtd)||0),0); }
@@ -12727,11 +12771,38 @@ function acpAbrir(tipo,id){
   mostrar('acp-linha-armazem', perfil.armazem, 'grid');
   mostrar('acp-bloco-produtos',perfil.produtos);
   mostrar('acp-bloco-fotos',   perfil.fotos);
+  mostrar('acp-linha-dev1',    perfil.dev, 'grid');
+  mostrar('acp-linha-dev2',    perfil.dev, 'grid');
+  mostrar('acp-linha-etapa',   perfil.dev && !!a, 'grid');
+  if(perfil.dev){
+    /* Motivo e plataforma vêm das mesmas listas que o master já edita —
+       trazer a devolução para cá não podia significar recomeçar as listas
+       do zero. */
+    try{ renderCustomOpts('acp-motivo', DEV_MOTIVO_BASE, 'customMotivosDev', a?a.motivo:''); }catch(e){}
+    const dl=document.getElementById('acp-lojas');
+    if(dl){
+      let plt=DEV_PLT_BASE.slice();
+      try{ plt=plt.concat((appState.customPlataformasDev||[])); }catch(e){}
+      dl.innerHTML=[...new Set(plt)].map(x=>`<option value="${String(x).replace(/"/g,'&quot;')}">`).join('');
+    }
+    const et=document.getElementById('acp-etapa');
+    if(et) et.value=(a&&a.etapa)||'aberta';
+  }
   _acpFotos = a && Array.isArray(a.fotos) ? a.fotos.slice() : [];
   acpDesenharFotos();
 
   const sel=document.getElementById('acp-status');
-  if(sel) sel.innerHTML=ACP_STATUS.map(s=>`<option${a&&a.status===s.v?' selected':''}>${s.v}</option>`).join('');
+  if(sel){
+    if(t==='devolucao'){
+      /* A devolução tem o vocabulário dela — "Em devolução", "Estornar NF
+         Saída" — que não existe em compra. Usar o nosso apagaria uma
+         distinção que a operação faz todo dia. */
+      try{ renderCustomOpts('acp-status', DEV_STATUS_BASE, 'customStatusDev', a?a.status:''); }
+      catch(e){ sel.innerHTML=DEV_STATUS_BASE.map(v=>`<option${a&&a.status===v?' selected':''}>${v}</option>`).join(''); }
+    }else{
+      sel.innerHTML=ACP_STATUS.map(s=>`<option${a&&a.status===s.v?' selected':''}>${s.v}</option>`).join('');
+    }
+  }
   const st=document.getElementById('acp-transportadora');
   if(st){
     const atual=a?String(a.transportadora||''):'';
@@ -12764,6 +12835,9 @@ function acpAbrir(tipo,id){
   p('acp-cliente',   a?a.cliente:'');
   p('acp-rastreio',  a?a.rastreio:'');
   p('acp-frete',     a?(Number(a.taxaEntrega)||0):0);
+  p('acp-nped',      a?a.numeroPedido:'');
+  p('acp-link-base', a?a.linkBase:'');
+  p('acp-link-plat', a?a.linkPlat:'');
   p('acp-obs',       a?a.obs:'');
   acpDesenharProdutos(a?a.produtos:null);
   const err=document.getElementById('acp-erro'); if(err){ err.style.display='none'; err.textContent=''; }
@@ -12870,13 +12944,22 @@ function acpSalvar(){
     taxaEntrega:perfil.frete?(Number(v('acp-frete'))||0):0,
     rastreio, obs:v('acp-obs'), produtos,
     fotos:perfil.fotos?_acpFotos.slice():[],
+    numeroPedido:perfil.dev?v('acp-nped'):'',
+    motivo:perfil.dev?v('acp-motivo'):'',
+    linkBase:perfil.dev?v('acp-link-base'):'',
+    linkPlat:perfil.dev?v('acp-link-plat'):'',
     atualizadoEm:agora.toLocaleDateString('pt-BR')
   };
+  if(perfil.dev && existente) campos.etapa=v('acp-etapa')||'aberta';
   /* Na criação, status e previsão não estão na tela — não podem ser lidos de
      um campo escondido, senão o registro novo nasceria com o valor que
      sobrou da última edição aberta. */
   if(existente){ campos.status=v('acp-status'); campos.previsao=v('acp-previsao'); }
-  else{ campos.status='Aguardando rastreamento'; campos.previsao=''; }
+  else{
+    campos.status = (tipo==='devolucao') ? (DEV_STATUS_BASE[0]||'Em devolução') : 'Aguardando rastreamento';
+    campos.previsao='';
+    if(tipo==='devolucao') campos.etapa='aberta';
+  }
   if(!Array.isArray(appState.acompanhamentos)) appState.acompanhamentos=[];
   if(existente){ Object.assign(existente,campos); }
   else{
@@ -13108,29 +13191,90 @@ function _acpColunas(){ return ACP_COLUNAS[_acpTipo]||ACP_COLUNAS.compra; }
    devolução, e a pergunta "qual das duas está certa?" não tem resposta boa.
    Aqui eles entram como leitura — dá para ver e abrir a ficha, não dá para
    editar, e a coluna Ações diz onde se edita. */
-function _acpDevolucoesAntigas(){
-  return ((appState.tasks||{}).devolucoes||[]).filter(Boolean).map(d=>({
-    id:'dev_antigo_'+d.id,
-    _antigo:true, _idOriginal:d.id,
+/* Traz as devoluções da aba antiga para cá, de verdade.
+
+   Copia, não move: os registros originais ficam onde estão. Apagar a fonte
+   no mesmo clique que cria a cópia é apostar que a cópia saiu perfeita — e
+   se saiu errada, não há de onde tentar de novo. A aba sai do menu, que é o
+   que se pediu; o dado antigo dorme no lugar dele e pode ser apagado depois,
+   com calma, quando ninguém mais sentir falta.
+
+   Roda uma vez e é idempotente: cada cópia guarda o id de origem, e quem já
+   veio não vem de novo. Duas pessoas clicando ao mesmo tempo não duplicam. */
+function acpMigrarDevolucoes(){
+  const antigas=((appState.tasks||{}).devolucoes||[]).filter(Boolean);
+  const jaVieram=new Set((appState.acompanhamentos||[]).filter(Boolean)
+    .map(a=>a.origemDevId).filter(Boolean));
+  const faltam=antigas.filter(d=>!jaVieram.has(d.id));
+  if(!faltam.length){ showToast('Todas as devoluções antigas já estão aqui','info'); return; }
+  if(!confirm('Trazer '+faltam.length+' devolução(ões) da aba antiga para cá?\n\n'
+    +'Os registros originais continuam lá, intactos. Nada é apagado.')) return;
+
+  if(!Array.isArray(appState.acompanhamentos)) appState.acompanhamentos=[];
+  const agora=Date.now();
+  faltam.forEach((d,i)=>{
+    const conv=_acpDeAntiga(d);
+    appState.acompanhamentos.push({
+      ...conv,
+      id:'acp_dev_'+agora.toString(36)+'_'+i,
+      origemDevId:d.id,
+      _antigo:false,
+      /* O número do pedido vem no campo certo. Na leitura provisória ele
+         aparecia embaixo do cliente porque não havia onde guardar; agora há. */
+      conferido:conv.etapa==='concluida'
+    });
+  });
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); return; }
+  renderAcompanhamento();
+  showToast('✔ '+faltam.length+' devolução(ões) trazidas — os originais continuam na aba antiga','success');
+}
+
+/* Conversão de um registro antigo. Usada tanto na leitura provisória quanto
+   na migração, para as duas nunca discordarem. */
+function _acpDeAntiga(d){
+  return {
     tipo:'devolucao',
     data:_acpDataAntiga(d.data),
     cliente:d.cliente||'',
     loja:d.plataforma||'',
     transportadora:'',
-    /* A devolução antiga guarda o número do pedido, não o rastreio. Pôr o
-       pedido na coluna Rastreio seria mentir sobre o que o número é. */
     rastreio:'',
     numeroPedido:d.nped||'',
-    status:_acpStatusAntigo(d),
+    motivo:d.motivo||'',
+    linkBase:d.linkBase||'',
+    linkPlat:d.linkPlat||'',
+    /* O status antigo era da lista que o master edita, e a nova tela usa a
+       mesma lista — então ele passa inteiro, sem tradução. */
+    status:d.status||(typeof DEV_STATUS_BASE!=='undefined'?DEV_STATUS_BASE[0]:'Em devolução'),
+    etapa:_acpEtapaAntiga(d),
     previsao:'',
-    obs:d.motivo||'',
-    fotos:Array.isArray(d.fotos)?d.fotos:[],
-    conferido:String(d.workflow||'')==='concluida',
+    obs:d.motivo?('Motivo: '+d.motivo):'',
+    fotos:Array.isArray(d.fotos)?d.fotos.slice():[],
+    fotosRef:Array.isArray(d.fotosRef)?d.fotosRef.slice():[],
     arquivado:false,
     criadoPor:d.criadoPor||'',
     criadoEm:d.criadoEm||'',
     atualizadoEm:d.atualizadoEm||d.criadoEm||'',
     ts:Number(d.ordemManual)||0
+  };
+}
+function _acpEtapaAntiga(d){
+  const w=String((d&&(d.workflow||''))||'').toLowerCase();
+  if(w==='concluida'||w==='finalizada') return 'concluida';
+  if(w==='pronto_estorno'||w==='estorno') return 'pronto_estorno';
+  return 'aberta';
+}
+
+function _acpDevolucoesAntigas(){
+  /* Só mostra as que ainda não foram trazidas — depois da migração elas
+     viram registros de verdade e apareceriam duas vezes. */
+  const jaVieram=new Set((appState.acompanhamentos||[]).filter(Boolean)
+    .map(a=>a.origemDevId).filter(Boolean));
+  return ((appState.tasks||{}).devolucoes||[]).filter(d=>d&&!jaVieram.has(d.id)).map(d=>({
+    ..._acpDeAntiga(d),
+    id:'dev_antigo_'+d.id,
+    _antigo:true, _idOriginal:d.id,
+    conferido:_acpEtapaAntiga(d)==='concluida'
   }));
 }
 function _acpDataAntiga(v){
@@ -13236,6 +13380,14 @@ function renderAcompanhamento(){
 
   const T=ACP_TIPOS[_acpTipo]||ACP_TIPOS.compra;
   const tit=document.getElementById('acp-titulo'); if(tit) tit.textContent=T.rot;
+  const btnMig=document.getElementById('acp-btn-migrar');
+  if(btnMig){
+    const pendentes=(_acpTipo==='devolucao'&&_acpPodeMexer())
+      ? todos.filter(a=>a._antigo).length : 0;
+    btnMig.style.display=pendentes?'':'none';
+    btnMig.textContent='Trazer '+pendentes+' da aba antiga';
+    btnMig.title='Copia as devoluções da aba Devoluções para cá. Os originais continuam lá.';
+  }
   const cnt=document.getElementById('acp-conta');
   if(cnt) cnt.textContent=lista.length+' registro(s)'+(lista.length!==todos.length?(' de '+todos.length):'');
 
@@ -13294,8 +13446,14 @@ function _acpCelula(col,a,pode){
       return `<td style="color:var(--text-secondary);">${itens.length?(itens.length+' item(s)'):'—'}
         ${itens.length?`<div style="font-size:9.5px;color:var(--text-muted);">${_acpQtd(a)} un.</div>`:''}</td>`;
     }
-    case 'status':
-      return `<td><span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span></td>`;
+    case 'status': {
+      /* A etapa do estorno mora embaixo do status em vez de ocupar coluna
+         própria: são dez colunas já, e quem lê "Entregue · Pronto para
+         estorno" entende a diferença sem precisar de outro cabeçalho. */
+      const et=(_acpTipo==='devolucao')?ACP_ETAPAS[a.etapa||'aberta']:null;
+      return `<td><span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span>
+        ${et?`<div style="font-size:9.5px;color:var(--text-muted);margin-top:3px;">${et.rot}</div>`:''}</td>`;
+    }
     case 'atualizado':
       return `<td style="${mono}">${a.atualizadoEm||'—'}</td>`;
     case 'previsao':
@@ -13311,21 +13469,126 @@ function _acpCelula(col,a,pode){
       return `<td>${(pode&&!a._antigo)
         ? `<button class="acp-conf${a.conferido?' sim':''}" title="Marcar como conferido" onclick="acpConferir('${a.id}')">${a.conferido?'✓ Sim':'Não'}</button>`
         : `<span class="acp-conf${a.conferido?' sim':''}">${a.conferido?'✓ Sim':'Não'}</span>`}</td>`;
-    case 'acoes':
+    case 'acoes': {
       if(a._antigo){
         return `<td style="text-align:right;white-space:nowrap;">
           <button class="ped-acao" title="Ver a devolução" onclick="acpVer('${a.id}')">Ver</button>
-          <button class="ped-acao" title="Editar na aba Devoluções, que é a dona deste registro" onclick="switchTab('devolucoes')">Abrir na aba</button>
+          <span style="font-size:9.5px;color:var(--text-muted);margin-left:6px;">da aba antiga</span>
         </td>`;
       }
+      const fotos=(Array.isArray(a.fotos)?a.fotos.length:0);
+      const ehDev=_acpTipo==='devolucao';
       return `<td style="text-align:right;white-space:nowrap;">
+        ${ehDev?(fotos
+          ? `<button class="ped-acao" title="Ver as ${fotos} foto(s) anexadas" onclick="acpVerFotos('${a.id}')">Imagem</button>`
+          : `<button class="ped-acao" title="Nenhuma foto anexada" disabled style="opacity:.4;cursor:default;">Imagem</button>`):''}
+        ${(ehDev&&pode)?_acpBotaoEstorno(a):''}
         ${pode?`<button class="ped-acao" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
         <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
         ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" title="${a.arquivado?'Tirar do arquivo':'Arquivar'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
       </td>`;
+    }
     default:
       return '<td></td>';
   }
+}
+
+/* O botão do estorno diz em que ponto está, e só deixa pedir uma vez. Pedir
+   duas vezes criaria duas tarefas para a mesma nota, e o Carlos Red faria o
+   estorno dobrado — dinheiro devolvido a mais é bem mais difícil de
+   desfazer do que uma tarefa a menos. */
+function _acpBotaoEstorno(a){
+  if(a.etapa==='concluida')
+    return `<button class="ped-acao" disabled style="opacity:.45;cursor:default;" title="Estorno concluído">NF estornada</button>`;
+  if(a.tarefaEstornoId)
+    return `<button class="ped-acao" title="A tarefa já foi criada — abrir na Central de Tarefas" onclick="acpAbrirTarefaEstorno('${a.id}')">Estorno pedido</button>`;
+  return `<button class="ped-acao" title="Cria a tarefa do estorno da NF de saída para o Carlos Red" onclick="acpEstornarNF('${a.id}')">Estornar NF</button>`;
+}
+
+function acpAbrirTarefaEstorno(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  switchTab('tarefas');
+  try{ renderAtividades(); }catch(e){}
+  showToast('A tarefa do estorno está na Central de Tarefas, área Devoluções','info');
+}
+
+/* Estornar NF: cria a tarefa para quem emite a nota.
+
+   Antes, o que movia o processo era anexar uma foto — o card virava
+   "pronto para estorno" sozinho, sem ninguém pedir. Efeito colateral
+   escondido: quem só quis registrar como o produto chegou acabava
+   disparando um estorno. Agora é um botão, com nome, e quem clica sabe o
+   que está pedindo. */
+function acpEstornarNF(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  if(a.tarefaEstornoId){ acpAbrirTarefaEstorno(id); return; }
+  const quem=a.cliente||a.loja||'cliente não informado';
+  if(!confirm('Pedir o estorno da NF de saída desta devolução?\n\n'
+    +quem+(a.numeroPedido?(' · pedido '+a.numeroPedido):'')+'\n\n'
+    +'Uma tarefa vai para o Carlos Red fazer o estorno e dar a volta do produto no estoque.')) return;
+
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const agora=Date.now();
+  const tarefa={
+    id:'atv_estorno_'+agora+'_'+Math.random().toString(36).slice(2,6),
+    areaTarefa:'devolucoes',
+    origemDevolucaoId:a.id,
+    titulo:'Estornar NF de saída: '+quem+(a.numeroPedido?(' · pedido '+a.numeroPedido):''),
+    observacao:[
+      'Cliente: '+(a.cliente||'—'),
+      'Loja: '+(a.loja||'—'),
+      a.numeroPedido?('Pedido Base: '+a.numeroPedido):'',
+      a.motivo?('Motivo: '+a.motivo):'',
+      a.rastreio?('Rastreio: '+a.rastreio+(a.transportadora?(' · '+a.transportadora):'')):'',
+      a.linkBase?('Link Base: '+a.linkBase):'',
+      a.linkPlat?('Link Plataforma: '+a.linkPlat):'',
+      (Array.isArray(a.fotos)&&a.fotos.length)?(a.fotos.length+' foto(s) anexadas — ver em Acompanhamento → Devoluções'):'',
+      '',
+      'Estornar a NF de saída e dar a volta do produto no estoque.'
+    ].filter(Boolean).join('\n'),
+    vencimento:_hojeISO(),
+    prioridade:'alta',
+    status:'aberta',
+    /* Vai nominal para quem emite a nota. Tarefa de estorno sem dono fica
+       na fila de todo mundo, que é a fila de ninguém. */
+    responsavel:'carlosred',
+    responsaveis:['carlosred'],
+    criadoEm:_agoraCarimbo(),
+    criadoPor:(currentUser&&currentUser.name)||'',
+    criadoPorKey:(currentUser&&currentUser.key)||'',
+    ordemManual:agora,
+    comentarios:[]
+  };
+  appState.atividades.push(tarefa);
+  a.tarefaEstornoId=tarefa.id;
+  a.etapa='pronto_estorno';
+  a.atualizadoEm=new Date().toLocaleDateString('pt-BR');
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
+  renderAcompanhamento();
+  try{ renderAtividades(); }catch(e){}
+  showToast('✔ Tarefa de estorno criada para o Carlos Red','success');
+}
+
+/* Ver as fotos anexadas, sem passar pela ficha inteira. */
+function acpVerFotos(id){
+  let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
+  if(!a && String(id).indexOf('dev_antigo_')===0) a=_acpDevolucoesAntigas().find(x=>x.id===id);
+  const fotos=(a&&Array.isArray(a.fotos))?a.fotos:[];
+  if(!fotos.length){ showToast('Esta devolução não tem foto anexada','info'); return; }
+  const ov=document.getElementById('acp-ver-overlay'); if(!ov) return;
+  document.getElementById('acp-ver-titulo').textContent='Fotos · '+(a.cliente||a.loja||'devolução');
+  document.getElementById('acp-ver-corpo').innerHTML=
+    '<div class="acp-fotos" style="gap:10px;">'
+    + fotos.map((f,i)=>`<div class="fo" style="width:150px;height:150px;"><img src="${f}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
+    + '</div><div style="margin-top:10px;font-size:11px;color:var(--text-muted);">Clique numa foto para abrir em tamanho cheio.</div>';
+  ov.classList.add('open');
+}
+function acpAmpliar(i,id){
+  let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
+  if(!a && String(id).indexOf('dev_antigo_')===0) a=_acpDevolucoesAntigas().find(x=>x.id===id);
+  const f=a&&Array.isArray(a.fotos)?a.fotos[i]:null; if(!f) return;
+  const w=window.open('');
+  if(w) w.document.write('<title>Foto da devolução</title><img src="'+f+'" style="max-width:100%;">');
 }
 
 function acpConferir(id){
