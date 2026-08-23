@@ -7136,6 +7136,15 @@ function _liberarGravacaoNaNuvem(origem){
 }
 
 function saveState(s){
+  /* Chamada sem estado, esta função fazia estrago antes de reclamar: o
+     saveLocal roda primeiro e gravava a string "undefined" por cima do cache
+     do navegador; só depois vinha o erro, ao montar o pacote da nuvem. O
+     resultado era uma gravação que apagava a cópia local e não subia nada,
+     sem nenhum aviso na tela. Recusar na porta custa uma linha. */
+  if(!s || typeof s!=='object'){
+    console.error('[saveState] chamado sem estado — nada foi gravado');
+    return;
+  }
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
   reconcileAutoTasks(s);
@@ -8131,9 +8140,24 @@ function _autenticarNoFirebase(chave,senha){
       .then(()=>{ _ultimoErroAuth=''; return true; })
       .catch(err=>{
         const c=(err&&err.code)||'';
+        /* O Firebase novo devolve `invalid-login-credentials` tanto para
+           "essa conta não existe" quanto para "a senha está errada" — os dois
+           casos com o mesmo código, de propósito, para não revelar quais
+           e-mails têm conta. A única forma de separar é tentar criar. */
         if(c==='auth/user-not-found' || c==='auth/invalid-login-credentials' || c==='auth/invalid-credential'){
           return firebase.auth().createUserWithEmailAndPassword(email,senha)
-            .then(()=>{ _ultimoErroAuth=''; return true; }).catch(registrar);
+            .then(()=>{ _ultimoErroAuth=''; return true; })
+            .catch(err2=>{
+              const c2=(err2&&err2.code)||'';
+              /* A conta existe: então o que falhou lá em cima foi a senha, e
+                 é ESSE o erro que interessa. Deixar `email-already-in-use`
+                 como resposta apagava a única pista de que a nuvem recusou a
+                 senha — e o login, sem essa pista, caía de volta na cópia
+                 local e deixava entrar com a senha antiga. A troca por
+                 e-mail virava enfeite. */
+              if(c2==='auth/email-already-in-use') return registrar(err);
+              return registrar(err2);
+            });
         }
         return registrar(err);
       });
@@ -8239,6 +8263,11 @@ function forcarResetSenhaTodos(){
 
   const fila=alvos.reduce((p,[k,u])=>p.then(()=>{
     u.precisaRedefinir=true;
+    /* Guarda a impressão da senha que está valendo agora. É ela que, no
+       login, prova que a pessoa realmente trocou — sem isso não há como
+       distinguir "redefiniu" de "entrou com a senha velha", e a exigência
+       ou some cedo demais ou nunca sai do caminho. */
+    u.hashAntesDoReset=u.passHash||'';
     if(!temAuth){ pendentes.push(u.name); return; }
     return firebase.auth().sendPasswordResetEmail(u.email,cfg)
       .then(()=>{ enviados++; })
@@ -8413,15 +8442,35 @@ function confirmarNovaSenha(){
       return firebase.auth().confirmPasswordReset(codigo,s1); })
     .then(()=>_hashSenha(s1))
     .then(hash=>{
-      // Mantém a cópia local em dia, para o login funcionar mesmo sem internet
-      try{
-        const par=Object.entries(appState.users||{}).find(([,v])=>v && String(v.email||'').toLowerCase()===emailDono);
-        if(par && hash){
-          par[1].passHash=hash; delete par[1].pass;
-          delete par[1].precisaRedefinir; // exigência cumprida
-          saveState(appState);
-        }
-      }catch(e){}
+      /* Esta tela roda ANTES do login, e antes do login a sincronização com
+         a nuvem não começou. Um saveState aqui só chegaria no navegador e
+         voltaria atrás — foi exatamente o que prendeu todo mundo num laço:
+         a senha mudava no Firebase Auth, mas a marca "precisa redefinir"
+         continuava intacta no banco, e o login seguinte, que lê os usuários
+         da nuvem por cima da cópia local, exigia a redefinição de novo.
+         A cada tentativa. Para sempre.
+
+         Então a limpeza vai direto ao banco, sem depender da sincronização.
+         A cópia local é atualizada junto, para o login funcionar sem
+         internet. */
+      const par=Object.entries(appState.users||{}).find(([,v])=>v && String(v.email||'').toLowerCase()===emailDono);
+      if(par && hash){
+        par[1].passHash=hash; delete par[1].pass;
+        delete par[1].precisaRedefinir; delete par[1].hashAntesDoReset;
+        try{ saveLocal(appState); }catch(e){}
+      }
+      if(par && hash && db && fbConnected){
+        return db.ref(FB_PATH+'/users/'+_regChave(par[0])).update({
+          passHash:hash, pass:null, precisaRedefinir:null, hashAntesDoReset:null
+        }).catch(err=>{
+          /* Não trava a troca: a senha já mudou no Firebase Auth e a pessoa
+             consegue entrar. O que pode voltar é a exigência — e o login
+             sabe se defender sozinho comparando a impressão da senha. */
+          console.warn('[reset] não consegui limpar a marca na nuvem:',err&&err.message);
+        });
+      }
+    })
+    .then(()=>{
       _resetErro('✓ Senha alterada. Faça login com a nova senha.','#22c55e');
       setTimeout(()=>{
         fecharRedefinicao();
@@ -8484,14 +8533,17 @@ function doLogin(){
     // Com internet, quem decide é a nuvem — é o que faz a redefinição por
     // e-mail valer de verdade. Sem internet, vale a senha guardada aqui.
     let liberado=senhaLocalConfere;
+    let nuvemAceitou=false;
     const temNuvem = (typeof firebase!=='undefined' && firebase.auth && navigator.onLine!==false);
     if(temNuvem){
       const entrou=await _autenticarNoFirebase(chave,p);
+      nuvemAceitou=entrou;
       if(entrou){
         liberado=true;
         // Senha pode ter sido trocada por e-mail: sincroniza a cópia local
         if(hashDigitado && dados.passHash!==hashDigitado){ dados.passHash=hashDigitado; delete dados.pass; }
-      } else if(_ultimoErroAuth==='auth/wrong-password' || _ultimoErroAuth==='auth/invalid-login-credentials'){
+      } else if(_ultimoErroAuth==='auth/wrong-password' || _ultimoErroAuth==='auth/invalid-login-credentials'
+             || _ultimoErroAuth==='auth/invalid-credential'){
         liberado=false; // a nuvem tem outra senha — prevalece
       }
     }
@@ -8499,6 +8551,38 @@ function doLogin(){
 
     // Primeira entrada após a mudança: troca a senha legível pela impressão
     if(!dados.passHash && hashDigitado){ dados.passHash=hashDigitado; delete dados.pass; }
+
+    /* A exigência de senha nova já foi cumprida?
+
+       Ela pode ter sido cumprida sem passar pela nossa tela — pelo link do
+       e-mail aberto na página do próprio Firebase, ou pela nossa tela num
+       momento em que a limpeza na nuvem não passou. Em qualquer desses casos
+       a senha mudou de verdade, e insistir na exigência prende a pessoa num
+       laço sem saída.
+
+       A prova é a impressão da senha: se a nuvem aceitou o que foi digitado e
+       isso é diferente do que valia quando o master pediu a troca, a troca
+       aconteceu. */
+    if(dados.precisaRedefinir && nuvemAceitou){
+      const temBase=Object.prototype.hasOwnProperty.call(dados,'hashAntesDoReset');
+      /* Sem a base de comparação, a marca é anterior a esta correção — e
+         nessa época ela não deixava ninguém entrar, nem quem já tinha
+         trocado a senha. Manter a exigência agora só perpetuaria o laço,
+         inclusive para o master, e aí não sobraria ninguém para consertar.
+         Aceitar o login da nuvem é o caminho que destrava. Para exigir a
+         troca de novo com a prova em mãos, basta o master repetir o pedido
+         de redefinição depois desta versão. */
+      if(!temBase || (hashDigitado && hashDigitado!==dados.hashAntesDoReset)){
+        delete dados.precisaRedefinir; delete dados.hashAntesDoReset;
+        if(db && fbConnected){
+          try{
+            db.ref(FB_PATH+'/users/'+_regChave(chave))
+              .update({precisaRedefinir:null, hashAntesDoReset:null})
+              .catch(err=>console.warn('[reset] marca não saiu da nuvem:',err&&err.message));
+          }catch(e){}
+        }
+      }
+    }
 
     // Master exigiu senha nova: não entra, vai direto para a redefinição.
     // A conta na nuvem já existe neste ponto, então o e-mail sai agora.
@@ -8638,7 +8722,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23b';
+const APP_VERSAO='2026.08.23c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11600,7 +11684,18 @@ function baseConfirmarImport(){
   if(!Array.isArray(appState.pedidosBase)) appState.pedidosBase=[];
   appState.pedidosBase=appState.pedidosBase.concat(N);
   baseFecharImport();
-  saveState();
+  /* saveState PRECISA receber o estado. Chamado sem argumento ele quebra
+     antes de gravar qualquer coisa, e o efeito é cruel: a tela mostra os
+     pedidos importados, o aviso diz que deu certo, e nada foi salvo — some
+     tudo no próximo login. */
+  try{
+    saveState(appState);
+  }catch(e){
+    console.error('[import]',e);
+    showToast('Os pedidos entraram na tela, mas não consegui salvar: '+(e&&e.message||e),'warn');
+    renderPedidosBase();
+    return;
+  }
   renderPedidosBase();
   try{ if(document.getElementById('tab-clientes')) renderClientes(); }catch(e){}
   showToast('✔ '+N.length+' pedido'+(N.length===1?'':'s')+' do Arquivo gravados — '+nomeArq,'success');
