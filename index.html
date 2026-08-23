@@ -2222,6 +2222,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <div id="acp-aviso-antigas" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;
+        background:rgba(240,180,41,.10);border:1px solid rgba(240,180,41,.4);border-radius:var(--radius-lg);
+        padding:13px 16px;margin-bottom:14px;">
+        <span style="font-size:12.5px;color:var(--text-secondary);line-height:1.6;" id="acp-aviso-texto"></span>
+        <div style="flex:1;"></div>
+        <button class="btn btn-sm" style="width:auto;white-space:nowrap;" onclick="acpMigrarDevolucoes()">Trazer para cá</button>
+      </div>
+
       <!-- COMPRAS / DEVOLUÇÕES / TRANSFERÊNCIAS -->
       <div id="acp-bloco" class="ped-bloco" style="overflow:hidden;">
         <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
@@ -4980,6 +4988,38 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div class="modal-footer">
       <button class="btn btn-ghost btn-sm" onclick="acpFechar()">Cancelar</button>
       <button class="btn btn-sm" id="acp-btn-salvar" onclick="acpSalvar()">Criar Compra</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFERÊNCIA DA DEVOLUÇÃO — o que se faz quando a caixa chega -->
+<div class="modal-overlay" id="acp-conf-overlay">
+  <div class="modal" style="width:520px;max-height:88vh;overflow-y:auto;">
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="flex:1;">
+        <div class="modal-title" style="margin:0;">Conferir devolução</div>
+        <div id="acp-conf-sub" style="font-size:11.5px;color:var(--text-muted);margin-top:3px;"></div>
+      </div>
+      <button class="acp-x" onclick="acpFecharConf()" title="Fechar">&#10005;</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-top:16px;">
+      <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Status</span>
+        <select id="acp-conf-status"></select></label>
+      <div class="ent-campo">
+        <span class="acp-rot" data-ic="foto">Fotos do que chegou</span>
+        <div id="acp-conf-fotos" class="acp-fotos"></div>
+        <input type="file" id="acp-conf-arq" accept="image/*" capture="environment" multiple style="display:none;" onchange="acpAddFotos(this)">
+        <button class="btn-sec" style="width:auto;margin-top:6px;" onclick="document.getElementById('acp-conf-arq').click()">+ Adicionar foto</button>
+      </div>
+      <label class="ent-campo"><span class="acp-rot" data-ic="documento">Observação da conferência</span>
+        <textarea id="acp-conf-obs" rows="3" maxlength="400" placeholder="Como o produto chegou, o que falta, o que estava danificado…"
+          style="width:100%;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:9px;color:var(--text-primary);font-size:12px;font-family:var(--font-sans);padding:9px 11px;outline:none;resize:vertical;"></textarea></label>
+      <div id="acp-conf-aviso" style="font-size:11.5px;color:var(--text-muted);line-height:1.65;"></div>
+    </div>
+    <div class="modal-footer" style="flex-wrap:wrap;gap:8px;">
+      <button class="btn btn-ghost btn-sm" onclick="acpFecharConf()">Cancelar</button>
+      <button class="btn-sec" style="width:auto;" onclick="acpSalvarConf(false)">Só conferir</button>
+      <button class="btn btn-sm" style="width:auto;" id="acp-conf-estorno" onclick="acpSalvarConf(true)">Conferir e pedir estorno</button>
     </div>
   </div>
 </div>
@@ -9178,7 +9218,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23p';
+const APP_VERSAO='2026.08.23q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12880,18 +12920,12 @@ function acpAddFotos(input){
 }
 
 function acpDesenharFotos(){
-  const box=document.getElementById('acp-fotos-lista'); if(!box) return;
-  box.innerHTML=_acpFotos.map((f,i)=>`<div class="fo">
-      <img src="${f}" alt="foto ${i+1}" onclick="acpVerFoto(${i})">
-      <button title="Remover" onclick="acpRemFoto(${i})">&#10005;</button>
-    </div>`).join('');
+  /* Redesenha as duas listas: a do card e a da conferência. Só uma das duas
+     existe na tela por vez, e a que não existe é ignorada. */
+  acpDesenharFotosEm('acp-fotos-lista');
+  acpDesenharFotosEm('acp-conf-fotos');
 }
 function acpRemFoto(i){ _acpFotos.splice(i,1); acpDesenharFotos(); }
-function acpVerFoto(i){
-  const f=_acpFotos[i]; if(!f) return;
-  const w=window.open('');
-  if(w) w.document.write('<img src="'+f+'" style="max-width:100%;">');
-}
 
 function acpSalvar(){
   const ov=document.getElementById('acp-overlay');
@@ -13131,7 +13165,7 @@ function acpVer(id){
     + linha('Observação', a.obs)
     + linha('Conferido', a.conferido?'Sim':'Não')
     + linha('Registrado por', a.criadoPor)
-    + (a._antigo?'<div style="margin-top:8px;font-size:11px;color:var(--text-muted);">Cadastrado na aba <b>Devoluções</b>, que continua sendo a dona deste registro — é lá que ele se edita.</div>':'')
+    + (a._antigo?'<div style="margin-top:8px;font-size:11px;color:var(--text-muted);">Este registro ainda está no formato antigo, por isso não dá para editar nem conferir. Use <b>Trazer para cá</b> na lista — depois disso ele vira um registro normal.</div>':'')
     + ((Array.isArray(a.fotos)&&a.fotos.length)
         ? `<div style="margin-top:14px;font-size:12px;font-weight:800;color:var(--text-primary);">Fotos</div>
            <div class="acp-fotos" style="margin-top:6px;">`
@@ -13380,13 +13414,21 @@ function renderAcompanhamento(){
 
   const T=ACP_TIPOS[_acpTipo]||ACP_TIPOS.compra;
   const tit=document.getElementById('acp-titulo'); if(tit) tit.textContent=T.rot;
+  const pendentes=(_acpTipo==='devolucao'&&_acpPodeMexer())
+    ? todos.filter(a=>a._antigo).length : 0;
   const btnMig=document.getElementById('acp-btn-migrar');
   if(btnMig){
-    const pendentes=(_acpTipo==='devolucao'&&_acpPodeMexer())
-      ? todos.filter(a=>a._antigo).length : 0;
     btnMig.style.display=pendentes?'':'none';
-    btnMig.textContent='Trazer '+pendentes+' da aba antiga';
-    btnMig.title='Copia as devoluções da aba Devoluções para cá. Os originais continuam lá.';
+    btnMig.textContent='Trazer '+pendentes+' do formato antigo';
+    btnMig.title='Copia as devoluções do formato antigo para cá. Os registros originais continuam guardados.';
+  }
+  const aviso=document.getElementById('acp-aviso-antigas');
+  if(aviso){
+    aviso.style.display=pendentes?'flex':'none';
+    const txt=document.getElementById('acp-aviso-texto');
+    if(txt) txt.innerHTML='<b>'+pendentes+' devolução(ões) ainda estão no formato antigo.</b> '
+      +'Elas aparecem na lista, mas não dá para conferir, anexar foto nem pedir estorno enquanto não vierem para cá. '
+      +'Os registros originais continuam guardados — nada é apagado.';
   }
   const cnt=document.getElementById('acp-conta');
   if(cnt) cnt.textContent=lista.length+' registro(s)'+(lista.length!==todos.length?(' de '+todos.length):'');
@@ -13471,9 +13513,12 @@ function _acpCelula(col,a,pode){
         : `<span class="acp-conf${a.conferido?' sim':''}">${a.conferido?'✓ Sim':'Não'}</span>`}</td>`;
     case 'acoes': {
       if(a._antigo){
+        /* A aba antiga não existe mais, então "editar lá" deixou de ser
+           resposta. O que resta é trazer para cá — e o botão fica na própria
+           linha, além do aviso no topo. */
         return `<td style="text-align:right;white-space:nowrap;">
           <button class="ped-acao" title="Ver a devolução" onclick="acpVer('${a.id}')">Ver</button>
-          <span style="font-size:9.5px;color:var(--text-muted);margin-left:6px;">da aba antiga</span>
+          ${pode?`<button class="ped-acao" title="Trazer esta e as outras do formato antigo para cá" onclick="acpMigrarDevolucoes()">Trazer para cá</button>`:''}
         </td>`;
       }
       const fotos=(Array.isArray(a.fotos)?a.fotos.length:0);
@@ -13482,6 +13527,7 @@ function _acpCelula(col,a,pode){
         ${ehDev?(fotos
           ? `<button class="ped-acao" title="Ver as ${fotos} foto(s) anexadas" onclick="acpVerFotos('${a.id}')">Imagem</button>`
           : `<button class="ped-acao" title="Nenhuma foto anexada" disabled style="opacity:.4;cursor:default;">Imagem</button>`):''}
+        ${(ehDev&&pode)?`<button class="ped-acao" title="Chegou: conferir, anexar foto e, se for o caso, pedir o estorno" onclick="acpConferirDevolucao('${a.id}')">Conferir</button>`:''}
         ${(ehDev&&pode)?_acpBotaoEstorno(a):''}
         ${pode?`<button class="ped-acao" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
         <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
@@ -13587,6 +13633,80 @@ function acpAmpliar(i,id){
   let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
   if(!a && String(id).indexOf('dev_antigo_')===0) a=_acpDevolucoesAntigas().find(x=>x.id===id);
   const f=a&&Array.isArray(a.fotos)?a.fotos[i]:null; if(!f) return;
+  const w=window.open('');
+  if(w) w.document.write('<title>Foto da devolução</title><img src="'+f+'" style="max-width:100%;">');
+}
+
+/* Conferir a devolução: o que se faz quando a caixa chega.
+
+   Estava espalhado em quatro cliques — abrir o Editar, trocar o status,
+   anexar a foto, salvar, depois clicar em Conferido e ainda em Estornar NF.
+   Quem recebe mercadoria faz isso de pé, com a caixa aberta na frente; um
+   caminho de quatro passos é onde a foto deixa de ser tirada.
+
+   Agora é uma ação só, com os dois desfechos como botão: conferir, ou
+   conferir e já pedir o estorno da NF. */
+let _acpConfId='';
+
+function acpConferirDevolucao(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
+  _acpConfId=id;
+  _acpFotos=Array.isArray(a.fotos)?a.fotos.slice():[];
+  document.getElementById('acp-conf-sub').textContent=
+    (a.cliente||a.loja||'devolução')+(a.numeroPedido?(' · pedido '+a.numeroPedido):'');
+  const sel=document.getElementById('acp-conf-status');
+  if(sel){
+    try{ renderCustomOpts('acp-conf-status', DEV_STATUS_BASE, 'customStatusDev', a.status); }
+    catch(e){ sel.innerHTML=DEV_STATUS_BASE.map(v=>`<option${a.status===v?' selected':''}>${v}</option>`).join(''); }
+  }
+  const obs=document.getElementById('acp-conf-obs'); if(obs) obs.value=a.obs||'';
+  const bt=document.getElementById('acp-conf-estorno');
+  const av=document.getElementById('acp-conf-aviso');
+  if(a.tarefaEstornoId||a.etapa==='concluida'){
+    if(bt){ bt.style.display='none'; }
+    if(av) av.textContent=(a.etapa==='concluida')
+      ? 'A NF desta devolução já foi estornada.'
+      : 'O estorno desta devolução já foi pedido — a tarefa está com o Carlos Red.';
+  }else{
+    if(bt){ bt.style.display=''; }
+    if(av) av.textContent='"Conferir e pedir estorno" cria a tarefa para o Carlos Red estornar a NF de saída e dar a volta do produto no estoque.';
+  }
+  acpDesenharFotosEm('acp-conf-fotos');
+  const ov=document.getElementById('acp-conf-overlay'); if(ov) ov.classList.add('open');
+}
+function acpFecharConf(){
+  const ov=document.getElementById('acp-conf-overlay'); if(ov) ov.classList.remove('open');
+  _acpConfId=''; _acpFotos=[];
+}
+function acpSalvarConf(pedirEstorno){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===_acpConfId); if(!a) return;
+  const v=id=>String((document.getElementById(id)||{}).value||'').trim();
+  a.status=v('acp-conf-status')||a.status;
+  a.obs=v('acp-conf-obs');
+  a.fotos=_acpFotos.slice();
+  a.conferido=true;
+  a.conferidoPor=(currentUser&&currentUser.name)||'';
+  a.conferidoEm=new Date().toLocaleString('pt-BR');
+  a.atualizadoEm=new Date().toLocaleDateString('pt-BR');
+  const id=a.id;
+  try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); return; }
+  acpFecharConf();
+  if(pedirEstorno && !a.tarefaEstornoId && a.etapa!=='concluida'){ acpEstornarNF(id); return; }
+  renderAcompanhamento();
+  showToast('✔ Devolução conferida','success');
+}
+
+/* O mesmo desenhador serve o card e a conferência — duas listas de
+   miniaturas com o mesmo comportamento não deviam ser dois códigos. */
+function acpDesenharFotosEm(idBox){
+  const box=document.getElementById(idBox); if(!box) return;
+  box.innerHTML=_acpFotos.map((f,i)=>`<div class="fo">
+      <img src="${f}" alt="foto ${i+1}" onclick="acpVerFotoTmp(${i})">
+      <button title="Remover" onclick="acpRemFoto(${i})">&#10005;</button>
+    </div>`).join('');
+}
+function acpVerFotoTmp(i){
+  const f=_acpFotos[i]; if(!f) return;
   const w=window.open('');
   if(w) w.document.write('<title>Foto da devolução</title><img src="'+f+'" style="max-width:100%;">');
 }
