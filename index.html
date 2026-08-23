@@ -4681,11 +4681,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       lá, com o saldo que a Base tiver na hora — não com o que esta tela mostra.
     </p>
     <div style="display:flex;flex-direction:column;gap:10px;">
-      <label class="ent-campo"><span>SKU <b>*</b></span>
+      <label class="ent-campo"><span>SKU <small style="font-weight:400;color:var(--text-muted);">— se já tiver</small></span>
         <input id="ent-sku" type="text" list="ent-skus" autocomplete="off" placeholder="AST12840" oninput="entPrever()">
         <datalist id="ent-skus"></datalist>
         <small id="ent-achou"></small>
       </label>
+      <div style="display:flex;gap:10px;">
+        <label class="ent-campo" style="flex:2;"><span>Nome do produto <b id="ent-req-nome" style="display:none;">*</b></span>
+          <input id="ent-nome" type="text" maxlength="160" placeholder="Creatina Micronizada 1kg AST Sports" oninput="entPrever()"></label>
+        <label class="ent-campo" style="flex:1;"><span>EAN <b id="ent-req-ean" style="display:none;">*</b></span>
+          <input id="ent-ean" type="text" inputmode="numeric" maxlength="14" placeholder="07897570128400" oninput="entPrever()"></label>
+      </div>
       <div style="display:flex;gap:10px;">
         <label class="ent-campo" style="flex:1;"><span>Quantidade <b>*</b></span>
           <input id="ent-qtd" type="number" min="1" step="1" placeholder="10" oninput="entPrever()"></label>
@@ -12078,7 +12084,7 @@ function _entArmazensConhecidos(){
 
 function entAbrir(){
   const ov=document.getElementById('ent-overlay'); if(!ov) return;
-  ['ent-sku','ent-qtd','ent-custo','ent-preco-ml','ent-preco-atacado','ent-obs']
+  ['ent-sku','ent-nome','ent-ean','ent-qtd','ent-custo','ent-preco-ml','ent-preco-atacado','ent-obs']
     .forEach(id=>{const el=document.getElementById(id); if(el) el.value='';});
   const err=document.getElementById('ent-erro'); if(err){ err.style.display='none'; err.textContent=''; }
 
@@ -12112,10 +12118,28 @@ function entPrever(){
   const prod=_entProdutoPorSku(sku);
 
   const achou=document.getElementById('ent-achou');
+  const elNome=document.getElementById('ent-nome');
+  const elEan=document.getElementById('ent-ean');
+
+  /* Produto conhecido: nome e EAN vêm do catálogo e ficam travados. Deixar
+     editável convidaria a corrigir aqui um dado que só a Base manda — e a
+     correção sumiria no próximo sincronismo, sem ninguém entender por quê. */
+  const conhecido=!!prod;
+  [elNome,elEan].forEach(el=>{ if(el){ el.readOnly=conhecido; el.style.opacity=conhecido?'.7':'1'; } });
+  if(conhecido){
+    if(elNome) elNome.value=prod.nome||'';
+    if(elEan)  elEan.value=prod.ean||'';
+  }
+  /* Sem produto conhecido, nome e EAN passam a ser obrigatórios: é com eles
+     que a tarefa de cadastro na Base nasce com o que a pessoa precisa. */
+  const req=!conhecido;
+  const rn=document.getElementById('ent-req-nome'); if(rn) rn.style.display=req?'':'none';
+  const re=document.getElementById('ent-req-ean');  if(re) re.style.display=req?'':'none';
+
   if(achou){
-    if(!String(sku).trim()){ achou.textContent=''; achou.className=''; }
-    else if(prod){ achou.textContent=prod.nome||'(sem nome)'; achou.className='ok'; }
-    else { achou.textContent='SKU fora do catálogo lido — o robô vai procurar na Base assim mesmo'; achou.className='nao'; }
+    if(prod){ achou.textContent='No catálogo: '+(prod.nome||'(sem nome)'); achou.className='ok'; }
+    else if(String(sku).trim()){ achou.textContent='SKU fora do catálogo lido — preencha nome e EAN; vira tarefa de cadastro se a Base também não tiver'; achou.className='nao'; }
+    else { achou.textContent='Sem SKU: o produto vai ser cadastrado na Base por uma tarefa'; achou.className='nao'; }
   }
 
   const box=document.getElementById('ent-previa');
@@ -12154,10 +12178,23 @@ function entEnviar(){
   const precoMl=(document.getElementById('ent-preco-ml')||{}).value;
   const precoAtacado=(document.getElementById('ent-preco-atacado')||{}).value;
 
-  if(!sku) return falhar('Informe o SKU.');
+  const nome=String((document.getElementById('ent-nome')||{}).value||'').trim();
+  const ean=String((document.getElementById('ent-ean')||{}).value||'').replace(/\D/g,'');
+  const prod=_entProdutoPorSku(sku);
+
   if(!(qtd>0) || Math.round(qtd)!==qtd) return falhar('A quantidade precisa ser um número inteiro maior que zero.');
   if(!(custo>0)) return falhar('Informe o custo unitário desta compra.');
   if(!armazem) return falhar('Escolha o armazém. Se a lista está vazia, o catálogo ainda não foi lido da Base.');
+  /* SKU deixou de ser obrigatório: produto novo chega sem ele. O que passa a
+     ser obrigatório é o que a Base vai precisar para cadastrar — nome e EAN.
+     Tarefa de cadastro sem esses dois nasce inútil, e quem a receber vai ter
+     de voltar perguntando o que chegou. */
+  if(!prod){
+    if(!sku && !nome) return falhar('Sem SKU, o nome do produto é obrigatório — é por ele que a Base vai ser cadastrada.');
+    if(!nome) return falhar('Informe o nome do produto.');
+    if(!ean)  return falhar('Informe o EAN. É ele que evita cadastrar duas vezes o mesmo produto na Base.');
+    if(ean.length<8 || ean.length>14) return falhar('EAN com '+ean.length+' dígitos não existe — use o código de barras da embalagem (8 a 14 dígitos).');
+  }
 
   /* Preço vazio significa "não mexe". Zero significaria "põe zero", e um
      produto com preço zero vai para o marketplace de graça — por isso o
@@ -12168,6 +12205,14 @@ function entEnviar(){
   const reg={
     id:'ent_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,7),
     sku, quantidade:qtd, custo,
+    /* Nome e EAN viajam junto sempre, mesmo quando o produto é conhecido:
+       o registro precisa dizer o que entrou sem depender de o catálogo ainda
+       existir do jeito que estava no dia. */
+    nome: nome || (prod && prod.nome) || '',
+    ean:  ean  || (prod && String(prod.ean||'').replace(/\D/g,'')) || '',
+    /* Marcado aqui pelo que a tela sabe. Quem decide de verdade é o robô,
+       que pergunta à Base — a tela pode estar com catálogo velho. */
+    novoNaBase: !prod,
     precoMl:nOuNulo(precoMl), precoAtacado:nOuNulo(precoAtacado),
     armazem, obs:String((document.getElementById('ent-obs')||{}).value||'').trim(),
     status:'pendente',
@@ -12184,9 +12229,59 @@ function entEnviar(){
     appState.entradasEstoque=appState.entradasEstoque.filter(x=>x!==reg);
     return falhar('Não consegui salvar: '+(e&&e.message||e));
   }
+  /* A tarefa nasce no ato da conferência, não depois que o robô reclamar.
+     Esperar a resposta da Base atrasaria o cadastro em até cinco minutos, e
+     nesse meio tempo a mercadoria já está na prateleira sem existir no
+     sistema. Se a Base tiver o produto, o robô fecha a tarefa sozinho. */
+  let tarefa=null;
+  if(!prod){
+    try{ tarefa=_entCriarTarefaCadastro(reg); }
+    catch(e){ console.warn('[entrada] tarefa não criada:',e); }
+  }
   entFechar();
   renderEstoque();
-  showToast('✔ Entrada de '+qtd+'× '+sku+' na fila — o robô lança na Base','success');
+  try{ renderAtividades(); }catch(e){}
+  showToast('✔ Entrada de '+qtd+'× '+(sku||reg.nome)+' na fila'
+    +(tarefa?' — e tarefa de cadastro na Base criada':' — o robô lança na Base'),'success');
+}
+
+/* Tarefa de cadastro do produto na Base, na área Anúncios — é lá que mora
+   quem cadastra e integra produto. Prioridade alta porque mercadoria
+   conferida e sem cadastro é dinheiro parado na prateleira. */
+function _entCriarTarefaCadastro(reg){
+  if(!Array.isArray(appState.atividades)) appState.atividades=[];
+  const agora=Date.now();
+  const t={
+    id:'atv_ent_'+agora+'_'+Math.random().toString(36).slice(2,6),
+    areaTarefa:'anuncios',
+    origemEntradaEstoqueId:reg.id,
+    titulo:'Cadastrar na Base: '+(reg.nome||reg.sku||'produto sem nome'),
+    observacao:[
+      reg.sku?('SKU: '+reg.sku):'SKU: ainda não tem — criar na Base',
+      'Nome: '+(reg.nome||'—'),
+      'EAN: '+(reg.ean||'—'),
+      'Armazém: '+reg.armazem,
+      'Chegaram '+reg.quantidade+' un. a '+_pedFmt(reg.custo)+' cada',
+      reg.obs?('Obs.: '+reg.obs):'',
+      '',
+      'A mercadoria já foi conferida e está na fila de entrada. Assim que o',
+      'produto existir na Base, refaça a entrada na aba Estoque.'
+    ].filter(Boolean).join('\n'),
+    vencimento:_hojeISO(),
+    prioridade:'alta',
+    status:'aberta',
+    responsavel:(currentUser&&currentUser.key)||'',
+    responsaveis:(currentUser&&currentUser.key)?[currentUser.key]:[],
+    criadoEm:_agoraCarimbo(),
+    criadoPor:(currentUser&&currentUser.name)||'',
+    criadoPorKey:(currentUser&&currentUser.key)||'',
+    ordemManual:agora,
+    comentarios:[]
+  };
+  appState.atividades.push(t);
+  reg.tarefaCadastroId=t.id;
+  saveState(appState);
+  return t;
 }
 
 function entAlternarConcluidas(){
@@ -12204,7 +12299,8 @@ function entRefazer(id){
   if(!a) return;
   entAbrir();
   const p=(cid,v)=>{const el=document.getElementById(cid); if(el && v!=null && v!=='') el.value=v;};
-  p('ent-sku',a.sku); p('ent-qtd',a.quantidade); p('ent-custo',a.custo);
+  p('ent-sku',a.sku); p('ent-nome',a.nome); p('ent-ean',a.ean);
+  p('ent-qtd',a.quantidade); p('ent-custo',a.custo);
   p('ent-preco-ml',a.precoMl); p('ent-preco-atacado',a.precoAtacado);
   p('ent-obs',a.obs);
   const sel=document.getElementById('ent-armazem');
