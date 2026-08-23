@@ -9350,7 +9350,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23z';
+const APP_VERSAO='2026.08.23aa';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9362,6 +9362,49 @@ const APP_VERSAO='2026.08.23z';
    versão que está rodando. Diferente, ela se atualiza sozinha. */
 const VERSAO_URL='versao.json';
 let _versaoAvisada='';
+
+/* Comparar versão é comparar ORDEM, não igualdade.
+
+   A barra vivia presa porque a conta era "diferente = atualize". O versao.json
+   ficou parado numa versão e a tela seguiu adiante; a partir daí a página
+   rodando era MAIS NOVA que a publicada, "diferente" continuava verdadeiro, e
+   a barra mandava atualizar para trás. Recarregar não resolvia: voltava a
+   mesma versão nova, e a barra voltava junto. Laço sem saída.
+
+   O formato é ano.mês.dia + um sufixo de letras (2026.08.23z). A comparação é
+   por partes numéricas primeiro e, no sufixo, primeiro pelo tamanho: depois de
+   "z" vem "aa", que é maior mesmo sendo menor em ordem alfabética. */
+function _versaoPartes(v){
+  const s=String(v||'').trim();
+  const m=s.match(/^(\d[\d.]*)([a-z]*)$/i);
+  if(!m) return null;
+  return { nums:m[1].split('.').map(Number), sufixo:(m[2]||'').toLowerCase() };
+}
+
+/* > 0 quando `a` é mais nova que `b`; 0 quando são a mesma; null quando alguma
+   delas não tem formato reconhecível — e aí ninguém decide nada por palpite. */
+function _versaoComparar(a,b){
+  const pa=_versaoPartes(a), pb=_versaoPartes(b);
+  if(!pa||!pb) return null;
+  const n=Math.max(pa.nums.length,pb.nums.length);
+  for(let i=0;i<n;i++){
+    const x=pa.nums[i]||0, y=pb.nums[i]||0;
+    if(x!==y) return x>y?1:-1;
+  }
+  if(pa.sufixo.length!==pb.sufixo.length) return pa.sufixo.length>pb.sufixo.length?1:-1;
+  if(pa.sufixo!==pb.sufixo) return pa.sufixo>pb.sufixo?1:-1;
+  return 0;
+}
+
+/* Só é "tem versão nova" quando a publicada é mais nova que a que está rodando.
+   Formato irreconhecível cai no comportamento antigo (diferente = nova), que é
+   o seguro: melhor avisar à toa do que deixar máquina velha trabalhando. */
+function _temVersaoMaisNova(publicada){
+  if(!publicada || publicada===APP_VERSAO) return false;
+  const c=_versaoComparar(publicada,APP_VERSAO);
+  if(c===null) return true;
+  return c>0;
+}
 
 function _lerVersaoPublicada(){
   // no-store para não cair no cache do navegador, que é justamente o problema
@@ -9377,9 +9420,10 @@ function atualizarSistemaAgora(){
   const btn=document.getElementById('btn-atualizar-sistema');
   if(btn){ btn.disabled=true; btn.textContent='conferindo…'; }
   _lerVersaoPublicada().then(nova=>{
-    if(nova && nova===APP_VERSAO){
+    if(nova && !_temVersaoMaisNova(nova)){
       if(btn){ btn.disabled=false; btn.textContent='⟳ Atualizar'; }
       showToast('Você já está na versão mais nova ('+APP_VERSAO+')','success');
+      _esconderBarraVersao();
       return;
     }
     // Sem resposta do servidor, recarrega assim mesmo: o objetivo do botão é
@@ -9427,6 +9471,14 @@ function _mostrarBarraVersao(nova){
   barra.appendChild(b);
 }
 
+/* A barra precisa saber sair. Enquanto ela só sabia aparecer, uma conferência
+   que desse "já está atualizado" deixava o aviso na tela mesmo assim. */
+function _esconderBarraVersao(){
+  _versaoAvisada='';
+  const barra=document.getElementById('barra-versao');
+  if(barra) barra.remove();
+}
+
 function _recarregarParaVersaoNova(){
   try{ sessionStorage.setItem('liveops_recarregou_versao','1'); }catch(e){}
   // Pede ao service worker que assuma a versão nova antes de recarregar
@@ -9444,7 +9496,15 @@ function _recarregarParaVersaoNova(){
    não recarregar a página no meio de um trabalho. */
 function verificarVersaoPublicada(noLogin){
   return _lerVersaoPublicada().then(nova=>{
-    if(!nova || nova===APP_VERSAO) return false;
+    if(!_temVersaoMaisNova(nova)){
+      /* Rodando à frente do que está publicado é normal por alguns minutos:
+         o GitHub Pages publica os arquivos um a um. Fica no log, não na tela. */
+      if(nova && nova!==APP_VERSAO){
+        console.log('[versao] rodando',APP_VERSAO,'· publicada',nova,'— nada a fazer');
+      }
+      _esconderBarraVersao();
+      return false;
+    }
     let jaRecarregou=false;
     try{ jaRecarregou=sessionStorage.getItem('liveops_recarregou_versao')==='1'; }catch(e){}
     if(noLogin && !jaRecarregou){
