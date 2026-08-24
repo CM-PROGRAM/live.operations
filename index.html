@@ -1902,8 +1902,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Acesso ao Sistema</h2>
     <div class="input-group">
-      <label>E-mail ou usuário</label>
-      <input type="text" id="login-user" name="username" placeholder="seu@email.com.br" autocomplete="username">
+      <label>E-mail da empresa</label>
+      <input type="email" id="login-user" name="username" placeholder="voce@suplelive.com.br" autocomplete="username">
     </div>
     <div class="input-group">
       <label>Senha</label>
@@ -8790,9 +8790,26 @@ function _emailValido(e){ return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e||
 
 // E-mail usado na nuvem: o do colaborador. Enquanto alguém não tiver
 // e-mail cadastrado, cai no endereço interno antigo para não travar.
+/* ── Acesso só pelo e-mail do domínio ──
+   Apelido saiu. Entrava-se por chave, por nome ou por e-mail, e o mesmo
+   usuário tinha três endereços possíveis na nuvem — foi daí que nasceu o
+   ciclo de "minha senha está errada": a senha era trocada numa conta e
+   conferida em outra. Um endereço por pessoa, e ele é o e-mail da empresa.
+
+   Quem não tem e-mail no cadastro recebe o derivado da chave
+   (cmandrade → cmandrade@suplelive.com.br), que é a mesma conta que a
+   pessoa já usa no trabalho. Cadastro com e-mail preenchido manda nele. */
+const DOMINIO_LOGIN='suplelive.com.br';
+function _emailPadraoDaChave(chave){
+  return String(chave||'').trim().toLowerCase()+'@'+DOMINIO_LOGIN;
+}
+function _ehEmailDoDominio(email){
+  return new RegExp('@'+DOMINIO_LOGIN.replace(/\./g,'\\.')+'$','i').test(String(email||'').trim());
+}
 function _emailDoUsuario(chave){
   const u=(appState.users||{})[chave]||{};
-  return _emailValido(u.email) ? u.email.toLowerCase() : (chave+'@liveops.local');
+  const cadastrado=String(u.email||'').trim().toLowerCase();
+  return _emailValido(cadastrado) ? cadastrado : _emailPadraoDaChave(chave);
 }
 
 let _ultimoErroAuth='';
@@ -9070,12 +9087,12 @@ function _resetErro(msg,cor){
 function enviarCodigoRedefinicao(){
   const email=String((document.getElementById('reset-email')||{}).value||'').trim().toLowerCase();
   if(!_emailValido(email)){ _resetErro('Informe um e-mail válido'); return; }
-  /* Conta sem e-mail de verdade entra na nuvem como <usuário>@liveops.local,
-     que é um endereço que não existe: nenhum link chega nele, nunca. Mandar
-     assim mesmo deixaria a pessoa esperando um e-mail que não vem. */
-  if(/@liveops\.local$/i.test(email)){
-    _resetErro('Este usuário não tem e-mail cadastrado, então não há para onde mandar o link. '
-      +'Peça ao master para cadastrar seu e-mail no Administrador e tente de novo.');
+  /* O acesso é sempre pelo e-mail do domínio; link de redefinição para outro
+     endereço chegaria numa conta que o login não usa — e trocar a senha lá
+     não mudaria nada aqui. Foi exatamente esse descompasso que prendeu todo
+     mundo no ciclo de redefinições. */
+  if(!_ehEmailDoDominio(email)){
+    _resetErro('Use seu e-mail @'+DOMINIO_LOGIN+' — é com ele que o sistema entra.');
     return;
   }
   if(typeof firebase==='undefined' || !firebase.auth){ _resetErro('Sem conexão com o serviço de acesso'); return; }
@@ -9136,7 +9153,7 @@ function confirmarNovaSenha(){
          segunda forma, a limpeza da marca "precisa redefinir" não achava o
          registro e a exigência voltava no login seguinte. */
       const par=Object.entries(appState.users||{}).find(([k,v])=>v && (
-        String(v.email||'').toLowerCase()===emailDono || (k+'@liveops.local')===emailDono));
+        String(v.email||'').trim().toLowerCase()===emailDono || _emailPadraoDaChave(k)===emailDono));
       if(par && hash){
         par[1].passHash=hash; delete par[1].pass;
         delete par[1].precisaRedefinir; delete par[1].hashAntesDoReset;
@@ -9218,32 +9235,37 @@ function doLogin(){
       return;
     }
 
-    // Localiza o usuário por e-mail, chave ou nome — a senha é conferida depois
-    let achou=entradas.find(([k,v])=>
-         (k===u)
-      || String(v.name||'').toLowerCase().replace(/\s+/g,'')===u
-      /* trim no cadastro: um espaço sobrando no fim do e-mail, invisível na
-         tela do Administrador, fazia a comparação falhar por nada. */
-      || (v.email && String(v.email).trim().toLowerCase()===uOriginal));
-
-    /* Quem tem e-mail de trabalho digita o e-mail, não o nome de acesso — e o
-       e-mail só casa se estiver cadastrado no usuário. Quando não está, a
-       parte antes do @ quase sempre é a própria chave ("cmandrade@empresa"
-       para o usuário "cmandrade"). Tentar por aí não afrouxa nada: isto só
-       escolhe QUAL registro conferir, e a senha continua sendo exigida do
-       mesmo jeito, aqui e na nuvem. */
-    if(!achou && uOriginal.indexOf('@')>0){
-      const antesDoArroba=uOriginal.split('@')[0].trim();
-      achou=entradas.find(([k,v])=>
-           k===antesDoArroba
-        || String(v.name||'').toLowerCase().replace(/\s+/g,'')===antesDoArroba);
+    /* Só e-mail do domínio. Apelido não entra mais — e recusar aqui, com o
+       motivo escrito, evita a leitura de "senha errada" que fez todo mundo
+       redefinir senha à toa. */
+    if(!_ehEmailDoDominio(uOriginal)){
+      recusar(uOriginal.indexOf('@')<0
+        ? 'Entre com seu e-mail @'+DOMINIO_LOGIN+' — o acesso por apelido não existe mais.'
+        : 'O acesso é só pelo e-mail @'+DOMINIO_LOGIN+'.');
+      return;
     }
 
+    /* Um endereço por pessoa: o cadastrado, ou o derivado da chave. O trim
+       cobre o espaço sobrando no cadastro, invisível na tela do Administrador,
+       que fazia a comparação falhar por nada. */
+    const achou=entradas.find(([k,v])=>
+         String(v.email||'').trim().toLowerCase()===uOriginal
+      || _emailPadraoDaChave(k)===uOriginal);
+
     if(!achou){
-      recusar('Não achei esse usuário. Tente o nome de acesso (sem o @), ou peça ao master para conferir seu cadastro.');
+      recusar('Não achei nenhum usuário com esse e-mail. Peça ao master para conferir seu cadastro.');
       return;
     }
     const [chave,dados]=achou;
+    /* Cadastro sem e-mail passa a ter o do domínio, derivado da chave. É o
+       mesmo endereço com que a pessoa acabou de entrar — grava para o
+       Administrador mostrar e para a redefinição de senha ter para onde ir. */
+    if(!_emailValido(String(dados.email||'').trim())) dados.email=_emailPadraoDaChave(chave);
+    /* Guarda arrumado: espaço nas pontas e maiúscula no meio não quebram o
+       login (a comparação já normaliza), mas ficam feios no Administrador e
+       enganam quem for conferir a olho. */
+    else dados.email=String(dados.email).trim().toLowerCase();
+
     const senhaLocalConfere = dados.passHash
       ? (!!hashDigitado && dados.passHash===hashDigitado)
       : (dados.pass===p);
@@ -9460,7 +9482,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ae';
+const APP_VERSAO='2026.08.23af';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19179,6 +19201,9 @@ async function addUser(){
   const pass=document.getElementById('new-user-pass').value.trim();
   if(!name||!pass){showToast('Preencha nome e senha','error');return;}
   if(!email||!_emailValido(email)){showToast('Informe um e-mail válido — é por ele que o login é feito','error');return;}
+  // O acesso é só pelo e-mail do domínio; cadastrar outro cria um usuário que
+  // não consegue entrar, e isso só aparece no dia em que a pessoa tenta.
+  if(!_ehEmailDoDominio(email)){showToast('O e-mail precisa ser @'+DOMINIO_LOGIN,'error');return;}
   if(Object.values(appState.users||{}).some(u=>u&&u.email===email)){showToast('Já existe um usuário com esse e-mail','error');return;}
   if(pass.length<6){showToast('A senha precisa ter ao menos 6 caracteres','error');return;}
   const key=name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'');
@@ -19202,6 +19227,7 @@ function definirEmail(key){
   if(novo===null) return;
   const email=String(novo).trim().toLowerCase();
   if(!_emailValido(email)){ showToast('E-mail inválido','warn'); return; }
+  if(!_ehEmailDoDominio(email)){ showToast('O e-mail precisa ser @'+DOMINIO_LOGIN,'warn'); return; }
   const jaUsado=Object.entries(appState.users||{}).some(([k,u])=>k!==key && u && u.email===email);
   if(jaUsado){ showToast('Esse e-mail já está em uso por outro usuário','warn'); return; }
   user.email=email;
