@@ -5458,7 +5458,18 @@ function patchDpspBaixas(s){
 function loadLocal(){
   try{
     const raw=localStorage.getItem(SK);
-    if(!raw) return defaultState();
+    /* Navegador novo (ou aba anônima) caía aqui e recebia o estado padrão
+       CRU — sem passar pelo patchUsers nem pelo semeio de e-mails. O efeito
+       aparecia só na hora de entrar: quem tem endereço que não sai da chave,
+       como o "contato@" do Matheus, não era encontrado por e-mail nenhum, e
+       a tela dizia que o usuário não existia. Existe: era o estado que tinha
+       nascido pela metade. */
+    if(!raw){
+      const novo=defaultState();
+      patchUsers(novo);
+      _semearEmails(novo);
+      return novo;
+    }
     const s=JSON.parse(raw);
     patchUsers(s);
     if(!s.weekHistory) s.weekHistory={};
@@ -9451,6 +9462,11 @@ function doLogin(){
     db.ref(FB_PATH+'/users').once('value').then(snap=>{
       const cloudUsers=snap.val();
       if(cloudUsers){ appState.users=cloudUsers; }
+      /* A cópia da nuvem pode ser anterior à correção dos e-mails: enquanto
+         ninguém tiver entrado e sincronizado, ela ainda traz usuário sem
+         endereço. Garantir os quatro aqui é o que impede alguém de ficar
+         trancado do lado de fora esperando outra pessoa entrar primeiro. */
+      try{ patchUsers(appState); }catch(e){ console.warn('[login] patchUsers:',e); }
       authenticate(appState.users);
     }).catch(()=>authenticate(appState.users));
   } else {
@@ -9567,7 +9583,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23al';
+const APP_VERSAO='2026.08.23am';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
