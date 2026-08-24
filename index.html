@@ -9689,7 +9689,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23as';
+const APP_VERSAO='2026.08.23at';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23209,11 +23209,26 @@ function diariaSyncVenc(){
   if(v){ l.textContent=new Date(v+'T00:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}); l.style.color=''; }
   else { l.textContent='Selecionar data'; l.style.color='var(--text-muted)'; }
 }
+/* O calendário recebe uma Data, uma seleção {y,m,d} e um retorno que chega
+   com (ano, mês, dia) — três números, não uma string.
+
+   Esta chamada passava a palavra 'dias' onde vai a Data e esperava um ISO
+   no retorno. O calendário morria na primeira linha do desenho
+   ("getFullYear is not a function"), o popover nunca abria, e como o erro
+   ficava dentro de um try do chamador, a tela não dizia nada: clicava-se em
+   "Selecionar data" e não acontecia coisa alguma. */
 function diariaAbrirCal(){
   const pop=document.getElementById('diaria-cal-popover');
   const inp=document.getElementById('diaria-venc');
   if(!pop||!inp) return;
-  calAbrir(pop,'dias',inp.value||'',iso=>{ inp.value=iso; diariaSyncVenc(); });
+  const d=inp.value?new Date(inp.value+'T00:00:00'):null;
+  calAbrir(pop,
+    d?new Date(d):new Date(),
+    d?{y:d.getFullYear(), m:d.getMonth(), d:d.getDate()}:null,
+    (y,m,dia)=>{
+      inp.value=y+'-'+String(m+1).padStart(2,'0')+'-'+String(dia).padStart(2,'0');
+      diariaSyncVenc();
+    });
 }
 function salvarDiaria(){
   if(!currentUser){ showToast('Faça login para criar tarefas','warn'); return; }
