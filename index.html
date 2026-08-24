@@ -3938,7 +3938,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
-        <div class="admin-title">⬡ Usuários & Permissões</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">⬡ Usuários &amp; Permissões</div>
+          <button class="btn-sec" style="width:auto;white-space:nowrap;" onclick="pedirNovaSenhaATodos()"
+            title="Envia a cada um o e-mail para criar a própria senha">📧 Pedir nova senha a todos</button>
+        </div>
         <div class="users-grid" id="users-grid"></div>
         <div class="new-user-form">
           <div class="input-group"><label>Nome completo</label><input type="text" id="new-user-name" placeholder="Ex: João Silva"></div>
@@ -9498,7 +9502,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ag';
+const APP_VERSAO='2026.08.23ah';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9704,8 +9708,15 @@ function iconeMenu(chave){
   return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'+d+'</svg>';
 }
 
-function buildTabs(){
-  const tabs=[
+/* O menu virou constante para ter UMA fonte de verdade.
+
+   O painel de permissões tinha a própria lista de abas, escrita à mão, e ela
+   envelheceu: oferecia "Devoluções", que deixou de ser aba, chamava
+   Acompanhamento de "Vendas · Rastreios", e não dizia que Estoque, Templates,
+   Jobs e Integrações entram junto com Administrador. Quem usava aquele painel
+   estava liberando outra coisa do que pensava. Agora as duas telas leem daqui,
+   e uma aba nova aparece nas permissões no mesmo dia em que aparece no menu. */
+const MENU_ABAS=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
     /* Inbox é onde as conversas do WhatsApp vão morar. Enquanto não moram,
        a aba diz isso — tela vazia sem explicação vira chamado. */
@@ -9758,7 +9769,32 @@ function buildTabs(){
     {id:'jobs',       icon:'jobs',         label:'Jobs & Logs',     perm:'admin'},
     {id:'cnpjs',      icon:'cnpjs', label:'CNPJs Suplelive', perm:'cnpjs'},
     {id:'admin',      icon:'admin', label:'Administrador',       perm:'admin'}
-  ];
+];
+
+/* Cada permissão com as abas que ela destranca, na ordem do menu. É o que o
+   painel do Administrador mostra: a pessoa liga "admin" sabendo que está
+   entregando Estoque, Templates, Integrações, Jobs e o próprio Administrador
+   — e não um botão de nome solto. */
+function permissoesDoMenu(){
+  const mapa=new Map();
+  const juntar=(perm,rotulo)=>{
+    if(!perm) return;
+    if(!mapa.has(perm)) mapa.set(perm,[]);
+    if(mapa.get(perm).indexOf(rotulo)<0) mapa.get(perm).push(rotulo);
+  };
+  MENU_ABAS.forEach(tb=>{
+    juntar(tb.perm, tb.label);
+    (tb.children||[]).forEach(c=>{
+      /* Filho sem permissão própria segue a do grupo; com permissão própria,
+         conta para ela — é assim que buildTabs decide. */
+      if(c.perm) juntar(c.perm, tb.label+' · '+c.label);
+    });
+  });
+  return [...mapa.entries()].map(([id,abas])=>({id, abas}));
+}
+
+function buildTabs(){
+  const tabs=MENU_ABAS;
   const nav=document.getElementById('tabs-nav');
   // keep search box, clear the rest
   const searchEl=nav.querySelector('.sidebar-search');
@@ -19015,20 +19051,14 @@ function renderUsersGrid(){
   const grid=document.getElementById('users-grid');
   if(!grid) return;
   grid.innerHTML='';
-  // Ordem/nomes seguem o menu lateral (abas e sub-abas)
-  const tabDefs=[
-    {id:'tarefas',label:'Central de Tarefas'},
-    {id:'atendimentos',label:'Atendimentos'},
-    {id:'whatsapp',label:'Vendas · WhatsApp'},
-    {id:'envios',label:'Vendas · Rastreios'},
-    {id:'consultacpf',label:'Consulta CPF (dentro de Vendas)'},
-    {id:'base',label:'Base (links dentro de Marketplaces)'},
-    {id:'integracoes',label:'Anúncios'},
-    {id:'plataformas',label:'Marketplaces'},
-    {id:'devolucoes',label:'Devoluções'},
-    {id:'cnpjs',label:'CNPJs Suplelive'},
-    {id:'admin',label:'Administrador'}
-  ];
+  /* A lista sai do próprio menu (MENU_ABAS): cada permissão aparece com as
+     abas que ela destranca. Antes era uma cópia escrita à mão que envelheceu
+     — oferecia Devoluções, que não é mais aba, e escondia que "admin" entrega
+     cinco telas de uma vez. */
+  const tabDefs=permissoesDoMenu().map(p=>({
+    id:p.id,
+    label:p.abas.join(' · ')
+  }));
 
   const users = Object.entries(appState.users);
   if(users.length===0){
@@ -19279,6 +19309,53 @@ function enviarRedefinicaoSenha(key){
         showToast('Não foi possível enviar: '+(c||err.message),'error');
       }
     });
+}
+
+/* Pede a todo mundo uma senha nova, de uma vez.
+
+   Um por um, e não em paralelo: o Firebase bloqueia rajada de envio
+   (too-many-requests) e o bloqueio cai em cima de quem ficou por último — a
+   pessoa que mais precisa do e-mail é a que não recebe. Com quatro usuários a
+   diferença de tempo é irrelevante; o que importa é o relatório no fim dizer,
+   nome por nome, quem recebeu e quem não. */
+async function pedirNovaSenhaATodos(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode pedir','warn'); return; }
+  if(typeof firebase==='undefined' || !firebase.auth){ showToast('Autenticação indisponível — atualize a página','error'); return; }
+
+  const alvos=Object.entries(appState.users||{})
+    .filter(([,u])=>u && _emailValido(String(u.email||'').trim()))
+    .map(([k,u])=>({key:k, nome:u.name||k, email:String(u.email).trim().toLowerCase()}));
+  const semEmail=Object.entries(appState.users||{})
+    .filter(([,u])=>u && !_emailValido(String(u.email||'').trim())).length;
+
+  if(!alvos.length){ showToast('Nenhum usuário com e-mail cadastrado','warn'); return; }
+  if(!confirm('Enviar o e-mail de nova senha para '+alvos.length+' pessoa(s)?\n\n'
+    +alvos.map(a=>'· '+a.nome+' — '+a.email).join('\n')
+    +(semEmail?('\n\n'+semEmail+' usuário(s) sem e-mail ficam de fora.'):'')
+    +'\n\nA senha atual continua valendo até cada um usar o link.')) return;
+
+  const ok=[], falhou=[];
+  for(const a of alvos){
+    try{
+      await firebase.auth().sendPasswordResetEmail(a.email);
+      ok.push(a.nome);
+    }catch(err){
+      const c=(err&&err.code)||'';
+      /* Conta que nunca entrou não existe no Firebase Auth ainda — ela nasce
+         no primeiro login. Dizer isso pelo nome evita o "mandei e não chegou"
+         que ninguém consegue explicar depois. */
+      falhou.push(a.nome+(c==='auth/user-not-found'?' (nunca entrou ainda)':(' ('+(c||'erro')+')')));
+    }
+  }
+
+  const linhas=[];
+  if(ok.length) linhas.push('✓ Enviado para: '+ok.join(', '));
+  if(falhou.length) linhas.push('✗ Não saiu para: '+falhou.join(', '));
+  if(semEmail) linhas.push(semEmail+' sem e-mail cadastrado, fora do envio.');
+  alert('PEDIDO DE NOVA SENHA\n\n'+linhas.join('\n\n')
+    +'\n\nQuem não recebeu precisa entrar uma vez com a senha atual — a conta '
+    +'na nuvem nasce nesse primeiro login. Depois disso o envio funciona.');
+  showToast(ok.length+' e-mail(s) enviado(s)', ok.length?'success':'warn');
 }
 
 // Define uma senha localmente. Usar só quando não há e-mail configurado —
