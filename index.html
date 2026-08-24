@@ -9320,7 +9320,10 @@ function doLogin(){
       }else if(_ultimoErroAuth==='auth/network-request-failed'){
         recusar('Sem conexão com o serviço de acesso. Confira a internet.');
       }else{
-        recusar('Senha incorreta para a conta '+conta+'.');
+        /* Recusa sem saída é o que faz a pessoa tentar a mesma senha dez
+           vezes. A conta existe na nuvem e o endereço é real — então o
+           caminho de volta é o link, e ele fica escrito aqui. */
+        recusar('Senha incorreta para a conta '+conta+'. Use "Esqueci minha senha" — o link vai para esse endereço.');
       }
       return;
     }
@@ -9502,7 +9505,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ah';
+const APP_VERSAO='2026.08.23ai';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
