@@ -649,6 +649,20 @@ html{overflow-x:hidden;}
   font-family:var(--font-sans);width:100%;min-width:0;}
 /* Duas colunas no formulário, uma só quando a tela é estreita — o modal tem
    560px e num celular isso não cabe lado a lado. */
+/* O cadastro de compra tem doze campos e uma lista de produtos dentro. Em
+   560px ele virava uma coluna alta que só se lê rolando, e a linha do produto
+   (nome, SKU, quantidade, custo, EAN) ficava espremida a ponto de o nome não
+   caber. Aqui ele ocupa a tela: três colunas em cima, produtos com folga. */
+/* .modal fixa 380px mais abaixo na folha; com a mesma força, quem vem depois
+   ganha. Os dois seletores juntos resolvem sem depender da ordem. */
+.modal.acp-modal-grande{width:min(1180px,94vw);}
+/* Duas colunas, não três: as linhas do formulário vêm com dois campos, e a
+   terceira coluna virava um vão em branco do lado direito de cada par. Com
+   duas, a largura extra vai para dentro dos campos, que é onde falta. */
+@media (min-width:1000px){
+  .acp-modal-grande .acp-prod{grid-template-columns:2.8fr 1.1fr .7fr .9fr auto;}
+  .acp-modal-grande textarea{min-height:96px;}
+}
 .acp-linha{display:grid;grid-template-columns:1fr 1fr;gap:11px;}
 @media (max-width:560px){ .acp-linha{grid-template-columns:1fr;} }
 .acp-rot{display:flex;align-items:center;gap:6px;}
@@ -5365,7 +5379,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 <div id="toast"></div>
 <!-- COMPRA / DEVOLUÇÃO / TRANSFERÊNCIA -->
 <div class="modal-overlay" id="acp-overlay">
-  <div class="modal" style="width:560px;max-height:88vh;overflow-y:auto;">
+  <div class="modal acp-modal-grande" style="max-height:92vh;overflow-y:auto;">
     <div style="display:flex;align-items:flex-start;gap:12px;">
       <div style="flex:1;">
         <div class="modal-title" id="acp-modal-titulo" style="margin:0;">Nova Compra</div>
@@ -9934,7 +9948,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.24a';
+const APP_VERSAO='2026.08.24b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13636,6 +13650,14 @@ function acpResumoProdutos(){
   el.textContent=l.length?(l.length+' produto(s) · '+un+' un. · '+_pedFmt(tot)+' em mercadoria'):'';
 }
 
+/* Kit não entra na entrada de estoque. O que compõe saldo é o produto
+   unitário: lançar um "Kit 2x" somaria uma unidade onde entraram duas, e o
+   estoque passaria a mentir na primeira venda avulsa. O kit continua no
+   catálogo e nas vendas — só não é oferecido aqui. */
+function _acpEhKit(pr){
+  return /\bkits?\b/i.test(String((pr&&pr.nome)||'')) || /\bkits?\b/i.test(String((pr&&pr.sku)||''));
+}
+
 function acpBuscarProduto(inp){
   const linha=inp.closest('.acp-prod');
   const cx=linha.querySelector('.acp-sug');
@@ -13650,7 +13672,7 @@ function acpBuscarProduto(inp){
 
   if(termo.length<2){ cx.classList.remove('aberta'); cx.innerHTML=''; acpResumoProdutos(); return; }
   const sem=_cliSemAcento(termo);
-  const achados=(appState.produtos||[]).filter(Boolean).filter(pr=>
+  const achados=(appState.produtos||[]).filter(Boolean).filter(pr=>!_acpEhKit(pr)).filter(pr=>
     _cliSemAcento(String(pr.nome||'')).includes(sem) || String(pr.sku||'').toLowerCase().includes(termo)
   ).slice(0,8);
 
