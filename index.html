@@ -4746,7 +4746,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
     <div id="orc-achado" style="display:none;margin-bottom:10px;padding:9px 12px;border-radius:10px;background:var(--veu-suave);border:1px solid var(--linha-sutil);">
       <div style="font-size:9px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:3px;">Produto</div>
-      <div id="orc-produto" style="font-size:13px;color:var(--text-primary);font-weight:600;line-height:1.4;"></div>
+      <!-- SKU e nome lado a lado: o código sozinho não diz o que é, e quem
+           confere um orçamento precisa ver o produto, não só a etiqueta. -->
+      <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;">
+        <span id="orc-sku-achado" style="font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--accent);white-space:nowrap;"></span>
+        <span id="orc-produto" style="font-size:13px;color:var(--text-primary);font-weight:600;line-height:1.4;"></span>
+      </div>
     </div>
     <div class="input-group" style="margin-bottom:10px;">
       <label>Pre&ccedil;o do site, sem desconto (R$)</label>
@@ -9562,7 +9567,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ak';
+const APP_VERSAO='2026.08.23al';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -28649,10 +28654,13 @@ function abrirModalOrcamento(){
   document.getElementById('orc-sku').value=_atd.sku||'';
   document.getElementById('orc-qtd').value=_atd.qtd||'';
   document.getElementById('orc-preco').value=_atd.precoSite?String(_atd.precoSite).replace('.',','):'';
+  /* Reabrindo o rascunho: se o SKU já está preenchido, o nome vem do catálogo
+     mesmo sem clicar em Buscar — é informação que já está aqui dentro. */
+  const skuSalvo=String(_atd.sku||'').trim();
+  const nomeSalvo=String(_atd.produto||'').trim() || _orcNomePorSku(skuSalvo);
   const ach=document.getElementById('orc-achado');
-  if(ach) ach.style.display=_atd.produto?'block':'none';
-  const nome=document.getElementById('orc-produto');
-  if(nome) nome.textContent=_atd.produto||'';
+  if(ach) ach.style.display=(skuSalvo && (nomeSalvo||_atd.produto))?'block':'none';
+  _orcMostrarAchado(skuSalvo,nomeSalvo);
   const err=document.getElementById('orc-erro'); if(err) err.style.display='none';
   ov.style.display='flex';
   setTimeout(()=>{ try{ document.getElementById('orc-sku').focus(); }catch(e){} },60);
@@ -28670,6 +28678,28 @@ function fecharModalOrcamento(){
    Enquanto o endpoint não estiver publicado, o campo de preço continua
    aberto para digitar à mão — a tela não pode ficar refém de uma integração
    que ainda não subiu. */
+/* Nome do produto pelo SKU, direto do catálogo que a aba Estoque já traz da
+   Base. Comparação sem espaço e sem diferença de maiúscula: o SKU é digitado
+   por gente, e "le23012 " é o mesmo produto que "LE23012". */
+function _orcNomePorSku(sku){
+  const alvo=String(sku||'').trim().toLowerCase();
+  if(!alvo) return '';
+  const p=(appState.produtos||[]).find(x=>x && String(x.sku||'').trim().toLowerCase()===alvo);
+  return p ? String(p.nome||'').trim() : '';
+}
+
+function _orcMostrarAchado(sku,produto){
+  const elSku=document.getElementById('orc-sku-achado');
+  const elNome=document.getElementById('orc-produto');
+  if(elSku) elSku.textContent=String(sku||'').trim();
+  if(elNome){
+    const temNome=!!String(produto||'').trim();
+    elNome.textContent = temNome ? produto : 'nome não encontrado no catálogo';
+    elNome.style.color = temNome ? 'var(--text-primary)' : 'var(--text-muted)';
+    elNome.style.fontStyle = temNome ? 'normal' : 'italic';
+  }
+}
+
 function buscarSkuNaBase(){
   const sku=(document.getElementById('orc-sku').value||'').trim();
   const err=document.getElementById('orc-erro');
@@ -28686,9 +28716,14 @@ function buscarSkuNaBase(){
       throw new Error((j&&(j.erro||j.response))||'não encontrei este SKU');
     }
     _atd.sku=sku;
-    _atd.produto=j.nome||sku;
+    /* O nome vinha do proxy e, quando ele não trazia, o campo repetia o SKU —
+       "PRODUTO: LE23012" não informa nada a quem confere. O catálogo da Base
+       já está aqui dentro (aba Estoque), então o nome é procurado nele antes
+       de desistir. Só quando as duas fontes falham é que se admite não saber,
+       em vez de fingir que o código é o nome. */
+    _atd.produto=String(j.nome||'').trim() || _orcNomePorSku(sku) || '';
     if(j.preco) document.getElementById('orc-preco').value=String(j.preco).replace('.',',');
-    if(nome) nome.textContent=_atd.produto;
+    _orcMostrarAchado(sku,_atd.produto);
     if(ach) ach.style.display='block';
     /* Quando o preço não veio de dado estruturado, o Apps Script marca a
        leitura como palpite: numa página em promoção o primeiro "R$" da tela
@@ -28711,7 +28746,15 @@ function buscarSkuNaBase(){
         'Digite o preço do site à mão para seguir.';
       err.style.display='block';
     }
-    if(ach) ach.style.display='none';
+    /* A busca caiu, mas o catálogo continua aqui. Se o SKU existe nele, o
+       nome aparece assim mesmo — quem vai digitar o preço à mão pelo menos
+       confere que está orçando o produto certo. */
+    const local=_orcNomePorSku(sku);
+    if(local){
+      _atd.sku=sku; _atd.produto=local;
+      _orcMostrarAchado(sku,local);
+      if(ach) ach.style.display='block';
+    } else if(ach) ach.style.display='none';
     try{ document.getElementById('orc-preco').focus(); }catch(x){}
   }).finally(()=>{
     if(btn){ btn.disabled=false; btn.textContent='Buscar'; }
