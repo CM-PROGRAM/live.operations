@@ -1915,6 +1915,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div class="login-error" id="login-error">Usuário ou senha incorretos</div>
     <button class="btn" type="submit">Entrar</button>
     <a href="#" class="login-link" onclick="abrirRedefinicao();return false;">Esqueci minha senha</a>
+    <!-- A versão fica à vista na porta de entrada. Duas vezes hoje um erro de
+         acesso foi, na verdade, uma página velha presa no cache — e não havia
+         como saber disso sem entrar, que era justamente o que não dava. -->
+    <div id="login-versao" style="margin-top:10px;text-align:center;font-size:9.5px;
+      color:var(--text-muted);font-family:var(--font-mono);"></div>
   </form>
 
   <!-- REDEFINIÇÃO DE SENHA — código enviado por e-mail -->
@@ -9305,6 +9310,20 @@ function _verificarCodigoNaUrl(){
 }
 document.addEventListener('DOMContentLoaded',()=>setTimeout(_verificarCodigoNaUrl,300));
 
+/* Versão na tela de login. Quando ela não bate com a publicada, o problema
+   quase sempre é a página velha — e o aviso aparece antes de a pessoa gastar
+   dez tentativas achando que errou a senha. */
+document.addEventListener('DOMContentLoaded',()=>{
+  const el=document.getElementById('login-versao');
+  if(!el) return;
+  el.textContent='versão '+APP_VERSAO;
+  _lerVersaoPublicada().then(nova=>{
+    if(!nova || !_temVersaoMaisNova(nova)) return;
+    el.innerHTML='versão '+APP_VERSAO+' · <b style="color:#f0b429;">saiu a '+nova
+      +'</b> — <a href="#" style="color:#f0b429;" onclick="_recarregarParaVersaoNova();return false;">atualizar</a>';
+  }).catch(()=>{});
+});
+
 function doLogin(){
   const uOriginal=document.getElementById('login-user').value.trim().toLowerCase();
   const u=uOriginal.replace(/\s+/g,'');
@@ -9591,7 +9610,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23an';
+const APP_VERSAO='2026.08.23ao';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
