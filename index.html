@@ -8246,6 +8246,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.excluirIntBase)) data.excluirIntBase = [];
   if(!Array.isArray(data.atualizacaoCatalogo)) data.atualizacaoCatalogo = [];
   _semearEmails(data);
+  _expandirPermsFinas(data);
   if(!Array.isArray(data.imagensReq)) data.imagensReq = [];
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
@@ -9393,6 +9394,9 @@ function doLogin(){
   }
 
   async function authenticate(users){
+    /* Vale para todos os caminhos de entrada, inclusive o sem internet: o
+       acesso grosso vira as chaves finas antes de qualquer conferência. */
+    try{ _expandirPermsFinas(appState); }catch(e){}
     const hashDigitado=await _hashSenha(p);
     const entradas=Object.entries(users||{}).filter(([,v])=>!!v);
 
@@ -9544,6 +9548,7 @@ function doLogin(){
          endereço. Garantir os quatro aqui é o que impede alguém de ficar
          trancado do lado de fora esperando outra pessoa entrar primeiro. */
       try{ patchUsers(appState); }catch(e){ console.warn('[login] patchUsers:',e); }
+      try{ _expandirPermsFinas(appState); }catch(e){}
       authenticate(appState.users);
     }).catch(()=>authenticate(appState.users));
   } else {
@@ -9660,7 +9665,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ap';
+const APP_VERSAO='2026.08.23aq';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -9878,7 +9883,7 @@ const MENU_ABAS=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
     /* Inbox é onde as conversas do WhatsApp vão morar. Enquanto não moram,
        a aba diz isso — tela vazia sem explicação vira chamado. */
-    {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'whatsapp'},
+    {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'inbox', permLegado:'whatsapp'},
     {type:'group', id:'grp-tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas', children:[
       {id:'tarefas',   label:'Tarefas Suplelive'}
     ]},
@@ -9891,9 +9896,9 @@ const MENU_ABAS=[
        continuam os mesmos (clientes, registrovendas, envios) porque aparecem
        em vínculo já gravado — tarefa, notificação, permissão — e trocá-los
        quebraria registro antigo sem ganho nenhum. */
-    {id:'clientes', icon:'clientes', label:'Clientes', perm:'whatsapp'},
-    {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'whatsapp'},
-    {id:'estoque', icon:'estoque', label:'Estoque', perm:'admin'},
+    {id:'clientes', icon:'clientes', label:'Clientes', perm:'clientes', permLegado:'whatsapp'},
+    {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'registrovendas', permLegado:'whatsapp'},
+    {id:'estoque', icon:'estoque', label:'Estoque', perm:'estoque', permLegado:'admin'},
     {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       /* "Canceladas" e "Canceladas com NF" saíram do menu: viraram
@@ -9905,7 +9910,7 @@ const MENU_ABAS=[
     {type:'group', id:'grp-integracoes', icon:'anuncios', label:'Anúncios', perm:'integracoes', children:[
       {id:'atribuir',  label:'Criar Tarefa'}
     ]},
-    {type:'group', id:'grp-financeiro', icon:'financeiro', label:'Financeiro', perm:'whatsapp', children:[
+    {type:'group', id:'grp-financeiro', icon:'financeiro', label:'Financeiro', perm:'financeiro', permLegado:'whatsapp', children:[
       {id:'financeiro', label:'Conferência Vendas WhatsApp'}
     ]},
     {id:'plataformas',icon:'marketplaces', label:'Marketplaces',    perm:'plataformas'},
@@ -9919,36 +9924,79 @@ const MENU_ABAS=[
        novo se a migração tiver saído torta. Para trazer a aba de volta, basta
        devolver a linha de baixo.
          {id:'devolucoes', label:'Lançamentos'},                              */
-    {id:'templates',  icon:'templates',    label:'Templates',       perm:'admin'},
-    {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'admin'},
+    {id:'templates',  icon:'templates',    label:'Templates',       perm:'templates', permLegado:'admin'},
+    {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'painelIntegracoes', permLegado:'admin'},
     /* "Rastreador Live" virou "Acompanhamento": o nome antigo dizia a
        tecnologia, o novo diz o trabalho. O id segue 'envios'. */
     {id:'envios',     icon:'acompanha',    label:'Acompanhamento',  perm:'envios'},
-    {id:'jobs',       icon:'jobs',         label:'Jobs & Logs',     perm:'admin'},
+    {id:'jobs',       icon:'jobs',         label:'Jobs & Logs',     perm:'jobs', permLegado:'admin'},
     {id:'cnpjs',      icon:'cnpjs', label:'CNPJs Suplelive', perm:'cnpjs'},
     {id:'admin',      icon:'admin', label:'Administrador',       perm:'admin'}
 ];
 
-/* Cada permissão com as abas que ela destranca, na ordem do menu. É o que o
-   painel do Administrador mostra: a pessoa liga "admin" sabendo que está
-   entregando Estoque, Templates, Integrações, Jobs e o próprio Administrador
-   — e não um botão de nome solto. */
-function permissoesDoMenu(){
-  const mapa=new Map();
-  const juntar=(perm,rotulo)=>{
-    if(!perm) return;
-    if(!mapa.has(perm)) mapa.set(perm,[]);
-    if(mapa.get(perm).indexOf(rotulo)<0) mapa.get(perm).push(rotulo);
-  };
-  MENU_ABAS.forEach(tb=>{
-    juntar(tb.perm, tb.label);
-    (tb.children||[]).forEach(c=>{
-      /* Filho sem permissão própria segue a do grupo; com permissão própria,
-         conta para ela — é assim que buildTabs decide. */
-      if(c.perm) juntar(c.perm, tb.label+' · '+c.label);
+/* ── Permissão por aba ────────────────────────────────────────────────
+   Antes várias abas dividiam a mesma chave: "whatsapp" abria Inbox, Clientes,
+   Pedidos, WhatsApp e Financeiro de uma vez, e "admin" abria Estoque,
+   Templates, Integrações, Jobs e o Administrador. Não dava para liberar
+   Estoque a alguém sem entregar junto o painel de segurança — e no painel do
+   master isso aparecia como um botão só, com cinco nomes grudados.
+
+   Agora cada aba tem a sua chave, igual ao id dela. A chave antiga vive em
+   permLegado e serve para uma coisa só: na primeira abertura, quem tinha o
+   acesso grosso recebe as chaves finas equivalentes. Ninguém perde o que já
+   usava, e a partir daí cada aba se liga e se desliga sozinha. */
+function _permAba(tb){ return tb ? tb.perm : null; }
+
+function _podeVerAba(tb,user){
+  const u=user||currentUser;
+  if(!u) return false;
+  if(!tb || tb.perm===null || tb.perm===undefined) return true;
+  if(u.master) return true;
+  const perms=Array.isArray(u.perms)?u.perms:[];
+  return perms.indexOf(tb.perm)>=0;
+}
+
+/* Espalha o acesso grosso nas chaves finas, uma vez por usuário. Rodar de
+   novo depois disso desfaria o trabalho do master: ele desliga "Estoque" e a
+   chave "admin", que continua na lista para outras conferências do sistema,
+   religaria a aba na abertura seguinte. Por isso a marca permsV2. */
+function _expandirPermsFinas(s){
+  try{
+    /* loadLocal roda antes desta constante existir (const não é içado). Sair
+       calado aqui é o certo: quem chama de novo depois do carregamento — o
+       login e a chegada da nuvem — faz o trabalho. */
+    if(typeof MENU_ABAS==='undefined') return;
+    const users=(s&&s.users)||{};
+    Object.values(users).forEach(u=>{
+      if(!u || u.permsV2) return;
+      if(!Array.isArray(u.perms)) u.perms=[];
+      const add=p=>{ if(p && u.perms.indexOf(p)<0) u.perms.push(p); };
+      MENU_ABAS.forEach(tb=>{
+        if(tb.permLegado && u.perms.indexOf(tb.permLegado)>=0) add(tb.perm);
+        (tb.children||[]).forEach(c=>{
+          if(c.permLegado && u.perms.indexOf(c.permLegado)>=0) add(c.perm);
+        });
+      });
+      u.permsV2=true;
     });
-  });
-  return [...mapa.entries()].map(([id,abas])=>({id, abas}));
+  }catch(e){ console.warn('[perms] expansão:',e); }
+}
+
+/* As linhas do painel do master, na ordem exata do menu lateral. Grupo com
+   filho que tem permissão própria vira uma linha com seta, e os filhos
+   entram embaixo — é onde se dá a permissão detalhada. */
+function permissoesDoMenu(){
+  return MENU_ABAS.map(tb=>({
+      id:tb.perm||'',
+      label:tb.label,
+      /* Grupo sem chave própria (Vendas) entra assim mesmo: ele não tem
+         interruptor, mas os filhos têm, e é lá que a permissão detalhada é
+         dada. Sem isso "WhatsApp (Chatwoot)" não apareceria em lugar nenhum. */
+      /* Filho sem chave própria entra como informação: ele existe no menu e
+         some da conferência se for escondido daqui. */
+      filhos:(tb.children||[]).filter(c=>!(c.perm && c.perm===tb.perm))
+                              .map(c=>({id:c.perm||'', label:c.label}))
+    }));
 }
 
 function buildTabs(){
@@ -10036,7 +10084,7 @@ function buildTabs(){
     if(tb.type==='group'){
       const permOk = tb.permAny
         ? (currentUser.master || tb.permAny.some(p=>currentUser.perms.includes(p)))
-        : (tb.perm===null||currentUser.master||currentUser.perms.includes(tb.perm));
+        : _podeVerAba(tb);
       if(!permOk) return;
       const visibleChildren=(tb.children||[]).filter(c=>{
         if(c.masterOnly && !currentUser.master) return false;
@@ -10097,7 +10145,7 @@ function buildTabs(){
       nav.appendChild(groupWrap);
       return;
     }
-    if((tb.perm===null||currentUser.master||currentUser.perms.includes(tb.perm)) && !(tb.hideFromMaster && currentUser.master)){
+    if(_podeVerAba(tb) && !(tb.hideFromMaster && currentUser.master)){
       const btn=document.createElement('button');
       btn.className='tab-btn';btn.dataset.tab=tb.id;btn.title=tb.label;
       btn.innerHTML=`<span class="tab-icon">${iconeMenu(tb.icon)}</span><span class="tab-label">${tb.label}</span>`;
@@ -19213,10 +19261,7 @@ function renderUsersGrid(){
      abas que ela destranca. Antes era uma cópia escrita à mão que envelheceu
      — oferecia Devoluções, que não é mais aba, e escondia que "admin" entrega
      cinco telas de uma vez. */
-  const tabDefs=permissoesDoMenu().map(p=>({
-    id:p.id,
-    label:p.abas.join(' · ')
-  }));
+  const tabDefs=permissoesDoMenu();
 
   const users = Object.entries(appState.users);
   if(users.length===0){
@@ -19259,17 +19304,57 @@ function renderUsersGrid(){
     `;
     const pl=card.querySelector(`#perms-${key}`);
     const ASSIGNABLE_TABS=['whatsapp','plataformas','anuncios','envios'];
+    /* Uma linha por aba do menu, na mesma ordem da barra lateral. Aba com
+       sub-aba ganha seta: abrindo, cada sub-aba tem o próprio interruptor.
+       O painel antigo agrupava por permissão e cuspia rótulos grudados
+       ("Inbox · Clientes · Pedidos · …") num interruptor só — dava para
+       liberar cinco telas sem perceber, e não dava para liberar uma. */
+    const interruptor=(chave,ligado)=>
+      `<label class="perm-toggle" onclick="event.stopPropagation()">`
+      +`<input type="checkbox" ${ligado?'checked':''} ${user.master?'disabled':''} `
+      +`onchange="togglePerm('${key}','${chave}',this.checked)">`
+      +`<div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div>`
+      +`<span class="perm-toggle-label pt-on">ON</span>`
+      +`<span class="perm-toggle-label pt-off">OFF</span></label>`;
+
     tabDefs.forEach(tb=>{
-      const has=user.perms.includes(tb.id);
-      const sub=buildAbaTaskSummary(tb.id);
+      const has=tb.id ? user.perms.includes(tb.id) : false;
+      const sub=tb.id?buildAbaTaskSummary(tb.id):[];
+      const filhos=tb.filhos||[];
       const isAssignable=ASSIGNABLE_TABS.includes(tb.id);
-      const stateKey=key+'::'+tb.id;
+      const temDobra=!!(sub.length||filhos.length);
+      const stateKey=key+'::'+(tb.id||tb.label);
       const row=document.createElement('div');row.className='perm-row-wrap';
       row.style.cssText='display:flex;flex-direction:column;';
       const head=document.createElement('div');head.className='perm-row';
-      head.style.cursor=sub.length?'pointer':'default';
-      head.innerHTML=`<span style="display:flex;align-items:center;gap:5px;">${sub.length?`<span class="perm-chevron" style="font-size:9px;color:var(--text-muted);transition:transform .15s;display:inline-block;">▸</span>`:''}${tb.label}</span><label class="perm-toggle" onclick="event.stopPropagation()"><input type="checkbox" ${has?'checked':''} ${user.master?'disabled':''} onchange="togglePerm('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div><span class="perm-toggle-label pt-on">ON</span><span class="perm-toggle-label pt-off">OFF</span></label>`;
+      head.style.cursor=temDobra?'pointer':'default';
+      head.innerHTML=`<span style="display:flex;align-items:center;gap:5px;">`
+        +(temDobra?`<span class="perm-chevron" style="font-size:9px;color:var(--text-muted);transition:transform .15s;display:inline-block;">▸</span>`:'')
+        +tb.label+`</span>`
+        /* Grupo sem chave própria (Vendas) não tem o que ligar: o acesso é
+           decidido nas sub-abas, e um interruptor aqui só enganaria. */
+        +(tb.id?interruptor(tb.id,has)
+               :`<span style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">`
+                 +(filhos.length?'nas sub-abas':'sempre visível')+`</span>`);
       row.appendChild(head);
+
+      if(filhos.length){
+        const kids=document.createElement('div');
+        kids.style.cssText='display:'+(_permOpenTabs.has(stateKey)?'block':'none')
+          +';margin:2px 0 6px 16px;padding-left:8px;border-left:1px solid var(--border);';
+        filhos.forEach(f=>{
+          const lin=document.createElement('div');
+          lin.className='perm-row';
+          lin.style.cssText='padding-top:4px;padding-bottom:4px;';
+          lin.innerHTML=`<span style="font-size:11.5px;color:var(--text-secondary);">${f.label}</span>`
+            +(f.id?interruptor(f.id, user.perms.includes(f.id))
+                  :`<span style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">sempre visível</span>`);
+          kids.appendChild(lin);
+        });
+        row.appendChild(kids);
+        row._kids=kids;
+      }
+
       if(sub.length){
         const wasOpen=_permOpenTabs.has(stateKey);
         const subWrap=document.createElement('div');
@@ -19291,16 +19376,24 @@ function renderUsersGrid(){
             </ul>`).join('');
         }
         row.appendChild(subWrap);
-        if(wasOpen){
+        row._sub=subWrap;
+      }
+
+      /* Uma seta só comanda as duas dobras: as sub-abas com interruptor e o
+         resumo de tarefas daquela aba. Antes o clique existia apenas quando
+         havia resumo — grupo com sub-aba e sem tarefa nunca abria. */
+      if(temDobra){
+        const dobras=[row._kids,row._sub].filter(Boolean);
+        const aberto=()=>_permOpenTabs.has(stateKey);
+        const pintar=()=>{
           const chev=head.querySelector('.perm-chevron');
-          if(chev) chev.style.transform='rotate(90deg)';
-        }
+          if(chev) chev.style.transform=aberto()?'rotate(90deg)':'';
+          dobras.forEach(d=>{ d.style.display=aberto()?'block':'none'; });
+        };
+        pintar();
         head.onclick=()=>{
-          const open=subWrap.style.display==='block';
-          subWrap.style.display=open?'none':'block';
-          if(open) _permOpenTabs.delete(stateKey); else _permOpenTabs.add(stateKey);
-          const chev=head.querySelector('.perm-chevron');
-          if(chev) chev.style.transform=open?'':'rotate(90deg)';
+          if(aberto()) _permOpenTabs.delete(stateKey); else _permOpenTabs.add(stateKey);
+          pintar();
         };
       }
       pl.appendChild(row);
