@@ -943,6 +943,95 @@ input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
 input:focus,select:focus,textarea:focus{border-color:rgba(59,130,246,0.6);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 16px rgba(59,130,246,0.2);}
 select{color-scheme:dark;}
 select option,select optgroup{background:var(--bg-surface);color:var(--text-primary);}
+/* ══════════ COMPRA EM TRÊS ETAPAS ══════════
+   O desenho é o do sistema — vidro escuro, cantos do --radius, fonte mono nos
+   números. A grade veio do modelo em planilha porque é assim que a operação
+   já lê a conferência: uma coluna por rastreio, a diferença colorida ao lado. */
+.etp-passos{display:flex;gap:6px;flex-wrap:wrap;}
+.etp-passo{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
+  padding:5px 12px;border-radius:999px;border:1px solid var(--border);color:var(--text-muted);}
+.etp-passo.ativo{border-color:var(--accent-dim);background:var(--accent-glow);color:var(--accent);}
+.etp-passo.feito{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.12);color:var(--green);}
+.etp-pagina{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:20px;margin-bottom:4px;}
+.etp-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  font-size:14px;font-weight:800;color:var(--text-primary);margin:0 0 16px;}
+.etp-selo{font-size:11px;font-weight:600;color:var(--text-muted);font-family:var(--font-mono);}
+.etp-selo.travado{color:#f0b429;}
+.etp-selo.pronto{color:var(--green);}
+.etp-seta{text-align:center;color:var(--text-muted);font-size:20px;margin:2px 0 10px;}
+.etp-dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px;}
+.etp-cotacao{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-secondary);}
+.etp-cotacao input{width:110px;}
+.etp-tabela{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+.etp-cab{display:grid;background:var(--bg-active);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.04em;color:var(--text-secondary);}
+.etp-cab > div{padding:8px 6px;border-right:1px solid var(--border);}
+.etp-cab > div:last-child{border-right:none;}
+.etp-linha{display:grid;align-items:center;border-top:1px solid var(--linha-sutil);}
+.etp-linha > div{padding:4px;min-width:0;}
+.etp-linha input{height:30px;font-size:12px;padding:4px 8px;font-family:var(--font-mono);}
+.etp-c1{grid-template-columns:90px 2fr 120px 110px 40px;}
+.etp-c3{grid-template-columns:2fr 110px 90px 110px 120px 50px;}
+.etp-lido{font-size:12px;padding:6px;color:var(--text-secondary);font-family:var(--font-mono);}
+.etp-dif{text-align:center;font-size:12px;font-weight:700;border-radius:6px;height:30px;
+  display:flex;align-items:center;justify-content:center;}
+.etp-x{border:none;background:transparent;color:var(--text-muted);font-size:16px;line-height:1;
+  cursor:pointer;padding:2px 6px;border-radius:6px;}
+.etp-x:hover{color:#f87171;background:rgba(239,68,68,.12);}
+.etp-nota{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.7;margin:8px 2px 0;}
+.etp-confirmar{display:flex;justify-content:flex-end;margin-top:16px;}
+.etp-resumo{display:grid;grid-template-columns:1.6fr 1fr 1.4fr;gap:10px;margin-bottom:14px;}
+@media (max-width:900px){.etp-resumo{grid-template-columns:1fr;}}
+.etp-caixa{background:var(--bg-active);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;}
+.etp-caixa .rot{color:var(--accent);font-size:11px;font-weight:600;}
+.etp-caixa .li{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px;}
+.etp-caixa .li:last-child{margin-bottom:0;}
+.etp-caixa .li input{width:110px;height:26px;font-size:12px;padding:3px 8px;}
+.etp-caixa .val{color:var(--text-primary);font-size:12px;font-family:var(--font-mono);font-weight:700;}
+.etp-caixa-cotacao{display:flex;flex-direction:column;justify-content:center;gap:4px;}
+.etp-cotacao-val{color:var(--text-primary);font-size:19px;font-weight:800;font-family:var(--font-mono);}
+.etp-rt{display:grid;grid-template-columns:64px 1fr 78px 22px;gap:5px;align-items:center;margin-bottom:6px;}
+.etp-rt:last-child{margin-bottom:0;}
+.etp-rt .n{color:var(--accent);font-size:10px;font-family:var(--font-mono);}
+.etp-rt input{height:26px;font-size:11px;padding:3px 7px;}
+.etp-btn-escuro{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);
+  color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:6px 11px;cursor:pointer;}
+.etp-btn-escuro:hover{color:var(--text-primary);border-color:var(--border-light);}
+.etp-rodape{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:14px;}
+@media (max-width:900px){.etp-rodape{grid-template-columns:1fr;}}
+.etp-totais{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;}
+.etp-totais .rot{display:block;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);}
+.etp-totais .val{font-size:17px;font-weight:800;color:var(--text-primary);font-family:var(--font-mono);}
+.etp-custo{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.etp-custo .nome{color:var(--accent);font-size:11.5px;flex:1;}
+.etp-custo input.nome-livre{flex:1;height:26px;font-size:11.5px;padding:3px 8px;}
+.etp-custo input.valor{width:100px;height:26px;font-size:12px;padding:3px 8px;}
+.etp-frete-total{display:flex;justify-content:space-between;border-top:1px solid var(--border);
+  padding-top:8px;margin-top:8px;color:var(--text-primary);font-size:12px;font-weight:800;font-family:var(--font-mono);}
+.etp-olho{border:none;background:transparent;padding:4px 6px;cursor:pointer;border-radius:6px;font-size:15px;line-height:1;}
+.etp-olho:hover{background:var(--bg-hover);}
+.etp-olho.feito{color:var(--green);}
+.etp-modal-card{background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:var(--radius-lg);
+  padding:22px;width:340px;max-width:96vw;box-shadow:var(--sombra-painel),var(--realce-topo);backdrop-filter:blur(24px);}
+.etp-modal-card h3{font-size:16px;font-weight:700;color:var(--text-primary);margin:0 0 4px;}
+.etp-modal-card .sub{font-size:11.5px;color:var(--text-muted);margin:0 0 16px;line-height:1.55;}
+.etp-calc-linha{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;
+  font-size:12.5px;color:var(--text-secondary);}
+.etp-calc-linha .v{font-weight:700;color:var(--text-primary);font-family:var(--font-mono);}
+.etp-calc-linha .v.nf{color:var(--accent);}
+.etp-calc-formula{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin:2px 0;}
+/* Interruptor no lugar da caixinha: o "Mostrar arquivados" liga e desliga a
+   lista inteira, e caixa de marcar não dá esse peso ao gesto. */
+.sw{position:relative;display:inline-block;width:38px;height:21px;flex-shrink:0;}
+.sw input{position:absolute;opacity:0;width:0;height:0;margin:0;}
+.sw .tr{position:absolute;inset:0;background:var(--bg-active);border:1px solid var(--border-light);
+  border-radius:999px;transition:background .18s,border-color .18s;}
+.sw .kn{position:absolute;top:3px;left:3px;width:15px;height:15px;border-radius:50%;
+  background:var(--text-muted);transition:transform .18s,background .18s;}
+.sw input:checked + .tr{background:rgba(59,130,246,.9);border-color:rgba(59,130,246,.9);}
+.sw input:checked + .tr + .kn{transform:translateX(17px);background:#fff;}
+
 .btn{
   --bc: var(--rgb-indigo); /* azul-índigo padrão */
   background:linear-gradient(135deg, rgba(var(--bc),0.55) 0%, rgba(var(--bc),0.28) 100%);
@@ -2527,9 +2616,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn-sec" style="width:auto;padding:7px 11px;" title="Atualizar" onclick="renderAcompanhamento()">⟳</button>
           <select id="acp-f-status" onchange="renderAcompanhamento()"
             style="width:auto;min-width:165px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:7px 14px;cursor:pointer;outline:none;"></select>
-          <label style="display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
-            <input type="checkbox" id="acp-f-arquivados" onchange="renderAcompanhamento()" style="width:auto;margin:0;cursor:pointer;">
+          <label style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
             Mostrar arquivados
+            <span class="sw"><input type="checkbox" id="acp-f-arquivados" onchange="renderAcompanhamento()"><span class="tr"></span><span class="kn"></span></span>
           </label>
         </div>
       </div>
@@ -2558,6 +2647,162 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="acp-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
         <div id="acp-pag" class="pag-rodape"></div>
+      </div>
+
+      <!-- ══════════ COMPRA EM TRÊS ETAPAS ══════════
+           Orçamento → Chegada/conferência → Lançamento no estoque.
+           Cada etapa trava ao ser confirmada e alimenta a seguinte: é o que
+           impede alguém de mexer no preço depois de a mercadoria ter chegado
+           e de o custo já ter sido calculado em cima dele. Reabrir é possível
+           e explícito — o que não pode é mudar em silêncio. -->
+      <div id="acp-etapas" style="display:none;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="btn-sec" style="width:auto;" onclick="acpFecharEtapas()">← Voltar para a lista</button>
+          <div>
+            <div id="etp-titulo" style="font-size:14px;font-weight:800;color:var(--text-primary);">Compra</div>
+            <div id="etp-sub" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);"></div>
+          </div>
+          <div style="flex:1;"></div>
+          <div class="etp-passos" id="etp-passos"></div>
+        </div>
+
+        <!-- ETAPA 1 — ORÇAMENTO -->
+        <div class="etp-pagina" id="etp-p1">
+          <h3 class="etp-h">Etapa 1 — Orçamento
+            <span class="etp-selo" id="etp-selo-1">🔓 Editável</span>
+          </h3>
+          <div class="etp-dados">
+            <div class="input-group"><label>Número do orçamento</label>
+              <input type="text" id="etp-numero" readonly></div>
+            <div class="input-group"><label>Data do orçamento</label>
+              <input type="date" id="etp-data" onchange="etpMarcar()"></div>
+            <div class="input-group"><label>Nome da loja</label>
+              <input type="text" id="etp-loja" placeholder="Ex: Suplelive" oninput="etpMarcar()"></div>
+            <div class="input-group"><label>Código rastreio EUA</label>
+              <input type="text" id="etp-rastreio-eua" placeholder="Ex: 1Z999AA10123456784" oninput="etpMarcar()"></div>
+          </div>
+          <div class="etp-cotacao">
+            <span>Cotação do dólar</span>
+            <input type="number" id="etp-cotacao" step="0.01" value="5.40" oninput="etpRecalcular()">
+          </div>
+          <div class="etp-tabela" style="margin-top:12px;">
+            <div class="etp-cab etp-c1"><div>Compra</div><div>Produto</div><div>SKU</div><div>Preço $</div><div></div></div>
+            <div id="etp-linhas-1"></div>
+          </div>
+          <div class="etp-nota">O SKU vem do catálogo da Base pelo nome do produto — digite o nome e ele se preenche sozinho.</div>
+          <button class="btn-sec" id="etp-add-1" style="width:auto;margin-top:10px;" onclick="etpAddProduto()">+ Adicionar produto</button>
+          <div class="etp-confirmar">
+            <button class="btn" id="etp-btn-1" style="width:auto;" onclick="etpConfirmar(1)">Confirmar orçamento →</button>
+          </div>
+        </div>
+
+        <div class="etp-seta">↓</div>
+
+        <!-- ETAPA 2 — CHEGADA / CONFERÊNCIA -->
+        <div class="etp-pagina" id="etp-p2">
+          <h3 class="etp-h">Etapa 2 — Chegada / conferência
+            <span class="etp-selo" id="etp-selo-2">🔓 Editável</span>
+          </h3>
+          <div class="etp-resumo">
+            <div class="etp-caixa">
+              <div class="li"><span class="rot">Custo frete R$</span><span class="val" id="etp-frete-total">0,00</span></div>
+              <div class="li"><span class="rot">Total kg cobrado</span>
+                <input type="number" id="etp-kg-cobrado" step="0.01" placeholder="0,00" oninput="etpRecalcular()"></div>
+              <div class="li"><span class="rot">Total kg produto</span><span class="val" id="etp-kg-produto">0,00</span></div>
+              <div class="li"><span class="rot">Custo real por kg</span><span class="val" id="etp-custo-kg">—</span></div>
+            </div>
+            <div class="etp-caixa etp-caixa-cotacao">
+              <span class="rot">Cotação</span>
+              <span class="etp-cotacao-val" id="etp-cotacao-val">$ 5,40</span>
+            </div>
+            <div class="etp-caixa">
+              <div class="rot" style="margin-bottom:8px;">Rastreios</div>
+              <div id="etp-rastreios"></div>
+              <button class="etp-btn-escuro" id="etp-add-rt" style="margin-top:6px;width:100%;" onclick="etpAddRastreio()">+ Adicionar rastreio</button>
+            </div>
+          </div>
+          <div class="etp-tabela" style="overflow-x:auto;">
+            <div class="etp-cab" id="etp-cab-2"></div>
+            <div id="etp-linhas-2"></div>
+          </div>
+          <div class="etp-nota">Cada rastreio vira uma coluna. <b>Chegou</b> é a soma das colunas · <b>Dif</b> é Chegou − Compra — verde igual, vermelho faltou, laranja veio a mais.</div>
+          <div class="etp-rodape">
+            <div class="etp-totais">
+              <div><span class="rot">Compra (total)</span><span class="val" id="etp-tot-compra">0</span></div>
+              <div><span class="rot">Chegou (total)</span><span class="val" id="etp-tot-chegou">0</span></div>
+            </div>
+            <div class="etp-caixa">
+              <div class="rot" style="margin-bottom:8px;">Custos de frete</div>
+              <div id="etp-fretes-fixos"></div>
+              <div class="rot" style="margin:10px 0 6px;">Custos extras</div>
+              <div id="etp-fretes-extras"></div>
+              <button class="etp-btn-escuro" id="etp-add-custo" style="margin-top:8px;" onclick="etpAddCustoExtra()">+ Adicionar custo extra</button>
+              <div class="etp-frete-total"><span>Total</span><span id="etp-frete-total-val">R$ 0,00</span></div>
+            </div>
+          </div>
+          <div class="etp-confirmar">
+            <button class="btn" id="etp-btn-2" style="width:auto;" onclick="etpConfirmar(2)">Confirmar conferência →</button>
+          </div>
+        </div>
+
+        <div class="etp-seta">↓</div>
+
+        <!-- ETAPA 3 — LANÇAMENTO EM ESTOQUE -->
+        <div class="etp-pagina" id="etp-p3">
+          <h3 class="etp-h">Etapa 3 — Lançamento em estoque
+            <span class="etp-selo" id="etp-selo-3">🔒 Aguardando conferência</span>
+          </h3>
+          <div class="etp-tabela">
+            <div class="etp-cab etp-c3"><div>Produto</div><div>SKU</div><div>Quant.</div><div>Custo R$</div><div>Valor total</div><div></div></div>
+            <div id="etp-linhas-3"></div>
+          </div>
+          <div class="etp-nota">Valor total = Quantidade × Custo R$ · os dados vêm direto da conferência da Etapa 2.</div>
+          <div class="etp-rodape">
+            <div class="etp-totais">
+              <div><span class="rot">Itens</span><span class="val" id="etp-tot-itens">0</span></div>
+              <div><span class="rot">Valor total do lote</span><span class="val" id="etp-tot-valor">R$ 0,00</span></div>
+            </div>
+            <div></div>
+          </div>
+          <div class="etp-confirmar">
+            <button class="btn" id="etp-btn-3" style="width:auto;" onclick="etpConfirmar(3)" disabled>Lançar no estoque</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MODAL DE CONFERÊNCIA DO PRODUTO (Etapa 3) -->
+      <div id="etp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1700;
+        align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:760px;width:100%;">
+          <div class="etp-modal-card">
+            <h3 id="etp-modal-titulo">Confirmar produto</h3>
+            <p class="sub">Para marcar o produto como conferido, informe os preços, o peso e a data de vencimento.</p>
+            <div class="input-group"><label>📅 Data de vencimento</label>
+              <input type="text" id="etp-m-venc" inputmode="numeric" placeholder="dd/mm/aa" maxlength="8" oninput="etpMascaraData(this)"></div>
+            <div class="input-group"><label>Preço padrão (R$)</label>
+              <input type="number" id="etp-m-padrao" step="0.01" placeholder="0,00"></div>
+            <div class="input-group"><label>Preço para o atacado (R$)</label>
+              <input type="number" id="etp-m-atacado" step="0.01" placeholder="0,00"></div>
+            <div class="input-group"><label>Preço do site (R$)</label>
+              <input type="number" id="etp-m-site" step="0.01" placeholder="0,00"></div>
+            <div class="input-group" style="margin-bottom:0;"><label>🔒 Peso do produto (kg)</label>
+              <input type="number" id="etp-m-peso" step="0.01" readonly></div>
+            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+              <button class="btn btn-ghost" style="width:auto;" onclick="etpFecharModal()">Cancelar</button>
+              <button class="btn" style="width:auto;" onclick="etpSalvarModal()">Confirmar</button>
+            </div>
+          </div>
+          <div class="etp-modal-card" style="width:270px;">
+            <h3>Calculadora</h3>
+            <p class="sub">Mercado Livre (clássico)</p>
+            <div class="input-group"><label>Valor de venda (R$)</label>
+              <input type="number" id="etp-calc" value="100" step="0.01" oninput="etpCalc()"></div>
+            <div class="etp-calc-linha"><span>Preço base</span><span class="v" id="etp-calc-base">R$ 0,00</span></div>
+            <div class="etp-calc-linha"><span>Após NF</span><span class="v nf" id="etp-calc-nf">R$ 0,00</span></div>
+            <div class="etp-calc-formula">base = valor × 0,88 − 19,95</div>
+            <div class="etp-calc-formula">nf = base − (valor × 0,1)</div>
+          </div>
+        </div>
       </div>
 
       <!-- ENVIADOS — o Live Track de sempre, agora dentro da aba -->
@@ -9689,7 +9934,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23at';
+const APP_VERSAO='2026.08.24a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13868,6 +14113,608 @@ function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(
    interessa quantos itens vieram; numa devolução interessa de quem voltou,
    por qual transportadora, e se alguém já conferiu o que chegou. Mostrar as
    mesmas sete colunas nos três encheria a tela de "N/A". */
+/* ══════════ COMPRA EM TRÊS ETAPAS ══════════
+   Orçamento → Chegada/conferência → Lançamento no estoque.
+
+   Tudo mora dentro da própria compra (a.etapas), e não numa lista à parte: a
+   conferência só faz sentido ao lado do que foi comprado, e separar as duas
+   criaria a pergunta "qual das duas está certa?" no dia em que divergissem.
+
+   Cada etapa trava ao ser confirmada. Não é burocracia: a etapa 2 calcula o
+   custo em cima do preço da etapa 1, e a 3 lança no estoque o custo da 2 —
+   mudar um preço lá atrás depois disso mudaria um custo que já virou número
+   no estoque, sem ninguém perceber. Reabrir é possível e explícito. */
+
+const ETP_CUSTOS_FIXOS=['Frete Usa 1','Frete Usa 2','Transportadora','Frete Azul','Taxa SP','Correios','Extravio'];
+let _etpId='';       // id da compra aberta
+let _etpProdModal=''; // produto aberto no modal da etapa 3
+
+function _etpCompra(){
+  return (appState.acompanhamentos||[]).find(x=>x && x.id===_etpId) || null;
+}
+
+/* Estrutura garantida na leitura, nunca na gravação: compra antiga não tem
+   nada disso, e criar na hora de abrir evita espalhar `|| {}` por todo lado. */
+function _etpDados(a){
+  if(!a) return null;
+  if(!a.etapas) a.etapas={};
+  const e=a.etapas;
+  if(!e.orc)  e.orc ={numero:'', data:'', loja:'', rastreioEua:'', cotacao:5.40, itens:[], travado:false};
+  if(!e.conf) e.conf={kgCobrado:'', rastreios:[], linhas:[], custos:{}, extras:[], travado:false};
+  if(!e.lanc) e.lanc={produtos:{}, travado:false};
+  if(!Array.isArray(e.orc.itens))     e.orc.itens=[];
+  if(!Array.isArray(e.conf.rastreios))e.conf.rastreios=[];
+  if(!Array.isArray(e.conf.linhas))   e.conf.linhas=[];
+  if(!Array.isArray(e.conf.extras))   e.conf.extras=[];
+  if(!e.conf.custos||typeof e.conf.custos!=='object') e.conf.custos={};
+  if(!e.lanc.produtos||typeof e.lanc.produtos!=='object') e.lanc.produtos={};
+  return e;
+}
+
+function _etpNum(v){
+  if(typeof v==='number') return isFinite(v)?v:0;
+  let t=String(v==null?'':v).replace('R$','').replace('$','').trim();
+  if(!t) return 0;
+  /* O ponto é ambíguo e o erro é caro: tratá-lo sempre como separador de
+     milhar transformava o peso "0.10" em 10 e inflava o custo do lote em cem
+     vezes. Quem manda é a vírgula — havendo vírgula, ela é o decimal e o
+     ponto é milhar ("1.234,56"); não havendo, o ponto é o decimal, que é
+     exatamente o que <input type="number"> devolve. */
+  if(t.indexOf(',')>=0) t=t.replace(/\./g,'').replace(',','.');
+  const n=parseFloat(t);
+  return isFinite(n)?n:0;
+}
+function _etpBR(n,casas){
+  return (Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:casas==null?2:casas,
+                                                maximumFractionDigits:casas==null?2:casas});
+}
+function _etpEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* Número do orçamento: sequencial simples, olhando o que já existe. Um número
+   por compra, e ele não muda depois de criado. */
+function _etpProximoNumero(){
+  let maior=0;
+  (appState.acompanhamentos||[]).forEach(x=>{
+    const n=Number(((x&&x.etapas&&x.etapas.orc)||{}).numero)||0;
+    if(n>maior) maior=n;
+  });
+  return String(maior+1).padStart(4,'0');
+}
+
+// ── Abrir e fechar ──────────────────────────────────────────────────
+function acpAbrirEtapas(id){
+  const a=(appState.acompanhamentos||[]).find(x=>x && x.id===id);
+  if(!a){ showToast('Compra não encontrada','warn'); return; }
+  _etpId=id;
+  const e=_etpDados(a);
+  if(!e.orc.numero) e.orc.numero=_etpProximoNumero();
+  if(!e.orc.data)   e.orc.data=(a.data||'')||new Date().toISOString().slice(0,10);
+  if(!e.orc.loja)   e.orc.loja=a.loja||'';
+  /* Primeira abertura: os produtos da compra viram as linhas do orçamento.
+     Depois disso o orçamento é dono da própria lista — reimportar por cima
+     apagaria preço e quantidade já digitados. */
+  if(!e.orc.itens.length){
+    (Array.isArray(a.produtos)?a.produtos:[]).forEach(p=>{
+      /* SKU: o da compra quando existe; senão, o do catálogo pelo nome. Sem
+         isto a coluna nasce vazia e alguém teria de redigitar o nome só para
+         o preenchimento automático disparar. */
+      let sku=String(p.sku||'').trim();
+      if(!sku){
+        const alvo=String(p.nome||'').trim().toLowerCase();
+        const cat=(appState.produtos||[]).find(x=>x && String(x.nome||'').trim().toLowerCase()===alvo);
+        if(cat) sku=String(cat.sku||'');
+      }
+      e.orc.itens.push({compra:_etpNum(p.qtd)||0, produto:p.nome||'', sku, preco:''});
+    });
+  }
+  if(!e.conf.rastreios.length) e.conf.rastreios.push({codigo:a.rastreio||'', valor:''});
+
+  document.getElementById('acp-bloco').style.display='none';
+  const env=document.getElementById('acp-envios'); if(env) env.style.display='none';
+  const filtros=document.getElementById('acp-filtros'); if(filtros) filtros.style.display='none';
+  const seg=document.getElementById('acp-seg'); if(seg) seg.style.display='none';
+  document.getElementById('acp-etapas').style.display='block';
+  document.getElementById('etp-titulo').textContent='Compra · '+(a.loja||'sem loja');
+  document.getElementById('etp-sub').textContent=
+    'orçamento '+e.orc.numero+(a.rastreio?(' · rastreio '+a.rastreio):'');
+  etpRender();
+}
+
+function acpFecharEtapas(){
+  _etpId='';
+  document.getElementById('acp-etapas').style.display='none';
+  const filtros=document.getElementById('acp-filtros'); if(filtros) filtros.style.display='flex';
+  const seg=document.getElementById('acp-seg'); if(seg) seg.style.display='';
+  document.getElementById('acp-bloco').style.display='';
+  renderAcompanhamento();
+}
+
+/* Grava e redesenha. Toda alteração passa por aqui — assim não existe estado
+   que só vive na tela e some quando alguém troca de aba. */
+function etpMarcar(){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  const v=id=>{ const el=document.getElementById(id); return el?el.value:''; };
+  if(!e.orc.travado){
+    e.orc.data=v('etp-data'); e.orc.loja=v('etp-loja');
+    e.orc.rastreioEua=v('etp-rastreio-eua');
+    e.orc.cotacao=_etpNum(v('etp-cotacao'))||e.orc.cotacao;
+  }
+  if(!e.conf.travado) e.conf.kgCobrado=v('etp-kg-cobrado');
+  saveState(appState);
+}
+
+function etpRecalcular(){ etpMarcar(); etpRender(); }
+
+// ── Etapa 1: orçamento ──────────────────────────────────────────────
+function etpAddProduto(){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(e.orc.travado) return;
+  e.orc.itens.push({compra:'', produto:'', sku:'', preco:''});
+  saveState(appState); etpRender();
+}
+function etpRemoverProduto(i){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(e.orc.travado) return;
+  e.orc.itens.splice(i,1);
+  saveState(appState); etpRender();
+}
+function etpCampoItem(i,campo,valor){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  const it=e.orc.itens[i]; if(!it) return;
+  it[campo]=valor;
+  /* O SKU vem do catálogo da Base pelo nome — a mesma fonte que a aba Estoque
+     usa. Achou, preenche; não achou, fica vazio em vez de inventar. */
+  if(campo==='produto'){
+    const alvo=String(valor||'').trim().toLowerCase();
+    const p=(appState.produtos||[]).find(x=>x && String(x.nome||'').trim().toLowerCase()===alvo);
+    it.sku=p?String(p.sku||''):'';
+    const cel=document.getElementById('etp-sku-'+i);
+    if(cel) cel.value=it.sku;
+  }
+  saveState(appState);
+  if(campo!=='produto') etpRenderTotais();
+}
+
+function etpRenderEtapa1(){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  const trav=e.orc.travado;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el && el.value!==v) el.value=v; };
+  set('etp-numero',e.orc.numero); set('etp-data',e.orc.data||'');
+  set('etp-loja',e.orc.loja||''); set('etp-rastreio-eua',e.orc.rastreioEua||'');
+  set('etp-cotacao',e.orc.cotacao);
+  ['etp-data','etp-loja','etp-rastreio-eua','etp-cotacao'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.disabled=trav;
+  });
+  const add=document.getElementById('etp-add-1'); if(add) add.style.display=trav?'none':'';
+
+  const box=document.getElementById('etp-linhas-1');
+  box.innerHTML=e.orc.itens.map((it,i)=>
+    `<div class="etp-linha etp-c1">
+      <div><input type="number" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
+        oninput="etpCampoItem(${i},'compra',this.value)"></div>
+      <div><input type="text" value="${_etpEsc(it.produto)}" placeholder="Nome do produto" ${trav?'disabled':''}
+        list="etp-lista-produtos" oninput="etpCampoItem(${i},'produto',this.value)"></div>
+      <div><input type="text" id="etp-sku-${i}" value="${_etpEsc(it.sku)}" placeholder="do catálogo" readonly></div>
+      <div><input type="number" step="0.01" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
+        oninput="etpCampoItem(${i},'preco',this.value)"></div>
+      <div style="text-align:center;">${trav?'':`<button class="etp-x" title="Remover" onclick="etpRemoverProduto(${i})">×</button>`}</div>
+    </div>`).join('')
+    || '<div class="etp-lido" style="padding:16px;text-align:center;">Nenhum produto no orçamento. Use "+ Adicionar produto".</div>';
+
+  /* A lista de sugestões sai do catálogo já lido da Base. Sem ela, o nome é
+     digitado à mão e o SKU nunca casa. */
+  let dl=document.getElementById('etp-lista-produtos');
+  if(!dl){ dl=document.createElement('datalist'); dl.id='etp-lista-produtos'; document.body.appendChild(dl); }
+  dl.innerHTML=(appState.produtos||[]).slice(0,600)
+    .filter(p=>p&&p.nome).map(p=>`<option value="${_etpEsc(p.nome)}">`).join('');
+
+  const selo=document.getElementById('etp-selo-1');
+  selo.textContent=trav?'🔒 Travado':'🔓 Editável';
+  selo.className='etp-selo'+(trav?' travado':'');
+  document.getElementById('etp-btn-1').textContent=trav?'Reabrir orçamento':'Confirmar orçamento →';
+}
+
+// ── Etapa 2: chegada / conferência ──────────────────────────────────
+function etpAddRastreio(){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(e.conf.travado) return;
+  e.conf.rastreios.push({codigo:'', valor:''});
+  saveState(appState); etpRender();
+}
+function etpRemoverRastreio(i){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(e.conf.travado || e.conf.rastreios.length<=1) return;
+  e.conf.rastreios.splice(i,1);
+  /* A coluna daquele rastreio sai junto de todas as linhas: deixar o número
+     órfão faria "Chegou" continuar somando uma caixa que não existe mais. */
+  e.conf.linhas.forEach(l=>{ if(Array.isArray(l.caixas)) l.caixas.splice(i,1); });
+  saveState(appState); etpRender();
+}
+function etpCampoRastreio(i,campo,valor){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  const r=e.conf.rastreios[i]; if(!r) return;
+  r[campo]=valor;
+  saveState(appState);
+  if(campo==='valor') etpRenderTotais();
+}
+function etpCampoLinha(i,campo,valor,idx){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  /* A linha nasce aqui se ainda não existir: compra antiga tem produto no
+     orçamento e nenhuma conferência, e sair calado perderia o que foi
+     digitado sem nenhum aviso. */
+  if(!e.conf.linhas[i]) e.conf.linhas[i]={caixas:[], peso:''};
+  const l=e.conf.linhas[i];
+  if(campo==='caixa'){
+    if(!Array.isArray(l.caixas)) l.caixas=[];
+    l.caixas[idx]=valor;
+  } else l[campo]=valor;
+  saveState(appState);
+  etpRenderTotais();
+}
+function etpCampoCusto(nome,valor){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  e.conf.custos[nome]=valor;
+  saveState(appState); etpRenderTotais();
+}
+function etpAddCustoExtra(){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(e.conf.travado) return;
+  e.conf.extras.push({nome:'', valor:''});
+  saveState(appState); etpRender();
+}
+function etpRemoverCustoExtra(i){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(e.conf.travado) return;
+  e.conf.extras.splice(i,1);
+  saveState(appState); etpRender();
+}
+function etpCampoExtra(i,campo,valor){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  const x=e.conf.extras[i]; if(!x) return;
+  x[campo]=valor;
+  saveState(appState);
+  if(campo==='valor') etpRenderTotais();
+}
+
+/* As contas da conferência, num lugar só — a tela inteira lê daqui.
+
+   Correios sai da soma dos rastreios e Extravio do que faltou chegar: os dois
+   são consequência do que já foi digitado, e deixá-los editáveis abriria a
+   porta para o total não bater com as linhas. */
+function _etpContas(){
+  const a=_etpCompra(); if(!a) return null;
+  const e=_etpDados(a);
+  const cot=_etpNum(e.orc.cotacao);
+
+  const correios=e.conf.rastreios.reduce((s,r)=>s+_etpNum(r.valor),0);
+
+  const linhas=e.orc.itens.map((it,i)=>{
+    const l=e.conf.linhas[i]||{};
+    const caixas=Array.isArray(l.caixas)?l.caixas:[];
+    const chegou=caixas.reduce((s,v)=>s+_etpNum(v),0);
+    const compra=_etpNum(it.compra);
+    const preco=_etpNum(it.preco);
+    const peso=_etpNum(l.peso);
+    return {i, compra, chegou, dif:chegou-compra, produto:it.produto, sku:it.sku,
+            preco, peso, pesoTotal:chegou*peso, caixas};
+  });
+
+  const extravio=linhas.reduce((s,l)=>s+(l.compra>l.chegou?(l.compra-l.chegou)*l.preco*cot:0),0);
+
+  let frete=correios+extravio;
+  ETP_CUSTOS_FIXOS.forEach(n=>{ if(n!=='Correios'&&n!=='Extravio') frete+=_etpNum(e.conf.custos[n]); });
+  e.conf.extras.forEach(x=>{ frete+=_etpNum(x.valor); });
+
+  const kgProduto=linhas.reduce((s,l)=>s+l.pesoTotal,0);
+  const custoPorKg=kgProduto>0?(frete/kgProduto):0;
+  linhas.forEach(l=>{ l.custo=(l.preco*cot)+(l.peso*custoPorKg); });
+
+  return {e, cot, correios, extravio, frete, kgProduto, custoPorKg, linhas,
+          totCompra:linhas.reduce((s,l)=>s+l.compra,0),
+          totChegou:linhas.reduce((s,l)=>s+l.chegou,0)};
+}
+
+function etpRenderEtapa2(){
+  const c=_etpContas(); if(!c) return;
+  const e=c.e, trav=e.conf.travado, n=e.conf.rastreios.length;
+
+  const cot=document.getElementById('etp-cotacao-val');
+  if(cot) cot.textContent='$ '+_etpBR(c.cot);
+  const kgc=document.getElementById('etp-kg-cobrado');
+  if(kgc){ if(kgc.value!==String(e.conf.kgCobrado||'')) kgc.value=e.conf.kgCobrado||''; kgc.disabled=trav; }
+
+  document.getElementById('etp-rastreios').innerHTML=e.conf.rastreios.map((r,i)=>
+    `<div class="etp-rt">
+      <span class="n">Rastreio ${i+1}</span>
+      <input type="text" value="${_etpEsc(r.codigo)}" placeholder="código" ${trav?'disabled':''}
+        oninput="etpCampoRastreio(${i},'codigo',this.value)">
+      <input type="number" step="0.01" value="${_etpEsc(r.valor)}" placeholder="0,00" ${trav?'disabled':''}
+        oninput="etpCampoRastreio(${i},'valor',this.value)">
+      ${(i>0&&!trav)?`<button class="etp-x" title="Remover" onclick="etpRemoverRastreio(${i})">×</button>`:'<span></span>'}
+    </div>`).join('');
+  const addRt=document.getElementById('etp-add-rt'); if(addRt) addRt.style.display=trav?'none':'';
+
+  const grade='70px 70px 50px 1.4fr 90px 78px 72px 82px 84px '+Array(n).fill('70px').join(' ');
+  const cab=document.getElementById('etp-cab-2');
+  cab.style.gridTemplateColumns=grade;
+  cab.innerHTML='<div>Compra</div><div>Chegou</div><div>Dif</div><div>Produto</div><div>SKU</div>'
+    +'<div>Preço $</div><div>Peso kg</div><div>Peso total</div><div>Custo R$</div>'
+    +e.conf.rastreios.map((r,i)=>`<div>Rastreio ${i+1}</div>`).join('');
+
+  document.getElementById('etp-linhas-2').innerHTML=c.linhas.map(l=>{
+    const cor = l.chegou===0 && !l.caixas.some(v=>String(v||'').length)
+      ? {bg:'transparent', fg:'var(--text-muted)', txt:''}
+      : (l.dif===0 ? {bg:'rgba(34,197,94,.18)', fg:'#86efac', txt:l.dif}
+      : (l.dif<0  ? {bg:'rgba(239,68,68,.18)',  fg:'#fca5a5', txt:l.dif}
+                  : {bg:'rgba(240,180,41,.20)', fg:'#fcd34d', txt:'+'+l.dif}));
+    return `<div class="etp-linha" style="grid-template-columns:${grade};">
+      <div class="etp-lido">${l.compra}</div>
+      <div class="etp-lido" data-etp="chegou-${l.i}">${l.chegou}</div>
+      <div><div class="etp-dif" data-etp="dif-${l.i}" style="background:${cor.bg};color:${cor.fg};">${cor.txt}</div></div>
+      <div class="etp-lido" title="${_etpEsc(l.produto)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_etpEsc(l.produto)||'—'}</div>
+      <div class="etp-lido">${_etpEsc(l.sku)||'—'}</div>
+      <div class="etp-lido">${l.preco?_etpBR(l.preco):'—'}</div>
+      <div><input type="number" step="0.01" value="${_etpEsc((e.conf.linhas[l.i]||{}).peso)}" placeholder="0,00"
+        ${trav?'disabled':''} oninput="etpCampoLinha(${l.i},'peso',this.value)"></div>
+      <div class="etp-lido" data-etp="pesotot-${l.i}">${_etpBR(l.pesoTotal)}</div>
+      <div class="etp-lido" data-etp="custo-${l.i}">${_etpBR(l.custo)}</div>
+      ${e.conf.rastreios.map((r,k)=>`<div><input type="number" value="${_etpEsc(l.caixas[k])}" placeholder="0"
+        ${trav?'disabled':''} oninput="etpCampoLinha(${l.i},'caixa',this.value,${k})"></div>`).join('')}
+    </div>`;
+  }).join('') || '<div class="etp-lido" style="padding:16px;text-align:center;">Confirme o orçamento para a conferência aparecer aqui.</div>';
+
+  const linhaCusto=(nome,valor,fixo,i)=>
+    `<div class="etp-custo">`
+    +(fixo?`<span class="nome">${nome}</span>`
+          :`<input type="text" class="nome-livre" value="${_etpEsc(nome)}" placeholder="Nome do custo"
+              ${trav?'disabled':''} oninput="etpCampoExtra(${i},'nome',this.value)">`)
+    +`<input type="number" step="0.01" class="valor" value="${_etpEsc(valor)}" placeholder="0,00"
+        ${(trav||fixo==='calc')?'disabled':''} ${fixo==='calc'?'readonly':''}
+        oninput="${fixo==='calc'?'':(fixo?`etpCampoCusto('${nome}',this.value)`:`etpCampoExtra(${i},'valor',this.value)`)}">`
+    +(fixo?'':`<button class="etp-x" title="Remover" onclick="etpRemoverCustoExtra(${i})" ${trav?'disabled':''}>×</button>`)
+    +`</div>`;
+
+  document.getElementById('etp-fretes-fixos').innerHTML=ETP_CUSTOS_FIXOS.map(nome=>{
+    /* Campo numérico não aceita vírgula: passar "120,00" para um
+       <input type="number"> faz o navegador mostrar vazio, e o valor
+       calculado sumia da tela mesmo estando certo na conta. */
+    if(nome==='Correios') return linhaCusto(nome,c.correios.toFixed(2),'calc');
+    if(nome==='Extravio') return linhaCusto(nome,c.extravio.toFixed(2),'calc');
+    return linhaCusto(nome,e.conf.custos[nome]||'',true);
+  }).join('');
+  document.getElementById('etp-fretes-extras').innerHTML=
+    e.conf.extras.map((x,i)=>linhaCusto(x.nome||'',x.valor||'',false,i)).join('');
+  const addC=document.getElementById('etp-add-custo'); if(addC) addC.style.display=trav?'none':'';
+
+  const selo=document.getElementById('etp-selo-2');
+  selo.textContent=trav?'🔒 Travado':(e.orc.travado?'🔓 Editável':'🔒 Aguardando o orçamento');
+  selo.className='etp-selo'+(trav?' travado':'');
+  const btn=document.getElementById('etp-btn-2');
+  btn.textContent=trav?'Reabrir conferência':'Confirmar conferência →';
+  btn.disabled=!e.orc.travado && !trav;
+}
+
+function etpRenderTotais(){
+  const c=_etpContas(); if(!c) return;
+  const set=(id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('etp-frete-total',_etpBR(c.frete));
+  set('etp-frete-total-val','R$ '+_etpBR(c.frete));
+  set('etp-kg-produto',_etpBR(c.kgProduto));
+  set('etp-custo-kg',c.kgProduto>0?_etpBR(c.custoPorKg):'—');
+  set('etp-tot-compra',c.totCompra);
+  set('etp-tot-chegou',c.totChegou);
+
+  /* Redesenhar a etapa 2 inteira aqui tiraria o foco do campo a cada tecla
+     digitada. Só as células calculadas são reescritas — os campos ficam onde
+     estão, com o cursor onde a pessoa deixou. */
+  const cel=(nome)=>document.querySelector('#etp-linhas-2 [data-etp="'+nome+'"]');
+  c.linhas.forEach(l=>{
+    const ch=cel('chegou-'+l.i);   if(ch) ch.textContent=l.chegou;
+    const pt=cel('pesotot-'+l.i);  if(pt) pt.textContent=_etpBR(l.pesoTotal);
+    const cu=cel('custo-'+l.i);    if(cu) cu.textContent=_etpBR(l.custo);
+    const df=cel('dif-'+l.i);
+    if(df){
+      const vazio=l.chegou===0 && !l.caixas.some(v=>String(v||'').length);
+      const cor = vazio ? {bg:'transparent', fg:'var(--text-muted)', txt:''}
+        : (l.dif===0 ? {bg:'rgba(34,197,94,.18)', fg:'#86efac', txt:l.dif}
+        : (l.dif<0  ? {bg:'rgba(239,68,68,.18)',  fg:'#fca5a5', txt:l.dif}
+                    : {bg:'rgba(240,180,41,.20)', fg:'#fcd34d', txt:'+'+l.dif}));
+      df.textContent=cor.txt; df.style.background=cor.bg; df.style.color=cor.fg;
+    }
+  });
+  const calc=document.querySelectorAll('#etp-fretes-fixos .etp-custo .valor[readonly]');
+  if(calc[0]) calc[0].value=c.correios.toFixed(2);
+  if(calc[1]) calc[1].value=c.extravio.toFixed(2);
+  etpRenderEtapa3();
+}
+
+// ── Etapa 3: lançamento em estoque ──────────────────────────────────
+function etpRenderEtapa3(){
+  const c=_etpContas(); if(!c) return;
+  const e=c.e;
+  const pronto=e.conf.travado;
+  const linhas=c.linhas.filter(l=>l.chegou>0);
+  let itens=0, valor=0;
+
+  document.getElementById('etp-linhas-3').innerHTML = pronto
+    ? (linhas.map(l=>{
+        const total=l.chegou*l.custo;
+        itens+=l.chegou; valor+=total;
+        const conf=e.lanc.produtos[l.produto];
+        return `<div class="etp-linha etp-c3">
+          <div class="etp-lido" title="${_etpEsc(l.produto)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_etpEsc(l.produto)||'—'}</div>
+          <div class="etp-lido">${_etpEsc(l.sku)||'—'}</div>
+          <div class="etp-lido">${l.chegou}</div>
+          <div class="etp-lido">${_etpBR(l.custo)}</div>
+          <div class="etp-lido">${_etpBR(total)}</div>
+          <div style="text-align:center;">
+            <button class="etp-olho${conf?' feito':''}" title="${conf?'Produto conferido':'Conferir produto'}"
+              onclick="etpAbrirModal('${_etpEsc(l.produto).replace(/'/g,'&#39;')}',${l.peso})">${conf?'✅':'👁'}</button>
+          </div>
+        </div>`;
+      }).join('') || '<div class="etp-lido" style="padding:16px;text-align:center;">Nenhum item chegou — nada a lançar.</div>')
+    : '<div class="etp-lido" style="padding:16px;text-align:center;">Confirme a conferência para o lançamento aparecer aqui.</div>';
+
+  document.getElementById('etp-tot-itens').textContent=itens;
+  document.getElementById('etp-tot-valor').textContent='R$ '+_etpBR(valor);
+
+  const selo=document.getElementById('etp-selo-3');
+  if(e.lanc.travado){ selo.textContent='🔒 Lançado no estoque'; selo.className='etp-selo pronto'; }
+  else if(pronto){ selo.textContent='🔓 Pronto para lançar'; selo.className='etp-selo'; }
+  else { selo.textContent='🔒 Aguardando conferência'; selo.className='etp-selo travado'; }
+  const btn=document.getElementById('etp-btn-3');
+  btn.disabled=!pronto;
+  btn.textContent=e.lanc.travado?'Reabrir lançamento':'Lançar no estoque';
+}
+
+// ── Modal de conferência do produto ─────────────────────────────────
+function etpAbrirModal(produto,peso){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  _etpProdModal=produto;
+  const g=e.lanc.produtos[produto]||{};
+  document.getElementById('etp-modal-titulo').textContent='Confirmar: '+produto;
+  document.getElementById('etp-m-venc').value=g.vencimento||'';
+  document.getElementById('etp-m-padrao').value=g.precoPadrao||'';
+  document.getElementById('etp-m-atacado').value=g.precoAtacado||'';
+  document.getElementById('etp-m-site').value=g.precoSite||'';
+  document.getElementById('etp-m-peso').value=(g.peso!=null&&g.peso!=='')?g.peso:(peso||'');
+  document.getElementById('etp-calc').value=100;
+  etpCalc();
+  document.getElementById('etp-modal').style.display='flex';
+}
+function etpFecharModal(){
+  document.getElementById('etp-modal').style.display='none';
+  _etpProdModal='';
+}
+function etpSalvarModal(){
+  const a=_etpCompra(); if(!a||!_etpProdModal) return;
+  const e=_etpDados(a);
+  e.lanc.produtos[_etpProdModal]={
+    vencimento:document.getElementById('etp-m-venc').value,
+    precoPadrao:document.getElementById('etp-m-padrao').value,
+    precoAtacado:document.getElementById('etp-m-atacado').value,
+    precoSite:document.getElementById('etp-m-site').value,
+    peso:document.getElementById('etp-m-peso').value,
+    conferidoPor:currentUser?currentUser.name:'',
+    conferidoEm:_agoraCarimbo()
+  };
+  saveState(appState);
+  etpFecharModal();
+  etpRenderEtapa3();
+  showToast('Produto conferido','success');
+}
+/* dd/mm/aa enquanto se digita — a data de vencimento vem do rótulo do frasco,
+   e ninguém lê "150327" no rótulo. */
+function etpMascaraData(el){
+  const d=String(el.value||'').replace(/\D/g,'').slice(0,6);
+  el.value = d.length>4 ? d.slice(0,2)+'/'+d.slice(2,4)+'/'+d.slice(4)
+           : d.length>2 ? d.slice(0,2)+'/'+d.slice(2)
+           : d;
+}
+function etpCalc(){
+  const v=_etpNum(document.getElementById('etp-calc').value);
+  const base=v*0.88-19.95;
+  const nf=base-(v*0.1);
+  document.getElementById('etp-calc-base').textContent='R$ '+_etpBR(base);
+  document.getElementById('etp-calc-nf').textContent='R$ '+_etpBR(nf);
+}
+
+// ── Confirmar / reabrir cada etapa ──────────────────────────────────
+function etpConfirmar(n){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(n===1){
+    if(!e.orc.travado){
+      const semNome=e.orc.itens.some(it=>!String(it.produto||'').trim());
+      if(!e.orc.itens.length){ showToast('Adicione ao menos um produto','warn'); return; }
+      if(semNome){ showToast('Há produto sem nome no orçamento','warn'); return; }
+      /* A conferência nasce com uma linha por produto do orçamento — é o que
+         garante que as duas tabelas falem da mesma carga. */
+      e.conf.linhas=e.orc.itens.map((it,i)=>e.conf.linhas[i]||{caixas:[], peso:''});
+    }
+    e.orc.travado=!e.orc.travado;
+    if(!e.orc.travado){ e.conf.travado=false; e.lanc.travado=false; }
+  }
+  if(n===2){
+    if(!e.orc.travado){ showToast('Confirme o orçamento primeiro','warn'); return; }
+    e.conf.travado=!e.conf.travado;
+    if(!e.conf.travado) e.lanc.travado=false;
+  }
+  if(n===3){
+    if(!e.conf.travado){ showToast('Confirme a conferência primeiro','warn'); return; }
+    if(!e.lanc.travado){
+      const c=_etpContas();
+      const faltam=c.linhas.filter(l=>l.chegou>0 && !e.lanc.produtos[l.produto]);
+      if(faltam.length){
+        showToast(faltam.length+' produto(s) ainda sem conferência — abra o olho de cada linha','warn');
+        return;
+      }
+      _etpLancarNoEstoque(a,e,c);
+    }
+    e.lanc.travado=!e.lanc.travado;
+  }
+  saveState(appState);
+  etpRender();
+  showToast(n===3?(e.lanc.travado?'Lote lançado no estoque':'Lançamento reaberto'):'Etapa atualizada','success');
+}
+
+/* O lançamento vira fila de entrada, e não gravação direta no estoque: quem
+   escreve na Base é o fluxo do n8n, e duas mãos escrevendo no mesmo saldo é
+   como o número para de bater. Aqui a compra entra na mesma fila que a
+   entrada manual já usa. */
+function _etpLancarNoEstoque(a,e,c){
+  if(!Array.isArray(appState.entradasEstoque)) appState.entradasEstoque=[];
+  const carimbo=_agoraCarimbo();
+  c.linhas.filter(l=>l.chegou>0).forEach(l=>{
+    const g=e.lanc.produtos[l.produto]||{};
+    const id='ent_'+a.id+'_'+_regChave(l.produto);
+    if(appState.entradasEstoque.some(x=>x&&x.id===id)) return;
+    appState.entradasEstoque.push({
+      id, origemAcpId:a.id,
+      sku:l.sku||'', nome:l.produto, ean:'',
+      qtd:l.chegou, custo:Number(l.custo.toFixed(2)),
+      armazem:a.armazem||'', vencimento:g.vencimento||'',
+      precoPadrao:g.precoPadrao||'', precoAtacado:g.precoAtacado||'', precoSite:g.precoSite||'',
+      peso:g.peso||'',
+      status:'pendente', criadoEm:carimbo,
+      criadoPor:currentUser?currentUser.name:'', criadoPorKey:currentUser?currentUser.key:''
+    });
+  });
+  a.status='Lançado no estoque';
+  a.atualizadoEm=carimbo;
+}
+
+// ── Desenho geral ───────────────────────────────────────────────────
+function etpRender(){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  etpRenderEtapa1();
+  etpRenderEtapa2();
+  etpRenderTotais();
+  const passos=[
+    {n:'1 · Orçamento',   feito:e.orc.travado},
+    {n:'2 · Conferência', feito:e.conf.travado},
+    {n:'3 · Estoque',     feito:e.lanc.travado}
+  ];
+  const atual=passos.findIndex(p=>!p.feito);
+  document.getElementById('etp-passos').innerHTML=passos.map((p,i)=>
+    `<span class="etp-passo ${p.feito?'feito':(i===atual?'ativo':'')}">${p.feito?'✓ ':''}${p.n}</span>`).join('');
+}
+
 const ACP_COLUNAS={
   compra:[
     {c:'data',rot:'Data',ord:1},{c:'loja',rot:'Loja/Cliente',ord:1},
@@ -14209,10 +15056,16 @@ function _acpCelula(col,a,pode){
             ${pode?`<button class="acp-mi" onclick="acpArquivar('${a.id}')">${a.arquivado?'Tirar do arquivo':'Arquivar'}</button>`:''}
           </div></span>`;
       if(!ehDev){
+        /* Em Compras o botão principal é abrir as três etapas: é lá que a
+           compra vive do orçamento ao lançamento. "Editar" continua no ⋯,
+           para os dados de cabeçalho (loja, transportadora, previsão). */
+        const etapasBtn = (_acpTipo==='compra' && pode)
+          ? `<button class="ped-acao destaque" title="Abrir orçamento, conferência e lançamento" onclick="acpAbrirEtapas('${a.id}')">Etapas</button>`
+          : (pode?`<button class="ped-acao destaque" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:'');
         return `<td style="text-align:right;white-space:nowrap;">
-          ${pode?`<button class="ped-acao destaque" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
+          ${etapasBtn}
           <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
-          ${pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:''}
+          ${(_acpTipo==='compra'&&pode)?mais:(pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:'')}
         </td>`;
       }
       return `<td style="text-align:right;white-space:nowrap;">
