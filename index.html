@@ -927,6 +927,19 @@ input[type="date"]{background:var(--grad-vidro);border:1px solid var(--glass-bor
 input[type="date"]:focus{border-color:rgba(59,130,246,0.5);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(59,130,246,0.15);}
 input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.6);cursor:pointer;opacity:.85;transition:opacity .15s;}
 input[type="date"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
+/* O campo de hora vinha cru do navegador: fundo branco e relógio branco sobre
+   branco, no meio de um formulário escuro. Herda o mesmo desenho da data —
+   o color-scheme é o que faz o navegador desenhar o seletor em tom escuro, e
+   o filtro no ícone é o que traz o relógio de volta à vista. */
+input[type="time"]{background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);
+  color:var(--text-primary);font-family:var(--font-mono);font-size:15px;font-weight:600;letter-spacing:.5px;
+  padding:12px 14px;outline:none;transition:border-color .2s,box-shadow .2s;width:100%;box-sizing:border-box;
+  box-shadow:inset 0 2px 8px rgba(0,0,0,0.3);backdrop-filter:blur(8px);color-scheme:dark;}
+input[type="time"]:focus{border-color:rgba(59,130,246,0.5);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 0 3px rgba(59,130,246,0.15);}
+input[type="time"]::-webkit-calendar-picker-indicator{filter:invert(1) brightness(1.6);cursor:pointer;opacity:.85;transition:opacity .15s;}
+input[type="time"]::-webkit-calendar-picker-indicator:hover{opacity:1;}
+:root[data-theme="light"] input[type="time"]{color-scheme:light;}
+:root[data-theme="light"] input[type="time"]::-webkit-calendar-picker-indicator{filter:none;}
 input:focus,select:focus,textarea:focus{border-color:rgba(59,130,246,0.6);box-shadow:inset 0 2px 8px rgba(0,0,0,0.3),0 0 16px rgba(59,130,246,0.2);}
 select{color-scheme:dark;}
 select option,select optgroup{background:var(--bg-surface);color:var(--text-primary);}
@@ -4340,6 +4353,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </label>
         <textarea id="diaria-obs" rows="5" maxlength="500" placeholder="O que foi feito, ou o que precisa ser feito." oninput="diariaContarObs()"></textarea>
       </div>
+      <!-- Para quem é a tarefa. Sem isto ela nascia sempre no nome de quem
+           estava com o navegador aberto, e o quadro dos outros não via nada —
+           anotar para si e delegar são coisas diferentes. -->
+      <div class="input-group">
+        <label style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Para quem</span>
+          <span id="diaria-resp-aviso" style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+        </label>
+        <div id="diaria-resp-grid" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);"></div>
+        <input type="hidden" id="diaria-resp">
+      </div>
       <div style="display:grid;grid-template-columns:1.2fr .8fr 1fr;gap:10px;">
         <div class="input-group" style="position:relative;">
           <label>Prazo conclusão</label>
@@ -4352,7 +4376,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div class="input-group">
           <label>Horário (opcional)</label>
-          <input type="time" id="diaria-hora">
+          <input type="time" id="diaria-hora" class="campo-hora">
         </div>
         <div class="input-group">
           <label>Prioridade</label>
@@ -4374,7 +4398,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
-        <button class="btn" onclick="fecharDiariaModal()">Cancelar</button>
+        <button class="btn btn-ghost" onclick="fecharDiariaModal()">Cancelar</button>
         <button class="btn" onclick="salvarDiaria()" style="--bc: var(--rgb-aco);">Salvar</button>
       </div>
     </div>
@@ -9665,7 +9689,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ar';
+const APP_VERSAO='2026.08.23as';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23105,6 +23129,13 @@ function abrirDiariaModal(id){
   document.getElementById('diaria-venc').value    = a ? (a.vencimento||'') : '';
   document.getElementById('diaria-hora').value    = a ? (a.hora||'') : '';
   document.getElementById('diaria-prio').value    = a ? (a.prioridade||'normal') : 'normal';
+  /* Editando, vem quem já estava na tarefa; criando, começa com quem abriu —
+     é o caso comum, e um clique tira. */
+  _diariaResp = a ? (Array.isArray(a.responsaveis)&&a.responsaveis.length
+                      ? a.responsaveis.slice()
+                      : (a.responsavel?[a.responsavel]:[]))
+                  : [currentUser.key];
+  _diariaRenderResp();
   diariaContarObs();
   diariaSyncVenc();
   diariaSelectPrior(a?(a.prioridade||'normal'):'normal');
@@ -23113,6 +23144,49 @@ function abrirDiariaModal(id){
   setTimeout(()=>{ const t=document.getElementById('diaria-titulo'); if(t) t.focus(); },50);
 }
 function fecharDiariaModal(){ const o=document.getElementById('diaria-modal-overlay'); if(o) o.style.display='none'; }
+
+/* ── Para quem é a tarefa ─────────────────────────────────────────────
+   Mesmos chips do quadro grande, para a tela não ter dois jeitos de
+   escolher pessoa. Quem não é master só cria para si: delegar trabalho é
+   decisão de quem coordena, e um campo que aceita e depois ignora seria
+   pior do que não existir. */
+let _diariaResp=[];
+
+function _diariaRenderResp(){
+  const grid=document.getElementById('diaria-resp-grid');
+  const aviso=document.getElementById('diaria-resp-aviso');
+  const hid=document.getElementById('diaria-resp');
+  if(!grid) return;
+  const souMaster=!!(currentUser&&currentUser.master);
+  grid.innerHTML='';
+  Object.entries(appState.users||{}).forEach(([k,u])=>{
+    if(!u) return;
+    if(!souMaster && k!==currentUser.key) return;
+    const ativo=_diariaResp.indexOf(k)>=0;
+    const cor=u.color||'#888';
+    const chip=document.createElement('button');
+    chip.type='button';
+    chip.textContent=u.name||k;
+    chip.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;'
+      +'padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .15s;'
+      +'border:1px solid '+(ativo?cor+'88':'var(--border)')+';'
+      +'background:'+(ativo?cor+'22':'transparent')+';'
+      +'color:'+(ativo?'var(--text-primary)':'var(--text-muted)')+';'
+      +(ativo?'outline:1px solid var(--glass-border);outline-offset:-1px;':'');
+    chip.onclick=()=>{
+      const i=_diariaResp.indexOf(k);
+      if(i>=0) _diariaResp.splice(i,1); else _diariaResp.push(k);
+      _diariaRenderResp();
+    };
+    grid.appendChild(chip);
+  });
+  if(hid) hid.value=_diariaResp[0]||'';
+  if(aviso){
+    aviso.textContent = souMaster
+      ? (_diariaResp.length?(_diariaResp.length+' selecionado(s)'):'ninguém marcado — fica com você')
+      : 'só o master atribui a outra pessoa';
+  }
+}
 function diariaContarObs(){
   const ta=document.getElementById('diaria-obs'); const c=document.getElementById('diaria-obs-count');
   if(ta&&c) c.textContent=(500-(ta.value||'').length)+' restantes';
@@ -23151,19 +23225,23 @@ function salvarDiaria(){
   const hora=(document.getElementById('diaria-hora').value||'').trim();
   const prio=(document.getElementById('diaria-prio').value||'normal');
   const editId=(document.getElementById('diaria-edit-id').value||'').trim();
+  /* Ninguém marcado quer dizer "é minha" — tarefa sem dono some do quadro de
+     todo mundo, e é assim que trabalho se perde. */
+  const resp=_diariaResp.length?_diariaResp.slice():[currentUser.key];
 
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
   if(editId){
     const t=appState.atividades.find(x=>x&&x.id===editId);
     if(!t){ showToast('Tarefa não encontrada','error'); return; }
     t.titulo=titulo; t.observacao=obs; t.vencimento=venc; t.hora=hora; t.prioridade=prio;
+    t.responsaveis=resp.slice(); t.responsavel=resp[0];
   } else {
     const agora=Date.now();
     appState.atividades.push({
       id:'atv_dia_'+agora, areaTarefa:'diarias',
       titulo, observacao:obs, vencimento:venc, hora, prioridade:prio,
       status:'aberta',
-      responsavel:currentUser.key, responsaveis:[currentUser.key],
+      responsavel:resp[0], responsaveis:resp.slice(),
       criadoEm:_agoraCarimbo(), criadoPor:currentUser.name, criadoPorKey:currentUser.key,
       ordemManual:agora, comentarios:[]
     });
