@@ -9003,7 +9003,15 @@ function descartarPedidoAcesso(uid,nome){
 function revogarAcesso(uid,nome){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode revogar','warn'); return; }
   if(uid===_meuUid){ showToast('Você não pode revogar o próprio acesso','warn'); return; }
-  if(!confirm(`Revogar o acesso de ${nome||uid}?`)) return;
+  /* "Revogar o acesso de X?" não dizia o que ia acontecer, e o botão fica
+     ao lado do nome de gente da casa. Quem clica precisa saber que isto não
+     apaga usuário nem senha — tira só o direito de gravar na nuvem — e que
+     dá para desfazer. */
+  if(!confirm('Revogar o acesso de '+(nome||uid)+'?\n\n'
+    +'O usuário e a senha continuam existindo: ele ainda entra no sistema, mas o que '
+    +'fizer fica só no navegador dele e não chega para os outros.\n\n'
+    +'Dá para desfazer: assim que ele abrir o sistema de novo, o pedido volta para a '
+    +'fila aqui em Segurança e basta clicar em Autorizar.')) return;
   db.ref(FB_AUTORIZADOS+'/'+uid).remove()
     .then(()=>{ showToast('Acesso revogado','success'); renderSeguranca(); })
     .catch(err=>showToast('Falha ao revogar: '+err.message,'error'));
@@ -9583,7 +9591,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23am';
+const APP_VERSAO='2026.08.23an';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
