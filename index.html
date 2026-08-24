@@ -1974,6 +1974,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           Código deste acesso: <span id="bloqueio-uid" style="color:var(--text-primary);user-select:all;word-break:break-all;"></span>
           <button class="btn-link btn-sm" style="margin-left:6px;" onclick="copiarUidBloqueio()">Copiar</button>
         </div>
+        <!-- O master aprovando a si mesmo. A faixa mandava "peça ao master"
+             mesmo quando quem lia ERA o master — e aí não há a quem pedir. -->
+        <div id="bloqueio-eu-master" style="display:none;margin-top:8px;">
+          <button class="btn btn-sm" style="width:auto;" onclick="aprovarMeuAcesso()">Aprovar meu acesso agora</button>
+        </div>
       </div>
       <button class="btn-link btn-sm" style="flex-shrink:0;" onclick="reverificarAcesso()">Verificar de novo</button>
     </div>
@@ -7579,19 +7584,27 @@ function diagnosticarBloqueio(){
           'Seu acesso está aprovado, então provavelmente as regras do banco ainda não foram publicadas. '
         + 'Avise o master para conferir em Administrador → Segurança.', uid);
       } else {
-        _mostrarBloqueio('Seu acesso ainda não foi aprovado',
-          'Já pedimos a liberação ao master. Passe o código abaixo para ele aprovar em '
-        + 'Administrador → Segurança. Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
+        _mostrarBloqueio('Seu acesso ainda não foi aprovado', _textoNaoAprovado(), uid);
         try{ _pedirAcesso(); }catch(e){}
       }
     })
     .catch(()=>{
       // Nem ler a lista foi permitido: é o caso clássico de não aprovado
-      _mostrarBloqueio('Seu acesso ainda não foi aprovado',
-        'Passe o código abaixo ao master para ele aprovar em Administrador → Segurança. '
-      + 'Seu trabalho continua salvo neste navegador e sobe sozinho depois.', uid);
+      _mostrarBloqueio('Seu acesso ainda não foi aprovado', _textoNaoAprovado(), uid);
       try{ _pedirAcesso(); }catch(e){}
     });
+}
+
+/* Mandar "peça ao master" para quem É o master é um beco. O texto muda
+   conforme quem está lendo. */
+function _textoNaoAprovado(){
+  if(currentUser && currentUser.master){
+    return 'Este acesso é novo na nuvem — a conta foi recriada e o código mudou. '
+      + 'Como você é o master, aprove aqui mesmo, no botão abaixo. '
+      + 'Seu trabalho continua salvo neste navegador e sobe assim que a aprovação passar.';
+  }
+  return 'Já pedimos a liberação ao master. Passe o código abaixo para ele aprovar em '
+    + 'Administrador → Segurança. Seu trabalho continua salvo neste navegador e sobe sozinho depois.';
 }
 
 function _mostrarBloqueio(titulo,texto,uid){
@@ -7605,7 +7618,48 @@ function _mostrarBloqueio(titulo,texto,uid){
   if(t2) t2.textContent=texto;
   if(wrap) wrap.style.display=uid?'block':'none';
   if(el) el.textContent=uid||'';
+  /* Só faz sentido oferecer a aprovação a quem pode aprovar. Para os demais a
+     faixa segue com o código, que é o que o master precisa receber. */
+  const eu=document.getElementById('bloqueio-eu-master');
+  if(eu) eu.style.display=(uid && currentUser && currentUser.master)?'block':'none';
   barra.style.display='block';
+}
+
+/* O master libera o próprio acesso.
+
+   Quando a conta da nuvem é recriada — e ela é recriada sempre que o usuário
+   é apagado no console do Firebase — o UID muda, e o UID novo não está na
+   lista de aprovados. A faixa então pedia para "avisar o master", que é a
+   própria pessoa lendo. Sem saída dentro do sistema.
+
+   Se a regra do banco exigir estar na lista para escrever nela, o próprio
+   ato de se aprovar é recusado. Nesse caso não há mágica possível daqui: a
+   mensagem entrega o caminho exato no console, que é onde a regra não vale. */
+function aprovarMeuAcesso(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode aprovar','warn'); return; }
+  const uid=_uidAtual();
+  if(!uid){ showToast('Esta sessão ainda não autenticou na nuvem','warn'); return; }
+  if(!db){ showToast('Sem conexão com a nuvem','error'); return; }
+  db.ref(FB_AUTORIZADOS+'/'+uid)
+    .set({nome:currentUser.name||currentUser.key, por:'ele mesmo (master)', ts:Date.now()})
+    .then(()=>db.ref(FB_SOLICITACOES+'/'+uid).remove().catch(()=>{}))
+    .then(()=>{
+      _souAutorizado=true;
+      esconderBloqueio();
+      showToast('✓ Acesso aprovado — o que estava só no navegador sobe agora','success');
+      try{ saveState(appState); }catch(e){}
+      try{ renderSeguranca(); }catch(e){}
+    })
+    .catch(err=>{
+      console.warn('[acesso] auto-aprovação recusada:',err&&err.message);
+      alert('A nuvem recusou a auto-aprovação.\n\n'
+        +'A regra do banco exige estar na lista para escrever nela, e este acesso ainda não está — '
+        +'o caminho é pelo console, onde a regra não se aplica:\n\n'
+        +'Firebase Console → Realtime Database → suplelive → autorizados\n'
+        +'Criar a chave:  '+uid+'\n'
+        +'Com o valor:    {"nome":"'+(currentUser.name||currentUser.key)+'","ts":'+Date.now()+'}\n\n'
+        +'Depois clique em "Verificar de novo" aqui.');
+    });
 }
 
 function esconderBloqueio(){
@@ -9505,7 +9559,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ai';
+const APP_VERSAO='2026.08.23aj';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
