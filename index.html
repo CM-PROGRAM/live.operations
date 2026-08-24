@@ -7657,7 +7657,10 @@ function aprovarMeuAcesso(){
         +'o caminho é pelo console, onde a regra não se aplica:\n\n'
         +'Firebase Console → Realtime Database → suplelive → autorizados\n'
         +'Criar a chave:  '+uid+'\n'
-        +'Com o valor:    {"nome":"'+(currentUser.name||currentUser.key)+'","ts":'+Date.now()+'}\n\n'
+        +'Com o valor:    true\n\n'
+        +'O valor pode ser só isso: o sistema olha se a chave existe, não o que há dentro. '
+        +'E o código tem que ser COPIADO, nunca digitado — ele mistura 1 com i e O com 0, '
+        +'e uma letra trocada vira um acesso que não é o seu.\n\n'
         +'Depois clique em "Verificar de novo" aqui.');
     });
 }
@@ -9559,7 +9562,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23aj';
+const APP_VERSAO='2026.08.23ak';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
