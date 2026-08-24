@@ -961,11 +961,17 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
    O desenho é o do sistema — vidro escuro, cantos do --radius, fonte mono nos
    números. A grade veio do modelo em planilha porque é assim que a operação
    já lê a conferência: uma coluna por rastreio, a diferença colorida ao lado. */
-.etp-passos{display:flex;gap:6px;flex-wrap:wrap;}
-.etp-passo{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;
-  padding:5px 12px;border-radius:999px;border:1px solid var(--border);color:var(--text-muted);}
+.etp-passos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+.etp-passo{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
+  padding:9px 18px;border-radius:999px;border:1px solid var(--border);color:var(--text-muted);
+  background:var(--grad-vidro);cursor:pointer;transition:color .15s,border-color .15s,background .15s;}
+.etp-passo:hover:not(.travado){color:var(--text-primary);border-color:var(--border-light);}
 .etp-passo.ativo{border-color:var(--accent-dim);background:var(--accent-glow);color:var(--accent);}
-.etp-passo.feito{border-color:rgba(34,197,94,.4);background:rgba(34,197,94,.12);color:var(--green);}
+.etp-passo.feito{border-color:rgba(34,197,94,.4);color:var(--green);}
+.etp-passo.feito.ativo{background:rgba(34,197,94,.14);}
+/* Etapa que ainda não abriu: apagada e sem cursor de clique. O cadeado diz
+   por quê antes de a pessoa tentar. */
+.etp-passo.travado{opacity:.5;cursor:not-allowed;}
 .etp-pagina{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);
   padding:20px;margin-bottom:4px;}
 .etp-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -2677,8 +2683,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div id="etp-sub" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);"></div>
           </div>
           <div style="flex:1;"></div>
-          <div class="etp-passos" id="etp-passos"></div>
         </div>
+
+        <!-- As três etapas são abas, não uma página rolando: cada uma é um
+             momento diferente do trabalho — orçar, conferir na chegada e
+             lançar — e quase nunca acontecem no mesmo dia nem pela mesma
+             pessoa. A etapa seguinte só abre quando a anterior é confirmada,
+             porque ela calcula em cima do que a anterior fechou. -->
+        <div class="etp-passos" id="etp-passos"></div>
 
         <!-- ETAPA 1 — ORÇAMENTO -->
         <div class="etp-pagina" id="etp-p1">
@@ -2710,7 +2722,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
         </div>
 
-        <div class="etp-seta">↓</div>
 
         <!-- ETAPA 2 — CHEGADA / CONFERÊNCIA -->
         <div class="etp-pagina" id="etp-p2">
@@ -2759,7 +2770,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
         </div>
 
-        <div class="etp-seta">↓</div>
 
         <!-- ETAPA 3 — LANÇAMENTO EM ESTOQUE -->
         <div class="etp-pagina" id="etp-p3">
@@ -9948,7 +9958,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.24b';
+const APP_VERSAO='2026.08.24c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14239,6 +14249,7 @@ function acpAbrirEtapas(id){
   document.getElementById('etp-titulo').textContent='Compra · '+(a.loja||'sem loja');
   document.getElementById('etp-sub').textContent=
     'orçamento '+e.orc.numero+(a.rastreio?(' · rastreio '+a.rastreio):'');
+  _etpAba = !e.orc.travado ? 1 : (!e.conf.travado ? 2 : 3);
   etpRender();
 }
 
@@ -14689,9 +14700,14 @@ function etpConfirmar(n){
     }
     e.lanc.travado=!e.lanc.travado;
   }
+  /* Confirmou, o trabalho seguinte é a etapa de baixo — a tela vai junto em
+     vez de deixar a pessoa procurar onde continuar. Reabrir faz o contrário:
+     fica onde está, que é onde ela quer mexer. */
+  if(n===1 && e.orc.travado) _etpAba=2;
+  if(n===2 && e.conf.travado) _etpAba=3;
   saveState(appState);
   etpRender();
-  showToast(n===3?(e.lanc.travado?'Lote lançado no estoque':'Lançamento reaberto'):'Etapa atualizada','success');
+  showToast(n===3?(e.lanc.travado?'Lote lançado no estoque':'Lançamento reaberto'):'Etapa confirmada','success');
 }
 
 /* O lançamento vira fila de entrada, e não gravação direta no estoque: quem
@@ -14721,20 +14737,61 @@ function _etpLancarNoEstoque(a,e,c){
 }
 
 // ── Desenho geral ───────────────────────────────────────────────────
+/* Qual etapa está aberta na tela. Começa na primeira que ainda não foi
+   confirmada — é onde o trabalho parou. */
+let _etpAba=1;
+
+/* Uma etapa só abre quando a anterior fechou: a 2 confere em cima do que a 1
+   orçou e a 3 lança o custo que a 2 calculou. Deixar entrar antes seria
+   oferecer uma tela que não tem como estar certa. */
+function _etpLiberada(n,e){
+  if(n===1) return true;
+  if(n===2) return !!e.orc.travado;
+  return !!e.conf.travado;
+}
+
+function etpIrPara(n){
+  const a=_etpCompra(); if(!a) return;
+  const e=_etpDados(a);
+  if(!_etpLiberada(n,e)){
+    showToast(n===2?'Confirme o orçamento primeiro':'Confirme a conferência primeiro','warn');
+    return;
+  }
+  _etpAba=n;
+  etpRender();
+}
+
 function etpRender(){
   const a=_etpCompra(); if(!a) return;
   const e=_etpDados(a);
+  /* Aba fechada pelo caminho — reabriram o orçamento estando na etapa 3, por
+     exemplo — volta para a última que ainda está de pé, em vez de deixar a
+     tela em branco. */
+  while(_etpAba>1 && !_etpLiberada(_etpAba,e)) _etpAba--;
+
   etpRenderEtapa1();
   etpRenderEtapa2();
   etpRenderTotais();
+
+  for(let i=1;i<=3;i++){
+    const pg=document.getElementById('etp-p'+i);
+    if(pg) pg.style.display=(i===_etpAba)?'':'none';
+  }
+
   const passos=[
-    {n:'1 · Orçamento',   feito:e.orc.travado},
-    {n:'2 · Conferência', feito:e.conf.travado},
-    {n:'3 · Estoque',     feito:e.lanc.travado}
+    {n:'Orçamento',            feito:e.orc.travado},
+    {n:'Chegada / Conferência',feito:e.conf.travado},
+    {n:'Lançamento em Estoque',feito:e.lanc.travado}
   ];
-  const atual=passos.findIndex(p=>!p.feito);
-  document.getElementById('etp-passos').innerHTML=passos.map((p,i)=>
-    `<span class="etp-passo ${p.feito?'feito':(i===atual?'ativo':'')}">${p.feito?'✓ ':''}${p.n}</span>`).join('');
+  document.getElementById('etp-passos').innerHTML=passos.map((p,i)=>{
+    const n=i+1, livre=_etpLiberada(n,e);
+    const cls=['etp-passo'];
+    if(p.feito) cls.push('feito');
+    if(n===_etpAba) cls.push('ativo');
+    if(!livre) cls.push('travado');
+    const marca=p.feito?'✓':(livre?(n+'.'):'🔒');
+    return `<button type="button" class="${cls.join(' ')}" onclick="etpIrPara(${n})">${marca} ${p.n}</button>`;
+  }).join('');
 }
 
 const ACP_COLUNAS={
