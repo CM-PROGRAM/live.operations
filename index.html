@@ -9665,7 +9665,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23aq';
+const APP_VERSAO='2026.08.23ar';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23040,8 +23040,21 @@ function _atvArea(a){
   if(a.origemCancNfId)   return 'devolucoes';   // Canceladas com NF fica em Devoluções
   if(a.origemCancId)     return 'vendas';
   if(a.origemIntegId||a.origemExIntId||a.origemImgId||a.origemEntradaId||a.origemAtuCatId) return 'anuncios';
+  /* Tarefa antiga, criada antes de a origem ser gravada, caía em Diárias e
+     ficava lá para sempre — Integração com MLB no meio da lista pessoal de
+     quem abre o dia. O título resolve: "Integração", "Imagem" e as outras
+     dessa família só nascem em Anúncios, então é de lá que elas são.
+
+     Só decide quando ninguém decidiu antes: uma tarefa movida de propósito
+     tem areaTarefa gravado e sai lá em cima, sem passar por aqui. */
+  if(ATV_TITULOS_ANUNCIOS.indexOf(String(a.titulo||'').trim())>=0) return 'anuncios';
   return 'diarias';
 }
+
+/* Os títulos que nascem em Anúncios. Vem de ATV_TITULO_BASE, tirando os que
+   pertencem a outras áreas — Atendimentos e Devoluções têm quadro próprio. */
+const ATV_TITULOS_ANUNCIOS=['Integração','Exclusão Integração','Imagem',
+                            'Entrada Produto','Atualização Catálogo','Atualização de Catálogo'];
 function _atvAreasVisiveis(){ return ATV_AREAS.filter(x=>_iniPode(x.perm)); }
 
 let _atvAreaSel='';   // '' = tela dos painéis
