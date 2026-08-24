@@ -3650,6 +3650,28 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="seg-acessos" style="margin-bottom:14px;"></div>
 
+        <!-- Autorizar sem esperar o pedido chegar.
+             O pedido de acesso é gravado pela sessão de quem está tentando
+             entrar — e se a regra do banco exigir estar autorizado para
+             escrever, esse pedido nunca chega aqui. A pessoa fica presa: não
+             está na lista, e o pedido dela não consegue nascer. O código
+             aparece na faixa vermelha da tela dela; com ele, a liberação é
+             feita daqui, sem depender de a fila funcionar. -->
+        <div style="border:1px solid var(--border-light);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;">Autorizar por código</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="seg-uid-manual" placeholder="Código do acesso, copiado da tela da pessoa"
+              style="flex:1;min-width:240px;font-family:var(--font-mono);font-size:11.5px;">
+            <input type="text" id="seg-nome-manual" placeholder="Nome (opcional)"
+              style="width:auto;min-width:130px;font-size:11.5px;">
+            <button class="btn btn-sm" style="width:auto;white-space:nowrap;" onclick="autorizarPorCodigo()">Autorizar</button>
+          </div>
+          <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:6px;line-height:1.6;">
+            Use quando o nome não aparecer na fila de pedidos. O código está na faixa
+            vermelha da tela de quem está tentando entrar, com um botão de copiar ao lado.
+          </div>
+        </div>
+
         <!-- As regras são coladas no Firebase uma vez e revisadas de tempos em
              tempos. Deixá-las abertas fazia 40 linhas de JSON dominarem a tela
              toda vez que alguém entrava aqui só para aprovar um acesso. -->
@@ -9005,6 +9027,34 @@ function descartarPedidoAcesso(uid,nome){
     .catch(err=>showToast('Falha ao excluir: '+err.message,'error'));
 }
 
+/* Libera um acesso pelo código, sem depender de o pedido ter chegado.
+   Mesma gravação que o botão Autorizar da fila faz — a diferença é só de
+   onde vem o código. */
+function autorizarPorCodigo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode autorizar','warn'); return; }
+  if(!db){ showToast('Sem conexão com a nuvem','error'); return; }
+  const campo=document.getElementById('seg-uid-manual');
+  const uid=String((campo&&campo.value)||'').trim();
+  const nome=String((document.getElementById('seg-nome-manual')||{}).value||'').trim();
+  if(!uid){ showToast('Cole o código do acesso','warn'); return; }
+  /* O código do Firebase é alfanumérico de 28 caracteres. Recusar o que
+     obviamente não é evita criar uma chave inútil no banco por um espaço
+     colado a mais ou meio código. */
+  if(!/^[A-Za-z0-9]{20,40}$/.test(uid)){
+    showToast('Isso não parece um código de acesso — copie o texto inteiro da faixa vermelha','warn');
+    return;
+  }
+  db.ref(FB_AUTORIZADOS+'/'+uid).set({nome:nome||'(por código)', por:currentUser.name, ts:Date.now()})
+    .then(()=>db.ref(FB_SOLICITACOES+'/'+uid).remove().catch(()=>{}))
+    .then(()=>{
+      if(campo) campo.value='';
+      const n=document.getElementById('seg-nome-manual'); if(n) n.value='';
+      showToast('✓ Acesso liberado — peça para a pessoa clicar em "Verificar de novo"','success');
+      renderSeguranca();
+    })
+    .catch(err=>showToast('Falha ao autorizar: '+err.message,'error'));
+}
+
 function revogarAcesso(uid,nome){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode revogar','warn'); return; }
   if(uid===_meuUid){ showToast('Você não pode revogar o próprio acesso','warn'); return; }
@@ -9610,7 +9660,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23ao';
+const APP_VERSAO='2026.08.23ap';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
