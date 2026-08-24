@@ -5367,20 +5367,36 @@ function defaultState(){
 }
 
 // ── LOAD / SAVE ───────────────────────────────────────────────
-// Always ensure all 4 core users exist with correct data
+/* Os quatro usuários da operação, garantidos a cada carregamento.
+
+   O e-mail é enforçado como a cor e as iniciais, e não apenas preenchido
+   quando falta. A razão é o estrago que a divergência causou: o login entra
+   na nuvem pelo e-mail, e um endereço trocado (ou vazio, virando um derivado
+   que ninguém lê) troca a senha numa conta e confere em outra. O resultado
+   foi um dia inteiro de "minha senha está errada, redefina de novo".
+
+   Consequência a saber: mudar o e-mail de um destes quatro pela tela do
+   Administrador não gruda — na próxima abertura ele volta ao que está aqui.
+   Para trocar de verdade, troca-se aqui. Usuário criado pelo Administrador
+   não passa por esta lista e continua livre. */
+const USUARIOS_EMAIL_FIXO=['cmandrade','gustavo','matheusm','carlosred'];
+function _emailEhFixo(key){ return USUARIOS_EMAIL_FIXO.indexOf(String(key))>=0; }
+
 function patchUsers(s){
   if(!s.users) s.users={};
   const CORE={
-    cmandrade:{name:'CM Andrade', passHash:'f99edfa3e89c6484e259883824abaec06adab1e03f7c01801ee27fdbf6f062a0', master:true,  color:'#e8c25a', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
-    gustavo:  {name:'Gustavo',    passHash:'c11902059f79efd7377b40598161b8694c7d17c42f19d738b995ebbbc563d851',  master:false, color:'#ffffff', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
-    matheusm: {name:'Matheus M',  passHash:'26b481965e2463fc30abfef9bd63dddd496d126c1eeb0e1032dbb94ae25c34b3',master:false, color:'#3b82f6', initials:'MM', perms:['whatsapp','tarefas','cnpjs','integracoes']},
-    carlosred:{name:'Carlos Red', passHash:'8cf2eb6a883484baf2ead0f4bbb032cfbf5f50e105e413d514c7ddfc73bb083c', master:false, color:'#ef4444', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
+    cmandrade:{name:'CM Andrade', email:'cmandrade@suplelive.com.br', passHash:'f99edfa3e89c6484e259883824abaec06adab1e03f7c01801ee27fdbf6f062a0', master:true,  color:'#e8c25a', initials:'CM', perms:['whatsapp','plataformas','baixas','envios','anuncios','devolucoes','atendimentos','tarefas','admin']},
+    gustavo:  {name:'Gustavo',    email:'gustavo@suplelive.com.br',   passHash:'c11902059f79efd7377b40598161b8694c7d17c42f19d738b995ebbbc563d851',  master:false, color:'#ffffff', initials:'G',  perms:['plataformas','envios','tarefas','base','integracoes']},
+    matheusm: {name:'Matheus M',  email:'contato@suplelive.com.br',   passHash:'26b481965e2463fc30abfef9bd63dddd496d126c1eeb0e1032dbb94ae25c34b3',master:false, color:'#3b82f6', initials:'MM', perms:['whatsapp','tarefas','cnpjs','integracoes']},
+    carlosred:{name:'Carlos Red', email:'carlos@suplelive.com.br',    passHash:'8cf2eb6a883484baf2ead0f4bbb032cfbf5f50e105e413d514c7ddfc73bb083c', master:false, color:'#ef4444', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
   };
   Object.entries(CORE).forEach(([key,def])=>{
     if(!s.users[key]) s.users[key]={...def};
     // Always enforce color and initials
     s.users[key].color    = def.color;
     s.users[key].initials = def.initials;
+    // O endereço de acesso é fixo: é ele que decide em qual conta a senha vale
+    s.users[key].email    = def.email;
     // Ensure required perms present
     def.perms.forEach(p=>{ if(!s.users[key].perms) s.users[key].perms=[]; if(!s.users[key].perms.includes(p)) s.users[key].perms.push(p); });
   });
@@ -9482,7 +9498,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.23af';
+const APP_VERSAO='2026.08.23ag';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19223,6 +19239,13 @@ async function addUser(){
 function definirEmail(key){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode alterar o e-mail','warn'); return; }
   const user=appState.users[key]; if(!user) return;
+  /* Recusar é mais honesto que aceitar e reverter: o e-mail dos quatro da
+     operação é fixo no código, e uma troca aqui voltaria atrás sozinha na
+     próxima abertura — sem ninguém entender por quê. */
+  if(_emailEhFixo(key)){
+    showToast('O e-mail de '+user.name+' é fixo ('+user.email+'). Para trocar, tem que ser na publicação do sistema.','warn');
+    return;
+  }
   const novo=window.prompt(`E-mail de login de ${user.name}:`, user.email||'');
   if(novo===null) return;
   const email=String(novo).trim().toLowerCase();
