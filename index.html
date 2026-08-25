@@ -372,11 +372,10 @@ html{overflow-x:hidden;}
   --lg-campo:rgba(255,255,255,.05); --lg-campo-borda:rgba(255,255,255,.14); --lg-ph:#6b7280;
   --lg-azul:#3b82f6; --lg-azul-forte:#2563eb; --lg-sel:rgba(255,255,255,.07);
 }
-/* A arte oficial (arquivo em lg/, tratado para transparência). No tema escuro
-   a logo completa vai sobre uma placa clara — o OPS dela é grafite e sumiria
-   no fundo escuro. */
+/* A arte oficial (arquivo em lg/, tratado para transparência real). Vai
+   direta sobre o fundo nos dois temas — sem placa, sem filtro: a
+   transparência existe exatamente para isso. */
 .lg-logo{width:440px;max-width:84vw;height:auto;display:block;}
-:root:not([data-theme="light"]) .lg-logo{background:#f2f4f7;border-radius:18px;padding:18px 26px;box-sizing:border-box;}
 .sb-ave{height:34px;width:auto;display:block;}
 .lg-tag{font-size:12px;color:var(--lg-texto);letter-spacing:.4em;text-indent:.4em;
   text-transform:uppercase;text-align:center;margin-top:10px;font-weight:500;}
@@ -10195,7 +10194,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25f';
+const APP_VERSAO='2026.08.25g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
