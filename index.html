@@ -2411,6 +2411,33 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <!-- CANCELADA COM NF — card próprio: analisar e cadastrar como devolução -->
+      <div class="modal-overlay" id="cancnf-overlay">
+        <div class="modal" style="max-width:520px;width:520px;max-height:88vh;overflow-y:auto;">
+          <div class="dv-topo" style="margin-bottom:10px;">
+            <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);">Cancelada com NF</h3>
+            <button type="button" class="dv-x" title="Fechar" onclick="cancNfFechar()">✕</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+            <span id="ccard-plat"></span>
+            <span id="ccard-selo" style="margin-left:auto;font-size:11px;font-weight:700;font-family:var(--font-mono);"></span>
+          </div>
+          <div id="ccard-cliente" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:14px;"></div>
+          <div class="input-group"><label>SKU — o que voltou (da Base)</label>
+            <div id="ccard-sku" style="display:flex;flex-direction:column;gap:6px;"></div></div>
+          <div class="input-group"><label>Conferência Colaborador</label>
+            <div id="ccard-resp" style="display:flex;gap:8px;flex-wrap:wrap;"></div></div>
+          <p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-top:4px;">
+            Esta venda da Base foi cancelada com nota emitida. Analise e cadastre como devolução —
+            o <b>+ Adicionar</b> abre o cadastro já preenchido, e ao criar a devolução esta tarefa se conclui sozinha.</p>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--border);">
+            <button type="button" class="btn-sec" onclick="cancNfFechar()">Fechar</button>
+            <button type="button" class="btn-sec" id="ccard-btn-pend" onclick="cancNfPendente()">⚠ Pendente</button>
+            <button type="button" class="btn btn-sm" id="ccard-btn-add" style="padding:9px 16px;" onclick="cancNfAdicionar()">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- PERFIL — os dados de quem está logado -->
       <div class="modal-overlay" id="perfil-overlay">
         <div class="modal" style="max-width:380px;text-align:center;">
@@ -10323,7 +10350,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25w';
+const APP_VERSAO='2026.08.25x';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14614,7 +14641,11 @@ function acpAbrir(tipo,id){
   const err=document.getElementById('acp-erro'); if(err){ err.style.display='none'; err.textContent=''; }
   ov.classList.add('open');
 }
-function acpFechar(){ const o=document.getElementById('acp-overlay'); if(o) o.classList.remove('open'); }
+function acpFechar(){
+  const o=document.getElementById('acp-overlay'); if(o) o.classList.remove('open');
+  // Cancelou o cadastro vindo da tarefa "Cancelada com NF": a tarefa fica como está
+  if(typeof _devVindaDaTarefa!=='undefined') _devVindaDaTarefa='';
+}
 
 /* Fotos da devolução.
 
@@ -14736,6 +14767,19 @@ function acpSalvar(){
     });
   }
   const alvo=existente||appState.acompanhamentos[appState.acompanhamentos.length-1];
+  /* Devolução criada a partir de uma tarefa "Cancelada com NF": o cadastro é
+     exatamente o que a tarefa pedia — ela se conclui sozinha, com vínculo. */
+  if(!existente && tipo==='devolucao' && _devVindaDaTarefa){
+    const t=(appState.atividades||[]).find(x=>x&&x.id===_devVindaDaTarefa);
+    if(t && t.status!=='concluida' && t.status!=='finalizada'){
+      t.status='concluida';
+      t.concluidoEm=_agoraCarimbo(); t.concluidoPor=currentUser.name;
+      t.concluidoPorKey=currentUser.key; t.concluidoTs=Date.now();
+      alvo.origemCancNfTarefaId=t.id;
+    }
+    _devVindaDaTarefa='';
+    try{ renderAtividades(); }catch(e){}
+  }
   let resumo={criadas:0,tarefas:0};
   try{ resumo=_acpSincronizarEntradas(alvo); }catch(e){ console.warn('[acp] entradas:',e); }
   try{ saveState(appState); }catch(e){ return falhar('Não consegui salvar: '+(e&&e.message||e)); }
@@ -16371,6 +16415,111 @@ function estornoConcluir(){
   try{ renderAtividades(); }catch(e){}
   try{ renderAcompanhamento(); }catch(e){}
   showToast('✔ NF '+nf+' estornada — tarefa concluída','success');
+}
+
+/* ── Card da Cancelada com NF ────────────────────────────────────────
+   A tarefa diz: esta venda da Base foi cancelada com nota emitida — analise
+   e cadastre como devolução. O card mostra o que veio da Base (loja, SKU,
+   cliente, pedido) e o "+ Adicionar" abre a Nova Devolução já preenchida;
+   criada a devolução, a tarefa se conclui sozinha. */
+let _cancNfTaskId='';
+let _devVindaDaTarefa='';   // tarefa a concluir quando a devolução for criada
+
+function _cancNfTarefa(){ return (appState.atividades||[]).find(x=>x&&x.id===_cancNfTaskId)||null; }
+function _cancNfRegistro(t){
+  if(!t||!t.origemCancNfId) return null;
+  return (appState.canceladasNF||[]).find(x=>x&&x.id===t.origemCancNfId)||null;
+}
+function abrirCancNfCard(id){
+  _cancNfTaskId=id;
+  if(!_cancNfTarefa()) return;
+  const ov=document.getElementById('cancnf-overlay'); if(!ov) return;
+  _cancNfRender();
+  ov.classList.add('open');
+}
+function cancNfFechar(){
+  const ov=document.getElementById('cancnf-overlay'); if(ov) ov.classList.remove('open');
+  _cancNfTaskId='';
+}
+function _cancNfRender(){
+  const t=_cancNfTarefa(); if(!t) return;
+  const r=_cancNfRegistro(t);
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const concluida=(t.status==='concluida'||t.status==='finalizada');
+
+  document.getElementById('ccard-cliente').textContent=
+    ((r&&r.cliente)||'—')+((r&&r.pedidoBase)?(' · pedido '+r.pedidoBase):'')
+    +((r&&r.dataPedido)?(' · '+_pedDataBR(r.dataPedido)):'');
+  const plat=(r&&r.plataforma)||'';
+  document.getElementById('ccard-plat').innerHTML=plat
+    ? `<span class="selo" style="--sc:#3d5a94;--sb:rgba(61,90,148,.12);--sbd:rgba(61,90,148,.4);">${esc(plat)}</span>`
+    : '<span style="color:var(--text-muted);">—</span>';
+
+  /* SKU vindo da Base: primeiro o que o fluxo gravou no registro; sem ele,
+     tenta o pedido correspondente em pedidosBase; por fim avisa que o fluxo
+     precisa ser atualizado para trazer o produto. */
+  let produtos=(r&&Array.isArray(r.produtos))?r.produtos:[];
+  if(!produtos.length && r&&r.pedidoBase){
+    const p=(appState.pedidosBase||[]).find(x=>x&&String(x.numero||x.externo||'')===String(r.pedidoBase));
+    if(p&&Array.isArray(p.produtos)) produtos=p.produtos;
+  }
+  document.getElementById('ccard-sku').innerHTML=produtos.length
+    ? produtos.map(p=>`<div style="display:flex;gap:8px;align-items:center;background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:7px 10px;">
+        <span style="font-family:var(--font-mono);font-size:11.5px;font-weight:700;color:var(--text-primary);">${esc(p.sku||'—')}</span>
+        <span style="font-size:11.5px;color:var(--text-secondary);flex:1;">${esc(p.nome||'')}</span>
+        ${p.qtd?`<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">×${p.qtd}</span>`:''}
+      </div>`).join('')
+    : '<div style="font-size:11.5px;color:var(--text-muted);">A Base ainda não trouxe o produto deste pedido — rode o fluxo atualizado das Canceladas no n8n.</div>';
+
+  // Conferência Colaborador — os mesmos chips, mexível por master ou responsável
+  const podeMexer=currentUser&&(currentUser.master||getAtvResponsaveis(t).includes(currentUser.key));
+  const grid=document.getElementById('ccard-resp');
+  grid.innerHTML='';
+  Object.entries(appState.users||{}).forEach(([k,u])=>{
+    if(!u) return;
+    const marcado=getAtvResponsaveis(t).includes(k);
+    const chip=document.createElement('button');
+    chip.type='button'; chip.textContent=u.name||k;
+    chip.style.cssText=`border-radius:999px;padding:6px 13px;font-size:12px;font-weight:600;cursor:${podeMexer&&!concluida?'pointer':'default'};
+      border:1px solid ${marcado?'rgba(99,102,241,.7)':'var(--border)'};
+      background:${marcado?'rgba(99,102,241,.18)':'transparent'};
+      color:${marcado?'var(--text-primary)':'var(--text-muted)'};`;
+    if(podeMexer&&!concluida) chip.onclick=()=>{
+      let rs=getAtvResponsaveis(t).slice();
+      rs=marcado?rs.filter(x=>x!==k):[...rs,k];
+      t.responsaveis=rs; t.responsavel=rs[0]||'';
+      saveState(appState); _cancNfRender();
+    };
+    grid.appendChild(chip);
+  });
+
+  const selo=document.getElementById('ccard-selo');
+  selo.textContent=concluida?'✓ Devolução cadastrada':(t.status==='andamento'?'⚠ Com pendência':'Em aberto');
+  selo.style.color=concluida?'var(--tom-verde)':(t.status==='andamento'?'var(--amber,#f59e0b)':'var(--text-muted)');
+  document.getElementById('ccard-btn-add').style.display=concluida?'none':'';
+  document.getElementById('ccard-btn-pend').style.display=concluida?'none':'';
+}
+/* "+ Adicionar": abre a Nova Devolução do Acompanhamento já preenchida com o
+   que a Base sabe. Criada a devolução, a tarefa se conclui (ver acpSalvar). */
+function cancNfAdicionar(){
+  const t=_cancNfTarefa(); if(!t) return;
+  if(!(currentUser&&(currentUser.master||getAtvResponsaveis(t).includes(currentUser.key)))){
+    showToast('Só o responsável ou o master cadastram esta devolução','warn'); return;
+  }
+  const r=_cancNfRegistro(t);
+  _devVindaDaTarefa=t.id;
+  cancNfFechar();
+  switchTab('envios');
+  acpSetTipo('devolucao');
+  try{ renderAcompanhamento(); }catch(e){}
+  acpAbrir('devolucao',null);
+  const p=(id2,v)=>{ const el=document.getElementById(id2); if(el&&v) el.value=v; };
+  if(r){ p('acp-loja',r.plataforma); p('acp-cliente',r.cliente); p('acp-nped',r.pedidoBase); }
+}
+function cancNfPendente(){
+  const t=_cancNfTarefa(); if(!t) return;
+  atvSetPendente(t.id);
+  _cancNfRender();
 }
 
 /* Ver as fotos anexadas, sem passar pela ficha inteira. */
@@ -28849,6 +28998,9 @@ function openAtvModal(id,forcarSomenteLeitura){
   if(id){
     const t0=(appState.atividades||[]).find(x=>x&&x.id===id);
     if(t0 && /^Estornar NF de sa[ií]da/i.test(String(t0.titulo||''))){ abrirEstornoCard(id); return; }
+    /* Cancelada com NF também tem card próprio: é uma venda da Base que
+       precisa virar devolução — analisar e cadastrar, não preencher grade. */
+    if(t0 && String(t0.titulo||'').trim()==='Cancelada com NF'){ abrirCancNfCard(id); return; }
   }
   try{ atvLimparComentarioPendente(); }catch(e){}
   const imgInp=document.getElementById('atv-imagem-input'); if(imgInp) imgInp.value='';
