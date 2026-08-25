@@ -375,10 +375,13 @@ html{overflow-x:hidden;}
 /* A arte oficial (arquivo em lg/, tratado para transparência real). Vai
    direta sobre o fundo nos dois temas — sem placa, sem filtro: a
    transparência existe exatamente para isso. */
-.lg-logo{width:440px;max-width:84vw;height:auto;display:block;margin-bottom:34px;}
-.lg-logo.so-escuro{display:none;}
-:root:not([data-theme="light"]) .lg-logo.so-claro{display:none;}
-:root:not([data-theme="light"]) .lg-logo.so-escuro{display:block;}
+.lg-lock{display:flex;flex-direction:column;align-items:center;gap:16px;margin-bottom:36px;}
+.lg-ave{height:130px;width:auto;display:block;}
+.lg-nome{height:58px;width:auto;max-width:84vw;display:block;}
+.lg-tagl{height:15px;width:auto;max-width:84vw;display:block;opacity:.9;}
+.lg-lock .so-escuro{display:none;}
+:root:not([data-theme="light"]) .lg-lock .so-claro{display:none;}
+:root:not([data-theme="light"]) .lg-lock .so-escuro{display:block;}
 .sb-ave{height:34px;width:auto;display:block;flex-shrink:0;}
 /* O nome vem recortado da mesma arte, sem a tagline — em 30px de altura o
    "LIVE OPERATIONS" viraria ruído. */
@@ -2171,9 +2174,16 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <button type="button" class="lg-tema-b" data-t="dark" onclick="escolherTema('dark')">☾ Escuro</button>
   </div>
   <!-- A arte oficial, do arquivo enviado — sem redesenho. -->
-  <!-- Duas versões da arte: no escuro entra a de OPS branco, para contraste. -->
-  <img class="lg-logo so-claro" src="logo-completa.png" alt="LiveOps — Live Operations">
-  <img class="lg-logo so-escuro" src="logo-completa-escura.png" alt="LiveOps — Live Operations">
+  <!-- A marca empilhada: pássaro em cima, LIVEOPS embaixo e a tagline — as
+       três peças recortadas da mesma arte, com a versão de contraste no
+       tema escuro. -->
+  <div class="lg-lock" role="img" aria-label="LiveOps — Live Operations">
+    <img class="lg-ave" src="logo-passaro.png" alt="">
+    <img class="lg-nome so-claro" src="logo-nome.png" alt="LiveOps">
+    <img class="lg-nome so-escuro" src="logo-nome-escura.png" alt="LiveOps">
+    <img class="lg-tagl so-claro" src="logo-tagline.png" alt="Live Operations">
+    <img class="lg-tagl so-escuro" src="logo-tagline-escura.png" alt="Live Operations">
+  </div>
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Login</h2>
     <div class="input-group">
@@ -10206,7 +10216,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25m';
+const APP_VERSAO='2026.08.25n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
