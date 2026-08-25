@@ -10419,7 +10419,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25za';
+const APP_VERSAO='2026.08.25zb';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11613,11 +11613,12 @@ function _baseInfoCardsHtml(){
         <div class="ini-ic">${iconeMenu('baseinfo')}</div>
         <div class="ini-tit">${_iniEsc(it.titulo)}</div>
         <div class="ini-sub">${_iniEsc(texto)}</div>
+        ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')" style="max-width:100%;max-height:150px;border-radius:8px;margin-top:10px;cursor:zoom-in;border:1px solid var(--glass-border);">`:''}
         <div class="bi-mais">${dobra?`<span>${aberto?'ver menos ▴':'ver mais ▾'}</span>`:''}</div>
         <div class="bi-pe" onclick="event.stopPropagation();">
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
           ${(it.link||master)?`<div class="bi-acoes">
-            ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Abrir link ↗</a>`:''}
+            ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Assistir vídeo ↗</a>`:''}
             ${master?(_biExcluindo===it.id
               ?`<span class="bi-adm" style="align-items:center;gap:8px;">
                   <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
@@ -11688,8 +11689,16 @@ function renderBaseInfo(){
           <textarea id="bi-texto" rows="5" placeholder="Escreva o procedimento ou o aviso."></textarea>
         </div>
         <div class="input-group" style="margin-bottom:12px;">
-          <label style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);">Link (opcional)</label>
-          <input type="text" id="bi-link" placeholder="https://…">
+          <label style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);">Link vídeo</label>
+          <input type="text" id="bi-link" placeholder="https://… (YouTube, Drive, Loom…)">
+        </div>
+        <div class="input-group" style="margin-bottom:12px;">
+          <label style="font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);">Anexar imagem</label>
+          <input type="file" id="bi-img-file" accept="image/*" onchange="baseInfoImgSelecionar(this)">
+          <div id="bi-img-preview" style="display:none;margin-top:8px;align-items:center;gap:10px;">
+            <img id="bi-img-tag" src="" alt="" style="max-height:120px;max-width:100%;border-radius:8px;border:1px solid var(--glass-border);">
+            <button class="btn btn-ghost btn-sm" style="width:auto;" onclick="baseInfoImgRemover()">Remover imagem</button>
+          </div>
         </div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-sm" onclick="baseInfoSalvar()">Salvar</button>
@@ -11704,6 +11713,31 @@ function renderBaseInfo(){
   try{ normalizarBuscas(el); }catch(e){}
 }
 
+/* Imagem que está sendo anexada no formulário. Fica fora do campo porque
+   <input type="file"> não aceita valor programático — some no re-render. */
+let _biImagem='';
+function _biImgAtualizarPreview(){
+  const wrap=document.getElementById('bi-img-preview');
+  const tag=document.getElementById('bi-img-tag');
+  if(!wrap||!tag) return;
+  if(_biImagem){ tag.src=_biImagem; wrap.style.display='flex'; }
+  else { tag.src=''; wrap.style.display='none'; }
+}
+function baseInfoImgSelecionar(inp){
+  const f=inp&&inp.files&&inp.files[0]; if(!f) return;
+  lerImagemComprimida(f, dataUrl=>{ _biImagem=dataUrl||''; _biImgAtualizarPreview(); });
+}
+function baseInfoImgRemover(){
+  _biImagem='';
+  const inp=document.getElementById('bi-img-file'); if(inp) inp.value='';
+  _biImgAtualizarPreview();
+}
+function baseInfoAmpliar(id){
+  const it=_baseInfoLista().find(x=>x.id===id); if(!it||!it.imagem) return;
+  const w=window.open('');
+  if(w) w.document.write('<title>'+_iniEsc(it.titulo||'Imagem')+'</title><img src="'+it.imagem+'" style="max-width:100%;">');
+}
+
 function baseInfoNovo(){
   const f=document.getElementById('bi-form'); if(!f) return;
   f.style.display='block';
@@ -11711,10 +11745,13 @@ function baseInfoNovo(){
   document.getElementById('bi-titulo').value='';
   document.getElementById('bi-texto').value='';
   document.getElementById('bi-link').value='';
+  const fi=document.getElementById('bi-img-file'); if(fi) fi.value='';
+  _biImagem=''; _biImgAtualizarPreview();
   document.getElementById('bi-titulo').focus();
 }
 function baseInfoCancelar(){
   const f=document.getElementById('bi-form'); if(f) f.style.display='none';
+  baseInfoImgRemover();
 }
 function baseInfoEditar(id){
   const it=_baseInfoLista().find(x=>x.id===id); if(!it) return;
@@ -11724,6 +11761,8 @@ function baseInfoEditar(id){
   document.getElementById('bi-titulo').value=it.titulo||'';
   document.getElementById('bi-texto').value=it.texto||'';
   document.getElementById('bi-link').value=it.link||'';
+  const fi=document.getElementById('bi-img-file'); if(fi) fi.value='';
+  _biImagem=it.imagem||''; _biImgAtualizarPreview();
   f.scrollIntoView({behavior:'smooth',block:'center'});
 }
 function baseInfoSalvar(){
@@ -11732,15 +11771,16 @@ function baseInfoSalvar(){
   const titulo=(document.getElementById('bi-titulo').value||'').trim();
   const texto=(document.getElementById('bi-texto').value||'').trim();
   const link=(document.getElementById('bi-link').value||'').trim();
+  const imagem=_biImagem||'';
   if(!titulo){ showToast('Dê um título à informação.','warn'); return; }
   const lista=_baseInfoLista();
   const carimbo=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   if(id){
     const it=lista.find(x=>x.id===id);
-    if(it){ it.titulo=titulo; it.texto=texto; it.link=link; it.em=carimbo; it.por=currentUser.name; }
+    if(it){ it.titulo=titulo; it.texto=texto; it.link=link; it.imagem=imagem; it.em=carimbo; it.por=currentUser.name; }
   } else {
     lista.unshift({id:'bi_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-                   titulo, texto, link, em:carimbo, por:currentUser.name});
+                   titulo, texto, link, imagem, em:carimbo, por:currentUser.name});
   }
   saveState(appState);
   showToast('Informação salva','success');
