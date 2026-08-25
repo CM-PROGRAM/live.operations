@@ -376,6 +376,9 @@ html{overflow-x:hidden;}
    direta sobre o fundo nos dois temas — sem placa, sem filtro: a
    transparência existe exatamente para isso. */
 .lg-logo{width:440px;max-width:84vw;height:auto;display:block;margin-bottom:34px;}
+.lg-logo.so-escuro{display:none;}
+:root:not([data-theme="light"]) .lg-logo.so-claro{display:none;}
+:root:not([data-theme="light"]) .lg-logo.so-escuro{display:block;}
 .sb-ave{height:34px;width:auto;display:block;}
 .lg-tag{font-size:12px;color:var(--lg-texto);letter-spacing:.4em;text-indent:.4em;
   text-transform:uppercase;text-align:center;margin-top:10px;font-weight:500;}
@@ -447,8 +450,8 @@ html{overflow-x:hidden;}
   padding:30px 28px;width:420px;max-width:100%;display:flex;flex-direction:column;gap:16px;
   box-shadow:0 1px 3px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);}
 :root:not([data-theme="light"]) .login-box{box-shadow:0 10px 34px rgba(0,0,0,.5);}
-.login-box h2{font-size:17px;font-weight:700;color:var(--lg-titulo);text-align:center;
-  letter-spacing:0;text-transform:none;font-family:var(--font-sans);margin:0;}
+.login-box h2{font-size:27px;font-weight:800;color:var(--lg-titulo);text-align:center;
+  letter-spacing:-0.01em;text-transform:none;font-family:var(--font-sans);margin:0 0 6px;}
 .login-box .lg-cardsub{font-size:13px;color:var(--lg-texto);text-align:center;margin:-10px 0 4px;}
 .login-box .login-step{display:flex;flex-direction:column;gap:16px;}
 .login-box .login-hint{font-size:13px;color:var(--lg-texto);font-family:var(--font-sans);line-height:1.6;text-align:center;}
@@ -2159,7 +2162,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <button type="button" class="lg-tema-b" data-t="dark" onclick="escolherTema('dark')">☾ Escuro</button>
   </div>
   <!-- A arte oficial, do arquivo enviado — sem redesenho. -->
-  <img class="lg-logo" src="logo-completa.png" alt="LiveOps — Live Operations">
+  <!-- Duas versões da arte: no escuro entra a de OPS branco, para contraste. -->
+  <img class="lg-logo so-claro" src="logo-completa.png" alt="LiveOps — Live Operations">
+  <img class="lg-logo so-escuro" src="logo-completa-escura.png" alt="LiveOps — Live Operations">
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Login</h2>
     <div class="input-group">
@@ -10192,7 +10197,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25h';
+const APP_VERSAO='2026.08.25i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
