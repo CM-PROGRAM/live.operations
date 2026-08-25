@@ -211,7 +211,7 @@
 /* Divisórias e véus internos dos cartões montados em JS */
 :root[data-theme="light"] .tab-group-children{border-left-color:var(--border);}
 
-:root[data-theme="light"] .sidebar-search{background:linear-gradient(135deg,rgba(20,30,55,0.05),rgba(20,30,55,0.02));box-shadow:inset 0 2px 6px rgba(30,45,80,0.08);}
+:root[data-theme="light"] .sidebar-search{background:#f3f5f9;box-shadow:none;border-color:#dde2ec;}
 /* ── 3D GLASS BUTTON ── */
 .btn-3d {
   position: relative;
@@ -1803,9 +1803,12 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .bi-card .bi-txt{font-size:13px;color:var(--text-secondary);line-height:1.65;white-space:pre-wrap;}
 .bi-card .bi-pe{display:flex;align-items:center;gap:10px;margin-top:10px;flex-wrap:wrap;}
 .bi-meta{font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);}
-.sidebar-search{padding:7px 10px;margin:8px 8px 4px;display:flex;align-items:center;gap:7px;background:linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.01));border:1px solid var(--glass-border);border-radius:50px;transition:border-color .2s;box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);}
-.sidebar-search:focus-within{border-color:rgba(59,130,246,0.6);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25),0 0 12px rgba(59,130,246,0.15);}
-.sidebar-search input{background:none;border:none;outline:none;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);width:100%;}
+/* Caixa discreta como a da referência: baixa, cantos suaves, sem pílula
+   gorda nem sombra interna. */
+.sidebar-search{height:34px;padding:0 10px;margin:10px 10px 4px;display:flex;align-items:center;gap:7px;
+  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:9px;transition:border-color .2s;box-shadow:none;}
+.sidebar-search:focus-within{border-color:rgba(59,130,246,0.55);}
+.sidebar-search input{background:none;border:none;outline:none;color:var(--text-primary);font-size:12.5px;font-family:var(--font-sans);width:100%;box-shadow:none;padding:0;height:auto;}
 .sidebar-footer{margin-top:auto;padding:12px 10px;border-top:1px solid var(--glass-border);}
 
 /* CONTENT */
@@ -10203,7 +10206,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25k';
+const APP_VERSAO='2026.08.25l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
