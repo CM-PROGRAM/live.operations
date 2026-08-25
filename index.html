@@ -972,6 +972,10 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 /* Etapa que ainda não abriu: apagada e sem cursor de clique. O cadeado diz
    por quê antes de a pessoa tentar. */
 .etp-passo.travado{opacity:.5;cursor:not-allowed;}
+.etp-passo-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;
+  padding:0 6px;border-radius:999px;background:var(--bg-active);border:1px solid var(--border);
+  font-size:10.5px;font-family:var(--font-mono);color:var(--text-secondary);}
+.etp-passo.ativo .etp-passo-n{background:var(--accent-glow);border-color:var(--accent-dim);color:var(--accent);}
 .etp-pagina{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);
   padding:20px;margin-bottom:4px;}
 .etp-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
@@ -2643,6 +2647,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <!-- As três etapas da compra, na tela de Compras. Cada botão é uma
+           fila de trabalho: o que ainda precisa ser orçado, o que chegou e
+           espera conferência, e o que está conferido e falta lançar. A
+           listagem abaixo é a daquela fila, e o olho na linha abre a etapa
+           que aquela compra precisa preencher em seguida. -->
+      <div class="etp-passos" id="acp-etapas-barra" style="display:none;"></div>
+
       <div id="acp-aviso-antigas" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;
         background:rgba(240,180,41,.10);border:1px solid rgba(240,180,41,.4);border-radius:var(--radius-lg);
         padding:13px 16px;margin-bottom:14px;">
@@ -2685,11 +2696,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div style="flex:1;"></div>
         </div>
 
-        <!-- As três etapas são abas, não uma página rolando: cada uma é um
-             momento diferente do trabalho — orçar, conferir na chegada e
-             lançar — e quase nunca acontecem no mesmo dia nem pela mesma
-             pessoa. A etapa seguinte só abre quando a anterior é confirmada,
-             porque ela calcula em cima do que a anterior fechou. -->
         <div class="etp-passos" id="etp-passos"></div>
 
         <!-- ETAPA 1 — ORÇAMENTO -->
@@ -9958,7 +9964,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.24c';
+const APP_VERSAO='2026.08.25a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14145,6 +14151,49 @@ function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(
    interessa quantos itens vieram; numa devolução interessa de quem voltou,
    por qual transportadora, e se alguém já conferiu o que chegou. Mostrar as
    mesmas sete colunas nos três encheria a tela de "N/A". */
+/* ── As três filas de trabalho da compra ──────────────────────────────
+   A tela de Compras mostra uma fila de cada vez:
+
+     1 · Orçamento              — comprou, falta orçar e fechar preço
+     2 · Chegada / Conferência  — orçamento fechado, esperando a mercadoria
+     3 · Lançamento em Estoque  — conferido, falta lançar
+
+   Não é filtro de status: é onde cada compra está no processo. Ver as três
+   juntas é o que fazia alguém abrir uma compra que ainda nem chegou para
+   descobrir que não havia nada a conferir. */
+let _acpEtapaFila=1;
+
+function _acpEtapaDe(a){
+  const e=(a&&a.etapas)||{};
+  if(!(e.orc&&e.orc.travado))  return 1;
+  if(!(e.conf&&e.conf.travado)) return 2;
+  return 3;
+}
+
+function acpFila(n){
+  _acpEtapaFila=n;
+  pagVoltarAoInicio('acomp');
+  renderAcompanhamento();
+}
+
+/* Desenha a barra e conta quantas compras estão em cada fila. O número é o
+   que faz a barra valer: sem ele, escolher a fila é chutar. */
+function _acpRenderBarraEtapas(lista){
+  const barra=document.getElementById('acp-etapas-barra');
+  if(!barra) return;
+  if(_acpTipo!=='compra'){ barra.style.display='none'; return; }
+  barra.style.display='flex';
+  const nomes=['Orçamento','Chegada / Conferência','Lançamento em Estoque'];
+  const cont=[0,0,0];
+  (lista||[]).forEach(a=>{ cont[_acpEtapaDe(a)-1]++; });
+  barra.innerHTML=nomes.map((nome,i)=>{
+    const n=i+1;
+    return `<button type="button" class="etp-passo${n===_acpEtapaFila?' ativo':''}" onclick="acpFila(${n})">`
+      +`${n}. ${nome}`
+      +`<span class="etp-passo-n">${cont[i]}</span></button>`;
+  }).join('');
+}
+
 /* ══════════ COMPRA EM TRÊS ETAPAS ══════════
    Orçamento → Chegada/conferência → Lançamento no estoque.
 
@@ -14968,8 +15017,15 @@ function renderAcompanhamento(){
   const fst=((document.getElementById('acp-f-status')||{}).value||'');
   const verArq=!!((document.getElementById('acp-f-arquivados')||{}).checked);
 
+  /* A barra conta em cima de tudo que está visível na aba, e não do que
+     sobrou do filtro — número que muda quando alguém digita na busca não
+     serve para escolher em qual fila trabalhar. */
+  _acpRenderBarraEtapas(todos.filter(a=>verArq || !a.arquivado));
+
   const lista=todos.filter(a=>{
     if(!verArq && a.arquivado) return false;
+    /* Em Compras a listagem é a da fila escolhida na barra de etapas. */
+    if(_acpTipo==='compra' && _acpEtapaDe(a)!==_acpEtapaFila) return false;
     if(fst && a.status!==fst) return false;
     if(qr && !String(a.rastreio||'').toLowerCase().includes(qr)) return false;
     if(qp){
@@ -15138,8 +15194,12 @@ function _acpCelula(col,a,pode){
         /* Em Compras o botão principal é abrir as três etapas: é lá que a
            compra vive do orçamento ao lançamento. "Editar" continua no ⋯,
            para os dados de cabeçalho (loja, transportadora, previsão). */
+        /* O olho abre a etapa que ESTA compra precisa preencher agora — a
+           1 se ainda não foi orçada, a 2 se chegou e falta conferir, a 3 se
+           está conferida. É o gesto que a operação faz linha a linha. */
+        const proxima=['Orçamento','Chegada / Conferência','Lançamento em Estoque'][_acpEtapaDe(a)-1];
         const etapasBtn = (_acpTipo==='compra' && pode)
-          ? `<button class="ped-acao destaque" title="Abrir orçamento, conferência e lançamento" onclick="acpAbrirEtapas('${a.id}')">Etapas</button>`
+          ? `<button class="ped-acao destaque olho" title="Abrir: ${proxima}" onclick="acpAbrirEtapas('${a.id}')">👁</button>`
           : (pode?`<button class="ped-acao destaque" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:'');
         return `<td style="text-align:right;white-space:nowrap;">
           ${etapasBtn}
