@@ -2374,6 +2374,43 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <!-- ESTORNO DE NF — card próprio das tarefas "Estornar NF de saída" -->
+      <div class="modal-overlay" id="estorno-overlay">
+        <div class="modal" style="max-width:520px;width:520px;max-height:88vh;overflow-y:auto;">
+          <div class="dv-topo" style="margin-bottom:10px;">
+            <h3 id="estorno-titulo" style="font-size:15px;font-weight:700;color:var(--text-primary);line-height:1.4;">Estornar NF de saída</h3>
+            <button type="button" class="dv-x" title="Fechar" onclick="estornoFechar()">✕</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+            <span id="estorno-plat"></span>
+            <span id="estorno-cliente" style="font-size:12px;color:var(--text-secondary);"></span>
+            <span id="estorno-selo" style="margin-left:auto;font-size:11px;font-weight:700;font-family:var(--font-mono);"></span>
+          </div>
+          <div class="input-group"><label>SKU do produto devolvido</label>
+            <input type="text" id="estorno-sku" placeholder="Ex: DHEA25"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+            <div class="input-group"><label>Nº da NF estornada <b>*</b></label>
+              <input type="text" id="estorno-nf" inputmode="numeric" placeholder="Ex: 12345"></div>
+            <div class="input-group"><label>Data do estorno <b>*</b></label>
+              <input type="date" id="estorno-data"></div>
+          </div>
+          <div id="estorno-fotos-wrap" style="display:none;">
+            <label style="font-size:11px;font-weight:700;color:var(--text-secondary);">Fotos da devolução (do cadastro)</label>
+            <div id="estorno-fotos" class="acp-fotos" style="margin:6px 0 10px;"></div>
+          </div>
+          <div class="input-group" style="margin-top:4px;"><label>💬 Comentários</label>
+            <div id="estorno-coment-hist" style="display:flex;flex-direction:column;gap:6px;max-height:170px;overflow-y:auto;margin-bottom:8px;"></div>
+            <textarea id="estorno-coment" rows="2" maxlength="150" placeholder="Adicionar comentário..." style="resize:none;"></textarea>
+            <button type="button" class="btn-sec" style="margin-top:6px;width:auto;" onclick="estornoComentar()">Comentar</button>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+            <button type="button" class="btn-sec" onclick="estornoFechar()">Fechar</button>
+            <button type="button" class="btn-sec" id="estorno-btn-salvar" onclick="estornoSalvar()">Salvar</button>
+            <button type="button" class="btn btn-sm" id="estorno-btn-concluir" style="padding:9px 16px;" onclick="estornoConcluir()">✓ Concluir estorno</button>
+          </div>
+        </div>
+      </div>
+
       <!-- PERFIL — os dados de quem está logado -->
       <div class="modal-overlay" id="perfil-overlay">
         <div class="modal" style="max-width:380px;text-align:center;">
@@ -10286,7 +10323,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25v';
+const APP_VERSAO='2026.08.25w';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -16210,6 +16247,130 @@ function acpEstornarNF(id){
   renderAcompanhamento();
   try{ renderAtividades(); }catch(e){}
   showToast('✔ Tarefa de estorno criada para o Carlos Red','success');
+}
+
+/* ── Card do estorno de NF ───────────────────────────────────────────
+   O que quem estorna precisa: a plataforma, o SKU devolvido, o número da
+   NF estornada, a data do estorno e os comentários. As fotos são as do
+   cadastro da devolução — só visualização; anexar é lá no 1º momento. */
+let _estornoTaskId='';
+
+function _estornoTarefa(){ return (appState.atividades||[]).find(x=>x&&x.id===_estornoTaskId)||null; }
+function _estornoDevolucao(t){
+  if(!t) return null;
+  return (appState.acompanhamentos||[]).find(x=>x&&x.id===t.origemDevolucaoId)||null;
+}
+function abrirEstornoCard(id){
+  _estornoTaskId=id;
+  const t=_estornoTarefa(); if(!t) return;
+  const ov=document.getElementById('estorno-overlay'); if(!ov) return;
+  _estornoRender();
+  ov.classList.add('open');
+}
+function estornoFechar(){
+  const ov=document.getElementById('estorno-overlay'); if(ov) ov.classList.remove('open');
+  _estornoTaskId='';
+}
+function _estornoRender(){
+  const t=_estornoTarefa(); if(!t) return;
+  const a=_estornoDevolucao(t);
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const concluida=(t.status==='concluida'||t.status==='finalizada');
+
+  document.getElementById('estorno-titulo').textContent=t.titulo||'Estornar NF de saída';
+  // Plataforma: a da devolução vinculada; sem vínculo, lê da observação gravada
+  let plataforma=(a&&a.loja)||'';
+  if(!plataforma){ const m=String(t.observacao||'').match(/Loja:\s*(.+)/); plataforma=m?m[1].trim():''; }
+  let cliente=(a&&a.cliente)||'';
+  if(!cliente){ const m=String(t.observacao||'').match(/Cliente:\s*(.+)/); cliente=m?m[1].trim():''; }
+  const pedido=(a&&a.numeroPedido)||((String(t.titulo||'').match(/pedido\s+(\S+)/)||[])[1])||'';
+  document.getElementById('estorno-plat').innerHTML=plataforma?`<span class="selo" style="--sc:#3d5a94;--sb:rgba(61,90,148,.12);--sbd:rgba(61,90,148,.4);">${esc(plataforma)}</span>`:'<span style="color:var(--text-muted);">—</span>';
+  document.getElementById('estorno-cliente').textContent=(cliente||'—')+(pedido?(' · pedido '+pedido):'');
+
+  const set=(id2,v)=>{ const el=document.getElementById(id2); if(el){ el.value=v||''; el.disabled=concluida; } };
+  set('estorno-sku', t.estornoSku);
+  set('estorno-nf',  t.estornoNf);
+  set('estorno-data',t.estornoData || (concluida?'':_hojeISO()));
+
+  // Fotos do cadastro da devolução — só visualização
+  const fw=document.getElementById('estorno-fotos-wrap');
+  const fotos=(a&&Array.isArray(a.fotos))?a.fotos:[];
+  if(fotos.length){
+    fw.style.display='';
+    document.getElementById('estorno-fotos').innerHTML=fotos.map((f,i)=>
+      `<div class="fo"><img src="${f}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('');
+  } else fw.style.display='none';
+
+  // Comentários
+  const hist=_listaComentarios(t);
+  const hw=document.getElementById('estorno-coment-hist');
+  hw.innerHTML=hist.length?hist.map(c=>`
+    <div style="background:var(--bg-surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;">
+      <div style="font-size:9.5px;color:var(--text-muted);margin-bottom:3px;">${esc(c.autor||'—')} · ${esc(c.em||'')}</div>
+      <div style="font-size:12px;color:var(--text-primary);white-space:pre-wrap;">${esc(c.texto||'')}</div>
+    </div>`).join('')
+    :'<div style="font-size:11.5px;color:var(--text-muted);">Nenhum comentário ainda.</div>';
+
+  const selo=document.getElementById('estorno-selo');
+  selo.textContent=concluida?'✓ Estorno concluído':'Em aberto';
+  selo.style.color=concluida?'var(--tom-verde)':'var(--text-muted)';
+  const bc=document.getElementById('estorno-btn-concluir');
+  if(bc) bc.style.display=concluida?'none':'';
+  const bs=document.getElementById('estorno-btn-salvar');
+  if(bs) bs.style.display=concluida?'none':'';
+}
+function _estornoPodeMexer(t){
+  return currentUser && (currentUser.master || getAtvResponsaveis(t).includes(currentUser.key));
+}
+function estornoSalvar(silencioso){
+  const t=_estornoTarefa(); if(!t) return false;
+  if(!_estornoPodeMexer(t)){ showToast('Só o responsável ou o master alteram este estorno','warn'); return false; }
+  t.estornoSku=(document.getElementById('estorno-sku').value||'').trim();
+  t.estornoNf=(document.getElementById('estorno-nf').value||'').trim();
+  t.estornoData=document.getElementById('estorno-data').value||'';
+  saveState(appState);
+  if(!silencioso) showToast('Estorno salvo','success');
+  return true;
+}
+function estornoComentar(){
+  if(!currentUser){ showToast('Faça login para comentar','warn'); return; }
+  const t=_estornoTarefa(); if(!t) return;
+  const ta=document.getElementById('estorno-coment');
+  const texto=String((ta&&ta.value)||'').trim().slice(0,150);
+  if(!texto){ showToast('Escreva o comentário','warn'); return; }
+  const entrada=_novoComentario(texto,[],[]);
+  t.comentarios=_fundirComentarios([entrada],_listaComentarios(t));
+  if(ta) ta.value='';
+  saveState(appState);
+  _estornoRender();
+  getAtvResponsaveis(t).forEach(k=>{
+    if(k===currentUser.key || !db || !fbConnected) return;
+    db.ref('suplelive/notificacoes/'+k).push({msg:'💬 Novo comentário de '+currentUser.name+' em "'+(t.titulo||'estorno')+'"',
+      ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,alvoTipo:'tarefa',alvoId:t.id});
+  });
+  showToast('💬 Comentário publicado','success');
+}
+function estornoConcluir(){
+  const t=_estornoTarefa(); if(!t) return;
+  if(!_estornoPodeMexer(t)){ showToast('Só o responsável ou o master concluem este estorno','warn'); return; }
+  const nf=(document.getElementById('estorno-nf').value||'').trim();
+  const data=document.getElementById('estorno-data').value||'';
+  if(!nf){ showToast('Informe o nº da NF estornada','warn'); return; }
+  if(!data){ showToast('Informe a data do estorno','warn'); return; }
+  if(!estornoSalvar(true)) return;
+  t.status='concluida';
+  t.concluidoEm=_agoraCarimbo();
+  t.concluidoPor=currentUser.name;
+  t.concluidoPorKey=currentUser.key;
+  t.concluidoTs=Date.now();
+  // A devolução vinculada muda de etapa: a nota foi estornada
+  const a=_estornoDevolucao(t);
+  if(a){ a.etapa='concluida'; a.atualizadoEm=new Date().toLocaleDateString('pt-BR'); }
+  saveState(appState);
+  estornoFechar();
+  try{ renderAtividades(); }catch(e){}
+  try{ renderAcompanhamento(); }catch(e){}
+  showToast('✔ NF '+nf+' estornada — tarefa concluída','success');
 }
 
 /* Ver as fotos anexadas, sem passar pela ficha inteira. */
@@ -28681,6 +28842,14 @@ function _esc(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/"/g,'
 
 
 function openAtvModal(id,forcarSomenteLeitura){
+  /* Tarefa de estorno tem card próprio: plataforma da devolução, SKU
+     devolvido, NF estornada, data do estorno e comentários — sem a grade de
+     marketplaces e sem anexar imagem (as fotos vêm do cadastro da devolução,
+     só para ver). */
+  if(id){
+    const t0=(appState.atividades||[]).find(x=>x&&x.id===id);
+    if(t0 && /^Estornar NF de sa[ií]da/i.test(String(t0.titulo||''))){ abrirEstornoCard(id); return; }
+  }
   try{ atvLimparComentarioPendente(); }catch(e){}
   const imgInp=document.getElementById('atv-imagem-input'); if(imgInp) imgInp.value='';
   _atvSetPendingImagem('','');
