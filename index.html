@@ -1376,6 +1376,46 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .topo-menu .tm-sep{height:1px;background:var(--border);margin:4px 0;}
 
 
+/* ── Ficha do Acompanhamento (Detalhes) ─────────────────────────────── */
+.dv-modal{width:640px;max-width:94vw;max-height:88vh;overflow-y:auto;padding:20px 22px;}
+.dv-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.dv-topo h3{font-size:16.5px;font-weight:700;color:var(--text-primary);}
+.dv-x{width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--text-muted);
+  cursor:pointer;font-size:14px;display:inline-flex;align-items:center;justify-content:center;}
+.dv-x:hover{background:var(--veu-medio);color:var(--text-primary);}
+.dv-abas{display:flex;gap:4px;background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;padding:4px;margin-bottom:16px;}
+.dv-aba{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid transparent;
+  background:transparent;color:var(--text-secondary);font-size:12.5px;font-weight:600;font-family:var(--font-sans);
+  padding:8px 10px;border-radius:8px;cursor:pointer;}
+.dv-aba svg{width:14px;height:14px;stroke-width:1.9;}
+.dv-aba.ativa{background:var(--bg-card);border-color:var(--border);color:var(--text-primary);box-shadow:var(--sombra-card);}
+.dv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;margin:2px 2px 16px;}
+@media(max-width:640px){.dv-grid{grid-template-columns:1fr;}}
+.dv-c .r{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-muted);margin-bottom:4px;}
+.dv-c .r svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
+.dv-c .v{font-size:13px;font-weight:600;color:var(--text-primary);word-break:break-word;}
+.dv-sec{font-size:14px;font-weight:700;color:var(--text-primary);margin:4px 0 10px;}
+.dv-prod{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;background:var(--bg-card);}
+.dv-prod .n{font-size:13px;font-weight:700;color:var(--text-primary);}
+.dv-prod .d{font-size:12px;color:var(--text-secondary);margin-top:4px;}
+.dv-prod .d b{color:var(--text-primary);}
+.dv-taxa{font-size:12px;color:var(--text-muted);margin:12px 0 4px;padding-top:12px;border-top:1px solid var(--border);}
+.dv-total{font-size:15px;font-weight:800;color:var(--text-primary);}
+.dv-rodape{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+.btn.dv-arquivar{--bc:220,38,38;width:auto;}
+.btn.dv-arquivar:hover{background:#b91c1c;border-color:#b91c1c;}
+
+/* Botões quadrados das linhas do Acompanhamento, como na referência:
+   editar e ver com borda, lixeira vermelha cheia. */
+.acao-q{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);
+  color:var(--text-primary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+  margin-left:6px;vertical-align:middle;transition:background .15s;}
+.acao-q:hover{background:var(--bg-hover);}
+.acao-q svg{width:15px;height:15px;stroke-width:1.9;}
+.acao-q.perigo{background:#dc2626;border-color:#dc2626;color:#fff;}
+.acao-q.perigo:hover{background:#b91c1c;border-color:#b91c1c;}
+
 /* Avatar dos usuários: círculo vazado, iniciais na cor do tema. */
 .u-av{border-radius:50%;background:transparent;border:1.5px solid var(--border-light);
   color:var(--text-primary);font-weight:700;font-family:var(--font-mono);
@@ -5766,13 +5806,24 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
   </div>
 </div>
 
-<!-- FICHA — o que chegou, e o botão que leva para a entrada de estoque -->
+<!-- FICHA — no desenho da referência: abas Informações Gerais / Rastreamento,
+     produtos em cartões, total da compra e o rodapé com Arquivar. -->
 <div class="modal-overlay" id="acp-ver-overlay">
-  <div class="modal" style="width:540px;max-height:86vh;overflow-y:auto;">
-    <div class="modal-title" id="acp-ver-titulo">Detalhe</div>
-    <div id="acp-ver-corpo" style="margin-top:12px;"></div>
-    <div class="modal-footer">
-      <button class="btn btn-ghost btn-sm" onclick="acpFecharVer()">Fechar</button>
+  <div class="modal dv-modal">
+    <div class="dv-topo">
+      <h3 id="acp-ver-titulo">Detalhes da Compra</h3>
+      <button type="button" class="dv-x" title="Fechar" onclick="acpFecharVer()">✕</button>
+    </div>
+    <div class="dv-abas" id="acp-ver-abas"></div>
+    <div id="acp-ver-corpo"></div>
+    <div class="dv-rodape" id="acp-ver-rodape">
+      <button type="button" class="btn-sec" onclick="acpVerAtualizar()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.3-5.6"/><path d="M20 3v4h-4"/></svg>
+        Atualizar Dados
+      </button>
+      <div style="flex:1;"></div>
+      <button type="button" class="btn-sec" onclick="acpFecharVer()">Fechar</button>
+      <button type="button" class="btn btn-sm dv-arquivar" id="acp-ver-arquivar" onclick="acpVerArquivar()">Arquivar</button>
     </div>
   </div>
 </div>
@@ -10215,7 +10266,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25r';
+const APP_VERSAO='2026.08.25s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14760,57 +14811,115 @@ function acpArquivar(id){
   showToast(a.arquivado?'Arquivado':'Desarquivado','success');
 }
 
+/* Ficha no desenho da referência: aba Informações Gerais com os dados e os
+   produtos em cartões, aba Rastreamento com o caminho da entrega. */
+let _acpVerId=null;
+let _acpVerAba='geral';
+
+function _acpVerReg(){
+  let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===_acpVerId);
+  if(!a && String(_acpVerId).indexOf('dev_antigo_')===0) a=_acpDevolucoesAntigas().find(x=>x.id===_acpVerId);
+  return a||null;
+}
 function acpVer(id){
-  let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
-  if(!a && String(id).indexOf('dev_antigo_')===0){
-    a=_acpDevolucoesAntigas().find(x=>x.id===id);
-  }
-  if(!a) return;
+  _acpVerId=id; _acpVerAba='geral';
   const ov=document.getElementById('acp-ver-overlay'); if(!ov) return;
-  const T=ACP_TIPOS[a.tipo]||ACP_TIPOS.compra;
-  document.getElementById('acp-ver-titulo').textContent=T.um.charAt(0).toUpperCase()+T.um.slice(1)+(a.rastreio?(' · '+a.rastreio):'');
-  const linha=(r,v)=>v?`<div style="display:flex;gap:10px;padding:3px 0;">
-      <span style="font-size:11.5px;color:var(--text-muted);min-width:130px;">${r}</span>
-      <span style="font-size:12.5px;color:var(--text-primary);">${v}</span></div>`:'';
-  const itens=_acpItens(a);
-  const filhas=(appState.entradasEstoque||[]).filter(e=>e&&e.origemCompraId===a.id);
-  document.getElementById('acp-ver-corpo').innerHTML=
-      linha('Data', _pedDataBR(a.data))
-    + linha(T.loja, a.loja)
-    + linha(T.cliente, a.cliente)
-    + linha('Transportadora', a.transportadora)
-    + linha('Rastreio', a.rastreio)
-    + linha('Warehouse de destino', a.armazem)
-    + linha('Taxa de entrega', Number(a.taxaEntrega)?_pedFmt(a.taxaEntrega):'')
-    + linha('Status', `<span class="acp-st ${_acpClasseStatus(a.status)}">${a.status||'—'}</span>`)
-    + linha('Previsão', a.previsao?_pedDataBR(a.previsao):'')
-    + linha('Última atualização', a.atualizadoEm)
-    + linha('Observação', a.obs)
-    + linha('Conferido', a.conferido?'Sim':'Não')
-    + linha('Registrado por', a.criadoPor)
-    + (a._antigo?'<div style="margin-top:8px;font-size:11px;color:var(--text-muted);">Este registro ainda está no formato antigo, por isso não dá para editar nem conferir. Use <b>Trazer para cá</b> na lista — depois disso ele vira um registro normal.</div>':'')
-    + ((Array.isArray(a.fotos)&&a.fotos.length)
-        ? `<div style="margin-top:14px;font-size:12px;font-weight:800;color:var(--text-primary);">Fotos</div>
-           <div class="acp-fotos" style="margin-top:6px;">`
-          + a.fotos.map((f,i)=>`<div class="fo"><img src="${f}" alt="foto ${i+1}" onclick="window.open('').document.write('<img src=\'${f}\' style=\'max-width:100%;\'>')"></div>`).join('')
-          + '</div>'
-        : '')
-    + (itens.length?`<div style="margin-top:14px;font-size:12px;font-weight:800;color:var(--text-primary);">Produtos</div>
-        <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">`
-      + itens.map((p,i)=>`<div style="display:flex;align-items:center;gap:9px;background:var(--veu-medio);border:1px solid var(--glass-border);border-radius:9px;padding:8px 11px;">
-            <span style="font-family:var(--font-mono);font-size:11px;font-weight:700;color:var(--text-primary);min-width:78px;">${p.sku||'—'}</span>
-            <span style="font-size:11.5px;color:var(--text-secondary);flex:1;">${p.nome||'—'}</span>
-            <span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${p.qtd||1} un.</span>
-            ${p.custo?`<span style="font-family:var(--font-mono);font-size:11px;color:var(--text-muted);">${_pedFmt(p.custo)}</span>`:''}
-          </div>`).join('')
-      + '</div>'
-      + (filhas.length?`<div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.7;">
-            ${filhas.filter(e=>e.status==='aguardando').length
-              ? 'As entradas de estoque estão <b>aguardando conferência</b>. Mude o status desta compra para <b>Produto entregue e conferido</b> e elas vão para a Base.'
-              : 'As entradas de estoque desta compra já foram liberadas para a Base — veja a fila na aba Estoque.'}
-          </div>`:'')
-      : '<div style="margin-top:14px;font-size:11.5px;color:var(--text-muted);">Nenhum produto listado neste registro.</div>');
+  if(!_acpVerReg()) return;
+  _acpVerRender();
   ov.classList.add('open');
+}
+function acpVerAba(ab){ _acpVerAba=ab; _acpVerRender(); }
+function acpVerAtualizar(){ if(_acpVerReg()){ _acpVerRender(); showToast('Dados atualizados','success'); } }
+function acpVerArquivar(){
+  const a=_acpVerReg(); if(!a||a._antigo) return;
+  acpArquivar(a.id);
+  acpFecharVer();
+}
+function _acpVerRender(){
+  const a=_acpVerReg(); if(!a) return;
+  const T=ACP_TIPOS[a.tipo]||ACP_TIPOS.compra;
+  const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  document.getElementById('acp-ver-titulo').textContent='Detalhes da '+T.um.charAt(0).toUpperCase()+T.um.slice(1);
+
+  const ICO={
+    caminhao:'<path d="M2.8 6.6a1.4 1.4 0 0 1 1.4-1.4h8.6a1.4 1.4 0 0 1 1.4 1.4v9.8H2.8z"/><path d="M14.2 9.4h3.2l3.8 3.6v3.4h-7z"/><circle cx="7" cy="18.2" r="1.8"/><circle cx="17.4" cy="18.2" r="1.8"/>',
+    caixa:'<path d="M3.4 8.1 12 3.6l8.6 4.5v7.8L12 20.4l-8.6-4.5z"/><path d="M3.4 8.1 12 12.6l8.6-4.5"/><path d="M12 12.6v7.8"/>',
+    lista:'<path d="M8.5 6.5h12M8.5 12h12M8.5 17.5h12"/><circle cx="4" cy="6.5" r=".8" fill="currentColor"/><circle cx="4" cy="12" r=".8" fill="currentColor"/><circle cx="4" cy="17.5" r=".8" fill="currentColor"/>',
+    calendario:'<rect x="3.4" y="5" width="17.2" height="15.2" rx="2.2"/><path d="M3.4 9.6h17.2M8 3v4M16 3v4"/>'
+  };
+  const abas=document.getElementById('acp-ver-abas');
+  abas.style.display='flex';
+  abas.innerHTML=`
+    <button type="button" class="dv-aba${_acpVerAba==='geral'?' ativa':''}" onclick="acpVerAba('geral')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${ICO.lista}</svg>
+      Informações Gerais</button>
+    <button type="button" class="dv-aba${_acpVerAba==='rastreio'?' ativa':''}" onclick="acpVerAba('rastreio')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${ICO.caminhao}</svg>
+      Rastreamento</button>`;
+
+  const campo=(ic,rot,val)=>`<div class="dv-c">
+      <div class="r"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">${ICO[ic]}</svg>${rot}:</div>
+      <div class="v">${val||'Não informado'}</div></div>`;
+  const rastreioHtml=a.rastreio
+    ? `<span style="font-family:var(--font-mono);">${esc(a.rastreio)}</span>
+       <a href="https://www.google.com/search?q=${encodeURIComponent(a.rastreio)}" target="_blank" rel="noopener" title="Rastrear" style="color:var(--tom-azul);text-decoration:none;margin-left:5px;">↗</a>`
+    : '';
+  const statusHtml=`<span class="acp-st ${_acpClasseStatus(a.status)}">${esc(a.status||'—')}</span>`;
+  const itens=_acpItens(a);
+  const pode=_acpPodeMexer() && !a._antigo;
+
+  let corpo='';
+  if(_acpVerAba==='geral'){
+    const taxa=Number(a.taxaEntrega)||0;
+    const total=itens.reduce((s,p)=>s+(Number(p.qtd)||1)*(Number(p.custo)||0),0)+taxa;
+    corpo=`<div class="dv-grid">
+        ${campo('caminhao','Transportadora',esc(a.transportadora))}
+        ${campo('caixa',T.loja.replace(/ \*$/,''),esc(a.loja))}
+        ${campo('caixa',T.cliente||'Cliente',esc(a.cliente))}
+        ${campo('caixa','Código de Rastreio',rastreioHtml)}
+        ${campo('caixa','Status',statusHtml)}
+        ${campo('calendario','Previsão de Entrega',a.previsao?_pedDataBR(a.previsao):'Não disponível')}
+      </div>
+      <div class="dv-sec">Produtos</div>
+      ${itens.length?itens.map(p=>{
+        const tot=(Number(p.qtd)||1)*(Number(p.custo)||0);
+        return `<div class="dv-prod">
+          <div style="min-width:0;">
+            <div class="n">${esc(p.nome||'—')}${p.sku?(' - '+esc(p.sku)):''}</div>
+            <div class="d">Quantidade: <b>${p.qtd||1}</b> &nbsp; Custo: <b>${_pedFmt(p.custo||0)}</b> &nbsp; Total: <b>${_pedFmt(tot)}</b></div>
+          </div>
+          ${(pode&&a.tipo==='compra')?`<button type="button" class="btn-sec" onclick="acpFecharVer();acpAbrirEtapas('${a.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3"/><path d="m8.4 12.2 2.4 2.4 4.8-4.8"/></svg>
+              Conferir</button>`:''}
+        </div>`;
+      }).join(''):'<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Nenhum produto listado neste registro.</div>'}
+      <div class="dv-taxa">Taxa de Entrega: ${_pedFmt(taxa)}</div>
+      <div class="dv-total">Total da ${T.um.charAt(0).toUpperCase()+T.um.slice(1)}: ${_pedFmt(itens.reduce((s,p)=>s+(Number(p.qtd)||1)*(Number(p.custo)||0),0)+taxa)}</div>
+      ${a._antigo?'<div style="margin-top:10px;font-size:11px;color:var(--text-muted);">Este registro ainda está no formato antigo — use <b>Trazer para cá</b> na lista para poder editar e conferir.</div>':''}`;
+  } else {
+    corpo=`<div class="dv-grid">
+        ${campo('caixa','Código de Rastreio',rastreioHtml)}
+        ${campo('caminhao','Transportadora',esc(a.transportadora))}
+        ${campo('caixa','Status',statusHtml)}
+        ${campo('calendario','Previsão de Entrega',a.previsao?_pedDataBR(a.previsao):'Não disponível')}
+        ${campo('calendario','Data do registro',a.data?_pedDataBR(a.data):'')}
+        ${campo('calendario','Última atualização',esc(a.atualizadoEm))}
+        ${campo('lista','Registrado por',esc(a.criadoPor))}
+        ${campo('lista','Observação',esc(a.obs))}
+      </div>
+      ${(Array.isArray(a.fotos)&&a.fotos.length)
+        ? `<div class="dv-sec">Fotos</div><div class="acp-fotos">`
+          + a.fotos.map((f,i)=>`<div class="fo"><img src="${f}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
+          + '</div>'
+        : ''}`;
+  }
+  document.getElementById('acp-ver-corpo').innerHTML=corpo;
+
+  const arq=document.getElementById('acp-ver-arquivar');
+  if(arq){
+    arq.style.display=pode?'':'none';
+    arq.innerHTML=`<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a1.6 1.6 0 0 0 1.6 1.4h6.8A1.6 1.6 0 0 0 17 20l1-13M9 7V5a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 5v2"/></svg>${a.arquivado?'Restaurar':'Arquivar'}`;
+  }
 }
 function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(o) o.classList.remove('open'); }
 
@@ -15978,40 +16087,26 @@ function _acpCelula(col,a,pode){
       }
       const fotos=(Array.isArray(a.fotos)?a.fotos.length:0);
       const ehDev=_acpTipo==='devolucao';
-      /* Só o que se faz todo dia fica na linha. Editar, Ver e Arquivar vão
-         para o "⋯": eram três botões repetidos em cada linha para uma coisa
-         que se usa de vez em quando, e é essa repetição que transforma a
-         coluna numa parede cinza. Foto sem foto some em vez de ficar
-         apagada — botão desligado ainda ocupa o olho. */
-      const mais=`<span class="acp-mais">
-          <button class="ped-acao" title="Mais ações" onclick="acpMais(event,this)">&#8943;</button>
-          <div class="menu">
-            ${pode?`<button class="acp-mi" onclick="${_acpTipo==='compra'?`acpAbrirEtapas('${a.id}')`:`acpAbrir(null,'${a.id}')`}">Editar</button>`:''}
-            <button class="acp-mi" onclick="acpVer('${a.id}')">Ver detalhes</button>
-            ${pode?`<button class="acp-mi" onclick="acpArquivar('${a.id}')">${a.arquivado?'Tirar do arquivo':'Arquivar'}</button>`:''}
-          </div></span>`;
+      /* Os três quadrados da referência: lápis edita (em Compras, abre a
+         etapa que falta preencher), olho abre a ficha, lixeira vermelha
+         arquiva (e restaura, quando já está no arquivo). */
+      const proxima=['Orçamento','Chegada / Conferência','Lançamento em Estoque'][_acpEtapaDe(a)-1];
+      const editar=_acpTipo==='compra'?`acpAbrirEtapas('${a.id}')`:`acpAbrir(null,'${a.id}')`;
+      const trio=`
+        ${pode?`<button class="acao-q" title="${_acpTipo==='compra'?('Editar — abrir: '+proxima):'Editar'}" onclick="${editar}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L18.5 9.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="m13.5 6.5 3 3"/></svg></button>`:''}
+        <button class="acao-q" title="Ver os detalhes" onclick="acpVer('${a.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12S5.8 5.6 12 5.6 21.8 12 21.8 12 18.2 18.4 12 18.4 2.2 12 2.2 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>
+        ${pode?`<button class="acao-q${a.arquivado?'':' perigo'}" title="${a.arquivado?'Restaurar do arquivo':'Arquivar'}" onclick="acpArquivar('${a.id}')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13a1.6 1.6 0 0 0 1.6 1.4h6.8A1.6 1.6 0 0 0 17 20l1-13M9 7V5a1.6 1.6 0 0 1 1.6-1.6h2.8A1.6 1.6 0 0 1 15 5v2"/></svg></button>`:''}`;
       if(!ehDev){
-        /* Em Compras o botão principal é abrir as três etapas: é lá que a
-           compra vive do orçamento ao lançamento. "Editar" continua no ⋯,
-           para os dados de cabeçalho (loja, transportadora, previsão). */
-        /* O olho abre a etapa que ESTA compra precisa preencher agora — a
-           1 se ainda não foi orçada, a 2 se chegou e falta conferir, a 3 se
-           está conferida. É o gesto que a operação faz linha a linha. */
-        const proxima=['Orçamento','Chegada / Conferência','Lançamento em Estoque'][_acpEtapaDe(a)-1];
-        const etapasBtn = (_acpTipo==='compra' && pode)
-          ? `<button class="ped-acao destaque olho" title="Abrir: ${proxima}" onclick="acpAbrirEtapas('${a.id}')">👁</button>`
-          : (pode?`<button class="ped-acao destaque" title="Editar" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:'');
-        return `<td style="text-align:right;white-space:nowrap;">
-          ${etapasBtn}
-          <button class="ped-acao" title="Ver os detalhes" onclick="acpVer('${a.id}')">Ver</button>
-          ${(_acpTipo==='compra'&&pode)?mais:(pode?`<button class="ped-acao${a.arquivado?'':' perigo'}" onclick="acpArquivar('${a.id}')">${a.arquivado?'Restaurar':'Arquivar'}</button>`:'')}
-        </td>`;
+        return `<td style="text-align:right;white-space:nowrap;">${trio}</td>`;
       }
       return `<td style="text-align:right;white-space:nowrap;">
         ${fotos?`<button class="ped-acao" title="Ver as ${fotos} foto(s) anexadas" onclick="acpVerFotos('${a.id}')">Imagem</button>`:''}
         ${pode?`<button class="ped-acao${a.conferido?'':' destaque'}" title="${a.conferido?'Conferir de novo — trocar status, foto ou observação':'Chegou: conferir, anexar foto e, se for o caso, pedir o estorno'}" onclick="acpConferirDevolucao('${a.id}')">Conferir</button>`:''}
         ${pode?_acpBotaoEstorno(a):''}
-        ${mais}
+        ${trio}
       </td>`;
     }
     default:
@@ -16104,6 +16199,8 @@ function acpVerFotos(id){
   const fotos=(a&&Array.isArray(a.fotos))?a.fotos:[];
   if(!fotos.length){ showToast('Esta devolução não tem foto anexada','info'); return; }
   const ov=document.getElementById('acp-ver-overlay'); if(!ov) return;
+  // Só as fotos: some com as abas — este uso da ficha não tem Rastreamento
+  const abas=document.getElementById('acp-ver-abas'); if(abas){ abas.style.display='none'; abas.innerHTML=''; }
   document.getElementById('acp-ver-titulo').textContent='Fotos · '+(a.cliente||a.loja||'devolução');
   document.getElementById('acp-ver-corpo').innerHTML=
     '<div class="acp-fotos" style="gap:10px;">'
