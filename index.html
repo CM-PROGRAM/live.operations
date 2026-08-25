@@ -1377,6 +1377,11 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .topo-menu .tm-sep{height:1px;background:var(--border);margin:4px 0;}
 
 
+/* Avatar dos usuários: círculo vazado, iniciais na cor do tema. */
+.u-av{border-radius:50%;background:transparent;border:1.5px solid var(--border-light);
+  color:var(--text-primary);font-weight:700;font-family:var(--font-mono);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:none;}
+
 /* No claro, o avatar da tabela de clientes vira disco azul-claro com a inicial
    escura — o disco escuro do tema escuro parecia um borrão sobre branco. Os
    selos ganham mais tinta pelo filtro, sem trocar as cores uma a uma. */
@@ -10210,7 +10215,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25o';
+const APP_VERSAO='2026.08.25p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21064,13 +21069,14 @@ function getUserInitials(user){
   if(parts.length===1) return parts[0].substring(0,2).toUpperCase();
   return '?';
 }
+/* Círculo vazado, sem disco: as iniciais seguem o tema — brancas no escuro,
+   pretas no claro (via classe u-av; o disco escuro antigo lia-se como um
+   borrão, principalmente no tema claro). */
 function userAvatarHTML(user,size){
   size=size||32;
-  const color=(user&&user.color)||'#888';
   const initials=getUserInitials(user);
   const fontSize=Math.max(8,Math.round(size*0.34));
-  const glow=Math.round(size/2);
-  return `<div style="width:${size}px;height:${size}px;border-radius:50%;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);color:${color};font-size:${fontSize}px;font-weight:700;font-family:var(--font-mono);display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 0 ${glow}px rgba(0,0,0,.45),inset 0 1px 2px rgba(255,255,255,.12);">${initials}</div>`;
+  return `<div class="u-av" style="width:${size}px;height:${size}px;font-size:${fontSize}px;">${initials}</div>`;
 }
 function renderUsersGrid(){
   const grid=document.getElementById('users-grid');
