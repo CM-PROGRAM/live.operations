@@ -1377,7 +1377,14 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 
 
 /* ── Ficha do Acompanhamento (Detalhes) ─────────────────────────────── */
-.dv-modal{width:640px;max-width:94vw;max-height:88vh;overflow-y:auto;padding:20px 22px;}
+/* A ficha ocupa a área de conteúdo quase inteira, como o quadro pedido —
+   não é mais um cartão estreito no meio da tela. */
+/* .modal.dv-modal e não só .dv-modal: a regra genérica .modal{width:380px}
+   vem depois na folha e, com a mesma especificidade, venceria. */
+.modal.dv-modal{width:min(1560px, calc(100vw - 300px));max-width:96vw;height:calc(100vh - 110px);max-height:92vh;
+  overflow-y:auto;padding:24px 30px;display:flex;flex-direction:column;}
+.modal.dv-modal > #acp-ver-corpo{flex:1;}
+@media(max-width:1000px){.modal.dv-modal{width:94vw;height:auto;max-height:90vh;}}
 .dv-topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
 .dv-topo h3{font-size:16.5px;font-weight:700;color:var(--text-primary);}
 .dv-x{width:30px;height:30px;border-radius:8px;border:0;background:transparent;color:var(--text-muted);
@@ -1389,7 +1396,8 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
   padding:8px 10px;border-radius:8px;cursor:pointer;}
 .dv-aba svg{width:14px;height:14px;stroke-width:1.9;}
 .dv-aba.ativa{background:var(--bg-card);border-color:var(--border);color:var(--text-primary);box-shadow:var(--sombra-card);}
-.dv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;margin:2px 2px 16px;}
+.dv-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px 26px;margin:2px 2px 18px;}
+@media(max-width:1100px){.dv-grid{grid-template-columns:1fr 1fr;}}
 @media(max-width:640px){.dv-grid{grid-template-columns:1fr;}}
 .dv-c .r{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-muted);margin-bottom:4px;}
 .dv-c .r svg{width:14px;height:14px;stroke-width:1.8;flex-shrink:0;}
@@ -10266,7 +10274,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25s';
+const APP_VERSAO='2026.08.25t';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
