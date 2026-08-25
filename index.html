@@ -2715,7 +2715,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
           <div class="etp-cotacao">
             <span>Cotação do dólar</span>
-            <input type="number" id="etp-cotacao" step="0.01" value="5.40" oninput="etpRecalcular()">
+            <!-- Texto, e não number: quem digita "5,40" num campo numérico vê o
+                 campo esvaziar, porque o navegador recusa a vírgula. -->
+            <input type="text" id="etp-cotacao" inputmode="decimal" value="5,40" oninput="etpRecalcular()">
           </div>
           <div class="etp-tabela" style="margin-top:12px;">
             <div class="etp-cab etp-c1"><div>Compra</div><div>Produto</div><div>SKU</div><div>Preço $</div><div></div></div>
@@ -2782,6 +2784,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <h3 class="etp-h">Etapa 3 — Lançamento em estoque
             <span class="etp-selo" id="etp-selo-3">🔒 Aguardando conferência</span>
           </h3>
+          <div class="etp-dados" style="margin-bottom:12px;">
+            <div class="input-group"><label>Armazém de destino</label>
+              <select id="etp-armazem" onchange="etpMarcar()"></select>
+              <small id="etp-armazem-aviso" style="color:var(--text-muted);font-size:11px;"></small></div>
+          </div>
           <div class="etp-tabela">
             <div class="etp-cab etp-c3"><div>Produto</div><div>SKU</div><div>Quant.</div><div>Custo R$</div><div>Valor total</div><div></div></div>
             <div id="etp-linhas-3"></div>
@@ -2807,6 +2814,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div class="etp-modal-card">
             <h3 id="etp-modal-titulo">Confirmar produto</h3>
             <p class="sub">Para marcar o produto como conferido, informe os preços, o peso e a data de vencimento.</p>
+            <div class="input-group" id="etp-m-ean-campo" style="display:none;"><label>EAN <b>*</b>
+              <small style="color:var(--text-muted);font-weight:400;"> — produto novo: é ele que evita cadastrar duas vezes na Base</small></label>
+              <input type="text" id="etp-m-ean" inputmode="numeric" placeholder="07897570128400" maxlength="14"></div>
             <div class="input-group"><label>📅 Data de vencimento</label>
               <input type="text" id="etp-m-venc" inputmode="numeric" placeholder="dd/mm/aa" maxlength="8" oninput="etpMascaraData(this)"></div>
             <div class="input-group"><label>Preço padrão (R$)</label>
@@ -9964,7 +9974,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25a';
+const APP_VERSAO='2026.08.25b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13731,7 +13741,33 @@ function acpNovo(tipo){
     try{ openRstModal(null); }catch(e){ showToast('Cadastro de envio indisponível','warn'); }
     return;
   }
+  if(tipo==='compra'){ acpNovaCompra(); return; }
   acpAbrir(tipo,null);
+}
+
+/* Compra não tem mais formulário de cadastro: a Etapa 1 — Orçamento É o
+   cadastro. O modal antigo pedia, no dia da compra, coisas que só existem
+   quando a caixa chega — transportadora, frete, warehouse — e quem cadastrava
+   respondia por cima para o botão liberar. Agora cada dado é pedido na etapa
+   em que ele é usado: loja, rastreio dos EUA e produtos aqui; transportadora e
+   fretes na conferência; armazém no lançamento. */
+function acpNovaCompra(){
+  _acpFecharMenu();
+  if(!_acpPodeMexer()){ showToast('Você não tem permissão para cadastrar compras','warn'); return; }
+  acpSetTipo('compra');
+  const agora=new Date();
+  const id='acp_'+agora.getTime().toString(36)+'_'+Math.random().toString(36).slice(2,6);
+  if(!Array.isArray(appState.acompanhamentos)) appState.acompanhamentos=[];
+  appState.acompanhamentos.push({
+    id, tipo:'compra',
+    data:_hojeISO(), loja:'', cliente:'', transportadora:'', armazem:'',
+    taxaEntrega:0, rastreio:'', obs:'', produtos:[], fotos:[],
+    status:'Aguardando rastreamento', previsao:'',
+    arquivado:false, conferido:false, ts:agora.getTime(),
+    criadoPor:(currentUser&&currentUser.name)||'', criadoPorKey:(currentUser&&currentUser.key)||'',
+    criadoEm:agora.toLocaleString('pt-BR'), atualizadoEm:agora.toLocaleDateString('pt-BR')
+  });
+  acpAbrirEtapas(id);
 }
 
 function acpAbrir(tipo,id){
@@ -14302,7 +14338,52 @@ function acpAbrirEtapas(id){
   etpRender();
 }
 
+/* Compra em branco não vira registro. Como o cadastro agora é a própria Etapa
+   1, sair dela sem preencher nada é desistir do cadastro — e não criar uma
+   linha vazia na lista, que ninguém saberia depois se era engano ou compra
+   esquecida pela metade. */
+function _etpVazia(a){
+  if(!a || a.tipo!=='compra') return false;
+  const e=(a.etapas||{}).orc||{};
+  if(e.travado) return false;
+  if(String(a.loja||'').trim() || String(a.rastreio||'').trim()) return false;
+  if(String(e.loja||'').trim() || String(e.rastreioEua||'').trim()) return false;
+  return !(Array.isArray(e.itens)?e.itens:[]).some(it=>it && (String(it.produto||'').trim() || _etpNum(it.preco)>0));
+}
+
+/* O cabeçalho da compra é espelho da Etapa 1: a listagem mostra loja, data e
+   rastreio, e eles agora só são digitados lá dentro. Sem espelhar, a linha
+   apareceria sem loja nenhuma. */
+function _etpEspelhar(a,e){
+  if(!a||!e) return;
+  a.loja=e.orc.loja||a.loja||'';
+  if(e.orc.data) a.data=e.orc.data;
+  const brs=(e.conf.rastreios||[]).map(r=>String((r&&r.codigo)||'').trim()).filter(Boolean);
+  a.rastreio = brs[0] || String(e.orc.rastreioEua||'').trim() || a.rastreio || '';
+  a.produtos=(e.orc.itens||[]).filter(it=>it&&String(it.produto||'').trim())
+    .map(it=>({nome:it.produto, sku:it.sku||'', ean:it.ean||'',
+               qtd:_etpNum(it.compra)||0, custo:_etpNum(it.preco)*(_etpNum(e.orc.cotacao)||1)}));
+  a.atualizadoEm=new Date().toLocaleDateString('pt-BR');
+}
+
+/* O cabeçalho acompanha o que está sendo digitado: a compra recém-aberta
+   começa "sem loja", e deixar esse texto congelado até sair da tela faz
+   parecer que o nome não foi gravado. */
+function _etpCabecalho(a,e){
+  if(!a||!e) return;
+  const t=document.getElementById('etp-titulo');
+  const s=document.getElementById('etp-sub');
+  if(t) t.textContent='Compra · '+(e.orc.loja||a.loja||'sem loja');
+  if(s) s.textContent='orçamento '+e.orc.numero+(a.rastreio?(' · rastreio '+a.rastreio):'');
+  try{ _acpRenderBarraEtapas((appState.acompanhamentos||[]).filter(x=>x&&x.tipo==='compra'&&!x.arquivado)); }catch(err){}
+}
+
 function acpFecharEtapas(){
+  const _a=_etpCompra();
+  if(_etpVazia(_a)){
+    appState.acompanhamentos=(appState.acompanhamentos||[]).filter(x=>x!==_a);
+    saveState(appState);
+  }
   _etpId='';
   document.getElementById('acp-etapas').style.display='none';
   const filtros=document.getElementById('acp-filtros'); if(filtros) filtros.style.display='flex';
@@ -14323,6 +14404,12 @@ function etpMarcar(){
     e.orc.cotacao=_etpNum(v('etp-cotacao'))||e.orc.cotacao;
   }
   if(!e.conf.travado) e.conf.kgCobrado=v('etp-kg-cobrado');
+  if(!e.lanc.travado){
+    const arm=document.getElementById('etp-armazem');
+    if(arm && arm.value) a.armazem=arm.value;
+  }
+  _etpEspelhar(a,e);
+  _etpCabecalho(a,e);
   saveState(appState);
 }
 
@@ -14352,11 +14439,15 @@ function etpCampoItem(i,campo,valor){
      usa. Achou, preenche; não achou, fica vazio em vez de inventar. */
   if(campo==='produto'){
     const alvo=String(valor||'').trim().toLowerCase();
-    const p=(appState.produtos||[]).find(x=>x && String(x.nome||'').trim().toLowerCase()===alvo);
+    /* Kit fica de fora: kit não compõe estoque, quem compõe é o produto
+       unitário. Casar o SKU de um kit aqui lançaria uma unidade onde
+       entraram duas. */
+    const p=(appState.produtos||[]).find(x=>x && !_acpEhKit(x) && String(x.nome||'').trim().toLowerCase()===alvo);
     it.sku=p?String(p.sku||''):'';
     const cel=document.getElementById('etp-sku-'+i);
     if(cel) cel.value=it.sku;
   }
+  _etpEspelhar(a,e);
   saveState(appState);
   if(campo!=='produto') etpRenderTotais();
 }
@@ -14368,7 +14459,10 @@ function etpRenderEtapa1(){
   const set=(id,v)=>{ const el=document.getElementById(id); if(el && el.value!==v) el.value=v; };
   set('etp-numero',e.orc.numero); set('etp-data',e.orc.data||'');
   set('etp-loja',e.orc.loja||''); set('etp-rastreio-eua',e.orc.rastreioEua||'');
-  set('etp-cotacao',e.orc.cotacao);
+  /* A cotação só é reescrita quando o campo não está com o foco: formatar
+     "5," para "5,00" no meio da digitação apagaria o que a pessoa ia digitar. */
+  const ct=document.getElementById('etp-cotacao');
+  if(ct && document.activeElement!==ct) ct.value=_etpBR(e.orc.cotacao);
   ['etp-data','etp-loja','etp-rastreio-eua','etp-cotacao'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.disabled=trav;
   });
@@ -14382,7 +14476,7 @@ function etpRenderEtapa1(){
       <div><input type="text" value="${_etpEsc(it.produto)}" placeholder="Nome do produto" ${trav?'disabled':''}
         list="etp-lista-produtos" oninput="etpCampoItem(${i},'produto',this.value)"></div>
       <div><input type="text" id="etp-sku-${i}" value="${_etpEsc(it.sku)}" placeholder="do catálogo" readonly></div>
-      <div><input type="number" step="0.01" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
+      <div><input type="text" inputmode="decimal" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
         oninput="etpCampoItem(${i},'preco',this.value)"></div>
       <div style="text-align:center;">${trav?'':`<button class="etp-x" title="Remover" onclick="etpRemoverProduto(${i})">×</button>`}</div>
     </div>`).join('')
@@ -14392,8 +14486,8 @@ function etpRenderEtapa1(){
      digitado à mão e o SKU nunca casa. */
   let dl=document.getElementById('etp-lista-produtos');
   if(!dl){ dl=document.createElement('datalist'); dl.id='etp-lista-produtos'; document.body.appendChild(dl); }
-  dl.innerHTML=(appState.produtos||[]).slice(0,600)
-    .filter(p=>p&&p.nome).map(p=>`<option value="${_etpEsc(p.nome)}">`).join('');
+  dl.innerHTML=(appState.produtos||[]).filter(p=>p&&p.nome&&!_acpEhKit(p)).slice(0,600)
+    .map(p=>`<option value="${_etpEsc(p.nome)}">`).join('');
 
   const selo=document.getElementById('etp-selo-1');
   selo.textContent=trav?'🔒 Travado':'🔓 Editável';
@@ -14626,8 +14720,26 @@ function etpRenderTotais(){
 // ── Etapa 3: lançamento em estoque ──────────────────────────────────
 function etpRenderEtapa3(){
   const c=_etpContas(); if(!c) return;
+  const a=_etpCompra();
   const e=c.e;
   const pronto=e.conf.travado;
+
+  /* O armazém é perguntado aqui, e não no cadastro: é aqui que ele vira
+     destino de verdade. Perguntar lá atrás fazia escolher o warehouse de uma
+     mercadoria que ainda nem tinha saído dos Estados Unidos. */
+  const sel=document.getElementById('etp-armazem');
+  if(sel){
+    const nomes=_acpArmazensConhecidos();
+    const atual=String((a&&a.armazem)||'');
+    const lista=nomes.slice();
+    if(atual && lista.indexOf(atual)<0) lista.unshift(atual);
+    const html='<option value="">Selecione o armazém</option>'
+      +lista.map(x=>`<option${x===atual?' selected':''}>${_etpEsc(x)}</option>`).join('');
+    if(sel.innerHTML!==html) sel.innerHTML=html;
+    sel.disabled=e.lanc.travado;
+    const av=document.getElementById('etp-armazem-aviso');
+    if(av) av.textContent=nomes.length?'':'O catálogo da Base ainda não foi lido — rode o fluxo de estoque no n8n.';
+  }
   const linhas=c.linhas.filter(l=>l.chegou>0);
   let itens=0, valor=0;
 
@@ -14674,6 +14786,12 @@ function etpAbrirModal(produto,peso){
   document.getElementById('etp-m-atacado').value=g.precoAtacado||'';
   document.getElementById('etp-m-site').value=g.precoSite||'';
   document.getElementById('etp-m-peso').value=(g.peso!=null&&g.peso!=='')?g.peso:(peso||'');
+  /* EAN só aparece para produto que não está no catálogo da Base. Quem já tem
+     SKU já tem EAN lá — pedir de novo é pedir para alguém digitar errado. */
+  const it=(e.orc.itens||[]).find(x=>x && String(x.produto||'').trim()===String(produto).trim())||{};
+  const novo=!String(it.sku||'').trim();
+  document.getElementById('etp-m-ean-campo').style.display=novo?'':'none';
+  document.getElementById('etp-m-ean').value=g.ean||it.ean||'';
   document.getElementById('etp-calc').value=100;
   etpCalc();
   document.getElementById('etp-modal').style.display='flex';
@@ -14685,7 +14803,14 @@ function etpFecharModal(){
 function etpSalvarModal(){
   const a=_etpCompra(); if(!a||!_etpProdModal) return;
   const e=_etpDados(a);
+  const campoEan=document.getElementById('etp-m-ean-campo');
+  const ean=String(document.getElementById('etp-m-ean').value||'').replace(/\D/g,'');
+  if(campoEan.style.display!=='none'){
+    if(!ean){ showToast('Produto fora do catálogo: informe o EAN','warn'); return; }
+    if(ean.length<8 || ean.length>14){ showToast('EAN com '+ean.length+' dígitos não existe — use o código de barras da embalagem','warn'); return; }
+  }
   e.lanc.produtos[_etpProdModal]={
+    ean,
     vencimento:document.getElementById('etp-m-venc').value,
     precoPadrao:document.getElementById('etp-m-padrao').value,
     precoAtacado:document.getElementById('etp-m-atacado').value,
@@ -14722,8 +14847,22 @@ function etpConfirmar(n){
   if(n===1){
     if(!e.orc.travado){
       const semNome=e.orc.itens.some(it=>!String(it.produto||'').trim());
+      if(!String(e.orc.loja||'').trim()){
+        showToast('Informe o nome da loja','warn');
+        const el=document.getElementById('etp-loja'); if(el) el.focus();
+        return;
+      }
       if(!e.orc.itens.length){ showToast('Adicione ao menos um produto','warn'); return; }
       if(semNome){ showToast('Há produto sem nome no orçamento','warn'); return; }
+      /* Rastreio repetido entre compras quase sempre é a mesma caixa
+         cadastrada duas vezes — e duas linhas para a mesma caixa fazem a
+         conferência ser feita duas vezes, ou nenhuma. */
+      const rt=String(e.orc.rastreioEua||'').trim().toLowerCase();
+      if(rt){
+        const igual=(appState.acompanhamentos||[]).find(x=>x && x!==a && x.tipo==='compra'
+          && String(((x.etapas||{}).orc||{}).rastreioEua||'').trim().toLowerCase()===rt);
+        if(igual){ showToast('Já existe compra com o rastreio '+e.orc.rastreioEua+' — abra aquela em vez de criar outra','warn'); return; }
+      }
       /* A conferência nasce com uma linha por produto do orçamento — é o que
          garante que as duas tabelas falem da mesma carga. */
       e.conf.linhas=e.orc.itens.map((it,i)=>e.conf.linhas[i]||{caixas:[], peso:''});
@@ -14740,6 +14879,13 @@ function etpConfirmar(n){
     if(!e.conf.travado){ showToast('Confirme a conferência primeiro','warn'); return; }
     if(!e.lanc.travado){
       const c=_etpContas();
+      /* Sem armazém não há para onde lançar: a entrada iria para a fila e o
+         n8n não teria em qual warehouse da Base somar o saldo. */
+      if(!String(a.armazem||'').trim()){
+        showToast('Escolha o armazém de destino antes de lançar','warn');
+        const sel=document.getElementById('etp-armazem'); if(sel) sel.focus();
+        return;
+      }
       const faltam=c.linhas.filter(l=>l.chegou>0 && !e.lanc.produtos[l.produto]);
       if(faltam.length){
         showToast(faltam.length+' produto(s) ainda sem conferência — abra o olho de cada linha','warn');
@@ -14772,7 +14918,7 @@ function _etpLancarNoEstoque(a,e,c){
     if(appState.entradasEstoque.some(x=>x&&x.id===id)) return;
     appState.entradasEstoque.push({
       id, origemAcpId:a.id,
-      sku:l.sku||'', nome:l.produto, ean:'',
+      sku:l.sku||'', nome:l.produto, ean:g.ean||'',
       qtd:l.chegou, custo:Number(l.custo.toFixed(2)),
       armazem:a.armazem||'', vencimento:g.vencimento||'',
       precoPadrao:g.precoPadrao||'', precoAtacado:g.precoAtacado||'', precoSite:g.precoSite||'',
@@ -14818,6 +14964,7 @@ function etpRender(){
      tela em branco. */
   while(_etpAba>1 && !_etpLiberada(_etpAba,e)) _etpAba--;
 
+  _etpCabecalho(a,e);
   etpRenderEtapa1();
   etpRenderEtapa2();
   etpRenderTotais();
@@ -15186,7 +15333,7 @@ function _acpCelula(col,a,pode){
       const mais=`<span class="acp-mais">
           <button class="ped-acao" title="Mais ações" onclick="acpMais(event,this)">&#8943;</button>
           <div class="menu">
-            ${pode?`<button class="acp-mi" onclick="acpAbrir(null,'${a.id}')">Editar</button>`:''}
+            ${pode?`<button class="acp-mi" onclick="${_acpTipo==='compra'?`acpAbrirEtapas('${a.id}')`:`acpAbrir(null,'${a.id}')`}">Editar</button>`:''}
             <button class="acp-mi" onclick="acpVer('${a.id}')">Ver detalhes</button>
             ${pode?`<button class="acp-mi" onclick="acpArquivar('${a.id}')">${a.arquivado?'Tirar do arquivo':'Arquivar'}</button>`:''}
           </div></span>`;
