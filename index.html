@@ -1376,13 +1376,6 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .topo-menu button svg{width:16px;height:16px;color:var(--text-secondary);flex-shrink:0;}
 .topo-menu .tm-sep{height:1px;background:var(--border);margin:4px 0;}
 
-/* Seletor do espaço de trabalho na barra lateral */
-.sb-espaco{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:10px 8px 0;padding:9px 12px;
-  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;
-  color:var(--text-primary);font-size:13px;font-weight:600;font-family:var(--font-sans);}
-.sb-espaco svg{width:16px;height:16px;color:var(--text-muted);flex-shrink:0;}
-.sb-espaco .updown{margin-left:auto;width:14px;height:14px;}
-body.menu-oculto .sb-espaco{display:none;}
 
 /* No claro, o avatar da tabela de clientes vira disco azul-claro com a inicial
    escura — o disco escuro do tema escuro parecia um borrão sobre branco. Os
@@ -1808,8 +1801,9 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .bi-meta{font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);}
 /* Caixa discreta como a da referência: baixa, cantos suaves, sem pílula
    gorda nem sombra interna. */
-.sidebar-search{height:34px;padding:0 10px;margin:10px 10px 4px;display:flex;align-items:center;gap:7px;
-  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:9px;transition:border-color .2s;box-shadow:none;}
+/* No formato do antigo quadro do espaço de trabalho, que saiu. */
+.sidebar-search{width:calc(100% - 16px);box-sizing:border-box;padding:9px 12px;margin:10px 8px 4px;display:flex;align-items:center;gap:9px;
+  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;transition:border-color .2s;box-shadow:none;}
 .sidebar-search:focus-within{border-color:rgba(59,130,246,0.55);}
 .sidebar-search input{background:none;border:none;outline:none;color:var(--text-primary);font-size:12.5px;font-family:var(--font-sans);width:100%;box-shadow:none;padding:0;height:auto;}
 .sidebar-footer{margin-top:auto;padding:12px 10px;border-top:1px solid var(--glass-border);}
@@ -10216,7 +10210,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25n';
+const APP_VERSAO='2026.08.25o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10569,16 +10563,6 @@ function buildTabs(){
   nav.appendChild(topo);
   topo.querySelector('#btn-esconder-menu').onclick=()=>alternarMenu();
 
-  /* O espaço de trabalho, como na referência. Só existe o suplelive — o
-     seletor é identidade, não escolha. */
-  const espaco=document.createElement('div');
-  espaco.className='sb-espaco';
-  espaco.title='Espaço de trabalho';
-  espaco.innerHTML=`
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 20.6V5a1.4 1.4 0 0 1 1.4-1.4h6.4A1.4 1.4 0 0 1 13.8 5v15.6"/><path d="M13.8 10h4a1.4 1.4 0 0 1 1.4 1.4v9.2"/><path d="M7.4 7.2h1.4M10.6 7.2H12M7.4 10.6h1.4M10.6 10.6H12M7.4 14h1.4M10.6 14H12"/><path d="M3.2 20.6h17.6"/></svg>
-    <span>suplelive</span>
-    <svg class="updown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 9.5 3.5-3.5 3.5 3.5M8.5 14.5l3.5 3.5 3.5-3.5"/></svg>`;
-  nav.appendChild(espaco);
 
   // Identificação do usuário no alto: avatar, nome e o papel dele
   const idUser=document.createElement('div');
