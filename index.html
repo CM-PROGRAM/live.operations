@@ -8371,8 +8371,17 @@ function _aplicarRegistroRemoto(nome,acc,chave,valor){
      acontece. */
   if(i>-1){
     const daqui=alvo[i];
-    const juntos=_fundirComentarios(reg.comentarios,_listaComentarios(daqui));
-    if(juntos.length) reg.comentarios=juntos;
+    /* A fusão só vale quando é o MESMO card em duas versões (mesma criação).
+       Id reutilizado — a tarefa automática de Atendimento recriada após a
+       Data Retorno mudar nascia com o mesmo atv_ate_<id> — chegava aqui como
+       se fosse o mesmo card, e a tarefa NOVA absorvia os comentários da
+       ANTIGA que sobrou em outro navegador. Geração diferente: o que chega
+       substitui por inteiro, comentários inclusive. */
+    const mesmaGeracao = String(reg.criadoEm||'')===String(daqui.criadoEm||'');
+    if(mesmaGeracao){
+      const juntos=_fundirComentarios(reg.comentarios,_listaComentarios(daqui));
+      if(juntos.length) reg.comentarios=juntos;
+    }
     alvo[i]=reg;
   } else alvo.push(reg);
   _regEnviado[nome]=_regEnviado[nome]||{};
@@ -10277,7 +10286,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25u';
+const APP_VERSAO='2026.08.25v';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -18552,7 +18561,9 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
   if(!chegouODiaDeCobrar) return;
   if(!appState.atividades) appState.atividades=[];
   const novaTarefa={
-    id:'atv_ate_'+d.id,
+    // Id único por criação: reutilizar 'atv_ate_<id>' fazia a tarefa nova
+    // herdar comentários da anterior pela fusão do sincronizador
+    id:'atv_ate_'+d.id+'_'+Date.now().toString(36),
     titulo:'Atendimento',
     origemAteId:d.id,
     prioridade:'urgente',
@@ -18585,8 +18596,10 @@ function criarTarefaAutoIntegracao(item,ctx){
   if(!item) return;
   ctx = ctx || INTEG_CTX.integracao;
   if(!appState.atividades) appState.atividades=[];
+  // Já existe tarefa desta solicitação? O vínculo é o campo de origem, não o id
+  if(appState.atividades.some(a=>a && a[ctx.origemKey]===item.id)) return;
   const novaTarefa={
-    id:ctx.autoPrefix+item.id,
+    id:ctx.autoPrefix+item.id+'_'+Date.now().toString(36),
     titulo:ctx.tarefaTitulo,
     [ctx.origemKey]:item.id,
     prioridade:item.prioridade||'normal',
@@ -18755,7 +18768,8 @@ function _tarefaAbsorverSolicitacao(t,item){
 // Editar a solicitação depois de criada tem de chegar na tarefa que ela gerou
 function _atualizarTarefaDaSolicitacao(item,autoPrefix){
   if(!item || !autoPrefix) return;
-  const t=(appState.atividades||[]).find(x=>x && x.id===autoPrefix+item.id);
+  const t=(appState.atividades||[]).find(x=>x && (x.id===autoPrefix+item.id ||
+    VINCULOS_SOLICITACAO.some(v=>x[v.campo]===item.id)));
   if(t) _tarefaAbsorverSolicitacao(t,item);
 }
 
@@ -18765,8 +18779,9 @@ function _atualizarTarefaDaSolicitacao(item,autoPrefix){
 function criarTarefaAutoEntrada(item){
   if(!item) return;
   if(!appState.atividades) appState.atividades=[];
+  if(appState.atividades.some(a=>a && a.origemEntradaId===item.id)) return;
   const novaTarefa={
-    id:'atv_entrada_'+item.id,
+    id:'atv_entrada_'+item.id+'_'+Date.now().toString(36),
     titulo:'Entrada Produto',
     origemEntradaId:item.id,
     prioridade:item.prioridade||'normal',
@@ -18788,8 +18803,9 @@ function criarTarefaAutoEntrada(item){
 function criarTarefaAutoImagem(item){
   if(!item) return;
   if(!appState.atividades) appState.atividades=[];
+  if(appState.atividades.some(a=>a && a.origemImgId===item.id)) return;
   const novaTarefa={
-    id:'atv_img_'+item.id,
+    id:'atv_img_'+item.id+'_'+Date.now().toString(36),
     titulo:'Imagem',
     origemImgId:item.id,
     prioridade:item.prioridade||'normal',
@@ -25180,7 +25196,7 @@ function salvarDiaria(){
   } else {
     const agora=Date.now();
     appState.atividades.push({
-      id:'atv_dia_'+agora, areaTarefa:'diarias',
+      id:'atv_dia_'+agora+'_'+Math.random().toString(36).slice(2,6), areaTarefa:'diarias',
       titulo, observacao:obs, vencimento:venc, hora, prioridade:prio,
       status:'aberta',
       responsavel:resp[0], responsaveis:resp.slice(),
@@ -27178,7 +27194,7 @@ function salvarCancelada(p){
 function criarTarefaAutoCancelada(item,c){
   if(!item) return;
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
-  if(appState.atividades.some(a=>a && a.id===c.autoPrefix+item.id)) return;
+  if(appState.atividades.some(a=>a && (a[c.origemKey]===item.id || a.id===c.autoPrefix+item.id))) return;
   appState.atividades.push(_cancMontarTarefa(item,c));
   _cancNotificar(item,c);
 }
@@ -27592,7 +27608,7 @@ function cancGarantirTarefas(){
 
 function _cancMontarTarefa(item,c){
   return {
-    id:c.autoPrefix+item.id,
+    id:c.autoPrefix+item.id+'_'+Date.now().toString(36),
     titulo:c.tarefaTitulo,
     [c.origemKey]:item.id,
     descricao:item.consideracoes||CANC_CONSIDERACAO,
@@ -28250,7 +28266,8 @@ function salvarAtribuicao(){
     const responsaveis=_atribRespDoTipo(tipoId);
     const item={
       id:t.prefixo+(agora+i), marketplace, tipo:tipoMkt, ...derivados,
-      responsaveis, vencimento, prioridade, consideracoes, variacao, status:'aberta',
+      responsaveis, vencimento, prioridade,
+      consideracoes:(consideracoes||[]).map(c=>({...c})), variacao, status:'aberta',
       criadoEm:_agoraCarimbo(),
       criadoPor:currentUser.name, criadoPorKey:currentUser.key,
       ordemManual:agora+i
