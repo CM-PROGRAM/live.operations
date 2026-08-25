@@ -2420,6 +2420,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
             <span id="ccard-plat"></span>
+            <!-- Falar com o cliente: número vem da Base junto com o pedido -->
+            <button type="button" id="ccard-wpp" title="Chamar o cliente no WhatsApp"
+              style="display:none;width:32px;height:32px;border-radius:50%;border:1px solid rgba(37,211,102,.45);background:rgba(37,211,102,.1);cursor:pointer;align-items:center;justify-content:center;padding:0;">
+              <svg viewBox="0 0 32 32" width="18" height="18" fill="#25D366"><path d="M16 3C9.4 3 4 8.4 4 15c0 2.1.6 4.2 1.7 6L4 29l8.2-1.6c1.2.6 2.5.9 3.8.9 6.6 0 12-5.4 12-12S22.6 3 16 3zm0 21.8c-1.2 0-2.4-.3-3.5-.8l-.5-.2-4.9 1 1-4.7-.3-.5c-1-1.7-1.6-3.6-1.6-5.6 0-5.5 4.4-9.9 9.8-9.9s9.8 4.4 9.8 9.9-4.4 9.8-9.8 9.8zm5.4-7.4c-.3-.1-1.7-.9-2-1s-.5-.1-.7.1-.8 1-.9 1.2-.3.2-.6.1c-.3-.1-1.2-.5-2.4-1.5-.9-.8-1.5-1.8-1.6-2.1-.2-.3 0-.5.1-.6l.4-.5c.1-.2.2-.3.3-.5s0-.4 0-.5c0-.1-.7-1.6-.9-2.2-.2-.6-.5-.5-.7-.5h-.6c-.2 0-.5.1-.8.4s-1 1-1 2.5 1.1 2.9 1.2 3.1c.1.2 2.1 3.2 5.1 4.5.7.3 1.3.5 1.7.6.7.2 1.4.2 1.9.1.6-.1 1.7-.7 2-1.4.2-.7.2-1.2.2-1.4-.1-.1-.3-.2-.6-.3z"/></svg>
+            </button>
             <span id="ccard-selo" style="margin-left:auto;font-size:11px;font-weight:700;font-family:var(--font-mono);"></span>
           </div>
           <div id="ccard-cliente" style="font-size:12.5px;color:var(--text-secondary);margin-bottom:14px;"></div>
@@ -10350,7 +10355,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25x';
+const APP_VERSAO='2026.08.25y';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -16454,6 +16459,16 @@ function _cancNfRender(){
   document.getElementById('ccard-plat').innerHTML=plat
     ? `<span class="selo" style="--sc:#3d5a94;--sb:rgba(61,90,148,.12);--sbd:rgba(61,90,148,.4);">${esc(plat)}</span>`
     : '<span style="color:var(--text-muted);">—</span>';
+
+  /* WhatsApp do cliente: o telefone vem da Base junto com o pedido. Serve
+     para entender o que houve, oferecer o produto certo e apresentar a
+     loja. Sem telefone no registro, o botão nem aparece. */
+  const fone=String((r&&r.telefone)||'').replace(/\D/g,'');
+  const wpp=document.getElementById('ccard-wpp');
+  if(wpp){
+    wpp.style.display=fone?'inline-flex':'none';
+    wpp.onclick=()=>window.open('https://wa.me/'+(fone.length<=11?'55':'')+fone,'_blank','noopener');
+  }
 
   /* SKU vindo da Base: primeiro o que o fluxo gravou no registro; sem ele,
      tenta o pedido correspondente em pedidosBase; por fim avisa que o fluxo
@@ -25714,7 +25729,10 @@ function renderAtividades(){
       <div style="position:relative;border-radius:12px;overflow:hidden;">
       <div style="position:relative;padding:10px 12px 10px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <div style="width:28px;height:28px;border-radius:8px;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${avColor};font-size:10px;font-weight:800;font-family:var(--font-mono);">${uInit}</div>
+          ${(respKeys.length?respKeys:[a.responsavel]).map(k=>{
+            const ru=appState.users[k];
+            return `<div title="${ru?ru.name:(k||'Não atribuído')}" style="width:28px;height:28px;border-radius:8px;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${ru?(ru.color||'#888'):'#888'};font-size:10px;font-weight:800;font-family:var(--font-mono);">${ru?getUserInitials(ru):'?'}</div>`;
+          }).join('')}
           ${feitoPorOutro?`
           <span style="font-size:12px;color:#fb7185;flex-shrink:0;line-height:1;">→</span>
           <div title="Concluída por ${outroNome} — a tarefa estava atribuída a ${respLine}"
@@ -27505,8 +27523,9 @@ function criarTarefaAutoCancelada(item,c){
   if(!item) return;
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
   if(appState.atividades.some(a=>a && (a[c.origemKey]===item.id || a.id===c.autoPrefix+item.id))) return;
-  appState.atividades.push(_cancMontarTarefa(item,c));
-  _cancNotificar(item,c);
+  const t=_cancMontarTarefa(item,c);
+  appState.atividades.push(t);
+  _cancNotificar(item,c,t.id);
 }
 
 function excluirCancelada(p,id){
@@ -27907,9 +27926,10 @@ function cancGarantirTarefas(){
     _cancLista(p).forEach(item=>{
       if(!item || !item.id || item.status==='concluida' || item.tarefaGerada) return;
       if(appState.atividades.some(a=>a && a.id===c.autoPrefix+item.id)) { item.tarefaGerada=true; return; }
-      appState.atividades.push(_cancMontarTarefa(item,c));
+      const t=_cancMontarTarefa(item,c);
+      appState.atividades.push(t);
       item.tarefaGerada=true;
-      _cancNotificar(item,c);
+      _cancNotificar(item,c,t.id);
       criou=true;
     });
   });
@@ -27936,7 +27956,7 @@ function _cancMontarTarefa(item,c){
 
 // Avisa os responsáveis usando quem consta na solicitação — e não quem estava
 // com o navegador aberto na hora em que a tarefa foi completada
-function _cancNotificar(item,c){
+function _cancNotificar(item,c,tarefaId){
   const desc=c.tarefaTitulo+' · '+(item.cliente||'');
   const de=item.criadoPor||'—';
   const msg=`📌 Nova tarefa atribuída a você por ${de}: "${desc}"`;
@@ -27944,8 +27964,9 @@ function _cancNotificar(item,c){
   // quem está com o navegador aberto. Vinda da tela: o autor não se notifica.
   const deFora=!((appState.users||{})[item.criadoPorKey]);
   [...new Set(item.responsaveis||CANC_RESPONSAVEIS)].forEach(k=>{
-    if(deFora) _notifEnviarDeFora(k,msg,de,'tarefa','tarefa',c.autoPrefix+item.id);
-    else       _notifEnviar(k,msg,'tarefa','tarefa',c.autoPrefix+item.id);
+    const alvo=tarefaId||c.autoPrefix+item.id;
+    if(deFora) _notifEnviarDeFora(k,msg,de,'tarefa','tarefa',alvo);
+    else       _notifEnviar(k,msg,'tarefa','tarefa',alvo);
   });
 }
 
