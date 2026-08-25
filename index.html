@@ -183,11 +183,6 @@
 
 /* Botões com texto: no claro o preenchimento vira sólido, senão o texto
    branco fica lavado sobre o fundo da página. */
-:root[data-theme="light"] .btn{
-  background:linear-gradient(135deg, rgb(var(--bc)) 0%, rgba(var(--bc),0.82) 100%);
-  border-color:rgba(var(--bc),0.9);color:#fff;
-  box-shadow:0 4px 18px rgba(var(--bc),0.26), var(--realce-topo);
-}
 :root[data-theme="light"] .btn-ghost{background:#ffffff;border-color:var(--border);color:var(--text-secondary);box-shadow:var(--sombra-suave);}
 :root[data-theme="light"] .btn-ghost:hover{background:var(--bg-hover);border-color:var(--border-light);color:var(--text-primary);}
 
@@ -382,10 +377,10 @@ html{overflow-x:hidden;}
 .lg-lock .so-escuro{display:none;}
 :root:not([data-theme="light"]) .lg-lock .so-claro{display:none;}
 :root:not([data-theme="light"]) .lg-lock .so-escuro{display:block;}
-.sb-ave{height:34px;width:auto;display:block;flex-shrink:0;}
+.sb-ave{height:40px;width:auto;display:block;flex-shrink:0;}
 /* O nome vem recortado da mesma arte, sem a tagline — em 30px de altura o
    "LIVE OPERATIONS" viraria ruído. */
-.sb-nome{height:19px;width:auto;display:block;margin-left:8px;min-width:0;}
+.sb-nome{height:22px;width:auto;display:block;margin-left:8px;min-width:0;}
 .sb-nome.so-escuro{display:none;}
 :root:not([data-theme="light"]) .sb-nome.so-claro{display:none;}
 :root:not([data-theme="light"]) .sb-nome.so-escuro{display:block;}
@@ -1101,21 +1096,22 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .sw input:checked + .tr{background:rgba(59,130,246,.9);border-color:rgba(59,130,246,.9);}
 .sw input:checked + .tr + .kn{transform:translateX(17px);background:#fff;}
 
+/* Botão no desenho da referência: azul sólido, canto de 8px, sem pílula,
+   sem gradiente e sem brilho — o mesmo em todas as abas. */
 .btn{
-  --bc: var(--rgb-indigo); /* azul-índigo padrão */
-  background:linear-gradient(135deg, rgba(var(--bc),0.55) 0%, rgba(var(--bc),0.28) 100%);
-  border:1px solid rgba(var(--bc),0.55);
-  border-radius:50px;color:#fff;cursor:pointer;font-family:var(--font-sans);font-size:14px;font-weight:600;
-  padding:10px 18px;transition:all .2s;width:100%;letter-spacing:-0.01em;
-  box-shadow:0 4px 18px rgba(var(--bc),0.28), inset 0 1px 0 rgba(255,255,255,0.14);
-  position:relative;overflow:hidden;backdrop-filter:blur(8px);
+  --bc: 37,99,235;
+  background:rgb(var(--bc));
+  border:1px solid rgb(var(--bc));
+  border-radius:8px;color:#fff;cursor:pointer;font-family:var(--font-sans);font-size:13.5px;font-weight:600;
+  padding:9px 16px;transition:background .15s,border-color .15s;width:100%;letter-spacing:-0.01em;
+  box-shadow:none;position:relative;
 }
-.btn::before{content:'';position:absolute;top:0;left:0;right:0;height:50%;background:linear-gradient(180deg,rgba(255,255,255,0.12),transparent);border-radius:50px 50px 0 0;pointer-events:none;}
-.btn:hover{opacity:1;transform:translateY(-2px);box-shadow:0 6px 24px rgba(var(--bc),0.42), inset 0 1px 0 rgba(255,255,255,0.2);}
-.btn:active{transform:translateY(0);}
-.btn-ghost{--bc: var(--rgb-cinza);background:linear-gradient(135deg, rgba(var(--bc),0.28) 0%, rgba(var(--bc),0.1) 100%);border:1px solid rgba(var(--bc),0.4);color:var(--text-primary);}
+.btn:hover{background:#1d4ed8;border-color:#1d4ed8;opacity:1;transform:none;box-shadow:none;}
+.btn:active{transform:none;}
+.btn-ghost{background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary);}
+.btn-ghost:hover{background:var(--bg-hover);border-color:var(--border-light);}
 .btn-ghost:hover{opacity:1;background:linear-gradient(135deg, rgba(var(--bc),0.4) 0%, rgba(var(--bc),0.16) 100%);border-color:rgba(var(--bc),0.6);color:#fff;}
-.btn-sm{font-size:11px;padding:5px 14px;width:auto;border-radius:50px;}
+.btn-sm{font-size:11.5px;padding:6px 13px;width:auto;border-radius:8px;}
 .btn-danger{--bc: var(--rgb-rosa);}
 .btn-success{--bc: var(--rgb-aco);}
 .btn-link{
@@ -1530,10 +1526,10 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .pag-titulo{font-family:var(--font-sans);font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--text-primary);margin:0 0 4px;}
 .pag-sub{font-size:13px;color:var(--text-muted);margin:0;}
 .pag-acoes{display:flex;align-items:center;gap:9px;flex-wrap:wrap;}
-.btn-sec{display:inline-flex;align-items:center;gap:7px;background:var(--grad-vidro);border:1px solid var(--glass-border);
-  border-radius:10px;color:var(--text-primary);font-family:var(--font-sans);font-size:12.5px;font-weight:600;
-  padding:9px 15px;cursor:pointer;transition:border-color .15s;}
-.btn-sec:hover{border-color:rgba(255,255,255,.32);}
+.btn-sec{display:inline-flex;align-items:center;gap:7px;background:var(--bg-card);border:1px solid var(--border);
+  border-radius:8px;color:var(--text-primary);font-family:var(--font-sans);font-size:12.5px;font-weight:600;
+  padding:9px 15px;cursor:pointer;transition:border-color .15s,background .15s;}
+.btn-sec:hover{background:var(--bg-hover);border-color:var(--border-light);}
 .btn-sec svg{width:15px;height:15px;stroke-width:2;}
 
 /* Indicadores: ícone num círculo à esquerda, número grande e rótulo ao lado */
@@ -2081,8 +2077,9 @@ body.menu-oculto .sb-atu-txt{display:none;}
   width:24px;height:24px;border-radius:50%;border:1px solid var(--hc-border);background:var(--hc-bg2);}
 .atv-colhead:hover .atv-colchev{filter:brightness(1.3);}
 /* Busca das tarefas diárias */
-.atv-busca{display:flex;align-items:center;gap:6px;padding:3px 6px 3px 12px;border-radius:50px;
-  background:var(--grad-vidro);border:1px solid var(--glass-border);box-shadow:inset 0 2px 6px rgba(0,0,0,0.25);
+/* Caixa chapada no desenho da referência — sem pílula e sem sombra interna */
+.atv-busca{display:flex;align-items:center;gap:7px;padding:5px 8px 5px 12px;border-radius:8px;
+  background:var(--bg-card);border:1px solid var(--border);box-shadow:none;
   min-width:240px;max-width:340px;flex:0 1 320px;}
 .atv-busca:focus-within{border-color:rgba(59,130,246,0.6);}
 .atv-busca-ic{font-size:12px;line-height:1;opacity:.7;flex-shrink:0;}
@@ -10215,7 +10212,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25p';
+const APP_VERSAO='2026.08.25q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10569,16 +10566,8 @@ function buildTabs(){
   topo.querySelector('#btn-esconder-menu').onclick=()=>alternarMenu();
 
 
-  // Identificação do usuário no alto: avatar, nome e o papel dele
-  const idUser=document.createElement('div');
-  idUser.className='sidebar-user';
-  idUser.innerHTML=`
-    <div class="sb-user-av" id="header-avatar">${userAvatarHTML(currentUser,34)}</div>
-    <div class="sb-user-info">
-      <div class="sb-user-nome" id="header-username" title="${currentUser.name}">${currentUser.name}</div>
-      <div class="sb-user-papel" id="master-badge">${currentUser.master?'Master':'Colaborador'}</div>
-    </div>`;
-  nav.appendChild(idUser);
+  /* O cartão do usuário saiu daqui: quem está logado já aparece no canto
+     superior direito, e duas vezes na mesma tela era redundância. */
 
   /* A busca global volta ao DOM — a máquina (doSearch, dropdown) sempre
      existiu, mas o campo se perdeu quando o cabeçalho antigo saiu. Agora ela
@@ -21223,19 +21212,21 @@ function renderUsersGrid(){
       }
       pl.appendChild(row);
     });
-    // Tarefas Diárias — quais abas de status (Todas/A Fazer/Com Pendência/
-    // Atrasada/Concluídas/Finalizadas) este colaborador pode ver. Master vê
-    // sempre todas; sem configuração aqui, o colaborador também vê todas.
+    /* Central de Tarefas — as ÁREAS que este colaborador vê: Diárias,
+       Atendimentos, Vendas, Anúncios, Financeiro, Marketplaces, Devoluções.
+       Antes esta seção listava as abas de STATUS (A Fazer, Atrasada...),
+       que não é o que se libera para alguém — a área é. Sem configuração,
+       vale o padrão antigo, derivado das permissões de aba. */
     if(!user.master){
       const atvTitle=document.createElement('div');
       atvTitle.style.cssText='font-size:10px;font-weight:700;color:var(--text-secondary);letter-spacing:.5px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);';
-      atvTitle.textContent='🗂 Central de Tarefas — abas visíveis';
+      atvTitle.textContent='🗂 Central de Tarefas — áreas visíveis';
       pl.appendChild(atvTitle);
-      const atvTabsAtuais = Array.isArray(user.atvTabsVisiveis) ? user.atvTabsVisiveis : ATV_TAB_KEYS.slice();
-      ATV_TAB_LABELS.forEach(tb=>{
-        const has=atvTabsAtuais.includes(tb.id);
+      const areasAtuais = Array.isArray(user.atvAreasVisiveis) ? user.atvAreasVisiveis : _atvAreasPadrao(user);
+      ATV_AREAS.forEach(ar=>{
+        const has=areasAtuais.includes(ar.id);
         const row=document.createElement('div');row.className='perm-row';
-        row.innerHTML=`<span>${tb.label}</span><label class="perm-toggle"><input type="checkbox" ${has?'checked':''} onchange="toggleAtvTab('${key}','${tb.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div><span class="perm-toggle-label pt-on">ON</span><span class="perm-toggle-label pt-off">OFF</span></label>`;
+        row.innerHTML=`<span title="${ar.desc}">${ar.label}</span><label class="perm-toggle"><input type="checkbox" ${has?'checked':''} onchange="toggleAtvArea('${key}','${ar.id}',this.checked)"><div class="perm-toggle-track"></div><div class="perm-toggle-thumb"></div><span class="perm-toggle-label pt-on">ON</span><span class="perm-toggle-label pt-off">OFF</span></label>`;
         pl.appendChild(row);
       });
     }
@@ -21248,6 +21239,18 @@ function toggleAtvTab(key,tabId,checked){
   if(!Array.isArray(user.atvTabsVisiveis)) user.atvTabsVisiveis=ATV_TAB_KEYS.slice();
   if(checked){ if(!user.atvTabsVisiveis.includes(tabId)) user.atvTabsVisiveis.push(tabId); }
   else { user.atvTabsVisiveis=user.atvTabsVisiveis.filter(t=>t!==tabId); }
+  saveState(appState);
+  renderUsersGrid();
+}
+
+/* Liga e desliga uma ÁREA da Central de Tarefas para o colaborador. Na
+   primeira mexida, grava o padrão atual e altera a partir dele — assim o
+   que ele já via não muda de repente. */
+function toggleAtvArea(key,areaId,checked){
+  const user=appState.users[key]; if(!user||user.master) return;
+  if(!Array.isArray(user.atvAreasVisiveis)) user.atvAreasVisiveis=_atvAreasPadrao(user);
+  if(checked){ if(!user.atvAreasVisiveis.includes(areaId)) user.atvAreasVisiveis.push(areaId); }
+  else { user.atvAreasVisiveis=user.atvAreasVisiveis.filter(t=>t!==areaId); }
   saveState(appState);
   renderUsersGrid();
 }
@@ -24880,7 +24883,19 @@ function _atvArea(a){
    pertencem a outras áreas — Atendimentos e Devoluções têm quadro próprio. */
 const ATV_TITULOS_ANUNCIOS=['Integração','Exclusão Integração','Imagem',
                             'Entrada Produto','Atualização Catálogo','Atualização de Catálogo'];
-function _atvAreasVisiveis(){ return ATV_AREAS.filter(x=>_iniPode(x.perm)); }
+/* Quais áreas este usuário vê. A escolha feita no painel do master
+   (atvAreasVisiveis) manda; sem ela, vale o padrão antigo por permissão de
+   aba. Master vê tudo, sempre. */
+function _atvAreasPadrao(user){
+  return ATV_AREAS.filter(ar=>ar.perm===null ||
+    (user && Array.isArray(user.perms) && user.perms.includes(ar.perm))).map(ar=>ar.id);
+}
+function _atvAreasVisiveis(){
+  if(currentUser && currentUser.master) return ATV_AREAS.slice();
+  const cfg=currentUser && Array.isArray(currentUser.atvAreasVisiveis) ? currentUser.atvAreasVisiveis : null;
+  if(cfg) return ATV_AREAS.filter(x=>cfg.includes(x.id));
+  return ATV_AREAS.filter(x=>_iniPode(x.perm));
+}
 
 let _atvAreaSel='';   // '' = tela dos painéis
 
