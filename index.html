@@ -1743,6 +1743,14 @@ body.menu-oculto .sb-atu-txt{display:none;}
    Virou pílula. A altura fica reservada mesmo nos cartões curtos, para
    todos continuarem do mesmo tamanho. */
 .bi-quadro .bi-mais{min-height:24px;display:flex;align-items:center;justify-content:center;}
+/* Espaço da imagem reservado em TODOS os cartões, tenha imagem ou não, para
+   que fechados fiquem todos com a mesma altura do cartão que carrega print.
+   Aberto, cresce livre para mostrar a imagem inteira. */
+.bi-quadro .bi-thumb-slot{margin-top:10px;}
+.bi-quadro:not(.aberto) .bi-thumb-slot{height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.bi-quadro.aberto .bi-thumb-slot{height:auto;}
+.bi-thumb{max-width:100%;max-height:150px;border-radius:8px;cursor:zoom-in;border:1px solid var(--glass-border);}
+.bi-quadro.aberto .bi-thumb{max-height:none;}
 .bi-quadro .bi-mais span{font-size:10.5px;font-weight:700;letter-spacing:.3px;color:var(--text-secondary);
   padding:3px 12px;border:1px solid var(--glass-border);border-radius:999px;background:var(--veu-suave);
   transition:border-color .15s,color .15s;}
@@ -10419,7 +10427,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zb';
+const APP_VERSAO='2026.08.25zc';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11613,7 +11621,7 @@ function _baseInfoCardsHtml(){
         <div class="ini-ic">${iconeMenu('baseinfo')}</div>
         <div class="ini-tit">${_iniEsc(it.titulo)}</div>
         <div class="ini-sub">${_iniEsc(texto)}</div>
-        ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')" style="max-width:100%;max-height:150px;border-radius:8px;margin-top:10px;cursor:zoom-in;border:1px solid var(--glass-border);">`:''}
+        <div class="bi-thumb-slot">${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}</div>
         <div class="bi-mais">${dobra?`<span>${aberto?'ver menos ▴':'ver mais ▾'}</span>`:''}</div>
         <div class="bi-pe" onclick="event.stopPropagation();">
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
