@@ -2412,6 +2412,19 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- CANCELADA COM NF — card próprio: analisar e cadastrar como devolução -->
+      <!-- Confirmação centralizada: o confirm() do navegador abre colado no
+           topo da janela e não dá para movê-lo — este modal ocupa o lugar. -->
+      <div class="modal-overlay" id="conf-overlay" style="z-index:4000;">
+        <div class="modal" style="width:460px;max-width:92vw;">
+          <h3 style="font-size:16px;font-weight:700;color:var(--text-primary);margin-bottom:12px;">Confirmação</h3>
+          <div id="conf-msg" style="white-space:pre-line;font-size:13.5px;line-height:1.55;color:var(--text-secondary);"></div>
+          <div class="modal-footer">
+            <button class="btn-sec" style="width:auto;padding:9px 18px;" onclick="confCancelar()">Cancelar</button>
+            <button class="btn" style="width:auto;padding:9px 22px;" id="conf-ok" onclick="confOk()">OK</button>
+          </div>
+        </div>
+      </div>
+
       <div class="modal-overlay" id="cancnf-overlay">
         <div class="modal" style="max-width:520px;width:520px;max-height:88vh;overflow-y:auto;">
           <div class="dv-topo" style="margin-bottom:10px;">
@@ -6006,6 +6019,45 @@ function nomeProprio(v){
   }).join(' ');
 }
 
+/* Confirmação centralizada no lugar do confirm() do navegador, que abre
+   colado no topo da janela. Técnica de re-entrada: quem perguntou é chamado
+   de novo depois do OK, e a pergunta já aprovada passa direto — assim os
+   fluxos síncronos existentes não precisam virar assíncronos. */
+let _confAprovadas=new Set(), _confRecusadas=new Set(), _confAtual=null;
+function confirmar(denovo, msg){
+  msg=String(msg);
+  if(_confAprovadas.has(msg)) return true;
+  if(denovo && denovo._confOpcional && _confRecusadas.has(msg)) return false;
+  const ov=document.getElementById('conf-overlay');
+  if(!ov) return window.confirm(msg);          // proteção: tela ainda sem o modal
+  _confAtual={denovo:denovo, msg:msg, opcional:!!(denovo&&denovo._confOpcional)};
+  const el=document.getElementById('conf-msg'); if(el) el.textContent=msg;
+  ov.classList.add('open');
+  const b=document.getElementById('conf-ok'); if(b) setTimeout(()=>{ try{ b.focus(); }catch(e){} },30);
+  return false;
+}
+/* Marca uma pergunta cujo "Cancelar" também segue o fluxo (resposta "não",
+   e não desistência) — caso do "incluir você também?" do reset de senhas. */
+function confOpcional(f){ f._confOpcional=true; return f; }
+function _confFechar(){ const ov=document.getElementById('conf-overlay'); if(ov) ov.classList.remove('open'); }
+function _confRodar(p, aprovou){
+  (aprovou?_confAprovadas:_confRecusadas).add(p.msg);
+  try{ p.denovo(); }
+  finally{ if(!_confAtual){ _confAprovadas.clear(); _confRecusadas.clear(); } }
+}
+function confOk(){ const p=_confAtual; _confAtual=null; _confFechar(); if(p&&p.denovo) _confRodar(p,true); }
+function confCancelar(){
+  const p=_confAtual; _confAtual=null; _confFechar();
+  if(p && p.opcional) _confRodar(p,false);
+  else { _confAprovadas.clear(); _confRecusadas.clear(); }
+}
+document.addEventListener('keydown',e=>{
+  const ov=document.getElementById('conf-overlay');
+  if(!ov || !ov.classList.contains('open')) return;
+  if(e.key==='Escape'){ e.preventDefault(); confCancelar(); }
+  else if(e.key==='Enter'){ e.preventDefault(); confOk(); }
+});
+
 function _agoraCarimbo(){
   return new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
@@ -6663,7 +6715,7 @@ function restaurarDoArquivo(area,chave){
   if(!destino){ showToast('Esta área não pode ser restaurada automaticamente','warn'); return; }
   const lista=destino();
   if(lista.some(x=>x&&x.id===item.dados.id)){ showToast('Esse registro já está ativo no sistema','warn'); return; }
-  if(!confirm(`Restaurar "${item.resumo}" para ${ARQ_AREAS[area]||area}?`)) return;
+  if(!confirmar(()=>restaurarDoArquivo(area,chave), `Restaurar "${item.resumo}" para ${ARQ_AREAS[area]||area}?`)) return;
   lista.push(JSON.parse(JSON.stringify(item.dados)));
   saveState(appState);
   showToast('✓ Registro restaurado','success');
@@ -6777,7 +6829,7 @@ function renderBackups(){
 
 function restaurarBackup(dia){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode restaurar','warn'); return; }
-  if(!confirm(
+  if(!confirmar(()=>restaurarBackup(dia), 
     `Restaurar a cópia de ${dia.split('-').reverse().join('/')}?\n\n`+
     `ATENÇÃO: o conteúdo atual das abas será substituído pelo desta data.\n`+
     `As imagens não são afetadas. Recomendo baixar o backup .zip antes.`
@@ -7739,7 +7791,7 @@ function derrubarTodosUsuarios(){
   if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
   const alvos=Object.keys(appState.users||{}).filter(k=>k!==currentUser.key);
   if(!alvos.length){ showToast('Não há outros usuários cadastrados','warn'); return; }
-  if(!confirm(`Desconectar ${alvos.length} usuário(s) agora?\n\nCada um verá um aviso e será deslogado em alguns segundos. Você continua conectado.`)) return;
+  if(!confirmar(()=>derrubarTodosUsuarios(), `Desconectar ${alvos.length} usuário(s) agora?\n\nCada um verá um aviso e será deslogado em alguns segundos. Você continua conectado.`)) return;
   const ts=Date.now();
   let enviados=0;
   alvos.forEach(k=>{
@@ -7768,7 +7820,7 @@ function migrarImagensParaFora(){
   });
   if(!alvos.length){ showToast('Nenhuma imagem para migrar','success'); return; }
   const antes=JSON.stringify(appState).length;
-  if(!confirm(`Migrar ${alvos.length} imagem(ns) para fora do pacote?\n\nHoje o sistema envia ${(antes/1048576).toFixed(2)} MB a cada alteração. As imagens continuam disponíveis — apenas deixam de viajar junto o tempo todo.`)) return;
+  if(!confirmar(()=>migrarImagensParaFora(), `Migrar ${alvos.length} imagem(ns) para fora do pacote?\n\nHoje o sistema envia ${(antes/1048576).toFixed(2)} MB a cada alteração. As imagens continuam disponíveis — apenas deixam de viajar junto o tempo todo.`)) return;
 
   const btn=document.getElementById('btn-migrar');
   let feito=0, falhas=0;
@@ -7813,7 +7865,7 @@ function compactarImagensDoEstado(){
   _percorrerImagensDoEstado(appState,(obj,chave)=>alvos.push({obj,chave}));
   if(!alvos.length){ showToast('Nenhuma imagem para compactar','success'); return; }
   const antes=JSON.stringify(appState).length;
-  if(!confirm(`Compactar ${alvos.length} imagem(ns) já gravada(s)?\n\nO estado hoje ocupa ${(antes/1048576).toFixed(2)} MB e é reenviado inteiro a cada alteração.`)) return;
+  if(!confirmar(()=>compactarImagensDoEstado(), `Compactar ${alvos.length} imagem(ns) já gravada(s)?\n\nO estado hoje ocupa ${(antes/1048576).toFixed(2)} MB e é reenviado inteiro a cada alteração.`)) return;
   showToast('Compactando imagens… aguarde','warn');
   let feitos=0;
   const proximo=()=>{
@@ -9724,7 +9776,7 @@ function autorizarAcesso(uid,nome){
 function descartarPedidoAcesso(uid,nome){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode excluir pedidos','warn'); return; }
   if(!db){ showToast('Sem conexão','error'); return; }
-  if(!confirm(`Excluir o pedido de acesso de ${nome||uid}?\n\nEle sai da lista sem ser autorizado. Se a pessoa entrar de novo com essa conta, o pedido volta a aparecer.`)) return;
+  if(!confirmar(()=>descartarPedidoAcesso(uid,nome), `Excluir o pedido de acesso de ${nome||uid}?\n\nEle sai da lista sem ser autorizado. Se a pessoa entrar de novo com essa conta, o pedido volta a aparecer.`)) return;
   db.ref(FB_SOLICITACOES+'/'+uid).remove()
     .then(()=>{ showToast('Pedido de acesso excluído','success'); renderSeguranca(); })
     .catch(err=>showToast('Falha ao excluir: '+err.message,'error'));
@@ -9765,7 +9817,7 @@ function revogarAcesso(uid,nome){
      ao lado do nome de gente da casa. Quem clica precisa saber que isto não
      apaga usuário nem senha — tira só o direito de gravar na nuvem — e que
      dá para desfazer. */
-  if(!confirm('Revogar o acesso de '+(nome||uid)+'?\n\n'
+  if(!confirmar(()=>revogarAcesso(uid,nome), 'Revogar o acesso de '+(nome||uid)+'?\n\n'
     +'O usuário e a senha continuam existindo: ele ainda entra no sistema, mas o que '
     +'fizer fica só no navegador dele e não chega para os outros.\n\n'
     +'Dá para desfazer: assim que ele abrir o sistema de novo, o pedido volta para a '
@@ -9784,7 +9836,7 @@ function forcarResetSenhaTodos(){
   const outros=Object.entries(appState.users||{}).filter(([k])=>k!==currentUser.key);
   const semEmail=outros.filter(([,u])=>!_emailValido(u&&u.email)).map(([,u])=>(u&&u.name)||'—');
   if(semEmail.length){ showToast('Cadastre o e-mail de: '+semEmail.join(', '),'warn'); return; }
-  if(!confirm(
+  if(!confirmar(()=>forcarResetSenhaTodos(), 
     `Forçar ${outros.length} colaborador(es) a criar uma senha nova?\n\n`+
     `· Todos serão desconectados agora\n`+
     `· Cada um recebe um e-mail para definir a própria senha\n`+
@@ -9795,7 +9847,7 @@ function forcarResetSenhaTodos(){
   const alvos=outros.slice();
   const meuRegistro=(appState.users||{})[currentUser.key];
   let incluiMim=false;
-  if(_emailValido(meuRegistro&&meuRegistro.email) && confirm(
+  if(_emailValido(meuRegistro&&meuRegistro.email) && confirmar(confOpcional(()=>forcarResetSenhaTodos()), 
     `Incluir você também (${meuRegistro.email})?\n\n`+
     `Você será desconectado e vai redefinir sua senha pelo e-mail, como os demais.\n\n`+
     `Se o e-mail não chegar, use "Esqueci minha senha" na tela de login para pedir outro.`
@@ -10367,7 +10419,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25z';
+const APP_VERSAO='2026.08.25za';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12309,7 +12361,7 @@ function excluirUltimaVendaWpp(){
   if(!appState.vendasWpp) appState.vendasWpp={};
   const atual=appState.vendasWpp[d]||0;
   if(atual<=0){showToast('Nenhuma venda registrada hoje para excluir','error');return;}
-  const ok=window.confirm('Excluir último registro?\n\nContador: '+atual+' → '+(atual-1)+'\n\nConfirmar?');
+  const ok=confirmar(()=>excluirUltimaVendaWpp(), 'Excluir último registro?\n\nContador: '+atual+' → '+(atual-1)+'\n\nConfirmar?');
   if(!ok) return;
   appState.vendasWpp[d]=Math.max(0, atual-1);
   saveState(appState);
@@ -12502,7 +12554,7 @@ function addPedidoWpp(){
 function deletePedidoWpp(id){
   const _canWpp2=currentUser&&(currentUser.master||(currentUser.perms||[]).includes('whatsapp'));
   if(!_canWpp2){showToast('Acesso restrito','error');return;}
-  const ok=window.confirm('Excluir este pedido? Esta ação não pode ser desfeita.');
+  const ok=confirmar(()=>deletePedidoWpp(id), 'Excluir este pedido? Esta ação não pode ser desfeita.');
   if(!ok) return;
   const pedidoExcluido=(appState.pedidosWpp||[]).find(p=>p.id===id);
   appState.pedidosWpp=(appState.pedidosWpp||[]).filter(p=>p.id!==id);
@@ -13166,7 +13218,7 @@ function cliLeadEtapa(id,etapa){
 }
 function cliLeadExcluir(id){
   const l=_cliLeads().find(x=>x.id===id); if(!l) return;
-  if(!confirm('Excluir o lead "'+(l.nome||'')+'"?')) return;
+  if(!confirmar(()=>cliLeadExcluir(id), 'Excluir o lead "'+(l.nome||'')+'"?')) return;
   appState.leads=_cliLeads().filter(x=>x.id!==id);
   saveState(appState);
   renderClientes();
@@ -15916,7 +15968,7 @@ function acpMigrarDevolucoes(){
     .map(a=>a.origemDevId).filter(Boolean));
   const faltam=antigas.filter(d=>!jaVieram.has(d.id));
   if(!faltam.length){ showToast('Todas as devoluções antigas já estão aqui','info'); return; }
-  if(!confirm('Trazer '+faltam.length+' devolução(ões) da aba antiga para cá?\n\n'
+  if(!confirmar(()=>acpMigrarDevolucoes(), 'Trazer '+faltam.length+' devolução(ões) da aba antiga para cá?\n\n'
     +'Os registros originais continuam lá, intactos. Nada é apagado.')) return;
 
   if(!Array.isArray(appState.acompanhamentos)) appState.acompanhamentos=[];
@@ -16263,8 +16315,8 @@ function acpAbrirTarefaEstorno(id){
 function acpEstornarNF(id){
   const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id); if(!a) return;
   if(a.tarefaEstornoId){ acpAbrirTarefaEstorno(id); return; }
-  const quem=a.cliente||a.loja||'cliente não informado';
-  if(!confirm('Pedir o estorno da NF de saída desta devolução?\n\n'
+  const quem=a.cliente?nomeProprio(a.cliente):(a.loja||'cliente não informado');
+  if(!confirmar(()=>acpEstornarNF(id), 'Pedir o estorno da NF de saída desta devolução?\n\n'
     +quem+(a.numeroPedido?(' · pedido '+a.numeroPedido):'')+'\n\n'
     +'Uma tarefa vai para o Carlos Red fazer o estorno e dar a volta do produto no estoque.')) return;
 
@@ -16689,7 +16741,7 @@ function entAlternarConcluidas(){
 function entRefazer(id){
   const a=(appState.entradasEstoque||[]).find(x=>x&&x.id===id);
   if(!a) return;
-  if(!confirm('Refazer a entrada de '+a.quantidade+'× '+(a.sku||a.nome)+'?\n\n'
+  if(!confirmar(()=>entRefazer(id), 'Refazer a entrada de '+a.quantidade+'× '+(a.sku||a.nome)+'?\n\n'
     +'Uma cópia nova entra na fila. A tentativa que falhou fica no histórico.')) return;
   const agora=new Date();
   appState.entradasEstoque.push({
@@ -16712,7 +16764,7 @@ function entRefazer(id){
 function entCancelar(id){
   const a=(appState.entradasEstoque||[]).find(x=>x&&x.id===id);
   if(!a || (a.status!=='pendente' && a.status!=='aguardando')) return;
-  if(!confirm('Cancelar a entrada de '+a.quantidade+'× '+a.sku+'?\n\nEla sai da fila e o robô não vai lançar.')) return;
+  if(!confirmar(()=>entCancelar(id), 'Cancelar a entrada de '+a.quantidade+'× '+a.sku+'?\n\nEla sai da fila e o robô não vai lançar.')) return;
   appState.entradasEstoque=(appState.entradasEstoque||[]).filter(x=>x&&x.id!==id);
   try{ saveState(appState); }catch(e){ showToast('Não consegui salvar: '+(e&&e.message||e),'warn'); }
   renderEstoque();
@@ -18311,7 +18363,7 @@ function saveConf(){
 }
 
 function deleteConf(id){
-  if(!window.confirm('Excluir este produto? Esta ação não pode ser desfeita.')) return;
+  if(!confirmar(()=>deleteConf(id), 'Excluir este produto? Esta ação não pode ser desfeita.')) return;
   appState.conferencia=(appState.conferencia||[]).filter(p=>p.id!==id);
   saveState(appState);
   renderConferencia();
@@ -19984,7 +20036,7 @@ function lcpfDispararTodos(){
   if(!PLANILHA_VENDAS_URL){ showToast('Integração não configurada','error'); return; }
   const alvos=(f.telefones||[]).filter(t=>!t.confirmado && _lcpfTipo(t)==='CELULAR');
   if(!alvos.length){ showToast('Nenhum celular pendente para disparar','warn'); return; }
-  if(!confirm('Enviar o atendimento para '+alvos.length+' número(s) deste cliente?\n\n'
+  if(!confirmar(()=>lcpfDispararTodos(), 'Enviar o atendimento para '+alvos.length+' número(s) deste cliente?\n\n'
     +alvos.map(t=>'· '+t.vis).join('\n')
     +'\n\nSão pessoas reais: se o número estiver errado, alguém vai receber a mensagem.')) return;
 
@@ -20108,7 +20160,7 @@ function excluirFichaLiveCpf(){
     showToast('Apenas o master ou quem consultou pode excluir','warn'); return;
   }
   const jaRespondeu=(f.telefones||[]).some(t=>t.confirmado);
-  if(!confirm('Excluir a ficha de "'+(f.nome||f.cpf)+'"?\n\n'
+  if(!confirmar(()=>excluirFichaLiveCpf(), 'Excluir a ficha de "'+(f.nome||f.cpf)+'"?\n\n'
     +'Consultar este CPF de novo recomeça do zero: o atendimento é enviado'
     +' outra vez para os celulares'
     +(jaRespondeu ? ', inclusive para o número que já respondeu.' : '.'))) return;
@@ -20543,7 +20595,7 @@ function renderDrogTable(){
 }
 
 function resetDrogarias(){
-  if(!window.confirm('Resetar todas as informações importadas?')) return;
+  if(!confirmar(()=>resetDrogarias(), 'Resetar todas as informações importadas?')) return;
   _drogData = {pacheco:[], saopaulo:[]};
   ['pacheco','saopaulo'].forEach(p=>{
     const statusEl = document.getElementById('status-'+p);
@@ -21839,7 +21891,7 @@ function enviarRedefinicaoSenha(key){
   const user=(appState.users||{})[key]; if(!user) return;
   if(!_emailValido(user.email)){ showToast('Cadastre o e-mail deste usuário primeiro','warn'); return; }
   if(typeof firebase==='undefined' || !firebase.auth){ showToast('Autenticação indisponível — atualize a página','error'); return; }
-  if(!confirm(`Enviar e-mail de redefinição de senha para ${user.email}?`)) return;
+  if(!confirmar(()=>enviarRedefinicaoSenha(key), `Enviar e-mail de redefinição de senha para ${user.email}?`)) return;
   firebase.auth().sendPasswordResetEmail(user.email)
     .then(()=>showToast(`📧 E-mail enviado para ${user.email}`,'success'))
     .catch(err=>{
@@ -21872,7 +21924,7 @@ async function pedirNovaSenhaATodos(){
     .filter(([,u])=>u && !_emailValido(String(u.email||'').trim())).length;
 
   if(!alvos.length){ showToast('Nenhum usuário com e-mail cadastrado','warn'); return; }
-  if(!confirm('Enviar o e-mail de nova senha para '+alvos.length+' pessoa(s)?\n\n'
+  if(!confirmar(()=>pedirNovaSenhaATodos(), 'Enviar o e-mail de nova senha para '+alvos.length+' pessoa(s)?\n\n'
     +alvos.map(a=>'· '+a.nome+' — '+a.email).join('\n')
     +(semEmail?('\n\n'+semEmail+' usuário(s) sem e-mail ficam de fora.'):'')
     +'\n\nA senha atual continua valendo até cada um usar o link.')) return;
@@ -21919,7 +21971,7 @@ async function redefinirSenha(key){
 }
 
 function removeUser(key){
-  const ok=window.confirm('REMOVER USUÁRIO\n\nTem certeza que deseja remover "'+appState.users[key]?.name+'"?\n\nConfirmar?');
+  const ok=confirmar(()=>removeUser(key), 'REMOVER USUÁRIO\n\nTem certeza que deseja remover "'+appState.users[key]?.name+'"?\n\nConfirmar?');
   if(!ok) return;
   delete appState.users[key];
   /* A remoção precisa ser dita em voz alta. O pacote grava usuário por
@@ -21938,7 +21990,7 @@ function resetDayIfWeekEnd(){
   if(!currentUser||!currentUser.master){showToast('Apenas o master pode resetar o dia','error');return;}
   const dayNames=['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
   const dow=new Date().getDay();
-  const ok=window.confirm('RESETAR DIA\n\nIsso vai arquivar o dia atual ('+dayNames[dow]+') e limpar TODAS as marcações de tarefas.\n\nOs lançamentos de Rastreios, Devoluções e Atendimentos NÃO serão apagados.\n\nConfirmar?');
+  const ok=confirmar(()=>resetDayIfWeekEnd(), 'RESETAR DIA\n\nIsso vai arquivar o dia atual ('+dayNames[dow]+') e limpar TODAS as marcações de tarefas.\n\nOs lançamentos de Rastreios, Devoluções e Atendimentos NÃO serão apagados.\n\nConfirmar?');
   if(!ok) return;
   archiveDay(appState);
   const _devolucoes=appState.tasks.devolucoes;
@@ -21959,7 +22011,7 @@ function resetDayIfWeekEnd(){
 
 function resetHistorico(){
   if(!currentUser||!currentUser.master){showToast('Apenas o master pode resetar o histórico','error');return;}
-  const ok=window.confirm('RESETAR HISTÓRICO\n\nIsso vai apagar TODO o histórico da semana (gráfico de desempenho).\n\nEsta ação não pode ser desfeita. Confirmar?');
+  const ok=confirmar(()=>resetHistorico(), 'RESETAR HISTÓRICO\n\nIsso vai apagar TODO o histórico da semana (gráfico de desempenho).\n\nEsta ação não pode ser desfeita. Confirmar?');
   if(!ok) return;
   appState.weekHistory={};
   saveState(appState);
@@ -21969,7 +22021,7 @@ function resetHistorico(){
 
 function resetDay(){
   if(!currentUser||!currentUser.master){showToast('Apenas o master pode resetar','error');return;}
-  const ok=window.confirm('RESETAR TAREFAS\n\nIsso vai arquivar o dia atual e limpar TODAS as marcações.\n\nOs lançamentos de Rastreios, Devoluções e Atendimentos NÃO serão apagados.\n\nConfirmar?');
+  const ok=confirmar(()=>resetDay(), 'RESETAR TAREFAS\n\nIsso vai arquivar o dia atual e limpar TODAS as marcações.\n\nOs lançamentos de Rastreios, Devoluções e Atendimentos NÃO serão apagados.\n\nConfirmar?');
   if(!ok) return;
   archiveDay(appState);
   const _devolucoes=appState.tasks.devolucoes;
@@ -21988,7 +22040,7 @@ function resetDay(){
 
 function resetTimers(){
   if(!currentUser||!currentUser.master){showToast('Apenas o master pode resetar tempos','error');return;}
-  const ok=window.confirm('RESETAR TEMPOS\n\nIsso vai limpar todos os tempos cronometrados registrados.\n\nConfirmar?');
+  const ok=confirmar(()=>resetTimers(), 'RESETAR TEMPOS\n\nIsso vai limpar todos os tempos cronometrados registrados.\n\nConfirmar?');
   if(!ok) return;
   function clearTimers(items){ items.forEach(i=>{ delete i.duration; delete i.timerStart; delete i.timerEnd; }); }
   (appState.tasks.whatsapp||[]).forEach(g=>clearTimers(g.items));
@@ -23579,7 +23631,7 @@ function removeCustomOpt(selectId, baseList, stateKey, label, renderFn){
   if(!val){showToast('Selecione um(a) '+label.toLowerCase()+' para excluir','warn');return;}
   const isBase=baseList.some(b=>b.toLowerCase()===val.toLowerCase());
   if(isBase){
-    if(!confirm('"'+val+'" é um(a) '+label.toLowerCase()+' padrão do sistema.\nExcluir mesmo assim?')) return;
+    if(!confirmar(()=>removeCustomOpt(selectId,baseList,stateKey,label,renderFn), '"'+val+'" é um(a) '+label.toLowerCase()+' padrão do sistema.\nExcluir mesmo assim?')) return;
     const removedKey=getRemovedBaseKey(stateKey);
     const removedBase=(appState[removedKey]||[]);
     if(!removedBase.some(r=>r.toLowerCase()===val.toLowerCase())) removedBase.push(val);
@@ -23592,7 +23644,7 @@ function removeCustomOpt(selectId, baseList, stateKey, label, renderFn){
   const custom=(appState[stateKey]||[]);
   const idx=custom.findIndex(m=>m.toLowerCase()===val.toLowerCase());
   if(idx===-1){showToast(label+' não encontrado(a) na lista','warn');return;}
-  if(!confirm('Excluir '+label.toLowerCase()+' "'+val+'"?')) return;
+  if(!confirmar(()=>removeCustomOpt(selectId,baseList,stateKey,label,renderFn), 'Excluir '+label.toLowerCase()+' "'+val+'"?')) return;
   custom.splice(idx,1);
   appState[stateKey]=custom;
   saveState(appState);
@@ -24067,7 +24119,7 @@ function removeAteMotivo(){
   if(!val){showToast('Selecione um motivo para excluir','warn');return;}
   const base=['Pedido não entregue','Cancelamento','Extravio','Endereço errado'];
   if(base.includes(val)){
-    if(!confirm('"'+val+'" é um motivo padrão do sistema.\nExcluir mesmo assim?')) return;
+    if(!confirmar(()=>removeAteMotivo(), '"'+val+'" é um motivo padrão do sistema.\nExcluir mesmo assim?')) return;
     const removedBase=(appState.customMotivosAte__removedBase||[]);
     if(!removedBase.some(r=>r.toLowerCase()===val.toLowerCase())) removedBase.push(val);
     appState.customMotivosAte__removedBase=removedBase;
@@ -24079,7 +24131,7 @@ function removeAteMotivo(){
   const custom=(appState.customMotivosAte||[]);
   const idx=custom.findIndex(m=>m.toLowerCase()===val.toLowerCase());
   if(idx===-1){showToast('Motivo não encontrado na lista','warn');return;}
-  if(!confirm('Excluir o motivo "'+val+'"?')) return;
+  if(!confirmar(()=>removeAteMotivo(), 'Excluir o motivo "'+val+'"?')) return;
   custom.splice(idx,1);
   appState.customMotivosAte=custom;
   saveState(appState);
@@ -26113,7 +26165,7 @@ function atvSetPendente(id){
 
 function deleteAtividade(id){
   if(!currentUser.master){showToast('Apenas o master pode excluir','warn');return;}
-  if(!confirm('Excluir esta tarefa? Ela vai para o arquivo e pode ser restaurada pelo master.')) return;
+  if(!confirmar(()=>deleteAtividade(id), 'Excluir esta tarefa? Ela vai para o arquivo e pode ser restaurada pelo master.')) return;
   const a=(appState.atividades||[]).find(x=>x.id===id);
   if(a) arquivarRegistro('tarefa',a);
   appState.atividades=(appState.atividades||[]).filter(x=>x.id!==id);
@@ -26261,7 +26313,7 @@ function projNotaFinalizar(id){
 function projNotaExcluir(id){
   const n=_projNota(id); if(!n) return;
   if(!_projPodeMexer(n)){ showToast('Apenas o master ou quem criou pode excluir','warn'); return; }
-  if(!confirm('Excluir esta nota?\n\n'+(n.titulo||'(sem título)'))) return;
+  if(!confirmar(()=>projNotaExcluir(id), 'Excluir esta nota?\n\n'+(n.titulo||'(sem título)'))) return;
   appState.projNotas=_projNotas().filter(x=>x.id!==id);
   saveState(appState);
   renderProjNotas();
@@ -26445,7 +26497,7 @@ function projMoveStatus(id,novoStatus){
 
 function deleteProjeto(id){
   if(!currentUser.master){showToast('Apenas o master pode excluir','warn');return;}
-  if(!confirm('Deseja excluir este projeto?')) return;
+  if(!confirmar(()=>deleteProjeto(id), 'Deseja excluir este projeto?')) return;
   { const pr=(appState.projetos||[]).find(x=>x.id===id); if(pr) arquivarRegistro('projeto',pr); }
   appState.projetos=(appState.projetos||[]).filter(x=>x.id!==id);
   saveState(appState);
@@ -27541,7 +27593,7 @@ function criarTarefaAutoCancelada(item,c){
 }
 
 function excluirCancelada(p,id){
-  if(!confirm('Excluir esta solicitação? A tarefa gerada por ela também sai.')) return;
+  if(!confirmar(()=>excluirCancelada(p,id), 'Excluir esta solicitação? A tarefa gerada por ela também sai.')) return;
   const c=_cancCtx(p);
   const item=_cancLista(p).find(x=>x.id===id);
   if(item) arquivarRegistro(c.areaArquivo,item);
@@ -28232,7 +28284,7 @@ function saveIntegracao(){
   if(!editId){
     const dup=_mktCheckDuplicado(arr,marketplace,variacao,codigo);
     if(dup){
-      if(!confirm('Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
+      if(!confirmar(()=>saveIntegracao(), 'Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
       if(consideracoes.length===0){ showToast('Inclua um comentário em Considerações para continuar','warn'); return; }
     }
   }
@@ -28275,7 +28327,7 @@ function deleteIntegracao(id){
   const arr=ctx.getArr();
   const item=arr.find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
-  if(!confirm(ctx.confirmDel)) return;
+  if(!confirmar(()=>deleteIntegracao(id), ctx.confirmDel)) return;
   arquivarRegistro(_integCtx,item);
   ctx.setArr(arr.filter(x=>x.id!==id));
   saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (autoPrefix+<id>)
@@ -28783,7 +28835,7 @@ function saveEntradaReq(){
   if(!editId){
     const dup=_mktCheckDuplicado(appState.entradas,marketplace,variacao,codigo);
     if(dup){
-      if(!confirm('Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
+      if(!confirmar(()=>saveEntradaReq(), 'Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
       if(consideracoes.length===0){ showToast('Inclua um comentário em Considerações para continuar','warn'); return; }
     }
   }
@@ -28820,7 +28872,7 @@ function saveEntradaReq(){
 function deleteEntradaReq(id){
   const item=(appState.entradas||[]).find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
-  if(!confirm('Excluir esta solicitação de entrada?')) return;
+  if(!confirmar(()=>deleteEntradaReq(id), 'Excluir esta solicitação de entrada?')) return;
   arquivarRegistro('entrada',item);
   appState.entradas=(appState.entradas||[]).filter(x=>x.id!==id);
   saveState(appState);
@@ -28906,7 +28958,7 @@ function saveImagemReq(){
   if(!editId){
     const dup=_mktCheckDuplicado(appState.imagensReq,marketplace,variacao,codigo);
     if(dup){
-      if(!confirm('Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
+      if(!confirmar(()=>saveImagemReq(), 'Já existe uma solicitação com essas mesmas especificações. Deseja continuar mesmo assim?')) return;
       if(consideracoes.length===0){ showToast('Inclua um comentário em Considerações para continuar','warn'); return; }
     }
   }
@@ -28943,7 +28995,7 @@ function saveImagemReq(){
 function deleteImagemReq(id){
   const item=(appState.imagensReq||[]).find(x=>x.id===id);
   if(!_mktPodeExcluir(item)){showToast('Apenas o master ou quem criou pode excluir','warn');return;}
-  if(!confirm('Excluir esta solicitação de imagens?')) return;
+  if(!confirmar(()=>deleteImagemReq(id), 'Excluir esta solicitação de imagens?')) return;
   arquivarRegistro('imagens',item);
   appState.imagensReq=(appState.imagensReq||[]).filter(x=>x.id!==id);
   saveState(appState); // reconcileAutoTasks remove a tarefa vinculada (atv_img_<id>)
@@ -29764,7 +29816,7 @@ function atvRemoverProva(tipo){
   if(!a) return;
   const podeAgir = currentUser && (currentUser.master || getAtvResponsaveis(a).includes(currentUser.key));
   if(!podeAgir){showToast('Você não tem permissão para alterar esta tarefa','warn');return;}
-  if(!confirm('Remover este print? Será necessário anexar uma nova imagem para concluir novamente.')) return;
+  if(!confirmar(()=>atvRemoverProva(tipo), 'Remover este print? Será necessário anexar uma nova imagem para concluir novamente.')) return;
   if(tipo==='conclusao'){
     imgApagarOriginal(a.provaConclusaoRef);
     a.provaConclusao=''; a.provaConclusaoRef=''; a.provaConclusaoPor=''; a.provaConclusaoEm='';
