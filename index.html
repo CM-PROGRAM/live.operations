@@ -371,9 +371,11 @@ html{overflow-x:hidden;}
   --lg-campo:rgba(255,255,255,.05); --lg-campo-borda:rgba(255,255,255,.14); --lg-ph:#6b7280;
   --lg-azul:#3b82f6; --lg-azul-forte:#2563eb; --lg-sel:rgba(255,255,255,.07);
 }
-.lg-tag{font-size:12px;color:var(--lg-texto);letter-spacing:.42em;text-indent:.42em;
+.lo-marca .lo-ave{width:1.45em;height:1.45em;align-self:center;margin-right:.1em;flex-shrink:0;}
+.sb-ave{width:34px;height:34px;display:block;}
+.lg-tag{font-size:12px;color:var(--lg-texto);letter-spacing:.4em;text-indent:.4em;
   text-transform:uppercase;text-align:center;margin-top:10px;font-weight:500;}
-.lg-sub{font-size:15px;color:var(--lg-texto);text-align:center;margin:22px 0 30px;}
+.lg-sub{font-size:15px;color:var(--lg-texto);text-align:center;margin:20px 0 28px;}
 .lg-tema{position:absolute;top:20px;right:22px;display:flex;gap:4px;padding:4px;
   background:var(--lg-card);border:1px solid var(--lg-borda);border-radius:999px;}
 .lg-tema-b{border:0;background:transparent;color:var(--lg-texto);cursor:pointer;
@@ -1011,6 +1013,16 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-cab > div:last-child{border-right:none;}
 .etp-linha{display:grid;align-items:center;border-top:1px solid var(--linha-sutil);}
 .etp-linha > div{padding:4px;min-width:0;}
+/* Sugestões do produto: caixa filha do campo, abre logo abaixo dele */
+.etp-prod{position:relative;}
+/* position:fixed com as coordenadas do campo: a tabela tem overflow:hidden
+   (pelos cantos arredondados) e engoliria um balão absoluto. */
+.etp-sug{display:none;position:fixed;max-height:260px;overflow-y:auto;
+  background:var(--bg-card);border:1px solid var(--border-light);border-radius:10px;box-shadow:var(--sombra-card-alta);z-index:1600;}
+.etp-sug.aberta{display:block;}
+.etp-sug button{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
+  padding:8px 12px;color:var(--text-primary);font-size:12.5px;font-family:var(--font-sans);}
+.etp-sug button:hover{background:var(--veu-medio);}
 .etp-linha input{height:30px;font-size:12px;padding:4px 8px;font-family:var(--font-mono);}
 .etp-c1{grid-template-columns:90px 2fr 120px 110px 40px;}
 .etp-c3{grid-template-columns:2fr 110px 90px 110px 120px 50px;}
@@ -1201,20 +1213,6 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .sb-inbox-ic{width:19px;height:19px;flex-shrink:0;display:inline-flex;}
 .sb-inbox-ic svg{width:100%;height:100%;}
 .sb-inbox-txt{flex:1;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-/* Separador com um brilho vermelho suave que percorre a linha de um lado
-   ao outro, para marcar a divisão sem pesar */
-.sidebar-inbox::after{
-  content:'';position:absolute;left:8px;right:8px;bottom:-17px;height:2px;border-radius:2px;
-  background-image:
-    linear-gradient(90deg,rgba(248,113,113,0) 0%,rgba(252,165,165,.95) 50%,rgba(248,113,113,0) 100%),
-    linear-gradient(90deg,transparent,rgba(248,113,113,.22),transparent);
-  background-size:55% 100%, 100% 100%;
-  background-repeat:no-repeat, no-repeat;
-  background-position:-30% 0, 0 0;
-  animation:sbNeonVaiVem 3.4s ease-in-out infinite alternate;
-  filter:drop-shadow(0 0 5px rgba(248,113,113,.55));
-  pointer-events:none;
-}
 /* Neon nas letras do nome: um brilho fixo na cor da plataforma, com uma
    faixa de luz atravessando as letras da esquerda para a direita. A borda do
    quadrinho fica parada — quem tem vida agora é o texto.
@@ -1293,14 +1291,6 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
    O !important é necessário: a cor de cada card é aplicada em estilo em linha
    e, sem ele, a regra do tema claro nunca ganharia. */
 :root[data-theme="light"] .mkt-nome[data-mkt="webcontinental"]{--mkt-neon:100,116,139 !important;}
-@keyframes sbNeonVaiVem{
-  from{background-position:-30% 0, 0 0;}
-  to{background-position:130% 0, 0 0;}
-}
-@media(prefers-reduced-motion:reduce){
-  .sidebar-inbox::after{animation:none;background-position:50% 0, 0 0;}
-}
-.sidebar-inbox{margin-bottom:34px;}
 .sb-inbox-badge{flex-shrink:0;min-width:19px;height:19px;line-height:19px;padding:0 5px;border-radius:999px;
   background:var(--accent,#8fa8d8);color:#fff;font-family:var(--font-mono);font-size:10px;font-weight:700;text-align:center;}
 @media(max-width:500px){.sb-inbox-txt{display:none;}.sidebar-inbox{justify-content:center;}}
@@ -1344,6 +1334,39 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .lo-marca .lo-ops{color:#3b4453;display:inline-flex;align-items:baseline;}
 :root:not([data-theme="light"]) .lo-marca .lo-ops{color:#dfe5ee;}
 .lo-marca .lo-apert{width:.82em;height:.82em;align-self:center;margin:0 .015em;flex-shrink:0;}
+
+/* ── Topo da área de conteúdo ────────────────────────────────────────
+   Ajuda, sino e o usuário no canto direito, como na referência. Fica preso
+   no alto enquanto a página rola. */
+.topo-app{position:sticky;top:0;z-index:180;display:flex;align-items:center;justify-content:flex-end;gap:8px;
+  height:56px;padding:0 20px;background:var(--bg-card);border-bottom:1px solid var(--border);}
+.topo-orb{position:relative;width:36px;height:36px;border-radius:50%;border:0;background:transparent;
+  color:var(--text-secondary);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;}
+.topo-orb:hover{background:var(--veu-medio);color:var(--text-primary);}
+.topo-orb svg{width:19px;height:19px;}
+.topo-badge{position:absolute;top:1px;right:-1px;min-width:15px;height:15px;line-height:15px;padding:0 4px;
+  border-radius:999px;background:#2563eb;color:#fff;font-family:var(--font-mono);font-size:9px;font-weight:700;text-align:center;}
+.topo-user{display:flex;align-items:center;gap:9px;padding:5px 8px 5px 6px;border-radius:10px;cursor:pointer;color:var(--text-muted);}
+.topo-user:hover{background:var(--veu-suave);}
+.topo-user-info{display:flex;flex-direction:column;line-height:1.25;text-align:left;}
+.topo-user-info b{font-size:12.5px;font-weight:700;color:var(--text-primary);}
+.topo-user-info small{font-size:10px;color:var(--text-muted);}
+.topo-menu{position:absolute;top:52px;right:16px;min-width:215px;padding:6px;z-index:400;
+  background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sombra-painel);}
+.topo-menu .tm-cab{font-size:13px;font-weight:700;color:var(--text-primary);padding:9px 12px 10px;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.topo-menu button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;text-align:left;
+  padding:9px 12px;border-radius:8px;color:var(--text-primary);font-size:13px;font-family:var(--font-sans);cursor:pointer;}
+.topo-menu button:hover{background:var(--veu-medio);}
+.topo-menu button svg{width:16px;height:16px;color:var(--text-secondary);flex-shrink:0;}
+.topo-menu .tm-sep{height:1px;background:var(--border);margin:4px 0;}
+
+/* Seletor do espaço de trabalho na barra lateral */
+.sb-espaco{display:flex;align-items:center;gap:9px;width:calc(100% - 16px);margin:10px 8px 0;padding:9px 12px;
+  background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;
+  color:var(--text-primary);font-size:13px;font-weight:600;font-family:var(--font-sans);}
+.sb-espaco svg{width:16px;height:16px;color:var(--text-muted);flex-shrink:0;}
+.sb-espaco .updown{margin-left:auto;width:14px;height:14px;}
+body.menu-oculto .sb-espaco{display:none;}
 
 /* No claro, o avatar da tabela de clientes vira disco azul-claro com a inicial
    escura — o disco escuro do tema escuro parecia um borrão sobre branco. Os
@@ -1431,7 +1454,6 @@ body.menu-oculto .sidebar-user{justify-content:center;padding-left:0;padding-rig
 body.menu-oculto .sidebar-inbox{
   justify-content:center;padding:0;min-height:42px;position:relative;margin-bottom:10px;
   border-radius:999px;}
-body.menu-oculto .sidebar-inbox::after{display:none;}
 body.menu-oculto .sb-inbox-badge{
   position:absolute;top:-5px;right:-5px;min-width:17px;height:17px;line-height:17px;
   padding:0 4px;font-size:9.5px;box-shadow:0 0 0 2px #0d1220;}
@@ -2127,12 +2149,35 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 </head>
 <body>
 
+<!-- O pássaro da marca, desenhado uma vez e usado por referência (use). É uma
+     recriação em SVG da arte enviada — quando o arquivo original da logo for
+     anexado ao projeto, basta trocar este símbolo. -->
+<svg width="0" height="0" style="position:absolute;" aria-hidden="true"><defs>
+<linearGradient id="lo-v1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ef5348"/><stop offset=".55" stop-color="#c62828"/><stop offset="1" stop-color="#8f1512"/></linearGradient>
+<linearGradient id="lo-v2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e53935"/><stop offset="1" stop-color="#7f1010"/></linearGradient>
+<linearGradient id="lo-v3" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#b71c1c"/><stop offset="1" stop-color="#ff6f60"/></linearGradient>
+<symbol id="lo-passaro" viewBox="0 0 210 210">
+  <path fill="url(#lo-v3)" d="M108 88 C82 44 52 18 18 6 C48 44 72 70 92 84Z"/>
+  <path fill="url(#lo-v2)" d="M104 96 C70 64 36 48 8 46 C40 74 72 92 96 98Z"/>
+  <path fill="url(#lo-v1)" d="M102 110 C68 92 38 88 14 94 C44 112 78 118 98 114Z"/>
+  <path fill="url(#lo-v2)" d="M84 142 C66 168 52 184 40 196 C68 182 90 162 100 148Z"/>
+  <path fill="url(#lo-v3)" d="M76 136 C56 154 40 164 26 172 C54 166 76 152 88 142Z"/>
+  <path fill="url(#lo-v1)" d="M96 60 C128 48 152 64 156 86 C160 108 146 130 118 144 C100 152 84 150 76 146 C90 126 90 100 92 78Z"/>
+  <path fill="url(#lo-v2)" d="M116 48 C112 26 104 16 98 12 C120 16 132 32 130 46Z"/>
+  <path fill="url(#lo-v3)" d="M132 44 C136 26 132 14 128 8 C146 18 148 36 142 46Z"/>
+  <path fill="url(#lo-v1)" d="M104 54 C120 38 146 40 158 54 C168 66 166 80 154 88 C136 96 116 92 106 82 C100 70 100 62 104 54Z"/>
+  <path fill="url(#lo-v2)" d="M160 58 L186 68 L158 78 C163 70 163 64 160 58Z"/>
+  <circle cx="136" cy="62" r="10" fill="#ffffff"/>
+  <circle cx="136" cy="62" r="5.2" fill="url(#lo-v2)"/>
+</symbol>
+</defs></svg>
+
 <div id="splash">
   <div class="lg-tema" role="group" aria-label="Tema do sistema">
     <button type="button" class="lg-tema-b" data-t="light" onclick="escolherTema('light')">☀ Claro</button>
     <button type="button" class="lg-tema-b" data-t="dark" onclick="escolherTema('dark')">☾ Escuro</button>
   </div>
-  <div class="lo-marca" style="font-size:58px;" role="img" aria-label="LiveOps"><span class="lo-live">LIVE</span><span class="lo-ops"><svg class="lo-apert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16 3.95 6.06M14.31 16H2.83m13.79-4-5.74 9.94"/></svg><span>PS</span></span></div>
+  <div class="lo-marca" style="font-size:52px;" role="img" aria-label="LiveOps"><svg class="lo-ave"><use href="#lo-passaro"/></svg><span class="lo-live">LIVE</span><span class="lo-ops"><svg class="lo-apert" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-linecap="round"><circle cx="50" cy="50" r="42" stroke-width="12"/><g stroke-width="9.5"><path d="M87.0 50.0Q69.9 61.5 54.6 55.9"/><path d="M68.5 82.0Q50.0 73.0 47.2 57.0"/><path d="M31.5 82.0Q30.1 61.5 42.6 51.0"/><path d="M13.0 50.0Q30.1 38.5 45.4 44.1"/><path d="M31.5 18.0Q50.0 27.0 52.8 43.0"/><path d="M68.5 18.0Q69.9 38.5 57.4 49.0"/></g></svg><span>PS</span></span></div>
   <div class="lg-tag">LIVE OPERATIONS</div>
   <p class="lg-sub">Entre na sua conta</p>
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
@@ -2243,6 +2288,51 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div id="search-dropdown" style="display:none;position:fixed;top:96px;left:232px;width:340px;max-height:480px;background:var(--bg-card);border:1px solid var(--border-light);border-radius:0 0 var(--radius-lg) var(--radius-lg);box-shadow:0 8px 32px rgba(0,0,0,.45);z-index:400;overflow-y:auto;"></div>
     <!-- MAIN CONTENT -->
     <div class="content-area">
+      <!-- Topo da área de conteúdo: ajuda, sino e o usuário com o menu
+           "Minha Conta", como na referência. -->
+      <div class="topo-app" id="topo-app">
+        <button type="button" class="topo-orb" title="Manual do sistema" onclick="topoAjuda()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.2"/><path d="M9.4 9.2a2.7 2.7 0 0 1 5.2 1c0 1.8-2.6 2.2-2.6 3.6"/><circle cx="12" cy="17.1" r=".4" fill="currentColor"/></svg>
+        </button>
+        <button type="button" class="topo-orb" title="Notificações" onclick="topoNotif()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18.2 15.6V11a6.2 6.2 0 1 0-12.4 0v4.6L4 18h16z"/><path d="M10 21a2.2 2.2 0 0 0 4 0"/></svg>
+          <span class="topo-badge" id="notif-badge-side" style="display:none;">0</span>
+        </button>
+        <div class="topo-user" id="topo-user" onclick="topoMenu(event)" title="Minha conta">
+          <span class="topo-av" id="topo-avatar"></span>
+          <span class="topo-user-info">
+            <b id="topo-nome">—</b>
+            <small id="topo-papel"></small>
+          </span>
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 10 5 5 5-5"/></svg>
+        </div>
+        <div class="topo-menu" id="topo-menu" style="display:none;">
+          <div class="tm-cab">Minha Conta</div>
+          <button type="button" onclick="perfilAbrir()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8.2" r="3.4"/><path d="M5 19.8a7 7 0 0 1 14 0"/></svg>
+            Perfil
+          </button>
+          <button type="button" id="topo-config" onclick="topoConfig()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.5 14.4a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0V20a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9H4a1.8 1.8 0 1 1 0-3.6h.2a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3H9.7a1.5 1.5 0 0 0 .9-1.4V4a1.8 1.8 0 1 1 3.6 0v.2a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6H20a1.5 1.5 0 0 0-1.4.9z"/></svg>
+            Configurações
+          </button>
+          <div class="tm-sep"></div>
+          <button type="button" onclick="doLogout()">Sair</button>
+        </div>
+      </div>
+
+      <!-- PERFIL — os dados de quem está logado -->
+      <div class="modal-overlay" id="perfil-overlay">
+        <div class="modal" style="max-width:380px;text-align:center;">
+          <div id="perfil-avatar" style="display:flex;justify-content:center;margin-bottom:12px;"></div>
+          <h3 id="perfil-nome" style="margin-bottom:2px;"></h3>
+          <p id="perfil-email" style="font-size:12.5px;color:var(--text-secondary);font-family:var(--font-mono);"></p>
+          <p id="perfil-papel" style="font-size:11px;color:var(--text-muted);margin-top:6px;letter-spacing:1.5px;text-transform:uppercase;font-family:var(--font-mono);"></p>
+          <p style="font-size:11.5px;color:var(--text-muted);margin-top:14px;line-height:1.6;">Nome, e-mail e permissões são geridos pelo master em <b>Administrador → Equipe</b>. A senha é trocada no "Esqueci minha senha" da tela de entrada.</p>
+          <button class="btn" style="width:auto;margin:16px auto 0;" onclick="perfilFechar()">Fechar</button>
+        </div>
+      </div>
+
       <div class="content">
 
     <!-- PÁGINA INICIAL -->
@@ -10123,7 +10213,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25d';
+const APP_VERSAO='2026.08.25e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10339,20 +10429,11 @@ function iconeMenu(chave){
    estava liberando outra coisa do que pensava. Agora as duas telas leem daqui,
    e uma aba nova aparece nas permissões no mesmo dia em que aparece no menu. */
 const MENU_ABAS=[
-    /* O Dashboard é a primeira aba de propósito: o buildTabs abre a primeira
-       do menu ao entrar, então ser a primeira é o que o torna a tela de
-       chegada — o resumo antes de qualquer clique. */
-    {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:null},
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
+    {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:null},
     /* Inbox é onde as conversas do WhatsApp vão morar. Enquanto não moram,
        a aba diz isso — tela vazia sem explicação vira chamado. */
     {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'inbox', permLegado:'whatsapp'},
-    {type:'group', id:'grp-tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas', children:[
-      {id:'tarefas',   label:'Tarefas Suplelive'}
-    ]},
-    {type:'group', id:'grp-atendimentos', icon:'atendimentos', label:'Atendimentos', perm:'atendimentos', children:[
-      {id:'atendimentos', label:'Lançamentos'}
-    ]},
     /* Clientes, Pedidos e Acompanhamento saíram de dentro de Vendas e viraram
        abas de primeiro nível: são as três telas mais abertas do dia, e cada
        uma custava dois cliques por estar enterrada num grupo. Os ids
@@ -10362,6 +10443,12 @@ const MENU_ABAS=[
     {id:'clientes', icon:'clientes', label:'Clientes', perm:'clientes', permLegado:'whatsapp'},
     {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'registrovendas', permLegado:'whatsapp'},
     {id:'estoque', icon:'estoque', label:'Estoque', perm:'estoque', permLegado:'admin'},
+    {type:'group', id:'grp-tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas', children:[
+      {id:'tarefas',   label:'Tarefas Suplelive'}
+    ]},
+    {type:'group', id:'grp-atendimentos', icon:'atendimentos', label:'Atendimentos', perm:'atendimentos', children:[
+      {id:'atendimentos', label:'Lançamentos'}
+    ]},
     {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
       {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
       /* "Canceladas" e "Canceladas com NF" saíram do menu: viraram
@@ -10473,15 +10560,23 @@ function buildTabs(){
   const topo=document.createElement('div');
   topo.className='sb-topo';
   topo.innerHTML=`
-    <div class="sb-marca lo-marca" style="font-size:24px;" role="img" aria-label="LiveOps" title="LiveOps"><span class="lo-live">LIVE</span><span class="lo-ops"><svg class="lo-apert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m14.31 8 5.74 9.94M9.69 8h11.48M7.38 12l5.74-9.94M9.69 16 3.95 6.06M14.31 16H2.83m13.79-4-5.74 9.94"/></svg><span>PS</span></span></div>
+    <div class="sb-marca" role="img" aria-label="LiveOps" title="LiveOps"><svg class="sb-ave"><use href="#lo-passaro"/></svg></div>
     <button type="button" class="sb-recolher" id="btn-esconder-menu"
-            title="Esconder menu" aria-label="Esconder menu">☰</button>`;
+            title="Esconder menu" aria-label="Esconder menu"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 6-6 6 6 6"/></svg></button>`;
   nav.appendChild(topo);
   topo.querySelector('#btn-esconder-menu').onclick=()=>alternarMenu();
 
-  if(searchEl) nav.appendChild(searchEl);
+  /* O espaço de trabalho, como na referência. Só existe o suplelive — o
+     seletor é identidade, não escolha. */
+  const espaco=document.createElement('div');
+  espaco.className='sb-espaco';
+  espaco.title='Espaço de trabalho';
+  espaco.innerHTML=`
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4.6 20.6V5a1.4 1.4 0 0 1 1.4-1.4h6.4A1.4 1.4 0 0 1 13.8 5v15.6"/><path d="M13.8 10h4a1.4 1.4 0 0 1 1.4 1.4v9.2"/><path d="M7.4 7.2h1.4M10.6 7.2H12M7.4 10.6h1.4M10.6 10.6H12M7.4 14h1.4M10.6 14H12"/><path d="M3.2 20.6h17.6"/></svg>
+    <span>suplelive</span>
+    <svg class="updown" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8.5 9.5 3.5-3.5 3.5 3.5M8.5 14.5l3.5 3.5 3.5-3.5"/></svg>`;
+  nav.appendChild(espaco);
 
-  // section label
   // Identificação do usuário no alto: avatar, nome e o papel dele
   const idUser=document.createElement('div');
   idUser.className='sidebar-user';
@@ -10493,24 +10588,22 @@ function buildTabs(){
     </div>`;
   nav.appendChild(idUser);
 
-  // No lugar de um rótulo solto, a caixa de entrada — o envelope do topo
-  // passava despercebido, e é por ele que chegam as notificações
-  const lbl=document.createElement('button');
-  lbl.type='button';
-  lbl.className='sidebar-inbox';
-  lbl.title='Caixa de entrada — notificações';
-  lbl.onclick=()=>{ try{ switchTab('notificacoes'); fireTabHooks('notificacoes'); }catch(e){} };
-  lbl.innerHTML=`
-    <span class="sb-inbox-ic">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-        <rect x="2.5" y="4.5" width="19" height="15" rx="3.6"/>
-        <path d="M4 6.8l6.7 5.6a2 2 0 0 0 2.6 0L20 6.8"/>
-        <path d="M4.2 17.6l5.6-5.1M19.8 17.6l-5.6-5.1" opacity="0.75"/>
-      </svg>
-    </span>
-    <span class="sb-inbox-txt">Caixa de entrada</span>
-    <span class="sb-inbox-badge" id="notif-badge-side" style="display:none;">0</span>`;
-  nav.appendChild(lbl);
+  /* A busca global volta ao DOM — a máquina (doSearch, dropdown) sempre
+     existiu, mas o campo se perdeu quando o cabeçalho antigo saiu. Agora ela
+     mora na barra, como na referência. */
+  const busca=document.createElement('div');
+  busca.className='sidebar-search';
+  busca.id='search-bar';
+  busca.innerHTML=`
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="color:var(--text-muted);flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.8-3.8"/></svg>
+    <input id="search-inline" type="text" placeholder="Buscar..." autocomplete="off" oninput="doSearch(this.value)">
+    <button type="button" id="search-clear" onclick="clearSearch()" style="display:none;background:none;border:0;color:var(--text-muted);cursor:pointer;font-size:12px;line-height:1;padding:2px;">✕</button>`;
+  nav.appendChild(busca);
+  if(searchEl && searchEl!==busca) searchEl.remove();
+
+  /* A caixa de entrada saiu da barra: as notificações agora moram no sino do
+     topo, como na referência — o badge continua o mesmo (notif-badge-side). */
+  try{ topoAtualizar(); }catch(e){ console.warn('topoAtualizar:',e); }
 
   function fireTabHooks(id){
     try{ normalizarBuscas(); }catch(e){ console.warn('normalizarBuscas:',e); }
@@ -10942,6 +11035,54 @@ const MANUAL_ABAS=[
 ];
 
 let _iniVista='home';
+
+/* ── Topo: usuário, sino e ajuda ────────────────────────────────────── */
+function topoAtualizar(){
+  const av=document.getElementById('topo-avatar');
+  if(!av || !currentUser) return;
+  av.innerHTML=userAvatarHTML(currentUser,30);
+  document.getElementById('topo-nome').textContent=currentUser.name||'';
+  document.getElementById('topo-papel').textContent=currentUser.master?'Master':'Colaborador';
+  const cfg=document.getElementById('topo-config');
+  if(cfg) cfg.style.display=currentUser.master?'':'none';
+}
+function topoMenu(ev){
+  if(ev) ev.stopPropagation();
+  const m=document.getElementById('topo-menu'); if(!m) return;
+  const abrir=m.style.display==='none';
+  m.style.display=abrir?'block':'none';
+  if(abrir) setTimeout(()=>document.addEventListener('click',_topoFecharMenu,{once:true}),0);
+}
+function _topoFecharMenu(){ const m=document.getElementById('topo-menu'); if(m) m.style.display='none'; }
+function topoNotif(){
+  _topoFecharMenu();
+  switchTab('notificacoes');
+  try{ renderNotifPagina(); }catch(e){}
+}
+function topoAjuda(){
+  _topoFecharMenu();
+  switchTab('inicio');
+  try{ inicioIr('manual'); }catch(e){}
+}
+function topoConfig(){
+  _topoFecharMenu();
+  switchTab('admin');
+  try{ admAbrirSecao(_admSecao); }catch(e){}
+}
+function perfilAbrir(){
+  _topoFecharMenu();
+  if(!currentUser) return;
+  const ov=document.getElementById('perfil-overlay'); if(!ov) return;
+  document.getElementById('perfil-avatar').innerHTML=userAvatarHTML(currentUser,64);
+  document.getElementById('perfil-nome').textContent=currentUser.name||'';
+  let email=''; try{ email=_emailDoUsuario(currentUser.key); }catch(e){}
+  document.getElementById('perfil-email').textContent=email;
+  document.getElementById('perfil-papel').textContent=currentUser.master?'Master':'Colaborador';
+  ov.classList.add('open');
+}
+function perfilFechar(){
+  const ov=document.getElementById('perfil-overlay'); if(ov) ov.classList.remove('open');
+}
 
 /* ══════════ DASHBOARD ══════════
    Tudo aqui é calculado do que a base já sabe — nada é digitado. Os pedidos
@@ -14958,6 +15099,34 @@ function etpCampoItem(i,campo,valor){
   if(campo!=='produto') etpRenderTotais();
 }
 
+/* Sugestões ancoradas no próprio campo. O <datalist> nativo foi embora: o
+   navegador posiciona a lista dele em relação à janela, e dentro de uma área
+   com rolagem ela aparecia longe do campo, migrando pela tela. Esta caixa é
+   filha do campo — aparece exatamente abaixo de onde se digita, sempre. */
+function etpSugerir(inp,i){
+  const cx=inp.parentElement.querySelector('.etp-sug'); if(!cx) return;
+  const termo=String(inp.value||'').trim().toLowerCase();
+  if(termo.length<2){ cx.classList.remove('aberta'); return; }
+  const achados=(appState.produtos||[]).filter(Boolean)
+    .filter(p=>!_acpEhKit(p) && String(p.nome||'').toLowerCase().includes(termo))
+    .slice(0,14);
+  if(!achados.length){ cx.classList.remove('aberta'); return; }
+  cx.innerHTML=achados.map(p=>
+    `<button type="button" onmousedown="etpEscolherProduto(${i},this.textContent)">${_etpEsc(p.nome)}</button>`).join('');
+  const r=inp.getBoundingClientRect();
+  cx.style.left=r.left+'px';
+  cx.style.top=(r.bottom+4)+'px';
+  cx.style.width=r.width+'px';
+  cx.classList.add('aberta');
+}
+function etpFecharSug(inp){
+  setTimeout(()=>{ const cx=inp.parentElement&&inp.parentElement.querySelector('.etp-sug'); if(cx) cx.classList.remove('aberta'); },140);
+}
+function etpEscolherProduto(i,nome){
+  etpCampoItem(i,'produto',String(nome||'').trim());
+  etpRenderEtapa1();
+}
+
 function etpRenderEtapa1(){
   const a=_etpCompra(); if(!a) return;
   const e=_etpDados(a);
@@ -14979,21 +15148,15 @@ function etpRenderEtapa1(){
     `<div class="etp-linha etp-c1">
       <div><input type="number" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
         oninput="etpCampoItem(${i},'compra',this.value)"></div>
-      <div><input type="text" value="${_etpEsc(it.produto)}" placeholder="Nome do produto" ${trav?'disabled':''}
-        list="etp-lista-produtos" oninput="etpCampoItem(${i},'produto',this.value)"></div>
+      <div class="etp-prod"><input type="text" value="${_etpEsc(it.produto)}" placeholder="Nome do produto" ${trav?'disabled':''}
+        oninput="etpCampoItem(${i},'produto',this.value);etpSugerir(this,${i})"
+        onfocus="etpSugerir(this,${i})" onblur="etpFecharSug(this)"><div class="etp-sug"></div></div>
       <div><input type="text" id="etp-sku-${i}" value="${_etpEsc(it.sku)}" placeholder="do catálogo" readonly></div>
       <div><input type="text" inputmode="decimal" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
         oninput="etpCampoItem(${i},'preco',this.value)"></div>
       <div style="text-align:center;">${trav?'':`<button class="etp-x" title="Remover" onclick="etpRemoverProduto(${i})">×</button>`}</div>
     </div>`).join('')
     || '<div class="etp-lido" style="padding:16px;text-align:center;">Nenhum produto no orçamento. Use "+ Adicionar produto".</div>';
-
-  /* A lista de sugestões sai do catálogo já lido da Base. Sem ela, o nome é
-     digitado à mão e o SKU nunca casa. */
-  let dl=document.getElementById('etp-lista-produtos');
-  if(!dl){ dl=document.createElement('datalist'); dl.id='etp-lista-produtos'; document.body.appendChild(dl); }
-  dl.innerHTML=(appState.produtos||[]).filter(p=>p&&p.nome&&!_acpEhKit(p)).slice(0,600)
-    .map(p=>`<option value="${_etpEsc(p.nome)}">`).join('');
 
   const selo=document.getElementById('etp-selo-1');
   selo.textContent=trav?'🔒 Travado':'🔓 Editável';
