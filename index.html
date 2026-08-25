@@ -1047,7 +1047,8 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
   cursor:pointer;padding:2px 6px;border-radius:6px;}
 .etp-x:hover{color:#f87171;background:rgba(239,68,68,.12);}
 .etp-nota{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.7;margin:8px 2px 0;}
-.etp-confirmar{display:flex;justify-content:flex-end;margin-top:16px;}
+.etp-confirmar{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;}
+.etp-confirmar .etp-voltar-passo{width:auto;}
 .etp-resumo{display:grid;grid-template-columns:1.6fr 1fr 1.4fr;gap:10px;margin-bottom:14px;}
 @media (max-width:900px){.etp-resumo{grid-template-columns:1fr;}}
 .etp-caixa{background:var(--bg-active);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;}
@@ -3128,6 +3129,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             </div>
           </div>
           <div class="etp-confirmar">
+            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(1)">← Voltar para Orçamento</button>
             <button class="btn" id="etp-btn-2" style="width:auto;" onclick="etpConfirmar(2)">Confirmar conferência →</button>
           </div>
         </div>
@@ -3156,6 +3158,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div></div>
           </div>
           <div class="etp-confirmar">
+            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(2)">← Voltar para Conferência</button>
             <button class="btn" id="etp-btn-3" style="width:auto;" onclick="etpConfirmar(3)" disabled>Lançar no estoque</button>
           </div>
         </div>
@@ -10427,7 +10430,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zc';
+const APP_VERSAO='2026.08.25zd';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
