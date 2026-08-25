@@ -17,8 +17,8 @@
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 1
+              "field": "minutes",
+              "minutesInterval": 5
             }
           ]
         }
@@ -29,8 +29,8 @@
         -1100,
         60
       ],
-      "id": "A cada hora (canceladas)",
-      "name": "A cada hora (canceladas)"
+      "id": "A cada 5 min (canceladas)",
+      "name": "A cada 5 min (canceladas)"
     },
     {
       "parameters": {
@@ -299,7 +299,7 @@
         ]
       ]
     },
-    "A cada hora (canceladas)": {
+    "A cada 5 min (canceladas)": {
       "main": [
         [
           {
