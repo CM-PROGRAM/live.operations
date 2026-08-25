@@ -5994,6 +5994,18 @@ function nowTimeStr(){ return new Date().toLocaleTimeString('pt-BR',{hour:'2-dig
 // Carimbo padrão de data+hora para os registros do sistema (criadoEm,
 // concluidoEm, finalizadoEm...) — uma data sozinha, sem hora, não diz quando
 // algo aconteceu de fato.
+/* Nome de gente sempre no mesmo padrão na tela: "CARLOS MAGNO ANDRADE" e
+   "carlos magno andrade" saem como "Carlos Magno Andrade". Só na exibição —
+   o dado gravado fica como veio, para busca e deduplicação não mudarem. */
+function nomeProprio(v){
+  const minus=['da','de','do','das','dos','e','di','del'];
+  return String(v||'').trim().toLowerCase().split(/\s+/).map((p,i)=>{
+    if(!p) return p;
+    if(i>0 && minus.indexOf(p)>=0) return p;
+    return p.charAt(0).toUpperCase()+p.slice(1);
+  }).join(' ');
+}
+
 function _agoraCarimbo(){
   return new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 }
@@ -10355,7 +10367,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25y';
+const APP_VERSAO='2026.08.25z';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11335,7 +11347,7 @@ function renderDashboard(){
   const feed=[];
   pedidos.forEach(p=>{
     const ts=_dashTsDe(p); if(!ts) return;
-    feed.push({ts, tipo:'pedido', nome:String(p.cliente||'Cliente'),
+    feed.push({ts, tipo:'pedido', nome:nomeProprio(String(p.cliente||'Cliente')),
                texto:'Novo pedido <b>'+_pedFmt(Number(p.valor)||0)+'</b>'});
   });
   const porCompra={};
@@ -13339,7 +13351,7 @@ function renderClientes(){
         <td>
           <div class="cli-nome-cel">
             <span class="cli-av" style="background:${e.b};color:${e.c};">${esc(_cliIniciais(l.nome))}</span>
-            <span class="cli-nome-txt">${esc(l.nome||'Sem nome')}</span>
+            <span class="cli-nome-txt">${esc(l.nome?nomeProprio(l.nome):'Sem nome')}</span>
           </div>
         </td>
         <td>
@@ -13371,7 +13383,7 @@ function renderClientes(){
       <td>
         <div class="cli-nome-cel">
           <span class="cli-av">${esc(_cliIniciais(c.nome))}</span>
-          <span class="cli-nome-txt">${esc(c.nome||'Sem nome')}</span>
+          <span class="cli-nome-txt">${esc(c.nome?nomeProprio(c.nome):'Sem nome')}</span>
         </div>
       </td>
       <td>
@@ -14981,7 +14993,7 @@ function _acpVerRender(){
     corpo=`<div class="dv-grid">
         ${campo('caminhao','Transportadora',esc(a.transportadora))}
         ${campo('caixa',T.loja.replace(/ \*$/,''),esc(a.loja))}
-        ${campo('caixa',T.cliente||'Cliente',esc(a.cliente))}
+        ${campo('caixa',T.cliente||'Cliente',esc(a.cliente?nomeProprio(a.cliente):''))}
         ${campo('caixa','Código de Rastreio',rastreioHtml)}
         ${campo('caixa','Status',statusHtml)}
         ${campo('calendario','Previsão de Entrega',a.previsao?_pedDataBR(a.previsao):'Não disponível')}
@@ -16140,11 +16152,11 @@ function _acpCelula(col,a,pode){
     case 'data':
       return `<td style="${mono}">${a.data?_pedDataBR(a.data):_ACP_VAZIO}</td>`;
     case 'cliente':
-      return `<td style="color:var(--text-primary);white-space:normal;max-width:210px;">${a.cliente||_ACP_VAZIO}
+      return `<td style="color:var(--text-primary);white-space:normal;max-width:210px;">${a.cliente?nomeProprio(a.cliente):_ACP_VAZIO}
         ${a.numeroPedido?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">pedido ${a.numeroPedido}</div>`:''}</td>`;
     case 'loja':
       return `<td style="color:var(--text-secondary);white-space:normal;max-width:210px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}
-        ${(_acpTipo!=='devolucao'&&a.cliente)?`<div style="font-size:9.5px;color:var(--text-muted);">${a.cliente}</div>`:''}</td>`;
+        ${(_acpTipo!=='devolucao'&&a.cliente)?`<div style="font-size:9.5px;color:var(--text-muted);">${nomeProprio(a.cliente)}</div>`:''}</td>`;
     case 'transportadora':
       return `<td style="color:var(--text-secondary);">${a.transportadora||_ACP_VAZIO}</td>`;
     case 'rastreio': {
@@ -16334,7 +16346,7 @@ function _estornoRender(){
   if(!cliente){ const m=String(t.observacao||'').match(/Cliente:\s*(.+)/); cliente=m?m[1].trim():''; }
   const pedido=(a&&a.numeroPedido)||((String(t.titulo||'').match(/pedido\s+(\S+)/)||[])[1])||'';
   document.getElementById('estorno-plat').innerHTML=plataforma?`<span class="selo" style="--sc:#3d5a94;--sb:rgba(61,90,148,.12);--sbd:rgba(61,90,148,.4);">${esc(plataforma)}</span>`:'<span style="color:var(--text-muted);">—</span>';
-  document.getElementById('estorno-cliente').textContent=(cliente||'—')+(pedido?(' · pedido '+pedido):'');
+  document.getElementById('estorno-cliente').textContent=(cliente?nomeProprio(cliente):'—')+(pedido?(' · pedido '+pedido):'');
 
   const set=(id2,v)=>{ const el=document.getElementById(id2); if(el){ el.value=v||''; el.disabled=concluida; } };
   set('estorno-sku', t.estornoSku);
@@ -16453,7 +16465,7 @@ function _cancNfRender(){
   const concluida=(t.status==='concluida'||t.status==='finalizada');
 
   document.getElementById('ccard-cliente').textContent=
-    ((r&&r.cliente)||'—')+((r&&r.pedidoBase)?(' · pedido '+r.pedidoBase):'')
+    ((r&&r.cliente)?nomeProprio(r.cliente):'—')+((r&&r.pedidoBase)?(' · pedido '+r.pedidoBase):'')
     +((r&&r.dataPedido)?(' · '+_pedDataBR(r.dataPedido)):'');
   const plat=(r&&r.plataforma)||'';
   document.getElementById('ccard-plat').innerHTML=plat
