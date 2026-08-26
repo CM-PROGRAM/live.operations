@@ -1730,54 +1730,36 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-quadro.atv-area .atv-area-cnt{font-size:10px;font-weight:700;letter-spacing:.3px;
   color:var(--text-secondary);font-family:var(--font-mono);
   background:var(--veu-suave);border:1px solid var(--glass-border);border-radius:999px;padding:3px 12px;margin-top:4px;}
-.bi-quadro{cursor:pointer;justify-content:flex-start;min-height:0;
-  padding:16px 18px;border-radius:12px;gap:8px;}
+/* Cartão da Base: compacto por padrão (só o cabeçalho com título). O
+   conteúdo só existe quando aberto — nada de altura fixa nem espaço em
+   branco reservado. Cada cartão tem o tamanho do que carrega. */
+/* Especificidade .ini-quadro.bi-quadro para vencer as regras base de
+   .ini-quadro (min-height:230px, padding grande, centralizado) que vêm
+   depois na folha — sem isso o cartão fechado voltava a ficar gigante. */
+.ini-quadro.bi-quadro{cursor:pointer;justify-content:flex-start;align-items:stretch;text-align:left;
+  min-height:0;padding:14px 16px;border-radius:12px;gap:0;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
-.bi-quadro .ini-ic{width:30px;height:30px;}
-.bi-quadro .ini-tit{font-size:14.5px;line-height:1.3;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
-  min-height:2.6em;}
-.bi-quadro .ini-sub{max-width:none;width:100%;font-size:12px;text-align:left;white-space:pre-wrap;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;}
-/* Fechado, todo cartão tem a mesma altura: duas linhas de título, três de
-   texto e a linha do ver-mais ficam reservadas mesmo quando sobram. Sem
-   isso o cartão fica do tamanho do que carrega e a grade vira um serrote,
-   porque um procedimento de uma frase convive com outro de vinte passos.
-   Três linhas em vez de quatro para o espaço reservado sobrar menos em
-   quem tem pouco texto. */
-.bi-quadro:not(.aberto) .ini-sub{height:4.65em;}
+.bi-quadro .bi-cab{display:flex;align-items:center;gap:12px;width:100%;}
+.ini-quadro.bi-quadro .ini-ic{width:28px;height:28px;flex-shrink:0;margin:0;opacity:.9;}
+.ini-quadro.bi-quadro .ini-tit{flex:1;font-size:14.5px;line-height:1.25;text-align:left;font-weight:800;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
+.bi-quadro .bi-seta{flex-shrink:0;color:var(--text-muted);font-size:11px;transition:transform .18s ease;}
 .bi-quadro.aberto{cursor:default;}
-.bi-quadro.aberto .ini-sub{display:block;overflow:visible;height:auto;}
-/* Aberto, o título não é cortado: o cartão já cresceu para caber o texto, e
-   reticências no cartão que a pessoa acabou de abrir para ler é o oposto do
-   que ela pediu. */
-.bi-quadro.aberto .ini-tit{display:block;overflow:visible;}
-/* O aviso de que há mais texto era uma linha cinza de 10px, fácil de não
-   ver — e quem não o visse concluiria que o procedimento tem três linhas.
-   Virou pílula. A altura fica reservada mesmo nos cartões curtos, para
-   todos continuarem do mesmo tamanho. */
-.bi-quadro .bi-mais{min-height:24px;display:flex;align-items:center;justify-content:center;}
-/* Espaço da imagem reservado em TODOS os cartões, tenha imagem ou não, para
-   que fechados fiquem todos com a mesma altura do cartão que carrega print.
-   Aberto, cresce livre para mostrar a imagem inteira. */
-.bi-quadro .bi-thumb-slot{margin-top:10px;}
-.bi-quadro:not(.aberto) .bi-thumb-slot{height:150px;display:flex;align-items:center;justify-content:center;overflow:hidden;}
-.bi-quadro.aberto .bi-thumb-slot{height:auto;}
-.bi-thumb{max-width:100%;max-height:150px;border-radius:8px;cursor:zoom-in;border:1px solid var(--glass-border);}
-.bi-quadro.aberto .bi-thumb{max-height:none;}
-.bi-quadro .bi-mais span{font-size:10.5px;font-weight:700;letter-spacing:.3px;color:var(--text-secondary);
-  padding:3px 12px;border:1px solid var(--glass-border);border-radius:999px;background:var(--veu-suave);
-  transition:border-color .15s,color .15s;}
-.bi-quadro:hover .bi-mais span{border-color:rgba(255,255,255,.32);color:var(--text-primary);}
-/* O rodapé estava com link, assinatura e botões disputando a mesma linha e
-   quebrando em qualquer largura. Agora são duas faixas: quem assinou em
-   cima, e embaixo o link de um lado e Editar/Excluir do outro — separados
-   pela largura do cartão, para ninguém clicar em Excluir mirando no link.
-   A linha de cima marca onde o conteúdo termina. */
-.bi-quadro .bi-pe{display:flex;flex-direction:column;gap:9px;width:100%;
-  margin-top:auto;padding-top:11px;border-top:1px solid var(--linha-sutil);}
-.bi-quadro .bi-meta{text-align:center;}
-.bi-quadro .bi-acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+.bi-quadro.aberto .bi-cab{cursor:pointer;}
+.bi-quadro.aberto .bi-seta{transform:rotate(180deg);}
+/* Conteúdo aberto dentro do próprio cartão */
+.bi-conteudo{display:flex;flex-direction:column;gap:12px;width:100%;
+  margin-top:12px;padding-top:12px;border-top:1px solid var(--linha-sutil);}
+.bi-texto{font-size:12.5px;line-height:1.6;color:var(--text-secondary);white-space:pre-wrap;text-align:left;}
+.bi-thumb{max-width:100%;max-height:280px;border-radius:8px;cursor:zoom-in;
+  border:1px solid var(--glass-border);align-self:flex-start;}
+.bi-acoes{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+/* Histórico de alteração dentro do card, no lugar do nome/data soltos */
+.bi-log{background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;padding:9px 12px;}
+.bi-log-tit{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;}
+.bi-log-linha{font-size:11px;color:var(--text-secondary);line-height:1.55;}
+.bi-log-linha b{color:var(--text-primary);font-weight:700;}
 /* Botões dos cartões da Base Conhecimento, coloridos e com presença:
    mídia em verde (vídeo/imagem), editar em azul, excluir em vermelho. */
 .bi-btn-media,.bi-btn-editar,.bi-btn-excluir{
@@ -10485,7 +10467,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zi';
+const APP_VERSAO='2026.08.25zj';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11717,13 +11699,28 @@ function _baseInfoFiltrada(){
 function _biBotaoMidia(it){
   const temVideo=!!(it&&it.link), temImg=!!(it&&it.imagem);
   if(temVideo){
-    const rot = temImg ? '🎬 Ver Vídeo e Imagens' : '🎬 Assistir vídeo';
+    const rot = temImg ? 'Ver Vídeo e Imagens' : 'Assistir vídeo';
     return `<a class="bi-btn-media" href="${_iniEsc(it.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${rot} ↗</a>`;
   }
   if(temImg){
-    return `<button class="bi-btn-media" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')">🖼 Ver Imagens</button>`;
+    return `<button class="bi-btn-media" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')">Ver Imagens</button>`;
   }
   return '';
+}
+
+/* Quem pode editar/excluir: só o criador do card ou o master. porKey é o dono
+   (gravado na criação e nunca trocado na edição); em cadastros antigos sem
+   porKey, cai para o nome de quem assinou. */
+function _biPodeEditar(it){
+  if(!currentUser) return false;
+  if(currentUser.master) return true;
+  return it && (it.porKey ? it.porKey===currentUser.key : it.por===currentUser.name);
+}
+/* Histórico de alteração do card. Cadastros antigos sem log viram uma única
+   linha "Criado por …" a partir do que já estava salvo. */
+function _biHistorico(it){
+  if(it && Array.isArray(it.hist) && it.hist.length) return it.hist;
+  return [{acao:'Criado', por:(it&&it.por)||'', em:(it&&it.em)||''}];
 }
 
 function _baseInfoCardsHtml(){
@@ -11744,30 +11741,34 @@ function _baseInfoCardsHtml(){
   const quadros = lista.map(it=>{
     const aberto = _biAberto===it.id;
     const texto  = it.texto||'';
-    const dobra  = texto.length>170 || texto.split('\n').length>3;
+    const podeEditar = _biPodeEditar(it);
+    const hist = _biHistorico(it);
+    const temMidia = !!(it.link||it.imagem);
     return `
-      <div class="ini-quadro bi-quadro${aberto?' aberto':''}" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
-        <div class="ini-ic">${iconeMenu('baseinfo')}</div>
-        <div class="ini-tit">${_iniEsc(it.titulo)}</div>
-        <div class="ini-sub">${_iniEsc(texto)}</div>
-        <div class="bi-thumb-slot">${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}</div>
-        <div class="bi-mais">${dobra?`<span>${aberto?'ver menos ▴':'ver mais ▾'}</span>`:''}</div>
-        <div class="bi-pe" onclick="event.stopPropagation();">
-          <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
-          ${(it.link||it.imagem||master)?`<div class="bi-acoes">
-            ${_biBotaoMidia(it)}
-            ${master?(_biExcluindo===it.id
-              ?`<span class="bi-adm">
-                  <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
-                  <button class="bi-btn-excluir" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
-                  <button class="bi-btn-editar" onclick="baseInfoExcluirCancelar()">Não</button>
-                </span>`
-              :`<span class="bi-adm">
-                  <button class="bi-btn-editar" onclick="baseInfoEditar('${_iniEsc(it.id)}')">✏ Editar</button>
-                  <button class="bi-btn-excluir" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
-                </span>`):''}
-          </div>`:''}
+      <div class="ini-quadro bi-quadro${aberto?' aberto':''}">
+        <div class="bi-cab" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
+          <span class="ini-ic">${iconeMenu('baseinfo')}</span>
+          <span class="ini-tit">${_iniEsc(it.titulo)}</span>
+          <span class="bi-seta">▾</span>
         </div>
+        ${aberto?`
+        <div class="bi-conteudo" onclick="event.stopPropagation();">
+          ${texto?`<div class="bi-texto">${_iniEsc(texto)}</div>`:''}
+          ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}
+          ${temMidia?`<div class="bi-acoes">${_biBotaoMidia(it)}</div>`:''}
+          <div class="bi-log">
+            <div class="bi-log-tit">Histórico de alteração</div>
+            ${hist.map(hh=>`<div class="bi-log-linha"><b>${_iniEsc(hh.acao||'Criado')}</b> por ${_iniEsc(hh.por||'—')}${hh.em?' · '+_iniEsc(hh.em):''}</div>`).join('')}
+          </div>
+          ${podeEditar?`<div class="bi-acoes">
+            ${_biExcluindo===it.id
+              ?`<span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
+                <button class="bi-btn-excluir" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
+                <button class="bi-btn-editar" onclick="baseInfoExcluirCancelar()">Não</button>`
+              :`<button class="bi-btn-editar" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
+                <button class="bi-btn-excluir" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>`}
+          </div>`:''}
+        </div>`:''}
       </div>`;
   }).join('');
   return `<div class="bi-grade">${quadros}</div>`;
@@ -11930,10 +11931,18 @@ function baseInfoSalvar(){
   const carimbo=new Date().toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
   if(id){
     const it=lista.find(x=>x.id===id);
-    if(it){ it.titulo=titulo; it.texto=texto; it.link=link; it.imagem=imagem; it.em=carimbo; it.por=currentUser.name; }
+    if(it){
+      it.titulo=titulo; it.texto=texto; it.link=link; it.imagem=imagem; it.em=carimbo; it.por=currentUser.name;
+      /* porKey é o DONO: fica com quem criou e não muda na edição, para o
+         controle de "quem pode editar" não passar para o último que mexeu. */
+      if(!it.porKey) it.porKey=currentUser.key;
+      if(!Array.isArray(it.hist)) it.hist=[{acao:'Criado', por:it.por, porKey:it.porKey, em:it.em}];
+      it.hist.push({acao:'Editado', por:currentUser.name, porKey:currentUser.key, em:carimbo});
+    }
   } else {
     lista.unshift({id:'bi_'+Date.now()+'_'+Math.random().toString(36).slice(2,7),
-                   titulo, texto, link, imagem, em:carimbo, por:currentUser.name});
+                   titulo, texto, link, imagem, em:carimbo, por:currentUser.name, porKey:currentUser.key,
+                   hist:[{acao:'Criado', por:currentUser.name, porKey:currentUser.key, em:carimbo}]});
   }
   saveState(appState);
   showToast('Informação salva','success');
