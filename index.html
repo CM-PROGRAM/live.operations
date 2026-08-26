@@ -1534,8 +1534,6 @@ body.menu-oculto .sb-atu-txt{display:none;}
   letter-spacing:-0.03em;margin:0 0 8px;line-height:1.05;}
 .ini-saudacao h2 .ini-nome{background:linear-gradient(100deg,#2563eb,#5b8def);-webkit-background-clip:text;
   background-clip:text;-webkit-text-fill-color:transparent;}
-.ini-wave{display:inline-block;transform-origin:70% 70%;animation:iniAceno 1.8s ease-in-out infinite;}
-@keyframes iniAceno{0%,62%,100%{transform:rotate(0)}15%{transform:rotate(16deg)}30%{transform:rotate(-8deg)}45%{transform:rotate(16deg)}}
 .ini-saudacao p{font-size:15px;color:var(--text-secondary);margin:0;line-height:1.6;}
 :root[data-theme="light"] .ini-eyebrow{color:#2563eb;}
 @media(max-width:560px){.ini-saudacao h2{font-size:32px;}}
@@ -1773,7 +1771,24 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .bi-quadro .bi-pe{display:flex;flex-direction:column;gap:9px;width:100%;
   margin-top:auto;padding-top:11px;border-top:1px solid var(--linha-sutil);}
 .bi-quadro .bi-meta{text-align:center;}
-.bi-quadro .bi-acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;}
+.bi-quadro .bi-acoes{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+/* Botões dos cartões da Base Conhecimento, coloridos e com presença:
+   mídia em verde (vídeo/imagem), editar em azul, excluir em vermelho. */
+.bi-btn-media,.bi-btn-editar,.bi-btn-excluir{
+  display:inline-flex;align-items:center;gap:5px;font-family:var(--font-sans);font-size:11.5px;font-weight:700;
+  padding:6px 14px;border-radius:50px;cursor:pointer;text-decoration:none;border:1px solid transparent;
+  transition:filter .15s,box-shadow .15s,background .15s,color .15s;white-space:nowrap;}
+.bi-btn-media{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 3px 10px rgba(22,163,74,.30);}
+.bi-btn-media:hover{filter:brightness(1.06);box-shadow:0 6px 16px rgba(22,163,74,.42);}
+.bi-btn-editar{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.30);}
+.bi-btn-editar:hover{filter:brightness(1.07);box-shadow:0 6px 16px rgba(37,99,235,.42);}
+.bi-btn-excluir{background:var(--bg-card);color:#ef4444;border-color:rgba(239,68,68,.45);}
+.bi-btn-excluir:hover{background:#ef4444;color:#fff;border-color:#ef4444;}
+.bi-adm{display:inline-flex;align-items:center;gap:8px;}
+/* Página inicial no modo claro: os títulos ganham um azul bonito no lugar do
+   preto padrão — vale para os quadros e para os cabeçalhos das telas internas. */
+:root[data-theme="light"] #inicio-conteudo .ini-tit{color:#1d4ed8;}
+:root[data-theme="light"] #inicio-conteudo .section-title{color:#1d4ed8;}
 .bi-quadro .bi-adm{display:flex;gap:6px;margin-left:auto;}
 
 /* ── Calendário (um só no sistema) ────────────────────────────────
@@ -10464,7 +10479,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zf';
+const APP_VERSAO='2026.08.25zg';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11589,14 +11604,14 @@ function renderInicio(){
   const saud = h<12 ? 'Bom dia' : (h<18 ? 'Boa tarde' : 'Boa noite');
   const dataHoje=new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
   const msg = h<12
-    ? 'Tudo pronto para mais um dia de operação. Escolha por onde começar.'
-    : (h<18 ? 'Bom te ver por aqui. Escolha por onde continuar o dia.'
-            : 'Fechando o dia com organização. Escolha por onde começar.');
+    ? 'Seja bem-vindo! Bora começar o dia produzindo. 🚀'
+    : (h<18 ? 'Seja bem-vindo! Vamos manter o ritmo e produzir. 🚀'
+            : 'Seja bem-vindo! Bora fechar o dia produzindo. 🚀');
   el.innerHTML=`
     <div class="ini-wrap ini-centro">
       <div class="ini-saudacao">
         <span class="ini-eyebrow">${saud} · ${_iniEsc(dataHoje)}</span>
-        <h2>Olá, <span class="ini-nome">${_iniEsc(nome)}</span> <span class="ini-wave">👋</span></h2>
+        <h2>Olá, <span class="ini-nome">${_iniEsc(nome)}</span></h2>
         <p>${_iniEsc(msg)}</p>
       </div>
       <div class="ini-quadros">
@@ -11682,6 +11697,22 @@ function _baseInfoFiltrada(){
   return todas.filter(it=>it && _biNorm([it.titulo,it.texto,it.link,it.por].join(' ')).includes(q));
 }
 
+/* Botão de mídia do cartão, com o rótulo conforme o que ele carrega:
+   só vídeo → "Assistir vídeo"; só imagem → "Ver Imagens"; os dois juntos →
+   "Ver Vídeo e Imagens". Com vídeo, o clique abre o link; sem vídeo mas com
+   imagem, abre a imagem ampliada. */
+function _biBotaoMidia(it){
+  const temVideo=!!(it&&it.link), temImg=!!(it&&it.imagem);
+  if(temVideo){
+    const rot = temImg ? '🎬 Ver Vídeo e Imagens' : '🎬 Assistir vídeo';
+    return `<a class="bi-btn-media" href="${_iniEsc(it.link)}" target="_blank" rel="noopener" onclick="event.stopPropagation();">${rot} ↗</a>`;
+  }
+  if(temImg){
+    return `<button class="bi-btn-media" onclick="event.stopPropagation();baseInfoAmpliar('${_iniEsc(it.id)}')">🖼 Ver Imagens</button>`;
+  }
+  return '';
+}
+
 function _baseInfoCardsHtml(){
   const lista=_baseInfoFiltrada();
   const master=!!(currentUser&&currentUser.master);
@@ -11710,17 +11741,17 @@ function _baseInfoCardsHtml(){
         <div class="bi-mais">${dobra?`<span>${aberto?'ver menos ▴':'ver mais ▾'}</span>`:''}</div>
         <div class="bi-pe" onclick="event.stopPropagation();">
           <span class="bi-meta">${_iniEsc(it.por||'')}${it.em?' · '+_iniEsc(it.em):''}</span>
-          ${(it.link||master)?`<div class="bi-acoes">
-            ${it.link?`<a class="btn-link btn-sm" href="${_iniEsc(it.link)}" target="_blank" rel="noopener">Assistir vídeo ↗</a>`:''}
+          ${(it.link||it.imagem||master)?`<div class="bi-acoes">
+            ${_biBotaoMidia(it)}
             ${master?(_biExcluindo===it.id
-              ?`<span class="bi-adm" style="align-items:center;gap:8px;">
+              ?`<span class="bi-adm">
                   <span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
-                  <button class="btn btn-danger btn-sm" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
-                  <button class="btn btn-ghost btn-sm" onclick="baseInfoExcluirCancelar()">Não</button>
+                  <button class="bi-btn-excluir" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
+                  <button class="bi-btn-editar" onclick="baseInfoExcluirCancelar()">Não</button>
                 </span>`
               :`<span class="bi-adm">
-                  <button class="btn btn-ghost btn-sm" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
-                  <button class="btn btn-danger btn-sm" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
+                  <button class="bi-btn-editar" onclick="baseInfoEditar('${_iniEsc(it.id)}')">✏ Editar</button>
+                  <button class="bi-btn-excluir" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>
                 </span>`):''}
           </div>`:''}
         </div>
