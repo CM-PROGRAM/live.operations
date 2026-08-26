@@ -10467,7 +10467,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zj';
+const APP_VERSAO='2026.08.25zk';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11604,7 +11604,6 @@ function renderInicio(){
   el.innerHTML=`
     <div class="ini-wrap ini-centro">
       <div class="ini-saudacao">
-        <div class="ini-hero-ic">${_iniHeroIcone(h)}</div>
         <span class="ini-eyebrow">${_iniEsc(dataHoje)}</span>
         <h2>${saud}, <span class="ini-nome">${_iniEsc(nome)}</span></h2>
         <p>${_iniEsc(msg)}</p>
