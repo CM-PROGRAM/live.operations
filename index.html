@@ -1536,10 +1536,10 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .ini-hero-ic svg{width:28px;height:28px;}
 .ini-eyebrow{display:inline-block;font-family:var(--font-mono);font-size:11.5px;font-weight:700;
   letter-spacing:1.8px;text-transform:uppercase;color:var(--accent);margin-bottom:12px;}
-.ini-saudacao h2{font-family:var(--font-sans);font-size:42px;font-weight:800;color:var(--text-primary);
+.ini-saudacao h2{font-family:var(--font-sans);font-size:44px;font-weight:800;color:var(--text-primary);
   letter-spacing:-0.03em;margin:0 0 8px;line-height:1.05;}
-.ini-saudacao h2 .ini-nome{background:linear-gradient(100deg,#2563eb,#5b8def);-webkit-background-clip:text;
-  background-clip:text;-webkit-text-fill-color:transparent;}
+.ini-saudacao h2 .ini-nome{font-size:1.28em;font-weight:900;background:linear-gradient(100deg,#2563eb,#5b8def);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
 .ini-saudacao p{font-size:15px;color:var(--text-secondary);margin:0;line-height:1.6;}
 :root[data-theme="light"] .ini-eyebrow{color:#2563eb;}
 @media(max-width:560px){.ini-saudacao h2{font-size:32px;}}
@@ -10485,7 +10485,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zh';
+const APP_VERSAO='2026.08.25zi';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11599,17 +11599,10 @@ function renderDashboard(){
   </div>`;
 }
 
-/* Ícone de linha do momento do dia — estático, moderno, na cor do selo.
-   Manhã: nascer do sol · Tarde: sol · Noite: lua. */
-function _iniHeroIcone(h){
-  const s='fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"';
-  if(h<12){
-    return `<svg viewBox="0 0 24 24" ${s}><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>`;
-  }
-  if(h<18){
-    return `<svg viewBox="0 0 24 24" ${s}><circle cx="12" cy="12" r="4.5"/><line x1="12" y1="1.5" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22.5"/><line x1="1.5" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22.5" y2="12"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></svg>`;
-  }
-  return `<svg viewBox="0 0 24 24" ${s}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
+/* Símbolo de boas-vindas: uma mão dando joia (thumbs up), em ícone cheio —
+   mais "real" que um traço e sem cara de emoji. Igual em qualquer horário. */
+function _iniHeroIcone(_h){
+  return `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 21h4V9H2v12zm20-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L13.17 1 6.59 7.59C6.22 7.95 6 8.45 6 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z"/></svg>`;
 }
 
 function renderInicio(){
@@ -11793,7 +11786,22 @@ function baseInfoAlternar(id){
    cursor do campo — a pessoa digitaria uma letra e perderia o foco. */
 function _baseInfoRenderLista(){
   const box=document.getElementById('bi-lista');
-  if(box) box.innerHTML=_baseInfoCardsHtml(); else renderBaseInfo();
+  if(box){ box.innerHTML=_baseInfoCardsHtml(); _biAjustarTitulos(); } else renderBaseInfo();
+}
+
+/* Título que não cabe em duas linhas encolhe um pouco a fonte até caber, em
+   vez de ser cortado com reticências. Piso de 11px para não ficar ilegível. */
+function _biAjustarTitulos(){
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('#bi-lista .bi-quadro .ini-tit').forEach(t=>{
+      t.style.fontSize='';
+      let fs=parseFloat(getComputedStyle(t).fontSize)||14.5;
+      let guarda=0;
+      while(t.scrollHeight>t.clientHeight+1 && fs>11 && guarda<24){
+        fs-=0.5; t.style.fontSize=fs+'px'; guarda++;
+      }
+    });
+  });
 }
 function baseInfoBuscar(v){ _biBusca=v||''; _baseInfoRenderLista(); }
 function baseInfoLimparBusca(){
@@ -11855,6 +11863,7 @@ function renderBaseInfo(){
      não passa por aqui — sem esta chamada o campo ficaria com desenho
      diferente de todos os outros do sistema. */
   try{ normalizarBuscas(el); }catch(e){}
+  _biAjustarTitulos();
 }
 
 /* Imagem que está sendo anexada no formulário. Fica fora do campo porque
