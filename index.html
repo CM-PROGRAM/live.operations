@@ -6184,14 +6184,24 @@ function patchUsers(s){
     carlosred:{name:'Carlos Red', email:'carlos@suplelive.com.br',    passHash:'8cf2eb6a883484baf2ead0f4bbb032cfbf5f50e105e413d514c7ddfc73bb083c', master:false, color:'#ef4444', initials:'CR', perms:['whatsapp','devolucoes','tarefas','cnpjs']},
   };
   Object.entries(CORE).forEach(([key,def])=>{
-    if(!s.users[key]) s.users[key]={...def};
+    const novo = !s.users[key];
+    if(novo) s.users[key]={...def, perms:def.perms.slice()};
     // Always enforce color and initials
     s.users[key].color    = def.color;
     s.users[key].initials = def.initials;
     // O endereço de acesso é fixo: é ele que decide em qual conta a senha vale
     s.users[key].email    = def.email;
-    // Ensure required perms present
-    def.perms.forEach(p=>{ if(!s.users[key].perms) s.users[key].perms=[]; if(!s.users[key].perms.includes(p)) s.users[key].perms.push(p); });
+    /* As permissões padrão são semente, não regra: só entram quando o usuário
+       é criado agora. Reforçá-las a cada sincronização desfazia as escolhas do
+       master — ele tirava uma aba do Gustavo e ela voltava sozinha na próxima
+       leitura da nuvem. Quem já existe mantém exatamente o que o master
+       definiu. (O master enxerga tudo pela flag master, então não fica
+       trancado do lado de fora por isso.) */
+    if(novo){
+      def.perms.forEach(p=>{ if(!s.users[key].perms) s.users[key].perms=[]; if(!s.users[key].perms.includes(p)) s.users[key].perms.push(p); });
+    } else if(!Array.isArray(s.users[key].perms)){
+      s.users[key].perms=[];
+    }
   });
   return s;
 }
@@ -9322,6 +9332,9 @@ function startFirebaseSync(){
     try{ logSincronizarSnapshot(appState); }catch(e){}
     saveLocal(appState);
     renderAll();
+    // Se as MINHAS permissões mudaram (o master liberou/tirou uma aba), a
+    // barra lateral se reconstrói na hora, sem deslogar.
+    try{ _aplicarPermissoesNaBarra(); }catch(e){ console.warn('[abas] sync:',e); }
     console.log('[SYNC] re-renderizado com sucesso');
 
     const adminTab = document.getElementById('tab-admin');
@@ -9345,7 +9358,7 @@ function startLocalSync(){
   _localSyncStarted = true;
   // Fallback para localStorage (mesma máquina)
   window.addEventListener('storage', e => {
-    if(e.key === SK){ appState = loadLocal(); renderAll(); }
+    if(e.key === SK){ appState = loadLocal(); renderAll(); try{ _aplicarPermissoesNaBarra(); }catch(_e){} }
   });
   syncTimer = setInterval(() => {
     // Não sobrescreve se Firebase está ativo (evita conflito de fontes)
@@ -10430,7 +10443,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zd';
+const APP_VERSAO='2026.08.25ze';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10933,6 +10946,46 @@ function buildTabs(){
   try{ _loThemeIcon(); }catch(e){}
 
   const first=nav.querySelector('.tab-btn[data-tab]');if(first){switchTab(first.dataset.tab);fireTabHooks(first.dataset.tab);}
+}
+
+/* Rótulo humano de uma permissão, para as mensagens do painel. */
+function _rotuloAba(perm){
+  for(const tb of MENU_ABAS){
+    if(tb.perm===perm) return tb.label;
+    for(const c of (tb.children||[])) if(c.perm===perm) return c.label;
+  }
+  return perm;
+}
+
+/* Reconstrói a barra lateral sem tirar a pessoa da aba onde ela está. A
+   buildTabs redesenha o menu e seleciona a primeira aba; aqui devolvemos o
+   foco para onde estava, se o acesso àquela aba continuar de pé. */
+function _reconstruirBarraPreservandoAba(){
+  const ativo=document.querySelector('.tab-btn.active');
+  const alvo=ativo && ativo.dataset ? ativo.dataset.tab : null;
+  try{ buildTabs(); }catch(e){ console.warn('[abas] rebuild:',e); return; }
+  if(alvo && document.querySelector('.tab-btn[data-tab="'+alvo+'"]')){
+    try{ switchTab(alvo); }catch(e){}
+  }
+}
+
+/* Aplica AO VIVO, na sessão de quem está logado, qualquer mudança nas próprias
+   permissões que tenha chegado pela nuvem — sem deslogar nem recarregar. É o
+   que faz uma aba liberada no Administrador aparecer na hora para o usuário, e
+   uma aba revogada sumir, sem derrubar a sessão de ninguém. Devolve true se
+   algo mudou. */
+function _aplicarPermissoesNaBarra(){
+  if(!currentUser) return false;
+  const u=(appState.users||{})[currentUser.key];
+  if(!u) return false;
+  const antes =JSON.stringify({m:!!currentUser.master, p:(Array.isArray(currentUser.perms)?currentUser.perms:[]).slice().sort()});
+  const agora =JSON.stringify({m:!!u.master,           p:(Array.isArray(u.perms)?u.perms:[]).slice().sort()});
+  if(antes===agora) return false;
+  currentUser.perms  = Array.isArray(u.perms)?u.perms.slice():[];
+  currentUser.master = !!u.master;
+  _reconstruirBarraPreservandoAba();
+  showToast('Suas permissões foram atualizadas','success');
+  return true;
 }
 
 // Navegação para botões de link externo no menu (Base, Financeiro).
@@ -21873,18 +21926,19 @@ function togglePerm(k,perm,granted){
   }
 
   saveState(appState);
-  // Força o usuário afetado a relogar para que as novas permissões entrem em vigor
-  // Se o usuário atual for o afetado, faz logout imediatamente
+  /* Aplica AO VIVO, sem deslogar ninguém. Antes, cada permissão derrubava e
+     recarregava a sessão do usuário afetado — se o reload chegasse antes de a
+     nuvem propagar, a aba liberada nem aparecia, e a experiência era a de
+     "abas sumindo". Agora:
+       · sou eu o afetado (master mexendo em si): a barra se reconstrói aqui;
+       · é outro usuário: a gravação sobe para a nuvem e a sessão dele, ao
+         receber, reconstrói a própria barra sozinha (_aplicarPermissoesNaBarra),
+         mantendo a pessoa na aba em que estava. */
   if(currentUser && currentUser.key===k){
-    showToast(`Permissão atualizada — você será desconectado para aplicar as mudanças`,'warn');
-    setTimeout(()=>doLogout(),1800);
-  } else {
-    // Sinaliza via Firebase para que o usuário remoto seja desconectado
-    if(db && fbConnected){
-      db.ref('suplelive/forceLogout/'+k).set({ts:Date.now(),reason:'perm_change'});
-    }
-    showToast(`Permissão "${perm}" ${granted?'concedida':'revogada'} — ${user.name} deve relogar`,'success');
+    currentUser.perms=Array.isArray(user.perms)?user.perms.slice():[];
+    _reconstruirBarraPreservandoAba();
   }
+  showToast(`Aba "${_rotuloAba(perm)}" ${granted?'liberada':'removida'} para ${user.name}`,'success');
 }
 
 async function addUser(){
