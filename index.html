@@ -10616,7 +10616,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27c';
+const APP_VERSAO='2026.08.27d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -26166,7 +26166,14 @@ function renderAtividades(){
     if(a.origemAteId && dias!==null && dias>0 && a.status!=='concluida' && a.status!=='finalizada') return;
     // Rotina de um dia anterior que ninguém tocou: fica guardada, fora do quadro
     if(_atvRotinaVelhaEscondida(a)) return;
-    const isAtrasada = dias !== null && dias < 0 && a.status !== 'concluida' && a.status !== 'finalizada';
+    /* Tarefa marcada "Com Pendência" fica na coluna Com Pendência MESMO com o
+       prazo vencido — pendenciar é justamente o gesto de dizer "está travada
+       esperando alguém". Antes a regra do atraso engolia a pendência: a pessoa
+       pendenciava e o card ia para Atrasadas, parecendo que o clique não
+       funcionou. Atrasadas fica para o que está vencido SEM ninguém ter dado
+       nenhuma tratativa (status A Fazer). */
+    const isAtrasada = dias !== null && dias < 0
+      && a.status !== 'concluida' && a.status !== 'finalizada' && a.status !== 'andamento';
     const diasLabel=atvDiasLabel(dias,a.status);
 
     // Apply status tab filter — tarefa atrasada vive na coluna "Atrasadas",
