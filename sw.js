@@ -1,4 +1,4 @@
-const CACHE = 'suplelive-v4';
+const CACHE = 'suplelive-v5';
 const ASSETS = ['/live.operations/', '/live.operations/index.html'];
 
 self.addEventListener('install', e => {

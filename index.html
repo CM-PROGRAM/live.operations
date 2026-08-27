@@ -6987,29 +6987,36 @@ function recuperarBaseConhecimento(){
     const dias=Object.keys(snap.val()||{}).sort().reverse();
     if(!dias.length){ diz('Nenhuma cópia de segurança encontrada.','var(--tom-vermelho)'); return; }
 
-    // Vai de dia em dia, do mais novo para o mais velho, até achar cards
-    const tentar=(i)=>{
-      if(i>=dias.length){ diz('Nenhuma cópia tinha cards da Base Conhecimento.','var(--tom-vermelho)'); return; }
-      const dia=dias[i];
-      return db.ref(FB_BACKUPS+'/'+dia+'/estado/baseInfo').once('value').then(s2=>{
+    /* Une TODOS os dias, não só o primeiro que tiver cards: um card criado
+       ontem e outro de semana passada podem viver em cópias diferentes.
+       Para cada id vale a versão mais recente (os dias vêm em ordem
+       decrescente); o que já está na tela hoje nunca é tocado. */
+    const achados=new Map();
+    const varrer=(i)=>{
+      if(i>=dias.length) return Promise.resolve();
+      return db.ref(FB_BACKUPS+'/'+dias[i]+'/estado/baseInfo').once('value').then(s2=>{
         const lista=s2.val();
-        if(!Array.isArray(lista) || !lista.length) return tentar(i+1);
-
-        if(!Array.isArray(appState.baseInfo)) appState.baseInfo=[];
-        const tenho=new Set(appState.baseInfo.filter(Boolean).map(x=>String(x.id)));
-        const voltaram=lista.filter(x=>x && !tenho.has(String(x.id)));
-        if(!voltaram.length){
-          diz('A cópia de '+dia.split('-').reverse().join('/')+' não trouxe nada novo — os cards de lá já estão aqui.');
-          return;
-        }
-        appState.baseInfo=voltaram.concat(appState.baseInfo);
-        saveState(appState);
-        try{ renderBaseInfo(); }catch(e){}
-        diz('✓ '+voltaram.length+' card(s) recuperados da cópia de '+dia.split('-').reverse().join('/')+'.','var(--tom-verde)');
-        showToast('✓ '+voltaram.length+' card(s) da Base Conhecimento recuperados','success');
+        if(Array.isArray(lista)) lista.forEach(x=>{
+          if(x && x.id && !achados.has(String(x.id))) achados.set(String(x.id), x);
+        });
+        return varrer(i+1);
       });
     };
-    return tentar(0);
+    return varrer(0).then(()=>{
+      if(!achados.size){ diz('Nenhuma cópia tinha cards da Base Conhecimento.','var(--tom-vermelho)'); return; }
+      if(!Array.isArray(appState.baseInfo)) appState.baseInfo=[];
+      const tenho=new Set(appState.baseInfo.filter(Boolean).map(x=>String(x.id)));
+      const voltaram=[...achados.values()].filter(x=>!tenho.has(String(x.id)));
+      if(!voltaram.length){
+        diz('As cópias não trouxeram nada novo — todos os cards de lá já estão aqui.');
+        return;
+      }
+      appState.baseInfo=voltaram.concat(appState.baseInfo);
+      saveState(appState);
+      try{ renderBaseInfo(); }catch(e){}
+      diz('✓ '+voltaram.length+' card(s) recuperados, varrendo '+dias.length+' cópia(s).','var(--tom-verde)');
+      showToast('✓ '+voltaram.length+' card(s) da Base Conhecimento recuperados','success');
+    });
   }).catch(err=>diz('Falha: '+err.message,'var(--tom-vermelho)'));
 }
 
@@ -8403,7 +8410,13 @@ const COLECOES_REG={
   /* Leads digitados na tela de Clientes. Vivem numa lista própria — cliente
      de verdade continua nascendo dos pedidos da Base, e misturar os dois
      faria a sincronização apagar o que foi digitado à mão. */
-  leads:         {get:s=>s.leads,                      set:(s,v)=>{s.leads=v;}}
+  leads:         {get:s=>s.leads,                      set:(s,v)=>{s.leads=v;}},
+  /* Cards da Base Conhecimento. Eram a ÚNICA lista que ainda viajava no
+     pacote compartilhado — e sumiram DUAS vezes por isso: qualquer sessão
+     com cópia velha reescrevia o pacote e levava os cards junto, sem
+     ninguém tocar na aba. Aqui cada card é um registro, ausência não é
+     remoção, e apagar é ato explícito de quem clicou em Excluir. */
+  baseInfo:      {get:s=>s.baseInfo,                   set:(s,v)=>{s.baseInfo=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -8717,6 +8730,8 @@ function _agendarRenderRegistros(){
     ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
       .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
     ['canc','cancnf'].forEach(p=>{ try{ renderCanceladas(p); }catch(e){} });
+    // Base Conhecimento só se redesenha se for a vista aberta agora
+    try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
     if(novasTarefas){ try{ saveState(appState); }catch(e){} }
   },250);
 }
@@ -8771,6 +8786,7 @@ function _migrarParaRegistros(){
         try{ renderAll(); }catch(e){}
         ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
           .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+        try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
       }
       return false;
     }
@@ -10585,7 +10601,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26h';
+const APP_VERSAO='2026.08.27a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
