@@ -1771,17 +1771,26 @@ body.menu-oculto .sb-atu-txt{display:none;}
   border:1px solid var(--glass-border);align-self:flex-start;}
 .bi-acoes{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 /* Histórico de alteração dentro do card, no lugar do nome/data soltos */
-.bi-log{background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;padding:9px 12px;}
-.bi-log-tit{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:1px;
-  text-transform:uppercase;color:var(--text-muted);margin-bottom:5px;}
-.bi-log-linha{font-size:11px;color:var(--text-secondary);line-height:1.55;}
+/* Histórico em sanfona: fechado por padrão, abre ao clicar no título. */
+.bi-log{background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:10px;}
+.bi-log>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;padding:10px 13px;
+  font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-muted);border-radius:10px;transition:background .15s,color .15s;}
+.bi-log>summary::-webkit-details-marker{display:none;}
+.bi-log>summary::before{content:'▸';font-size:10px;transition:transform .18s ease;}
+.bi-log[open]>summary::before{transform:rotate(90deg);}
+.bi-log>summary:hover{background:var(--veu-medio);color:var(--text-primary);}
+.bi-log-cont{margin-left:auto;background:var(--veu-medio);border:1px solid var(--linha-sutil);
+  border-radius:999px;padding:1px 8px;font-size:9px;}
+.bi-log-corpo{padding:2px 13px 11px;}
+.bi-log-linha{font-size:11.5px;color:var(--text-secondary);line-height:1.7;}
 .bi-log-linha b{color:var(--text-primary);font-weight:700;}
 /* Botões dos cartões da Base Conhecimento, coloridos e com presença:
    mídia em verde (vídeo/imagem), editar em azul, excluir em vermelho. */
 .bi-btn-media,.bi-btn-editar,.bi-btn-excluir{
-  display:inline-flex;align-items:center;gap:5px;font-family:var(--font-sans);font-size:11.5px;font-weight:700;
-  padding:6px 14px;border-radius:50px;cursor:pointer;text-decoration:none;border:1px solid transparent;
-  transition:filter .15s,box-shadow .15s,background .15s,color .15s;white-space:nowrap;}
+  display:inline-flex;align-items:center;gap:6px;font-family:var(--font-sans);font-size:13.5px;font-weight:700;
+  padding:9px 20px;border-radius:999px;cursor:pointer;text-decoration:none;border:1.5px solid transparent;
+  line-height:1.15;transition:filter .15s,box-shadow .15s,background .15s,color .15s;white-space:nowrap;}
 .bi-btn-media{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 3px 10px rgba(22,163,74,.30);}
 .bi-btn-media:hover{filter:brightness(1.06);box-shadow:0 6px 16px rgba(22,163,74,.42);}
 .bi-btn-editar{background:linear-gradient(135deg,#2563eb,#3b82f6);color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.30);}
@@ -10563,7 +10572,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26b';
+const APP_VERSAO='2026.08.26c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11882,10 +11891,12 @@ function _biPintarModal(){
   corpo.innerHTML=`
     ${it.texto?`<div class="bi-texto">${_iniEsc(it.texto)}</div>`:''}
     ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}
-    <div class="bi-log">
-      <div class="bi-log-tit">Histórico de alteração</div>
-      ${hist.map(hh=>`<div class="bi-log-linha"><b>${_iniEsc(hh.acao||'Criado')}</b> por ${_iniEsc(hh.por||'—')}${hh.em?' · '+_iniEsc(hh.em):''}</div>`).join('')}
-    </div>`;
+    <details class="bi-log">
+      <summary class="bi-log-tit">Histórico de alteração <span class="bi-log-cont">${hist.length}</span></summary>
+      <div class="bi-log-corpo">
+        ${hist.map(hh=>`<div class="bi-log-linha"><b>${_iniEsc(hh.acao||'Criado')}</b> por ${_iniEsc(hh.por||'—')}${hh.em?' · '+_iniEsc(hh.em):''}</div>`).join('')}
+      </div>
+    </details>`;
 
   const podeEditar=_biPodeEditar(it);
   pe.innerHTML=`
