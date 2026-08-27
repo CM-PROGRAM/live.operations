@@ -7008,7 +7008,7 @@ function recuperarBaseConhecimento(){
       });
     };
     return varrer(0).then(()=>{
-      if(!achados.size){ diz('Nenhuma cópia tinha cards da Base Conhecimento.','var(--tom-vermelho)'); return; }
+      if(!achados.size){ diz('Nenhuma cópia tinha cards da Base de Conhecimento.','var(--tom-vermelho)'); return; }
       if(!Array.isArray(appState.baseInfo)) appState.baseInfo=[];
       const tenho=new Set(appState.baseInfo.filter(Boolean).map(x=>String(x.id)));
       const voltaram=[...achados.values()].filter(x=>!tenho.has(String(x.id)));
@@ -7020,7 +7020,7 @@ function recuperarBaseConhecimento(){
       saveState(appState);
       try{ renderBaseInfo(); }catch(e){}
       diz('✓ '+voltaram.length+' card(s) recuperados, varrendo '+dias.length+' cópia(s).','var(--tom-verde)');
-      showToast('✓ '+voltaram.length+' card(s) da Base Conhecimento recuperados','success');
+      showToast('✓ '+voltaram.length+' card(s) da Base de Conhecimento recuperados','success');
     });
   }).catch(err=>diz('Falha: '+err.message,'var(--tom-vermelho)'));
 }
@@ -9156,6 +9156,8 @@ function applyRemoteState(data){
     data.lastReset = todayStr();
   }
   patchUsers(data);
+  // Concessão local mais nova que a da cópia recebida vale — e é regravada
+  try{ if(typeof appState!=='undefined' && appState && appState.users) _protegerPermissoes(data.users, appState.users); }catch(e){ console.warn('[perms]',e); }
   if(!data.weekHistory) data.weekHistory = {};
   if(!data.vendasWpp) data.vendasWpp = {};
   if(!Array.isArray(data.pedidosWpp)) data.pedidosWpp = [];
@@ -10483,7 +10485,13 @@ function doLogin(){
   if(db && fbConnected){
     db.ref(FB_PATH+'/users').once('value').then(snap=>{
       const cloudUsers=snap.val();
-      if(cloudUsers){ appState.users=cloudUsers; }
+      if(cloudUsers){
+        const locais=appState.users;
+        appState.users=cloudUsers;
+        // A cópia deste navegador pode conhecer concessões mais novas que a
+        // nuvem (a nuvem foi revertida por uma sessão velha): elas valem.
+        try{ _protegerPermissoes(appState.users, locais); }catch(e){ console.warn('[perms]',e); }
+      }
       /* A cópia da nuvem pode ser anterior à correção dos e-mails: enquanto
          ninguém tiver entrado e sincronizado, ela ainda traz usuário sem
          endereço. Garantir os quatro aqui é o que impede alguém de ficar
@@ -10608,7 +10616,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27b';
+const APP_VERSAO='2026.08.27c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11786,12 +11794,12 @@ function renderInicio(){
       <div class="ini-quadros">
         <div class="ini-quadro" onclick="inicioIr('baseinfo')">
           <div class="ini-ic">${iconeMenu('baseinfo')}</div>
-          <div class="ini-tit">Base Conhecimento</div>
+          <div class="ini-tit">Base de Conhecimento</div>
           <div class="ini-sub">Os avisos, procedimentos e links que a equipe precisa ter à mão.</div>
         </div>
         <div class="ini-quadro" onclick="inicioIr('manual')">
           <div class="ini-ic">${iconeMenu('manual')}</div>
-          <div class="ini-tit">Manual Sistema</div>
+          <div class="ini-tit">Manual do Sistema</div>
           <div class="ini-sub">Como cada aba funciona e como ela deve ser usada — só as abas que são suas.</div>
         </div>
       </div>
@@ -11824,7 +11832,7 @@ function renderManual(){
   el.innerHTML=`
     <div class="ini-wrap">
       <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
-      <div class="section-header"><span class="section-title">Manual Sistema</span></div>
+      <div class="section-header"><span class="section-title">Manual do Sistema</span></div>
       <p style="font-size:14.5px;color:var(--text-secondary);margin:0 0 20px;line-height:1.65;">
         Estão listadas apenas as abas liberadas para o seu acesso. Clique em cada uma para abrir a explicação.</p>
       ${corpo}
@@ -12040,7 +12048,7 @@ function renderBaseInfo(){
     <div class="ini-wrap bi-wrap">
       <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
       <div class="section-header">
-        <span class="section-title">Base Conhecimento</span>
+        <span class="section-title">Base de Conhecimento</span>
         ${master?`<button class="btn bi-incluir" onclick="baseInfoNovo()">+ Incluir</button>`:''}
       </div>
       <!-- Duas camadas de propósito: o normalizador de buscas transforma o
@@ -22198,8 +22206,60 @@ function toggleAtvArea(key,areaId,checked){
   if(!Array.isArray(user.atvAreasVisiveis)) user.atvAreasVisiveis=_atvAreasPadrao(user);
   if(checked){ if(!user.atvAreasVisiveis.includes(areaId)) user.atvAreasVisiveis.push(areaId); }
   else { user.atvAreasVisiveis=user.atvAreasVisiveis.filter(t=>t!==areaId); }
+  user.permsAtualizadoEm=Date.now();
   saveState(appState);
+  _gravarPermissoesDireto(key);
   renderUsersGrid();
+}
+
+/* Grava o nó de permissões do usuário DIRETO na nuvem, com carimbo de hora.
+   A concessão deixa de depender do diff do pacote: sobe na hora, e o carimbo
+   é o que permite a guarda (_protegerPermissoes) reconhecer e desfazer
+   qualquer regravação feita por uma cópia mais velha. */
+function _gravarPermissoesDireto(k){
+  if(!(db && fbConnected)) return;
+  const u=appState.users[k]; if(!u) return;
+  try{
+    const dados={perms:Array.isArray(u.perms)?u.perms:[], permsAtualizadoEm:u.permsAtualizadoEm||Date.now()};
+    if(u.atvAreasVisiveis!==undefined) dados.atvAreasVisiveis=u.atvAreasVisiveis;
+    db.ref(FB_PATH+'/users/'+k).update(dados);
+  }catch(e){ console.warn('[perms] gravação direta:',e); }
+}
+
+/* A guarda das permissões. Toda cópia de usuários que chega (pacote de outra
+   sessão, leitura do login) passa por aqui: se a cópia local conhece uma
+   concessão MAIS NOVA (carimbo maior), as permissões locais valem — e são
+   regravadas na nuvem, desfazendo automaticamente o estrago da cópia velha.
+   Sem carimbo conta como zero: cópia antiga nunca vence uma concessão nova. */
+function _protegerPermissoes(novos, antigos){
+  antigos = antigos || null;
+  if(!novos || !antigos) return [];
+  const restaurados=[];
+  Object.keys(antigos).forEach(k=>{
+    const a=antigos[k], n=novos[k];
+    if(!a || !n) return;
+    const tsA=Number(a.permsAtualizadoEm||0), tsN=Number(n.permsAtualizadoEm||0);
+    if(tsA<=tsN) return;
+    n.perms=Array.isArray(a.perms)?a.perms.slice():[];
+    if(a.atvAreasVisiveis!==undefined) n.atvAreasVisiveis=JSON.parse(JSON.stringify(a.atvAreasVisiveis));
+    else delete n.atvAreasVisiveis;
+    n.permsAtualizadoEm=tsA;
+    restaurados.push(k);
+  });
+  if(restaurados.length){
+    console.warn('[perms] cópia velha tentou reverter permissões — restauradas:',restaurados.join(', '));
+    if(db && fbConnected){
+      setTimeout(()=>{ restaurados.forEach(k=>{
+        try{
+          const u=novos[k]; if(!u) return;
+          const dados={perms:u.perms, permsAtualizadoEm:u.permsAtualizadoEm};
+          if(u.atvAreasVisiveis!==undefined) dados.atvAreasVisiveis=u.atvAreasVisiveis;
+          db.ref(FB_PATH+'/users/'+k).update(dados);
+        }catch(e){}
+      }); },300);
+    }
+  }
+  return restaurados;
 }
 
 function _atvToggleTriorMenu(){
@@ -22233,6 +22293,7 @@ function togglePerm(k,perm,granted){
   const user=appState.users[k];if(!user||user.master)return;
   if(granted){if(!user.perms.includes(perm))user.perms.push(perm);}
   else user.perms=user.perms.filter(p=>p!==perm);
+  user.permsAtualizadoEm=Date.now();
 
   // Ao conceder/revogar a permissão de uma aba, atribui/remove o usuário como
   // responsável de todas as tarefas dessa aba automaticamente
@@ -22253,6 +22314,7 @@ function togglePerm(k,perm,granted){
   }
 
   saveState(appState);
+  _gravarPermissoesDireto(k);
   /* Aplica AO VIVO, sem deslogar ninguém. Antes, cada permissão derrubava e
      recarregava a sessão do usuário afetado — se o reload chegasse antes de a
      nuvem propagar, a aba liberada nem aparecia, e a experiência era a de
