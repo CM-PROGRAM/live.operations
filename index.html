@@ -1741,17 +1741,33 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
 .bi-quadro .bi-cab{display:flex;align-items:center;gap:12px;width:100%;}
 .ini-quadro.bi-quadro .ini-ic{width:28px;height:28px;flex-shrink:0;margin:0;opacity:.9;}
+/* Duas linhas de título e a faixa dos selos ficam reservadas em todos, para
+   a grade sair alinhada — sem virar aquele bloco vazio de antes. */
 .ini-quadro.bi-quadro .ini-tit{flex:1;font-size:14.5px;line-height:1.25;text-align:left;font-weight:800;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;}
-.bi-quadro .bi-seta{flex-shrink:0;color:var(--text-muted);font-size:11px;transition:transform .18s ease;}
-.bi-quadro.aberto{cursor:default;}
-.bi-quadro.aberto .bi-cab{cursor:pointer;}
-.bi-quadro.aberto .bi-seta{transform:rotate(180deg);}
-/* Conteúdo aberto dentro do próprio cartão */
-.bi-conteudo{display:flex;flex-direction:column;gap:12px;width:100%;
-  margin-top:12px;padding-top:12px;border-top:1px solid var(--linha-sutil);}
-.bi-texto{font-size:12.5px;line-height:1.6;color:var(--text-secondary);white-space:pre-wrap;text-align:left;}
-.bi-thumb{max-width:100%;max-height:280px;border-radius:8px;cursor:zoom-in;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:2.5em;}
+.bi-marcas{min-height:18px;}
+/* Selos do que o card carrega, para saber antes de abrir */
+.bi-marcas{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;padding-left:40px;}
+.bi-marca{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.6px;
+  text-transform:uppercase;color:var(--text-muted);background:var(--veu-suave);
+  border:1px solid var(--linha-sutil);border-radius:999px;padding:2px 9px;}
+/* A janela com as informações do card */
+.modal.bi-modal{width:min(860px,calc(100vw - 80px));max-width:none;max-height:88vh;
+  display:flex;flex-direction:column;padding:0;overflow:hidden;}
+.bi-modal-topo{display:flex;align-items:flex-start;gap:14px;padding:20px 22px 14px;
+  border-bottom:1px solid var(--linha-sutil);}
+.bi-modal-topo h3{flex:1;font-family:var(--font-sans);font-size:19px;font-weight:800;
+  color:var(--text-primary);line-height:1.3;margin:0;}
+:root[data-theme="light"] .bi-modal-topo h3{color:#1d4ed8;}
+.bi-modal-x{flex-shrink:0;background:var(--veu-suave);border:1px solid var(--linha-sutil);
+  border-radius:8px;color:var(--text-secondary);cursor:pointer;font-size:13px;line-height:1;
+  padding:7px 10px;transition:background .15s,color .15s;}
+.bi-modal-x:hover{background:var(--bg-hover);color:var(--text-primary);}
+.bi-modal-corpo{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
+.bi-modal-pe{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  padding:14px 22px;border-top:1px solid var(--linha-sutil);background:var(--veu-suave);}
+.bi-texto{font-size:13.5px;line-height:1.7;color:var(--text-secondary);white-space:pre-wrap;text-align:left;}
+.bi-thumb{max-width:100%;border-radius:10px;cursor:zoom-in;
   border:1px solid var(--glass-border);align-self:flex-start;}
 .bi-acoes{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 /* Histórico de alteração dentro do card, no lugar do nome/data soltos */
@@ -2445,6 +2461,19 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- CANCELADA COM NF — card próprio: analisar e cadastrar como devolução -->
+      <!-- Base Conhecimento: as informações do card abrem aqui, em vez de o
+           próprio cartão crescer e empurrar a grade. -->
+      <div class="modal-overlay" id="bi-modal-overlay" onclick="if(event.target===this) baseInfoFecharModal()">
+        <div class="modal bi-modal">
+          <div class="bi-modal-topo">
+            <h3 id="bi-modal-titulo"></h3>
+            <button type="button" class="bi-modal-x" onclick="baseInfoFecharModal()" title="Fechar" aria-label="Fechar">✕</button>
+          </div>
+          <div class="bi-modal-corpo" id="bi-modal-corpo"></div>
+          <div class="bi-modal-pe" id="bi-modal-pe"></div>
+        </div>
+      </div>
+
       <!-- Confirmação centralizada: o confirm() do navegador abre colado no
            topo da janela e não dá para movê-lo — este modal ocupa o lugar. -->
       <div class="modal-overlay" id="conf-overlay" style="z-index:4000;">
@@ -6103,6 +6132,15 @@ document.addEventListener('keydown',e=>{
   if(!ov || !ov.classList.contains('open')) return;
   if(e.key==='Escape'){ e.preventDefault(); confCancelar(); }
   else if(e.key==='Enter'){ e.preventDefault(); confOk(); }
+});
+/* Esc fecha a janela da Base Conhecimento (só quando a confirmação não está
+   por cima — lá o Esc já tem dono). */
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape') return;
+  const conf=document.getElementById('conf-overlay');
+  if(conf && conf.classList.contains('open')) return;
+  const ov=document.getElementById('bi-modal-overlay');
+  if(ov && ov.classList.contains('open')){ e.preventDefault(); baseInfoFecharModal(); }
 });
 
 function _agoraCarimbo(){
@@ -10525,7 +10563,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26a';
+const APP_VERSAO='2026.08.26b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11795,49 +11833,71 @@ function _baseInfoCardsHtml(){
     return `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
       Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`;
   }
+  /* O cartão não cresce nem vira sanfona: ele é sempre do mesmo tamanho e o
+     clique abre as informações numa janela. Assim a grade nunca se mexe. */
   const quadros = lista.map(it=>{
-    const aberto = _biAberto===it.id;
-    const texto  = it.texto||'';
-    const podeEditar = _biPodeEditar(it);
-    const hist = _biHistorico(it);
     const temMidia = !!(it.link||it.imagem);
     return `
-      <div class="ini-quadro bi-quadro${aberto?' aberto':''}">
-        <div class="bi-cab" onclick="baseInfoAlternar('${_iniEsc(it.id)}')">
+      <div class="ini-quadro bi-quadro" onclick="baseInfoAbrir('${_iniEsc(it.id)}')">
+        <div class="bi-cab">
           <span class="ini-ic">${iconeMenu('baseinfo')}</span>
           <span class="ini-tit">${_iniEsc(it.titulo)}</span>
-          <span class="bi-seta">▾</span>
         </div>
-        ${aberto?`
-        <div class="bi-conteudo" onclick="event.stopPropagation();">
-          ${texto?`<div class="bi-texto">${_iniEsc(texto)}</div>`:''}
-          ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}
-          ${temMidia?`<div class="bi-acoes">${_biBotaoMidia(it)}</div>`:''}
-          <div class="bi-log">
-            <div class="bi-log-tit">Histórico de alteração</div>
-            ${hist.map(hh=>`<div class="bi-log-linha"><b>${_iniEsc(hh.acao||'Criado')}</b> por ${_iniEsc(hh.por||'—')}${hh.em?' · '+_iniEsc(hh.em):''}</div>`).join('')}
-          </div>
-          ${podeEditar?`<div class="bi-acoes">
-            ${_biExcluindo===it.id
-              ?`<span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
-                <button class="bi-btn-excluir" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
-                <button class="bi-btn-editar" onclick="baseInfoExcluirCancelar()">Não</button>`
-              :`<button class="bi-btn-editar" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
-                <button class="bi-btn-excluir" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>`}
-          </div>`:''}
-        </div>`:''}
+        <div class="bi-marcas">${it.link?'<span class="bi-marca">Vídeo</span>':''}${it.imagem?'<span class="bi-marca">Imagem</span>':''}</div>
       </div>`;
   }).join('');
   return `<div class="bi-grade">${quadros}</div>`;
 }
 
-/* Qual quadro está com o texto aberto. Um de cada vez: dois cartões
-   expandidos na mesma linha esticam a linha inteira e empurram o resto da
-   grade para longe. */
+/* Qual card está aberto na janela. O cartão da grade nunca muda de tamanho:
+   clicar nele abre as informações aqui. */
 let _biAberto=null;
-function baseInfoAlternar(id){
-  _biAberto = (_biAberto===id) ? null : id;
-  _baseInfoRenderLista();
+
+function baseInfoAbrir(id){
+  const it=_baseInfoLista().find(x=>x&&x.id===id); if(!it) return;
+  _biAberto=id;
+  _biExcluindo=null;
+  _biPintarModal();
+  const ov=document.getElementById('bi-modal-overlay');
+  if(ov) ov.classList.add('open');
+}
+
+function baseInfoFecharModal(){
+  _biAberto=null; _biExcluindo=null;
+  const ov=document.getElementById('bi-modal-overlay');
+  if(ov) ov.classList.remove('open');
+}
+
+/* Redesenha só o conteúdo da janela — usado ao abrir e quando o pedido de
+   exclusão troca os botões do rodapé. */
+function _biPintarModal(){
+  const it=_baseInfoLista().find(x=>x&&x.id===_biAberto); if(!it) return;
+  const tit=document.getElementById('bi-modal-titulo');
+  const corpo=document.getElementById('bi-modal-corpo');
+  const pe=document.getElementById('bi-modal-pe');
+  if(!tit||!corpo||!pe) return;
+
+  tit.textContent=it.titulo||'';
+  const hist=_biHistorico(it);
+  corpo.innerHTML=`
+    ${it.texto?`<div class="bi-texto">${_iniEsc(it.texto)}</div>`:''}
+    ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}
+    <div class="bi-log">
+      <div class="bi-log-tit">Histórico de alteração</div>
+      ${hist.map(hh=>`<div class="bi-log-linha"><b>${_iniEsc(hh.acao||'Criado')}</b> por ${_iniEsc(hh.por||'—')}${hh.em?' · '+_iniEsc(hh.em):''}</div>`).join('')}
+    </div>`;
+
+  const podeEditar=_biPodeEditar(it);
+  pe.innerHTML=`
+    ${_biBotaoMidia(it)}
+    ${podeEditar?`<span class="bi-acoes" style="margin-left:auto;">
+      ${_biExcluindo===it.id
+        ?`<span style="font-size:12px;color:var(--tom-vermelho);font-weight:700;">excluir?</span>
+          <button class="bi-btn-excluir" onclick="baseInfoExcluirConfirmar('${_iniEsc(it.id)}')">Sim</button>
+          <button class="bi-btn-editar" onclick="baseInfoExcluirCancelar()">Não</button>`
+        :`<button class="bi-btn-editar" onclick="baseInfoEditar('${_iniEsc(it.id)}')">Editar</button>
+          <button class="bi-btn-excluir" onclick="baseInfoExcluir('${_iniEsc(it.id)}')">Excluir</button>`}
+    </span>`:''}`;
 }
 
 /* Redesenha SÓ a lista. Refazer a página inteira a cada tecla tiraria o
@@ -11966,6 +12026,8 @@ function baseInfoCancelar(){
 }
 function baseInfoEditar(id){
   const it=_baseInfoLista().find(x=>x.id===id); if(!it) return;
+  if(!_biPodeEditar(it)) return;
+  baseInfoFecharModal();          // sai da janela para o formulário aparecer
   const f=document.getElementById('bi-form'); if(!f) return;
   f.style.display='block';
   document.getElementById('bi-id').value=it.id;
@@ -12008,18 +12070,26 @@ function baseInfoSalvar(){
 /* Confirmação na própria linha: prompt() e confirm() ficam bloqueados
    em alguns navegadores da equipe, e o clique simplesmente não fazia nada */
 let _biExcluindo=null;
+/* Excluir e editar agora acontecem dentro da janela, e quem pode é o dono do
+   card ou o master — a mesma regra que decide se os botões aparecem. */
 function baseInfoExcluir(id){
-  if(!currentUser||!currentUser.master) return;
+  const it=_baseInfoLista().find(x=>x&&x.id===id);
+  if(!_biPodeEditar(it)) return;
   _biExcluindo=id;
-  _baseInfoRenderLista();
+  if(_biAberto===id) _biPintarModal(); else _baseInfoRenderLista();
 }
-function baseInfoExcluirCancelar(){ _biExcluindo=null; _baseInfoRenderLista(); }
+function baseInfoExcluirCancelar(){
+  _biExcluindo=null;
+  if(_biAberto) _biPintarModal(); else _baseInfoRenderLista();
+}
 function baseInfoExcluirConfirmar(id){
-  if(!currentUser||!currentUser.master) return;
   const lista=_baseInfoLista();
+  const it=lista.find(x=>x&&x.id===id);
+  if(!_biPodeEditar(it)) return;
   const i=lista.findIndex(x=>x.id===id);
   if(i>=0) lista.splice(i,1);
   _biExcluindo=null;
+  baseInfoFecharModal();
   saveState(appState);
   showToast('Informação excluída','success');
   renderBaseInfo();
