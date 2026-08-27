@@ -4504,18 +4504,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           atrás de uma exclusão em massa. Para uma cópia fora da nuvem, use o botão de backup .zip abaixo.
         </div>
         <div id="bkp-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:300px;overflow-y:auto;"></div>
-
-        <!-- Recuperação pontual: traz de volta UMA lista sem reverter o resto -->
-        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);">
-          <div class="admin-title" style="margin-bottom:8px;">🩹 Recuperar só a Base Conhecimento</div>
-          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;line-height:1.6;">
-            Procura nas cópias, da mais recente para a mais antiga, e devolve os cards da Base
-            Conhecimento que estiverem faltando. Nada mais é alterado — tarefas, devoluções e o
-            resto do sistema continuam como estão agora.
-          </div>
-          <button class="btn btn-sm" style="width:auto;" onclick="recuperarBaseConhecimento()">↩ Recuperar cards da Base</button>
-          <div id="bkp-rec-msg" style="margin-top:9px;font-size:11.5px;font-family:var(--font-mono);color:var(--text-secondary);"></div>
-        </div>
       </div>
 
       <!-- ARQUIVO — tudo que foi excluído, nunca some de verdade -->
@@ -6976,6 +6964,23 @@ function restaurarBackup(dia){
    existe hoje é preservado, então rodar duas vezes não duplica nem apaga.
    As imagens dos cards sobrevivem: o varredor que limpa imagens do backup
    não passa por baseInfo. */
+/* Auto-cura da Base Conhecimento: se a lista amanhecer vazia (o rastro que
+   uma sessão antiga deixava), o próprio sistema traz os cards de volta dos
+   backups — sem botão e sem passo manual. Roda na sessão do master, uma vez
+   por dia por navegador; quando está tudo em ordem, não faz nada. */
+function _autoRecuperarBaseInfo(){
+  if(!currentUser || !currentUser.master) return;
+  if(!(db && fbConnected) || !_recebeuNuvem) return;
+  if(Array.isArray(appState.baseInfo) && appState.baseInfo.length) return;
+  try{
+    const k='liveops_autorec_baseinfo';
+    if(localStorage.getItem(k)===_hojeISO()) return;
+    localStorage.setItem(k,_hojeISO());
+  }catch(e){}
+  console.warn('[baseinfo] lista vazia — recuperando dos backups automaticamente');
+  recuperarBaseConhecimento();
+}
+
 function recuperarBaseConhecimento(){
   const msg=document.getElementById('bkp-rec-msg');
   const diz=(t,cor)=>{ if(msg){ msg.textContent=t; msg.style.color=cor||'var(--text-secondary)'; } };
@@ -10538,6 +10543,8 @@ function initApp(){
   // Cópia diária automática — roda um pouco depois, para não competir com
   // o carregamento inicial dos dados
   setTimeout(()=>{ try{ verificarBackupAutomatico(); }catch(e){ console.warn('[backup]',e); } }, 6000);
+  // Auto-cura da Base Conhecimento: roda depois que a sincronização assentou
+  setTimeout(()=>{ try{ _autoRecuperarBaseInfo(); }catch(e){ console.warn('[baseinfo]',e); } }, 15000);
   try{ registerPresence(); }catch(e){ console.warn('[presenca]',e); }
 }
 
@@ -10601,7 +10608,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27a';
+const APP_VERSAO='2026.08.27b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -10763,9 +10770,43 @@ function verificarVersaoPublicada(noLogin){
       _recarregarParaVersaoNova();
       return true;
     }
+    /* Sessão aberta há dias era o buraco: a barra aparecia e ninguém clicava,
+       e a máquina velha seguia regravando por cima do trabalho dos outros —
+       permissões caindo, tarefa voltando de situação, card sumindo. Agora a
+       sessão parada se atualiza SOZINHA assim que for seguro: aba em segundo
+       plano, ou ninguém digitando e nenhuma janela aberta. No meio de uma
+       digitação, a barra continua sendo o aviso. */
+    if(!noLogin && _podeRecarregarSozinho() && !_recarregouHaPouco(nova)){
+      console.log('[versao] rodando',APP_VERSAO,'· publicada',nova,'— sessão ociosa, atualizando sozinha');
+      _recarregarParaVersaoNova();
+      return true;
+    }
     _mostrarBarraVersao(nova);
     return true;
   });
+}
+
+function _podeRecarregarSozinho(){
+  try{
+    if(document.hidden) return true;              // aba em segundo plano
+    const a=document.activeElement;
+    if(a && (a.tagName==='INPUT'||a.tagName==='TEXTAREA'||a.isContentEditable)) return false;
+    if(document.querySelector('.modal-overlay.open')) return false;   // janela aberta
+    return true;
+  }catch(e){ return false; }
+}
+
+/* Um recarregamento por versão a cada 10 minutos, no máximo: se a publicação
+   estiver pela metade (versao.json novo, index ainda velho), a sessão não
+   entra em laço de reload. */
+function _recarregouHaPouco(nova){
+  try{
+    const k='liveops_auto_reload_'+nova;
+    const ts=Number(localStorage.getItem(k)||0);
+    if(Date.now()-ts < 10*60*1000) return true;
+    localStorage.setItem(k,String(Date.now()));
+    return false;
+  }catch(e){ return false; }
 }
 
 /* Ícones do menu lateral. Eram emojis, e emoji é uma imagem colorida: não
