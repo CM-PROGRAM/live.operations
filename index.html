@@ -4453,6 +4453,18 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           atrás de uma exclusão em massa. Para uma cópia fora da nuvem, use o botão de backup .zip abaixo.
         </div>
         <div id="bkp-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:300px;overflow-y:auto;"></div>
+
+        <!-- Recuperação pontual: traz de volta UMA lista sem reverter o resto -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-light);">
+          <div class="admin-title" style="margin-bottom:8px;">🩹 Recuperar só a Base Conhecimento</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;line-height:1.6;">
+            Procura nas cópias, da mais recente para a mais antiga, e devolve os cards da Base
+            Conhecimento que estiverem faltando. Nada mais é alterado — tarefas, devoluções e o
+            resto do sistema continuam como estão agora.
+          </div>
+          <button class="btn btn-sm" style="width:auto;" onclick="recuperarBaseConhecimento()">↩ Recuperar cards da Base</button>
+          <div id="bkp-rec-msg" style="margin-top:9px;font-size:11.5px;font-family:var(--font-mono);color:var(--text-secondary);"></div>
+        </div>
       </div>
 
       <!-- ARQUIVO — tudo que foi excluído, nunca some de verdade -->
@@ -6893,6 +6905,52 @@ function restaurarBackup(dia){
     ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas','renderAll']
       .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
   }).catch(err=>showToast('Falha ao restaurar: '+err.message,'error'));
+}
+
+/* Recuperação pontual da Base Conhecimento.
+
+   Restaurar a cópia inteira devolveria junto tarefas, devoluções e tudo mais
+   daquele dia — jogaria fora o trabalho feito desde então. Aqui só a lista
+   baseInfo volta: as cópias são varridas da mais recente para a mais antiga
+   até achar uma que tenha cards, e os que faltam são recolocados. O que já
+   existe hoje é preservado, então rodar duas vezes não duplica nem apaga.
+   As imagens dos cards sobrevivem: o varredor que limpa imagens do backup
+   não passa por baseInfo. */
+function recuperarBaseConhecimento(){
+  const msg=document.getElementById('bkp-rec-msg');
+  const diz=(t,cor)=>{ if(msg){ msg.textContent=t; msg.style.color=cor||'var(--text-secondary)'; } };
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
+  if(!(db && fbConnected)){ diz('Sem conexão com a nuvem.','var(--tom-vermelho)'); return; }
+  diz('Procurando nas cópias…');
+
+  db.ref(FB_BACKUPS_IDX).once('value').then(snap=>{
+    const dias=Object.keys(snap.val()||{}).sort().reverse();
+    if(!dias.length){ diz('Nenhuma cópia de segurança encontrada.','var(--tom-vermelho)'); return; }
+
+    // Vai de dia em dia, do mais novo para o mais velho, até achar cards
+    const tentar=(i)=>{
+      if(i>=dias.length){ diz('Nenhuma cópia tinha cards da Base Conhecimento.','var(--tom-vermelho)'); return; }
+      const dia=dias[i];
+      return db.ref(FB_BACKUPS+'/'+dia+'/estado/baseInfo').once('value').then(s2=>{
+        const lista=s2.val();
+        if(!Array.isArray(lista) || !lista.length) return tentar(i+1);
+
+        if(!Array.isArray(appState.baseInfo)) appState.baseInfo=[];
+        const tenho=new Set(appState.baseInfo.filter(Boolean).map(x=>String(x.id)));
+        const voltaram=lista.filter(x=>x && !tenho.has(String(x.id)));
+        if(!voltaram.length){
+          diz('A cópia de '+dia.split('-').reverse().join('/')+' não trouxe nada novo — os cards de lá já estão aqui.');
+          return;
+        }
+        appState.baseInfo=voltaram.concat(appState.baseInfo);
+        saveState(appState);
+        try{ renderBaseInfo(); }catch(e){}
+        diz('✓ '+voltaram.length+' card(s) recuperados da cópia de '+dia.split('-').reverse().join('/')+'.','var(--tom-verde)');
+        showToast('✓ '+voltaram.length+' card(s) da Base Conhecimento recuperados','success');
+      });
+    };
+    return tentar(0);
+  }).catch(err=>diz('Falha: '+err.message,'var(--tom-vermelho)'));
 }
 
 // Lembrete de baixar a cópia externa (o .zip), que é a que sobrevive a
@@ -10467,7 +10525,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.25zk';
+const APP_VERSAO='2026.08.26a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
