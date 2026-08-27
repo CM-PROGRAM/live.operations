@@ -1747,15 +1747,15 @@ body.menu-oculto .sb-atu-txt{display:none;}
    a grade sair alinhada — sem virar aquele bloco vazio de antes. */
 .ini-quadro.bi-quadro .ini-tit{width:100%;font-size:16px;line-height:1.3;text-align:center;font-weight:800;
   display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:2.6em;}
-.bi-marcas{min-height:20px;justify-content:center;padding-left:0;margin-top:14px;}
-/* Selos do que o card carrega, para saber antes de abrir */
-.bi-marcas{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;padding-left:40px;}
-.bi-marca{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.6px;
-  text-transform:uppercase;color:var(--text-muted);background:var(--veu-suave);
-  border:1px solid var(--linha-sutil);border-radius:999px;padding:2px 9px;}
-/* A janela com as informações do card */
-.modal.bi-modal{width:min(860px,calc(100vw - 80px));max-width:none;max-height:88vh;
+/* Faixa do botão de mídia no cartão fechado. A altura fica reservada mesmo
+   sem botão, para a grade continuar com todos os cartões iguais. */
+.bi-card-acao{min-height:40px;margin-top:14px;display:flex;align-items:center;justify-content:center;width:100%;}
+/* A janela com as informações do card — grande, ocupando o miolo da tela,
+   como o quadro de referência. */
+.modal.bi-modal{width:min(1100px,calc(100vw - 320px));max-width:none;
+  height:min(700px,calc(100vh - 170px));max-height:none;
   display:flex;flex-direction:column;padding:0;overflow:hidden;}
+@media(max-width:900px){.modal.bi-modal{width:calc(100vw - 40px);height:calc(100vh - 80px);}}
 .bi-modal-topo{display:flex;align-items:flex-start;gap:14px;padding:20px 22px 14px;
   border-bottom:1px solid var(--linha-sutil);}
 .bi-modal-topo h3{flex:1;font-family:var(--font-sans);font-size:19px;font-weight:800;
@@ -1765,7 +1765,9 @@ body.menu-oculto .sb-atu-txt{display:none;}
   border-radius:8px;color:var(--text-secondary);cursor:pointer;font-size:13px;line-height:1;
   padding:7px 10px;transition:background .15s,color .15s;}
 .bi-modal-x:hover{background:var(--bg-hover);color:var(--text-primary);}
-.bi-modal-corpo{flex:1;overflow-y:auto;padding:18px 22px;display:flex;flex-direction:column;gap:14px;}
+.bi-modal-corpo{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:18px;}
+.bi-rotulo{font-family:var(--font-mono);font-size:9.5px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--text-muted);margin-bottom:7px;}
 .bi-modal-pe{display:flex;align-items:center;gap:10px;flex-wrap:wrap;
   padding:14px 22px;border-top:1px solid var(--linha-sutil);background:var(--veu-suave);}
 .bi-texto{font-size:13.5px;line-height:1.7;color:var(--text-secondary);white-space:pre-wrap;text-align:left;}
@@ -10574,7 +10576,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26e';
+const APP_VERSAO='2026.08.26f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11844,17 +11846,17 @@ function _baseInfoCardsHtml(){
     return `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
       Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`;
   }
-  /* O cartão não cresce nem vira sanfona: ele é sempre do mesmo tamanho e o
-     clique abre as informações numa janela. Assim a grade nunca se mexe. */
+  /* O cartão da grade carrega só título e o botão de mídia; o resto —
+     descrição, histórico, editar/excluir — vive na janela que o clique abre.
+     Todos do mesmo tamanho, sempre. */
   const quadros = lista.map(it=>{
-    const temMidia = !!(it.link||it.imagem);
     return `
       <div class="ini-quadro bi-quadro" onclick="baseInfoAbrir('${_iniEsc(it.id)}')">
         <div class="bi-cab">
           <span class="ini-ic">${iconeMenu('baseinfo')}</span>
           <span class="ini-tit">${_iniEsc(it.titulo)}</span>
         </div>
-        <div class="bi-marcas">${it.link?'<span class="bi-marca">Vídeo</span>':''}${it.imagem?'<span class="bi-marca">Imagem</span>':''}</div>
+        <div class="bi-card-acao">${_biBotaoMidia(it)}</div>
       </div>`;
   }).join('');
   return `<div class="bi-grade">${quadros}</div>`;
@@ -11891,8 +11893,16 @@ function _biPintarModal(){
   tit.textContent=it.titulo||'';
   const hist=_biHistorico(it);
   corpo.innerHTML=`
-    ${it.texto?`<div class="bi-texto">${_iniEsc(it.texto)}</div>`:''}
-    ${it.imagem?`<img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="baseInfoAmpliar('${_iniEsc(it.id)}')">`:''}
+    <div>
+      <div class="bi-rotulo">Descrição</div>
+      ${it.texto
+        ? `<div class="bi-texto">${_iniEsc(it.texto)}</div>`
+        : `<div class="bi-texto" style="color:var(--text-muted);font-style:italic;">Sem descrição cadastrada${_biPodeEditar(it)?' — use o Editar para escrever o passo a passo.':'.'}</div>`}
+    </div>
+    ${it.imagem?`<div>
+      <div class="bi-rotulo">Imagem</div>
+      <img class="bi-thumb" src="${_iniEsc(it.imagem)}" alt="imagem anexada" onclick="baseInfoAmpliar('${_iniEsc(it.id)}')">
+    </div>`:''}
     <details class="bi-log">
       <summary class="bi-log-tit">Histórico de alteração <span class="bi-log-cont">${hist.length}</span></summary>
       <div class="bi-log-corpo">
