@@ -1736,16 +1736,18 @@ body.menu-oculto .sb-atu-txt{display:none;}
 /* Especificidade .ini-quadro.bi-quadro para vencer as regras base de
    .ini-quadro (min-height:230px, padding grande, centralizado) que vêm
    depois na folha — sem isso o cartão fechado voltava a ficar gigante. */
-.ini-quadro.bi-quadro{cursor:pointer;justify-content:flex-start;align-items:stretch;text-align:left;
-  min-height:0;padding:14px 16px;border-radius:12px;gap:0;}
+/* Tamanho padrão do cartão: corpo suficiente para ter presença na grade,
+   sem virar o bloco de 300px com metade vazia. Todos iguais. */
+.ini-quadro.bi-quadro{cursor:pointer;justify-content:center;align-items:center;text-align:center;
+  min-height:172px;padding:26px 20px;border-radius:14px;gap:0;}
 .bi-quadro:hover{border-color:rgba(255,255,255,.3);}
-.bi-quadro .bi-cab{display:flex;align-items:center;gap:12px;width:100%;}
-.ini-quadro.bi-quadro .ini-ic{width:28px;height:28px;flex-shrink:0;margin:0;opacity:.9;}
+.bi-quadro .bi-cab{display:flex;flex-direction:column;align-items:center;gap:13px;width:100%;}
+.ini-quadro.bi-quadro .ini-ic{width:38px;height:38px;flex-shrink:0;margin:0;opacity:.9;}
 /* Duas linhas de título e a faixa dos selos ficam reservadas em todos, para
    a grade sair alinhada — sem virar aquele bloco vazio de antes. */
-.ini-quadro.bi-quadro .ini-tit{flex:1;font-size:14.5px;line-height:1.25;text-align:left;font-weight:800;
-  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:2.5em;}
-.bi-marcas{min-height:18px;}
+.ini-quadro.bi-quadro .ini-tit{width:100%;font-size:16px;line-height:1.3;text-align:center;font-weight:800;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:2.6em;}
+.bi-marcas{min-height:20px;justify-content:center;padding-left:0;margin-top:14px;}
 /* Selos do que o card carrega, para saber antes de abrir */
 .bi-marcas{display:flex;gap:6px;flex-wrap:wrap;margin-top:9px;padding-left:40px;}
 .bi-marca{font-family:var(--font-mono);font-size:9px;font-weight:700;letter-spacing:.6px;
@@ -10572,7 +10574,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26c';
+const APP_VERSAO='2026.08.26d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
