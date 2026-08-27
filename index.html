@@ -1893,6 +1893,15 @@ body.menu-oculto .sb-atu-txt{display:none;}
   cursor:pointer;font-family:var(--font-sans);font-size:13px;font-weight:600;padding:9px 16px;margin-bottom:16px;
   box-shadow:var(--sombra-card);}
 .ini-voltar:hover{background:var(--bg-hover);border-color:var(--border-light);}
+/* Nas páginas internas da Página inicial (Base Conhecimento, Manual), o
+   caminho de volta e o título precisam de presença: o botão era pequeno e o
+   título de 11px quase não se via. */
+#inicio-conteudo .ini-voltar{font-size:15px;font-weight:700;padding:12px 24px;border-width:1.5px;
+  border-color:rgba(19,26,38,0.3);}
+:root[data-theme="light"] #inicio-conteudo .ini-voltar:hover{border-color:#2563eb;color:#2563eb;}
+#inicio-conteudo .section-title{font-size:21px;font-weight:800;letter-spacing:.8px;}
+/* O botão de incluir informação, no mesmo peso dos botões primários */
+.bi-incluir{width:auto;font-size:15px;font-weight:700;padding:12px 28px;border-radius:10px;}
 /* Manual */
 .man-item{border:1px solid var(--glass-border);border-radius:14px;margin-bottom:12px;overflow:hidden;background:var(--veu-suave);}
 .man-cab{display:flex;align-items:center;gap:10px;padding:13px 16px;cursor:pointer;}
@@ -10576,7 +10585,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26f';
+const APP_VERSAO='2026.08.26g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11844,7 +11853,7 @@ function _baseInfoCardsHtml(){
   }
   if(lista.length===0){
     return `<p style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-      Nada publicado ainda.${master?' Use <b>+ Nova informação</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`;
+      Nada publicado ainda.${master?' Use <b>+ Incluir</b> para escrever o primeiro aviso ou procedimento.':' Quando o master publicar um aviso ou procedimento, ele aparece aqui.'}</p>`;
   }
   /* O cartão da grade carrega só título e o botão de mídia; o resto —
      descrição, histórico, editar/excluir — vive na janela que o clique abre.
@@ -11962,7 +11971,7 @@ function renderBaseInfo(){
       <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
       <div class="section-header">
         <span class="section-title">Base Conhecimento</span>
-        ${master?`<button class="btn btn-sm" onclick="baseInfoNovo()">+ Nova informação</button>`:''}
+        ${master?`<button class="btn bi-incluir" onclick="baseInfoNovo()">+ Incluir</button>`:''}
       </div>
       <!-- Duas camadas de propósito: o normalizador de buscas transforma o
            div que envolve o campo na pílula da busca e apaga o style dele no
