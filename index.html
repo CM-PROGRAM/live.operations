@@ -10585,7 +10585,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.26g';
+const APP_VERSAO='2026.08.26h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11753,36 +11753,48 @@ function renderManual(){
   const el=document.getElementById('inicio-conteudo');
   if(!el) return;
   const meus=MANUAL_ABAS.filter(m=>_iniPode(m.perm));
+  /* Mesmo desenho da Base Conhecimento: grade de cartões iguais, e a
+     explicação abre na janela grande — não mais em lista sanfonada. */
   const corpo = meus.length===0
-    ? `<p style="font-size:13px;color:var(--text-muted);">Você ainda não tem nenhuma aba liberada. Peça ao master em Administrador → Equipe.</p>`
-    : meus.map((m,i)=>`
-      <div class="man-item" id="man-${i}">
-        <div class="man-cab" onclick="manualAlternar(${i})">
-          <span class="man-ic">${iconeMenu(m.icone)}</span>
-          <span class="man-nome">${_iniEsc(m.aba)}</span>
-          <span class="man-seta">▸</span>
+    ? `<p style="font-size:14px;color:var(--text-muted);">Você ainda não tem nenhuma aba liberada. Peça ao master em Administrador → Equipe.</p>`
+    : `<div class="bi-grade">${meus.map((m,i)=>`
+      <div class="ini-quadro bi-quadro" onclick="manualAbrir(${i})">
+        <div class="bi-cab">
+          <span class="ini-ic">${iconeMenu(m.icone)}</span>
+          <span class="ini-tit">${_iniEsc(m.aba)}</span>
         </div>
-        <div class="man-corpo">
-          <h4>Para que serve</h4>
-          <p>${m.paraQue}</p>
-          <h4>Como usar</h4>
-          <ol>${(m.passos||[]).map(p=>`<li>${p}</li>`).join('')}</ol>
-          ${m.atencao?`<div class="man-aviso"><b>Atenção:</b> ${m.atencao}</div>`:''}
-        </div>
-      </div>`).join('');
+      </div>`).join('')}</div>`;
   el.innerHTML=`
     <div class="ini-wrap">
       <button class="ini-voltar" onclick="inicioIr('home')">← Página inicial</button>
       <div class="section-header"><span class="section-title">Manual Sistema</span></div>
-      <p style="font-size:12.5px;color:var(--text-muted);margin:0 0 18px;line-height:1.6;">
+      <p style="font-size:14.5px;color:var(--text-secondary);margin:0 0 20px;line-height:1.65;">
         Estão listadas apenas as abas liberadas para o seu acesso. Clique em cada uma para abrir a explicação.</p>
       ${corpo}
     </div>`;
 }
 
-function manualAlternar(i){
-  const it=document.getElementById('man-'+i);
-  if(it) it.classList.toggle('aberto');
+/* Abre a explicação da aba na mesma janela grande da Base Conhecimento.
+   O rodapé da janela fica escondido: o manual não tem botões de ação. */
+function manualAbrir(i){
+  const meus=MANUAL_ABAS.filter(m=>_iniPode(m.perm));
+  const m=meus[i]; if(!m) return;
+  const tit=document.getElementById('bi-modal-titulo');
+  const corpo=document.getElementById('bi-modal-corpo');
+  const pe=document.getElementById('bi-modal-pe');
+  if(!tit||!corpo||!pe) return;
+  tit.textContent=m.aba;
+  corpo.innerHTML=`
+    <div class="man-corpo" style="display:block;padding:0;border-top:0;">
+      <h4>Para que serve</h4>
+      <p>${m.paraQue}</p>
+      <h4>Como usar</h4>
+      <ol>${(m.passos||[]).map(p=>`<li>${p}</li>`).join('')}</ol>
+      ${m.atencao?`<div class="man-aviso"><b>Atenção:</b> ${m.atencao}</div>`:''}
+    </div>`;
+  pe.innerHTML=''; pe.style.display='none';
+  const ov=document.getElementById('bi-modal-overlay');
+  if(ov) ov.classList.add('open');
 }
 
 /* ── Base Conhecimento ────────────────────────────────────────────
@@ -11920,6 +11932,7 @@ function _biPintarModal(){
     </details>`;
 
   const podeEditar=_biPodeEditar(it);
+  pe.style.display='';           // o Manual esconde o rodapé; aqui ele volta
   pe.innerHTML=`
     ${_biBotaoMidia(it)}
     ${podeEditar?`<span class="bi-acoes" style="margin-left:auto;">
