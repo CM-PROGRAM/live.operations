@@ -6,7 +6,7 @@
         "httpMethod": "POST",
         "path": "chatwoot-inbox",
         "responseMode": "onReceived",
-        "options": {}
+        "options": { "allowedOrigins": "*" }
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
@@ -14,6 +14,47 @@
       "id": "Webhook Chatwoot (inbox)",
       "name": "Webhook Chatwoot (inbox)",
       "webhookId": "chatwoot-inbox"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-envia",
+        "responseMode": "onReceived",
+        "options": { "allowedOrigins": "*" }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-560, 300],
+      "id": "Webhook LiveOps (envia)",
+      "name": "Webhook LiveOps (envia)",
+      "webhookId": "chatwoot-envia"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vem do Inbox do LiveOps: {conv:'cw_123', texto, autor}\nconst b = $json.body || $json;\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nconst conv = String(b.conv || '');\nconst num = conv.replace(/^cw_/, '');\nif (!texto || !/^\\d+$/.test(num)) return [];\nconst autor = String(b.autor || '').trim();\nreturn [{ json: {\n  convNum: num,\n  corpo: {\n    content: autor ? ('*' + autor + ':*\\n' + texto) : texto,\n    message_type: 'outgoing',\n    private: false\n  }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-320, 300],
+      "id": "Montar envio",
+      "name": "Montar envio"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://SEU-CHATWOOT.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-80, 300],
+      "id": "Enviar no Chatwoot",
+      "name": "Enviar no Chatwoot"
     },
     {
       "parameters": {
@@ -65,6 +106,12 @@
         { "node": "Gravar conversa", "type": "main", "index": 0 },
         { "node": "Gravar mensagem", "type": "main", "index": 0 }
       ]]
+    },
+    "Webhook LiveOps (envia)": {
+      "main": [[{ "node": "Montar envio", "type": "main", "index": 0 }]]
+    },
+    "Montar envio": {
+      "main": [[{ "node": "Enviar no Chatwoot", "type": "main", "index": 0 }]]
     }
   },
   "settings": { "executionOrder": "v1" },

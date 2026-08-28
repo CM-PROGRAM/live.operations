@@ -707,6 +707,21 @@ html{overflow-x:hidden;}
 :root:not([data-theme="light"]) .wa-msg.in{background:#202c33;}
 :root:not([data-theme="light"]) .wa-msg.out{background:#005c4b;}
 :root:not([data-theme="light"]) .wa-msg .rodape{color:#8696a0;}
+/* Rodapé de digitação, como no WhatsApp */
+.wa-compor{display:flex;align-items:flex-end;gap:9px;padding:9px 12px;background:#f0f2f5;
+  border-top:1px solid var(--linha-sutil);}
+:root:not([data-theme="light"]) .wa-compor{background:#202c33;}
+.wa-compor textarea{flex:1;resize:none;max-height:110px;background:#fff;border:1px solid transparent;
+  border-radius:10px;padding:10px 14px;font-family:var(--font-sans);font-size:13.5px;line-height:1.4;
+  color:#111b21;outline:none;}
+:root:not([data-theme="light"]) .wa-compor textarea{background:#2a3942;color:#e9edef;}
+.wa-enviar{flex-shrink:0;width:42px;height:42px;border-radius:50%;border:0;cursor:pointer;
+  background:#00a884;color:#fff;display:flex;align-items:center;justify-content:center;transition:filter .15s;}
+.wa-enviar svg{width:20px;height:20px;margin-left:2px;}
+.wa-enviar:hover{filter:brightness(1.08);}
+.wa-enviar:disabled{opacity:.55;cursor:default;}
+.wa-msg .rodape .pend{font-size:10px;}
+.wa-msg.falhou{outline:1.5px solid rgba(239,68,68,.7);cursor:pointer;}
 @media(max-width:860px){.wa-lista{width:100%;}.wa-wrap.aberta .wa-lista{display:none;}
   .wa-chat{display:none;}.wa-wrap.aberta .wa-chat{display:flex;}}
 
@@ -3753,6 +3768,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               <div class="wa-vazio-ic">💬</div>
               <div>Selecione uma conversa no painel da esquerda</div>
             </div>
+          </div>
+          <div class="wa-compor" id="wa-compor" style="display:none;">
+            <textarea id="wa-input" rows="1" placeholder="Digite uma mensagem"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();inboxEnviar();}"></textarea>
+            <button type="button" class="wa-enviar" onclick="inboxEnviar()" title="Enviar">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.6 22 12 3.4 3.4 3.4 10l13 2-13 2z"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -10703,7 +10725,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27f';
+const APP_VERSAO='2026.08.27g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11951,6 +11973,8 @@ function inboxAbrir(id){
         href="https://wa.me/${tel.length<=11?'55':''}${tel}">Abrir no WhatsApp ↗</a>`:''}`;
   }
   document.querySelector('.wa-wrap')?.classList.add('aberta');
+  const compor=document.getElementById('wa-compor');
+  if(compor) compor.style.display='flex';
   // Troca a escuta de mensagens para a conversa aberta (as últimas 120)
   try{ if(_waMsgConvRef) _waMsgConvRef.off(); }catch(e){}
   _waMsgs={};
@@ -11969,7 +11993,13 @@ function _waPintarMsgsAgendado(){ clearTimeout(_waPintarTimer); _waPintarTimer=s
 function _waPintarMsgs(){
   const box=document.getElementById('wa-msgs');
   if(!box) return;
-  const msgs=Object.values(_waMsgs).filter(Boolean).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  const doFirebase=Object.values(_waMsgs).filter(Boolean);
+  /* Um envio "pendente" some assim que a MESMA mensagem volta confirmada
+     pelo webhook do Chatwoot (mesmo texto, vinda de agente). */
+  const pend=(_waPendentes[_waAberta]||[]).filter(p=>
+    !doFirebase.some(m=>m.de==='agente' && String(m.texto||'').trim()===String(p.texto||'').trim()));
+  _waPendentes[_waAberta]=pend;
+  const msgs=doFirebase.concat(pend).sort((a,b)=>(a.ts||0)-(b.ts||0));
   if(!msgs.length){
     box.innerHTML='<div class="wa-vazio"><div class="wa-vazio-ic">💬</div><div>Sem mensagens gravadas ainda nesta conversa — só as novas chegam aqui.</div></div>';
     return;
@@ -11980,13 +12010,57 @@ function _waPintarMsgs(){
     if(rot!==diaAtual){ diaAtual=rot; html+=`<div class="wa-dia">${_iniEsc(rot)}</div>`; }
     const hora=m.ts?new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     const saida=m.de==='agente';
-    html+=`<div class="wa-msg ${saida?'out':'in'}">
+    const rodape=m._pend==='enviando' ? hora+' <span class="pend">🕓</span>'
+               : m._pend==='falhou'   ? hora+' <span class="pend" style="color:#ef4444;">⚠ tocar para reenviar</span>'
+               : hora;
+    html+=`<div class="wa-msg ${saida?'out':'in'}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')"`:''}>
       ${saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:''}${_iniEsc(m.texto||'')}
-      <div class="rodape">${hora}</div>
+      <div class="rodape">${rodape}</div>
     </div>`;
   });
   box.innerHTML=html;
   box.scrollTop=box.scrollHeight;
+}
+
+/* ── Envio de resposta ──
+   A mensagem vai para o n8n, que chama a API do Chatwoot (o token vive só
+   lá) e o Chatwoot entrega no WhatsApp. O balão aparece na hora como
+   "enviando" e vira ✓✓ quando o webhook confirma a mensagem de volta. */
+const WA_URL_ENVIA='https://webhookn8n.suplelive.com.br/webhook/chatwoot-envia';
+let _waPendentes={};   // convId -> [{_pid, texto, de:'agente', autor, ts, _pend}]
+
+function inboxEnviar(){
+  const inp=document.getElementById('wa-input');
+  if(!inp || !_waAberta) return;
+  const texto=inp.value.trim();
+  if(!texto) return;
+  inp.value='';
+  const p={_pid:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+           texto, de:'agente', autor:(currentUser&&currentUser.name)||'', ts:Date.now(), _pend:'enviando'};
+  (_waPendentes[_waAberta]=_waPendentes[_waAberta]||[]).push(p);
+  _waPintarMsgs();
+  _waDisparar(p,_waAberta);
+}
+
+function _waDisparar(p,convId){
+  fetch(WA_URL_ENVIA,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({conv:convId, texto:p.texto, autor:p.autor})})
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); })
+  .catch(err=>{
+    console.warn('[inbox] envio falhou:',err.message);
+    p._pend='falhou';
+    _waPintarMsgsAgendado();
+    showToast('Mensagem não enviada — toque no balão para tentar de novo','error');
+  });
+}
+
+function inboxReenviar(pid){
+  const lista=_waPendentes[_waAberta]||[];
+  const p=lista.find(x=>x._pid===pid);
+  if(!p) return;
+  p._pend='enviando'; p.ts=Date.now();
+  _waPintarMsgs();
+  _waDisparar(p,_waAberta);
 }
 
 /* Símbolo de boas-vindas: uma mão dando joia (thumbs up), em ícone cheio —
