@@ -1717,6 +1717,18 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 :root[data-theme="light"] .dash-btn-rel{color:#1d4ed8;border-color:rgba(29,78,216,.45);}
 :root[data-theme="light"] .dash-btn-rel:hover{border-color:#2563eb;}
 :root[data-theme="light"] .dash-bloco .bt{color:#1d4ed8;}
+/* Clientes no mesmo padrão do Dashboard: título azul, botões grandes,
+   Exportar com contorno azul e Adicionar Cliente sólido com letra branca. */
+#tab-clientes .pag-titulo{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-clientes .pag-titulo{color:#60a5fa;}
+.btn-sec.cli-btn-exp,.btn.cli-btn-add{font-size:15px;font-weight:700;padding:12px 24px;border-radius:10px;width:auto;
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
+.cli-btn-exp svg,.cli-btn-add svg{width:17px;height:17px;}
+.cli-btn-exp{color:#1d4ed8;border-color:rgba(29,78,216,.45);}
+.cli-btn-exp:hover{border-color:#2563eb;}
+:root:not([data-theme="light"]) .cli-btn-exp{color:#60a5fa;border-color:rgba(96,165,250,.5);}
+#tab-clientes .tc-titulo{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-clientes .tc-titulo{color:#60a5fa;}
 .sb-recolher{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
   border:1px solid var(--glass-border);border-radius:10px;color:var(--text-secondary);cursor:pointer;
@@ -4472,11 +4484,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div class="pag-acoes">
           <span id="cli-sync" style="font-size:10.5px;font-family:var(--font-mono);color:var(--text-muted);align-self:center;"></span>
-          <button class="btn-sec" onclick="cliExportar()" title="Baixar a lista filtrada em CSV">
+          <button class="btn-sec cli-btn-exp" onclick="cliExportar()" title="Baixar a lista filtrada em CSV">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 10.5 12 15l4.5-4.5"/><path d="M4 20h16"/></svg>
             Exportar
           </button>
-          <button class="btn btn-sm" style="width:auto;white-space:nowrap;" onclick="cliAbrirNovo()">+ Adicionar Cliente</button>
+          <button class="btn cli-btn-add" onclick="cliAbrirNovo()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+            Adicionar Cliente
+          </button>
         </div>
       </div>
 
@@ -10885,7 +10900,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28f';
+const APP_VERSAO='2026.08.28g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
