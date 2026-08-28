@@ -147,7 +147,10 @@
 :root[data-theme="light"] .atv-stab2[data-c="finalizada"]{--sc-text:#15803d;--sc-border:rgba(21,128,61,.34);}
 :root[data-theme="light"] .atv-stab2[data-c="naolidas"]{--sc-text:#6d28d9;--sc-border:rgba(109,40,217,.34);}
 :root[data-theme="light"] .atv-stab2{border-color:var(--sc-border,var(--border));}
-:root[data-theme="light"] .atv-stab2.active{color:#fff;box-shadow:0 4px 14px rgba(30,45,80,.22);}
+/* Pílula ativa sem cor própria (data-c) ganha o azul padrão — sem isso o
+   texto branco sumia no fundo branco (Pedidos > Canceladas com NF). */
+:root[data-theme="light"] .atv-stab2.active{color:#fff;box-shadow:0 4px 14px rgba(30,45,80,.22);
+  background:linear-gradient(135deg,#3b82f6,#2563eb);}
 :root[data-theme="light"] .atv-stab2[data-c="afazer"].active,
 :root[data-theme="light"] .atv-stab2[data-c="adm"].active{background:linear-gradient(135deg,#5876b8,#3d5a94);}
 :root[data-theme="light"] .atv-stab2[data-c="andamento"].active{background:linear-gradient(135deg,#7d94c4,#5a72a8);}
@@ -1729,6 +1732,16 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 :root:not([data-theme="light"]) .cli-btn-exp{color:#60a5fa;border-color:rgba(96,165,250,.5);}
 #tab-clientes .tc-titulo{color:#1d4ed8;}
 :root:not([data-theme="light"]) #tab-clientes .tc-titulo{color:#60a5fa;}
+/* Pedidos e Estoque seguem o mesmo padrão do Dashboard */
+#tab-registrovendas .pag-titulo,#tab-estoque .pag-titulo{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-registrovendas .pag-titulo,
+:root:not([data-theme="light"]) #tab-estoque .pag-titulo{color:#60a5fa;}
+#tab-registrovendas .section-title{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-registrovendas .section-title{color:#60a5fa;}
+.pg-bt-azul{color:#1d4ed8 !important;}
+:root:not([data-theme="light"]) .pg-bt-azul{color:#60a5fa !important;}
+.btn.pg-btn-solido{font-size:15px;font-weight:700;padding:12px 24px;border-radius:10px;width:auto;
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
 .sb-recolher{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
   border:1px solid var(--glass-border);border-radius:10px;color:var(--text-secondary);cursor:pointer;
@@ -2908,11 +2921,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
     <!-- REGISTRO DE VENDAS -->
     <div class="tab-panel" id="tab-registrovendas">
-      <div class="section-header">
-        <span class="section-title">Pedidos</span>
-        <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Pedidos</h2>
+          <p class="pag-sub">Acompanhe os pedidos e as vendas dos clientes</p>
+        </div>
+        <div class="pag-acoes">
+          <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
+        </div>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin:-10px 0 16px;">Acompanhe os pedidos e as vendas dos clientes</div>
 
       <!-- Sub-abas: o pedido cancelado e o cancelado com NF são pedidos, e
            viviam em duas abas separadas no menu. Quem procura um pedido
@@ -2936,7 +2953,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:-6px 0 14px;">
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</span>
         <div style="flex:1;"></div>
-        <button class="btn btn-sm" onclick="cancAbrirForm('cancnf')" style="width:auto;white-space:nowrap;">+ Nova solicitação</button>
+        <button class="btn pg-btn-solido" onclick="cancAbrirForm('cancnf')">+ Nova solicitação</button>
       </div>
       <div id="cancnf-form-box" style="max-width:620px;margin-bottom:24px;display:none;">
         <div style="background:var(--bg-card);border:1px solid var(--glass-border);border-radius:12px;padding:18px;box-shadow:var(--sombra-card);display:grid;gap:12px;">
@@ -3047,7 +3064,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:-6px 0 14px;">
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Dados do cliente vêm da Base. Ao criar, a tarefa diária é gerada automaticamente.</span>
         <div style="flex:1;"></div>
-        <button class="btn btn-sm" onclick="cancAbrirForm('canc')" style="width:auto;white-space:nowrap;">+ Nova solicitação</button>
+        <button class="btn pg-btn-solido" onclick="cancAbrirForm('canc')">+ Nova solicitação</button>
       </div>
       <!-- O formulário começa fechado: quem abre esta tela quase sempre vem
            consultar, não cadastrar. Cadastro à mão é a exceção — a regra é o
@@ -3962,7 +3979,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            Só aparece quando existe alguma; tela vazia não anuncia recurso. -->
       <div id="est-fila" class="ped-bloco" style="display:none;overflow:hidden;margin-bottom:14px;">
         <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-          <span style="font-size:13px;font-weight:800;color:var(--text-primary);">Entradas de estoque</span>
+          <span class="pg-bt-azul" style="font-size:13px;font-weight:800;color:var(--text-primary);">Entradas de estoque</span>
           <span id="ent-resumo" style="font-size:11.5px;color:var(--text-muted);"></span>
           <div style="flex:1;"></div>
           <button class="btn-sec" style="width:auto;" onclick="entAlternarConcluidas()" id="ent-btn-ver">Ver as concluídas</button>
@@ -3982,7 +3999,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <div class="ped-bloco" style="padding:15px 18px 16px;margin-bottom:14px;">
-        <div style="font-size:13px;font-weight:800;color:var(--text-primary);">Filtros</div>
+        <div class="pg-bt-azul" style="font-size:13px;font-weight:800;color:var(--text-primary);">Filtros</div>
         <div style="font-size:11.5px;color:var(--text-muted);margin:2px 0 12px;">Pesquise e filtre produtos no estoque</div>
         <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;">
           <div style="display:flex;align-items:center;gap:8px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;padding:8px 14px;flex:1;min-width:230px;box-shadow:inset 0 2px 6px rgba(0,0,0,0.2);">
@@ -3998,7 +4015,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
       <div class="ped-bloco" style="overflow:hidden;">
         <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);">
-          <div style="font-size:13px;font-weight:800;color:var(--text-primary);">Produtos em Estoque</div>
+          <div class="pg-bt-azul" style="font-size:13px;font-weight:800;color:var(--text-primary);">Produtos em Estoque</div>
           <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
             <span id="est-achados" style="font-size:11.5px;color:var(--text-muted);">0 produto(s) encontrado(s)</span>
             <div style="flex:1;"></div>
@@ -10900,7 +10917,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28g';
+const APP_VERSAO='2026.08.28h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
