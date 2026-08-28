@@ -74,7 +74,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Só mensagens de verdade viram registro: nota privada, evento de\n// sistema e payload sem conteúdo são descartados aqui na porta.\nconst b = $json.body || $json;\nif ((b.event || '') !== 'message_created') return [];\nif (b.private === true) return [];\nconst mt = b.message_type;\nconst deCliente = mt === 'incoming' || mt === 0;\nconst deAgente  = mt === 'outgoing' || mt === 1;\nif (!deCliente && !deAgente) return []; // template/atividade do sistema\n\nconst conv = b.conversation || {};\nconst convNum = conv.display_id || conv.id || b.conversation_id;\nif (!convNum) return [];\nconst convId = 'cw_' + convNum;\n\nconst contato = (conv.meta && conv.meta.sender) || {};\nconst nome = contato.name || (deCliente && b.sender && b.sender.name) || 'Contato';\nconst telefone = String(contato.phone_number || '').trim();\n\nlet texto = String(b.content || '').trim();\nconst anexos = Array.isArray(b.attachments) ? b.attachments : [];\nif (!texto && anexos.length) {\n  const tipos = { image: 'imagem', audio: 'áudio', video: 'vídeo', file: 'arquivo' };\n  texto = '[' + (tipos[anexos[0].file_type] || 'anexo') + ']';\n}\nif (!texto) return [];\n\n// Resposta enviada pelo LiveOps volta como eco do Chatwoot com a assinatura\n// da persona — ja foi gravada com o autor interno na hora do envio; aqui e\n// descartada para nao duplicar o balao.\nif (deAgente && texto.indexOf('*Manoel - Suplelive:*') === 0) return [];\n\nlet ts = b.created_at ? (typeof b.created_at === 'number' ? b.created_at : Date.parse(b.created_at)) : Date.now();\nif (ts && ts < 1e12) ts = ts * 1000;   // Chatwoot às vezes manda em segundos\n\n// Resposta digitada direto no Chatwoot: persona + quem digitou, para o\n// controle interno (Manoel (Felipe), Manoel (CM)...).\nconst autor = deAgente ? ('Manoel (' + (((b.sender && b.sender.name) || '?').trim().split(/\\s+/)[0]) + ')') : '';\nconst caixa = (b.inbox && b.inbox.name) || '';\n\nreturn [{ json: {\n  convId,\n  msgId: 'm' + (b.id || ts),\n  conv: { id: convId, nome, telefone, caixa, ultima: texto.slice(0, 120), deUltima: deAgente ? 'agente' : 'cliente', ts },\n  msg:  { texto: texto.slice(0, 4000), de: deAgente ? 'agente' : 'cliente', autor, ts }\n} }];"
+        "jsCode": "// Só mensagens de verdade viram registro: nota privada, evento de\n// sistema e payload sem conteúdo são descartados aqui na porta.\nconst b = $json.body || $json;\nif ((b.event || '') !== 'message_created') return [];\nif (b.private === true) return [];\nconst mt = b.message_type;\nconst deCliente = mt === 'incoming' || mt === 0;\nconst deAgente  = mt === 'outgoing' || mt === 1;\nif (!deCliente && !deAgente) return []; // template/atividade do sistema\n\nconst conv = b.conversation || {};\nconst convNum = conv.display_id || conv.id || b.conversation_id;\nif (!convNum) return [];\nconst convId = 'cw_' + convNum;\n\nconst contato = (conv.meta && conv.meta.sender) || {};\nconst nome = contato.name || (deCliente && b.sender && b.sender.name) || 'Contato';\nconst telefone = String(contato.phone_number || '').trim();\n\nlet texto = String(b.content || '').trim();\nconst anexos = Array.isArray(b.attachments) ? b.attachments : [];\nif (!texto && anexos.length) {\n  const tipos = { image: 'imagem', audio: 'áudio', video: 'vídeo', file: 'arquivo' };\n  texto = '[' + (tipos[anexos[0].file_type] || 'anexo') + ']';\n}\nif (!texto) return [];\n\n// Resposta enviada pelo LiveOps volta como eco do Chatwoot com a assinatura\n// da persona — ja foi gravada com o autor interno na hora do envio; aqui e\n// descartada para nao duplicar o balao.\nif (deAgente && texto.indexOf('*Manoel - Suplelive:*') === 0) return [];\n\n// Comando interno do canal (ex.: /iniciar_atendimento) nao vira balao.\nif (deAgente && texto[0] === '/') return [];\n\nlet ts = b.created_at ? (typeof b.created_at === 'number' ? b.created_at : Date.parse(b.created_at)) : Date.now();\nif (ts && ts < 1e12) ts = ts * 1000;   // Chatwoot às vezes manda em segundos\n\n// Resposta digitada direto no Chatwoot: persona + quem digitou, para o\n// controle interno (Manoel (Felipe), Manoel (CM)...).\nconst autor = deAgente ? ('Manoel (' + (((b.sender && b.sender.name) || '?').trim().split(/\\s+/)[0]) + ')') : '';\nconst caixa = (b.inbox && b.inbox.name) || '';\n\nreturn [{ json: {\n  convId,\n  msgId: 'm' + (b.id || ts),\n  conv: { id: convId, nome, telefone, caixa, ultima: texto.slice(0, 120), deUltima: deAgente ? 'agente' : 'cliente', ts },\n  msg:  { texto: texto.slice(0, 4000), de: deAgente ? 'agente' : 'cliente', autor, ts }\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -292,12 +292,12 @@
     },
     {
       "parameters": {
-        "jsCode": "const prep = $('Consolidar canal').first().json;\nconst conv = $json || {};\nconst num = conv.display_id || conv.id;\nif (!num) throw new Error('Chatwoot nao devolveu o id da conversa nova.');\nconst ts = Date.now();\nreturn [{ json: {\n  convNum: String(num),\n  corpo: { content: '*Manoel - Suplelive:*\\n' + prep.texto, message_type: 'outgoing', private: false },\n  convId: 'cw_' + num,\n  msgId: 'ls' + ts,\n  conv: { id: 'cw_' + num, nome: prep.nome || 'Contato', telefone: prep.telefone, caixa: '',\n          ultima: prep.texto.slice(0, 120), deUltima: 'agente', ts },\n  msg:  { texto: prep.texto, de: 'agente', autor: 'Manoel (' + prep.autor + ')', ts }\n} }];"
+        "jsCode": "const prep = $('Consolidar canal').first().json;\nconst conv = $('Criar conversa').first().json || {};\nconst num = conv.display_id || conv.id;\nif (!num) throw new Error('Chatwoot nao devolveu o id da conversa nova.');\nconst ts = Date.now();\nreturn [{ json: {\n  convNum: String(num),\n  corpo: { content: '*Manoel - Suplelive:*\\n' + prep.texto, message_type: 'outgoing', private: false },\n  convId: 'cw_' + num,\n  msgId: 'ls' + ts,\n  conv: { id: 'cw_' + num, nome: prep.nome || 'Contato', telefone: prep.telefone, caixa: '',\n          ultima: prep.texto.slice(0, 120), deUltima: 'agente', ts },\n  msg:  { texto: prep.texto, de: 'agente', autor: 'Manoel (' + prep.autor + ')', ts }\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        980,
+        1380,
         820
       ],
       "id": "Montar primeira mensagem",
@@ -351,6 +351,40 @@
       ],
       "id": "Formatar contatos",
       "name": "Formatar contatos"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.display_id || $json.id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({content: '/iniciar_atendimento', message_type: 'outgoing', private: false}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        820
+      ],
+      "id": "Iniciar atendimento (comando)",
+      "name": "Iniciar atendimento (comando)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// O comando /iniciar_atendimento abre o canal no WhatsApp; a pausa\n// da tempo de ele ser processado antes da mensagem de verdade sair.\nawait new Promise(r => setTimeout(r, 2000));\nreturn [$('Criar conversa').first()];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        820
+      ],
+      "id": "Aguardar canal abrir",
+      "name": "Aguardar canal abrir"
     }
   ],
   "connections": {
@@ -505,7 +539,7 @@
       "main": [
         [
           {
-            "node": "Montar primeira mensagem",
+            "node": "Iniciar atendimento (comando)",
             "type": "main",
             "index": 0
           }
@@ -549,6 +583,28 @@
         [
           {
             "node": "Formatar contatos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Iniciar atendimento (comando)": {
+      "main": [
+        [
+          {
+            "node": "Aguardar canal abrir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar canal abrir": {
+      "main": [
+        [
+          {
+            "node": "Montar primeira mensagem",
             "type": "main",
             "index": 0
           }
