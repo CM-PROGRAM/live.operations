@@ -11006,7 +11006,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28q';
+const APP_VERSAO='2026.08.28r';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11265,8 +11265,6 @@ const MENU_ABAS=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
     {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:null},
     {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'inbox', permLegado:'whatsapp'},
-    /* Templates mora colado no Inbox: é de lá que os comandos saem. */
-    {id:'templates',  icon:'templates',    label:'Templates',       perm:'templates', permLegado:'admin'},
     {id:'tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas'},
     {id:'whatsapp', icon:'vendas', label:'Vendas', perm:'whatsapp'},
     {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'registrovendas', permLegado:'whatsapp'},
@@ -11282,6 +11280,7 @@ const MENU_ABAS=[
     // A consulta de CPF é de todo mundo: quem atende cliente precisa do
     // telefone, e trancar isso só criava pedido de liberação para o master
     {id:'consultacpf', icon:'cpf', label:'Consulta CPF', perm:null},
+    {id:'templates',  icon:'templates',    label:'Templates',       perm:'templates', permLegado:'admin'},
     {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'painelIntegracoes', permLegado:'admin'},
     {id:'jobs',       icon:'jobs',         label:'Fluxos n8n',     perm:'jobs', permLegado:'admin'},
     {id:'cnpjs',      icon:'cnpjs', label:'CNPJs Suplelive', perm:'cnpjs'},
