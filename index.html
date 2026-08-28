@@ -1789,10 +1789,17 @@ details.jobs-det[open] summary .seta-sanf{transform:rotate(90deg);}
 details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);}
 .gup-chip.rodando{background:rgba(37,99,235,.1);color:#2563eb;border:1px solid rgba(37,99,235,.45);}
 /* Central de Tarefas, Atendimentos, Anúncios, Marketplaces e Financeiro
-   no mesmo padrão do Dashboard: título grande azul. */
+   no mesmo padrão do Dashboard: título grande azul, na MESMA letra dos
+   demais (o .section-title padrão é mono espaçado e destoava). */
 #tab-tarefas .section-title,#tab-atendimentos .section-title,
 #tab-atribuir .section-title,#tab-plataformas .section-title,
-#tab-financeiro .section-title,#tab-consultacpf .section-title{color:#1d4ed8;font-size:21px;}
+#tab-financeiro .section-title,#tab-consultacpf .section-title{color:#1d4ed8;font-size:22px;
+  font-family:var(--font-sans);font-weight:800;text-transform:none;letter-spacing:0;}
+#tab-inbox .pag-titulo{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-inbox .pag-titulo{color:#60a5fa;}
+/* Nos cards da Central, o nome da área em azul, como nos demais títulos */
+#atv-inicio .bi-quadro .ini-tit{color:#1d4ed8;}
+:root:not([data-theme="light"]) #atv-inicio .bi-quadro .ini-tit{color:#60a5fa;}
 :root:not([data-theme="light"]) #tab-tarefas .section-title,
 :root:not([data-theme="light"]) #tab-atendimentos .section-title,
 :root:not([data-theme="light"]) #tab-atribuir .section-title,
@@ -11006,7 +11013,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28r';
+const APP_VERSAO='2026.08.28s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -27287,7 +27294,7 @@ const ATV_AREAS=[
    desc:'O que você mesmo anotou para não esquecer.'},
   {id:'atendimentos', label:'Atendimentos', icone:'atendimentos', perm:'atendimentos',
    desc:'Retornos de atendimento no dia marcado.'},
-  {id:'vendas',       label:'Vendas',       icone:'vendas',       perm:null,
+  {id:'vendas',       label:'Canceladas',   icone:'vendas',       perm:null,
    desc:'Pedidos cancelados e o que veio das vendas.'},
   {id:'anuncios',     label:'Anúncios',     icone:'anuncios',     perm:'integracoes',
    desc:'Entrada, integração, imagens, exclusão e catálogo.'},
