@@ -1806,7 +1806,7 @@ details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-mu
 :root:not([data-theme="light"]) #tab-whatsapp .section-title{color:#60a5fa;}
 /* Vendas: grade de 4 quadros por fileira, cards mais compactos que os da
    frente antiga, título da área em azul */
-.vnd-grade{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:10px 0 14px;align-items:stretch;}
+.vnd-grade{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:1fr;gap:14px;padding:10px 0 14px;align-items:stretch;}
 @media(max-width:1250px){.vnd-grade{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:640px){.vnd-grade{grid-template-columns:1fr;}}
 .ini-quadro.vnd-card{min-height:0;padding:20px 14px 16px;}
@@ -6824,7 +6824,7 @@ function loadLocal(){
         || !s.tasks.whatsapp.some(g=>g.id==='wpp_comp')
         || s.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='PEDIDO')
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='REGISTRO')
-        || !s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.versaoVendas===2)
+        || !s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.versaoVendas===3)
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c4'))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.items?.some(i=>i.text==='Registro Imagem Comprovante'||i.text==='Registro Venda Planilha'||i.linkLabel==='Daniel Sup'||i.linkLabel==='Planilha Comprovantes'))
@@ -9651,7 +9651,7 @@ function applyRemoteState(data){
       ||!data.tasks.whatsapp.some(g=>g.id==='wpp_comp')
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='PEDIDO')
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='REGISTRO')
-      ||!data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.versaoVendas===2)
+      ||!data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.versaoVendas===3)
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c4'))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.items?.some(i=>i.text==='Registro Imagem Comprovante'||i.text==='Registro Venda Planilha'||i.linkLabel==='Daniel Sup'||i.linkLabel==='Planilha Comprovantes'))
@@ -10051,12 +10051,12 @@ function makeBaixasItem(store){
 }
 
 /* A aba Vendas em tela única: oito quadros na ordem fechada com o master
-   (28/08), quatro por fileira. A marca versaoVendas:2 é o que dispara a
+   (28/08), quatro por fileira. A marca versaoVendas:3 é o que dispara a
    migração dos estados antigos — sem ela, quem já tinha o desenho velho
    gravado continuaria vendo os quadros de antes. */
 function initWpp(){return[
   {
-    id:'wpp_atend', group:'ATENDIMENTO', icon:'wpp-logo', versaoVendas:2,
+    id:'wpp_atend', group:'ATENDIMENTO', icon:'wpp-logo', versaoVendas:3,
     link:'',
     linkLabel:'',
     items:[
@@ -10092,11 +10092,7 @@ function initWpp(){return[
       },
       {id:'wpp_p2',text:'Envio Rastreio',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
-          {label:'Manda Bem 4Vita',link:'https://mandabem.com.br/gerar'},
-          {label:'Manda Bem Daniel',link:'https://mandabem.com.br/gerar'},
-          {label:'Melhor Envio 4Vita',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'},
-          {label:'Melhor Envio Antonio Carlos',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'},
-          {label:'Melhor Envio Raphael',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'}
+          {label:'Código Rastreio',action:'envioRastreio'}
         ]
       }
     ]
@@ -11024,7 +11020,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28v';
+const APP_VERSAO='2026.08.28w';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
