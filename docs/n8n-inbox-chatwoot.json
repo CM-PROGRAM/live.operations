@@ -120,6 +120,59 @@
       ],
       "id": "Gravar mensagem",
       "name": "Gravar mensagem"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-contato",
+        "responseMode": "onReceived",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        560
+      ],
+      "id": "Webhook LiveOps (contato)",
+      "name": "Webhook LiveOps (contato)",
+      "webhookId": "chatwoot-contato"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vem do formulario Novo Contato do LiveOps: {nome, telefone:'+55...', email, cpf}\nconst b = $json.body || $json;\nconst nome = String(b.nome || '').trim();\nif (!nome) return [];\nconst tel = String(b.telefone || '').trim();\nconst email = String(b.email || '').trim();\nconst cpf = String(b.cpf || '').replace(/\\D/g, '');\nif (!tel && !email) return [];\nconst contato = { name: nome };\nif (tel) contato.phone_number = tel;\nif (email) contato.email = email;\n// CPF entra como atributo do contato (crie o atributo 'cpf' em\n// Configuracoes > Atributos Personalizados > Contato para ele aparecer)\nif (cpf) contato.custom_attributes = { cpf };\nreturn [{ json: { contato } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        560
+      ],
+      "id": "Montar contato",
+      "name": "Montar contato"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/contacts",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.contato) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        560
+      ],
+      "id": "Criar contato no Chatwoot",
+      "name": "Criar contato no Chatwoot",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -176,6 +229,28 @@
           },
           {
             "node": "Gravar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook LiveOps (contato)": {
+      "main": [
+        [
+          {
+            "node": "Montar contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar contato": {
+      "main": [
+        [
+          {
+            "node": "Criar contato no Chatwoot",
             "type": "main",
             "index": 0
           }

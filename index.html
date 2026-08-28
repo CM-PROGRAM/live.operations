@@ -4392,6 +4392,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <p style="font-size:12px;color:var(--text-secondary);margin-bottom:14px;">Entra como lead. Quando comprar, a Base o traz como cliente.</p>
           <div class="input-group"><label>Nome <b>*</b></label>
             <input type="text" id="cli-novo-nome" placeholder="Nome do contato"></div>
+          <div class="input-group"><label>CPF</label>
+            <input type="text" id="cli-novo-cpf" inputmode="numeric" maxlength="14" placeholder="Somente números"></div>
           <div class="input-group"><label>Telefone</label>
             <input type="text" id="cli-novo-fone" inputmode="tel" placeholder="(11) 99999-9999"></div>
           <div class="input-group"><label>E-mail</label>
@@ -10731,7 +10733,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27j';
+const APP_VERSAO='2026.08.27k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13924,7 +13926,7 @@ function _cliLeads(){ return Array.isArray(appState.leads)?appState.leads.filter
 
 function cliAbrirNovo(){
   const ov=document.getElementById('cli-novo-overlay'); if(!ov) return;
-  ['cli-novo-nome','cli-novo-fone','cli-novo-email','cli-novo-obs'].forEach(id=>{
+  ['cli-novo-nome','cli-novo-cpf','cli-novo-fone','cli-novo-email','cli-novo-obs'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.value='';
   });
   const er=document.getElementById('cli-novo-erro'); if(er) er.style.display='none';
@@ -13941,14 +13943,16 @@ function cliSalvarNovo(){
   if(!nome) return erro('Informe o nome do contato.');
   const fone=_cliSoDigitos(v('cli-novo-fone'));
   const email=v('cli-novo-email').toLowerCase();
+  const cpf=String(v('cli-novo-cpf')).replace(/\D/g,'');
   if(!fone && !email) return erro('Informe o telefone ou o e-mail — sem nenhum dos dois não há como fazer contato.');
   if(email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return erro('Este e-mail não parece válido.');
+  if(cpf && cpf.length!==11) return erro('CPF precisa ter 11 dígitos (ou deixe em branco).');
   const repetido=_cliLeads().find(l=>(fone&&_cliSoDigitos(l.telefone)===fone)||(email&&String(l.email||'').toLowerCase()===email));
   if(repetido) return erro('Já existe o lead "'+repetido.nome+'" com este contato.');
   if(!Array.isArray(appState.leads)) appState.leads=[];
   appState.leads.push({
     id:'lead_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
-    nome, telefone:v('cli-novo-fone'), email, obs:v('cli-novo-obs'),
+    nome, cpf, telefone:v('cli-novo-fone'), email, obs:v('cli-novo-obs'),
     etapa:'novo', ts:Date.now(), criadoEm:_agoraCarimbo(),
     criadoPor:(currentUser&&currentUser.name)||''
   });
@@ -13956,6 +13960,26 @@ function cliSalvarNovo(){
   cliFecharNovo();
   renderClientes();
   showToast('Lead criado','success');
+  _cliCadastrarChatwoot(nome, v('cli-novo-fone'), email, cpf);
+}
+
+/* Cadastro espelhado no Chatwoot, pelo n8n (o token vive só lá). O telefone
+   vai em E.164 (+55…), que é o formato que o Chatwoot exige para casar o
+   contato com o WhatsApp; o CPF segue como atributo do contato. Falha lá
+   não desfaz o lead daqui — só avisa. */
+const WA_URL_CONTATO='https://webhookn8n.suplelive.com.br/webhook/chatwoot-contato';
+function _cliCadastrarChatwoot(nome,fone,email,cpf){
+  const dig=String(fone||'').replace(/\D/g,'');
+  const tel=dig ? ('+'+(dig.length<=11?'55':'')+dig) : '';
+  if(!tel && !email) return;
+  fetch(WA_URL_CONTATO,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({nome:nomeProprio(nome), telefone:tel, email:email||'', cpf:cpf||''})})
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status);
+    showToast('Contato cadastrado também no Chatwoot','success'); })
+  .catch(err=>{
+    console.warn('[chatwoot contato]',err.message);
+    showToast('Lead salvo aqui, mas o Chatwoot não recebeu — confira o fluxo no n8n','warn');
+  });
 }
 function cliLeadEtapa(id,etapa){
   const l=_cliLeads().find(x=>x.id===id); if(!l) return;
