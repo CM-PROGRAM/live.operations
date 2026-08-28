@@ -1,0 +1,163 @@
+{
+  "name": "n8n → LiveOps · Jobs & Logs",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n-status",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        0
+      ],
+      "id": "Webhook LiveOps (status)",
+      "name": "Webhook LiveOps (status)",
+      "webhookId": "n8n-status"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://n8n.suplelive.com.br/api/v1/workflows?limit=100",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        0
+      ],
+      "id": "Listar fluxos",
+      "name": "Listar fluxos"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://n8n.suplelive.com.br/api/v1/executions?limit=40",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "Listar execucoes",
+      "name": "Listar execucoes"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Das execucoes recentes, separa as que deram erro (ate 6) para buscar\n// a mensagem. Sempre sai ao menos um item, senao o fluxo para aqui.\nconst r = $json || {};\nconst l = Array.isArray(r.data) ? r.data : [];\nconst erros = l.filter(e => e && e.status === 'error').slice(0, 6)\n  .map(e => ({ json: { execId: e.id } }));\nreturn erros.length ? erros : [{ json: { execId: null } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ],
+      "id": "Preparar detalhes de erro",
+      "name": "Preparar detalhes de erro"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://n8n.suplelive.com.br/api/v1/executions/{{ $json.execId }}?includeData=true",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        0
+      ],
+      "id": "Detalhar erro",
+      "name": "Detalhar erro",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta tudo no formato que o painel Jobs & Logs desenha.\nconst wfResp = $('Listar fluxos').first().json || {};\nconst exResp = $('Listar execucoes').first().json || {};\nconst fluxos = (Array.isArray(wfResp.data) ? wfResp.data : []).map(w => ({\n  id: String(w.id), nome: w.name || '', ativo: !!w.active, atualizado: w.updatedAt || ''\n}));\nconst nomes = {};\nfluxos.forEach(f => { nomes[f.id] = f.nome; });\nconst errosDet = {};\nfor (const item of $input.all()) {\n  const d = item.json || {};\n  if (!d.id) continue;\n  const rd = (d.data && d.data.resultData) || {};\n  const err = rd.error || {};\n  errosDet[String(d.id)] = {\n    msg: err.message || err.description || '',\n    no: rd.lastNodeExecuted || ((err.node && err.node.name) || '')\n  };\n}\nconst execucoes = (Array.isArray(exResp.data) ? exResp.data : []).map(e => {\n  const det = errosDet[String(e.id)] || null;\n  return {\n    id: String(e.id), fluxoId: String(e.workflowId || ''),\n    fluxo: nomes[String(e.workflowId || '')] || '',\n    status: e.status || (e.finished ? 'success' : 'running'),\n    inicio: e.startedAt || '', fim: e.stoppedAt || '', modo: e.mode || '',\n    erro: det ? det.msg : '', no: det ? det.no : ''\n  };\n});\nreturn [{ json: { fluxos, execucoes } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "Montar painel",
+      "name": "Montar painel"
+    }
+  ],
+  "connections": {
+    "Webhook LiveOps (status)": {
+      "main": [
+        [
+          {
+            "node": "Listar fluxos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar fluxos": {
+      "main": [
+        [
+          {
+            "node": "Listar execucoes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar execucoes": {
+      "main": [
+        [
+          {
+            "node": "Preparar detalhes de erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar detalhes de erro": {
+      "main": [
+        [
+          {
+            "node": "Detalhar erro",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detalhar erro": {
+      "main": [
+        [
+          {
+            "node": "Montar painel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

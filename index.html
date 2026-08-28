@@ -1740,6 +1740,20 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 :root:not([data-theme="light"]) #tab-registrovendas .section-title{color:#60a5fa;}
 .pg-bt-azul{color:#1d4ed8 !important;}
 :root:not([data-theme="light"]) .pg-bt-azul{color:#60a5fa !important;}
+/* Jobs & Logs — o retrato do n8n dentro do sistema */
+#tab-jobs .pag-titulo{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-jobs .pag-titulo{color:#60a5fa;}
+.jobs-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:16px;}
+.jobs-kpi{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:13px;padding:14px 16px;}
+.jobs-kpi .n{font-size:24px;font-weight:800;color:#1d4ed8;font-family:var(--font-sans);}
+:root:not([data-theme="light"]) .jobs-kpi .n{color:#60a5fa;}
+.jobs-kpi.ruim .n{color:#ef4444;}
+.jobs-kpi .r{font-size:11.5px;color:var(--text-muted);margin-top:2px;}
+.jobs-secao{font-family:var(--font-sans);font-size:15px;font-weight:800;color:#1d4ed8;margin:18px 0 10px;}
+:root:not([data-theme="light"]) .jobs-secao{color:#60a5fa;}
+.jobs-erro-msg{font-size:11.5px;line-height:1.55;color:#ef4444;padding:0 14px 11px;
+  border-bottom:1px solid var(--glass-border);}
+.gup-chip.rodando{background:rgba(37,99,235,.1);color:#2563eb;border:1px solid rgba(37,99,235,.45);}
 /* Acompanhamento inteiro no mesmo padrão */
 #tab-envios .pag-titulo,#tab-envios .etp-h,#tab-envios #etp-titulo{color:#1d4ed8;}
 :root:not([data-theme="light"]) #tab-envios .pag-titulo,
@@ -4070,16 +4084,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <div class="tab-panel" id="tab-jobs">
-      <div class="section-header">
-        <span class="section-title">Jobs &amp; Logs</span>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Jobs &amp; Logs</h2>
+          <p class="pag-sub">Os fluxos do n8n e as últimas execuções, sem sair do sistema</p>
+        </div>
+        <div class="pag-acoes">
+          <button class="btn-sec cli-btn-exp" onclick="jobsAtualizar(true)">Atualizar</button>
+          <a class="btn pg-btn-solido" style="text-decoration:none;" href="https://n8n.suplelive.com.br" target="_blank" rel="noopener">Abrir n8n ↗</a>
+        </div>
       </div>
-      <div class="date-header">Monitoramento dos robôs</div>
-      <div class="aba-futura">
-        <div class="af-ic" data-icone="jobs"></div>
-        <h3>Jobs &amp; Logs</h3>
-        <p>O que os fluxos do n8n executaram, o que falhou e por quê. Hoje isso só se vê entrando no n8n — a ideia é não precisar.</p>
-        <span class="af-selo">em construção</span>
-      </div>
+      <div id="jobs-conteudo"></div>
     </div>
 
     <!-- PROJETOS -->
@@ -10922,7 +10937,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28i';
+const APP_VERSAO='2026.08.28j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11364,6 +11379,7 @@ function buildTabs(){
     if(id==='envios'){ try{ renderAcompanhamento(); }catch(e){ console.warn('renderAcompanhamento:',e); } }
     if(id==='inbox'){ try{ inboxIniciar(); inboxRender(); }catch(e){ console.warn('inbox:',e); } }
     if(id==='templates'){ try{ renderTemplates(); gupCarregarSePreciso(); }catch(e){ console.warn('templates:',e); } }
+    if(id==='jobs'){ try{ renderJobs(); jobsCarregarSePreciso(); }catch(e){ console.warn('jobs:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -13369,6 +13385,102 @@ function gupVerMais(i,btn){
   const c=document.getElementById('gup-corpo-'+i); if(!c) return;
   const aberto=c.classList.toggle('aberto');
   if(btn) btn.textContent=aberto?'recolher':'ver tudo';
+}
+
+/* ===== Jobs & Logs — o n8n visto de dentro do LiveOps =====
+   O fluxo n8n-status devolve os fluxos criados e as últimas execuções;
+   as que deram erro chegam com a mensagem e o nó que falhou, e cada linha
+   tem o atalho para abrir a execução no próprio n8n. A chave da API mora
+   numa credencial do n8n — aqui só chega o retrato. */
+const JOBS_URL='https://webhookn8n.suplelive.com.br/webhook/n8n-status';
+const JOBS_N8N='https://n8n.suplelive.com.br';
+let _jobsDados=null,_jobsErro='',_jobsCarregando=false,_jobsTs=0;
+function jobsCarregarSePreciso(){
+  if(_jobsCarregando) return;
+  if(_jobsDados && (Date.now()-_jobsTs)<60*1000) return;
+  jobsAtualizar();
+}
+function jobsAtualizar(force){
+  if(_jobsCarregando) return;
+  _jobsCarregando=true; _jobsErro='';
+  renderJobs();
+  fetch(JOBS_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(j=>{ _jobsDados={fluxos:(j&&j.fluxos)||[],execucoes:(j&&j.execucoes)||[]}; _jobsTs=Date.now(); })
+    .catch(e=>{ _jobsErro=String((e&&e.message)||e); })
+    .finally(()=>{ _jobsCarregando=false; renderJobs(); });
+}
+function _jobsChip(st){
+  const s=String(st||'').toLowerCase();
+  if(s==='success') return '<span class="gup-chip ok">SUCESSO</span>';
+  if(s==='error'||s==='crashed'||s==='failed') return '<span class="gup-chip nao">ERRO</span>';
+  if(s==='running'||s==='new') return '<span class="gup-chip rodando">RODANDO</span>';
+  if(s==='waiting') return '<span class="gup-chip espera">AGUARDANDO</span>';
+  if(s==='canceled') return '<span class="gup-chip neutro">CANCELADA</span>';
+  return '<span class="gup-chip neutro">'+_iniEsc(String(st||'—').toUpperCase())+'</span>';
+}
+function _jobsQuando(iso){
+  if(!iso) return '—';
+  const d=new Date(iso);
+  if(isNaN(d)) return '—';
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+}
+function _jobsDuracao(ini,fim){
+  if(!ini||!fim) return '—';
+  const ms=new Date(fim)-new Date(ini);
+  if(isNaN(ms)||ms<0) return '—';
+  if(ms<1000) return ms+'ms';
+  if(ms<60000) return (ms/1000).toFixed(1).replace('.',',')+'s';
+  return Math.round(ms/60000)+'min';
+}
+function renderJobs(){
+  const box=document.getElementById('jobs-conteudo'); if(!box) return;
+  if(_jobsCarregando && !_jobsDados){
+    box.innerHTML='<div class="gup-vazio">Consultando o n8n…</div>'; return;
+  }
+  if(_jobsErro && !_jobsDados){
+    box.innerHTML='<div class="gup-vazio">Não consegui falar com o n8n ('+_iniEsc(_jobsErro)+').<br>'
+      +'Confira se o fluxo <b>n8n-status</b> está ativo lá.<br>'
+      +'<button class="btn-sec" style="margin-top:10px;" onclick="jobsAtualizar(true)">Tentar de novo</button></div>';
+    return;
+  }
+  if(!_jobsDados){
+    box.innerHTML='<div class="gup-vazio">Clique em Atualizar para carregar os fluxos.</div>'; return;
+  }
+  const f=_jobsDados.fluxos, ex=_jobsDados.execucoes;
+  const ativos=f.filter(x=>x.ativo).length;
+  const erros=ex.filter(x=>String(x.status).toLowerCase()==='error').length;
+  const kpis=`<div class="jobs-kpis">
+    <div class="jobs-kpi"><div class="n">${ativos}<span style="font-size:14px;color:var(--text-muted);font-weight:600;"> / ${f.length}</span></div><div class="r">Fluxos ativos</div></div>
+    <div class="jobs-kpi"><div class="n">${ex.length}</div><div class="r">Execuções recentes</div></div>
+    <div class="jobs-kpi${erros?' ruim':''}"><div class="n">${erros}</div><div class="r">Com erro</div></div>
+  </div>`;
+  const fluxos='<div class="jobs-secao">Fluxos criados</div>'+(f.length?'<div class="gup-grade">'+f.map(w=>`
+    <div class="gup-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <span class="nome" style="font-family:var(--font-sans);font-size:13px;">${_iniEsc(w.nome)}</span>
+        ${w.ativo?'<span class="gup-chip ok">ATIVO</span>':'<span class="gup-chip neutro">INATIVO</span>'}
+      </div>
+      <div class="meta">${w.atualizado?'alterado '+_jobsQuando(w.atualizado):''}</div>
+      <a href="${JOBS_N8N}/workflow/${_iniEsc(w.id)}" target="_blank" rel="noopener"
+         style="font-size:11.5px;font-weight:700;color:#2563eb;text-decoration:none;">Abrir no n8n ↗</a>
+    </div>`).join('')+'</div>':'<div class="gup-vazio">Nenhum fluxo encontrado.</div>');
+  const linhas=ex.map(e=>{
+    const url=JOBS_N8N+'/workflow/'+encodeURIComponent(e.fluxoId)+'/executions/'+encodeURIComponent(e.id);
+    const ehErro=String(e.status).toLowerCase()==='error';
+    return `<tr>
+      <td style="font-weight:600;">${_iniEsc(e.fluxo||('fluxo '+e.fluxoId))}</td>
+      <td>${_jobsChip(e.status)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;">${_jobsQuando(e.inicio)}</td>
+      <td style="font-family:var(--font-mono);font-size:11px;">${_jobsDuracao(e.inicio,e.fim)}</td>
+      <td><a href="${url}" target="_blank" rel="noopener" style="font-size:11.5px;font-weight:700;color:#2563eb;text-decoration:none;white-space:nowrap;">Ver no n8n ↗</a></td>
+    </tr>`+(ehErro&&(e.erro||e.no)?`<tr><td colspan="5" class="jobs-erro-msg">${e.no?'<b>Nó "'+_iniEsc(e.no)+'":</b> ':''}${_iniEsc(e.erro||'sem detalhe — abra no n8n')}</td></tr>`:'');
+  }).join('');
+  const execucoes='<div class="jobs-secao">Execuções recentes</div>'
+    +'<div class="ped-bloco" style="overflow:hidden;"><div style="overflow-x:auto;">'
+    +'<table class="ped-tabela"><thead><tr><th>Fluxo</th><th>Situação</th><th>Início</th><th>Duração</th><th></th></tr></thead>'
+    +'<tbody>'+(linhas||'<tr><td colspan="5" style="padding:26px;text-align:center;color:var(--text-muted);">Nenhuma execução recente.</td></tr>')+'</tbody></table></div></div>';
+  box.innerHTML=kpis+fluxos+execucoes;
 }
 
 /* Template aprovado pela Meta vira comando com um clique: entra na lista
