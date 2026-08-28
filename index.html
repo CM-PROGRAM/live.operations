@@ -1740,6 +1740,11 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 :root:not([data-theme="light"]) #tab-registrovendas .section-title{color:#60a5fa;}
 .pg-bt-azul{color:#1d4ed8 !important;}
 :root:not([data-theme="light"]) .pg-bt-azul{color:#60a5fa !important;}
+/* Acompanhamento inteiro no mesmo padrão */
+#tab-envios .pag-titulo,#tab-envios .etp-h,#tab-envios #etp-titulo{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-envios .pag-titulo,
+:root:not([data-theme="light"]) #tab-envios .etp-h,
+:root:not([data-theme="light"]) #tab-envios #etp-titulo{color:#60a5fa;}
 .btn.pg-btn-solido{font-size:15px;font-weight:700;padding:12px 24px;border-radius:10px;width:auto;
   display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
 .sb-recolher{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
@@ -3298,7 +3303,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <p class="pag-sub">Gerencie compras, devoluções, transferências e envios</p>
         </div>
         <div class="pag-acoes" style="position:relative;">
-          <button id="acp-btn-add" class="btn btn-sm" style="width:auto;white-space:nowrap;display:none;" onclick="acpMenuAdd(event)">+ Adicionar</button>
+          <button id="acp-btn-add" class="btn pg-btn-solido" style="display:none;" onclick="acpMenuAdd(event)">+ Adicionar</button>
           <div id="acp-menu" style="display:none;position:absolute;top:100%;right:0;margin-top:6px;z-index:60;
             background:var(--grad-painel);border:1px solid var(--glass-border);border-radius:10px;
             box-shadow:var(--sombra-painel);padding:5px;min-width:186px;backdrop-filter:blur(24px);">
@@ -3351,7 +3356,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <!-- COMPRAS / DEVOLUÇÕES / TRANSFERÊNCIAS -->
       <div id="acp-bloco" class="ped-bloco" style="overflow:hidden;">
         <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-          <span id="acp-titulo" style="font-size:13px;font-weight:800;color:var(--text-primary);">Compras</span>
+          <span id="acp-titulo" class="pg-bt-azul" style="font-size:13px;font-weight:800;color:var(--text-primary);">Compras</span>
           <span id="acp-conta" style="font-size:11.5px;color:var(--text-muted);"></span>
           <div style="flex:1;"></div>
           <button id="acp-btn-migrar" class="btn-sec" style="display:none;width:auto;" onclick="acpMigrarDevolucoes()"></button>
@@ -10917,7 +10922,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28h';
+const APP_VERSAO='2026.08.28i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
