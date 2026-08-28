@@ -1490,6 +1490,20 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .dash-item .l3{font-size:11px;color:var(--text-muted);margin-top:2px;}
 .dash-chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:999px;
   background:color-mix(in srgb,var(--dc) 13%, transparent);color:var(--dc);border:1px solid color-mix(in srgb,var(--dc) 28%, transparent);}
+/* Selo sólido do feed (Pedido): azul cheio com ícone e texto brancos,
+   no mesmo tom do botão Novo Lead. */
+.dash-chip.solido{background:#2563eb;color:#fff;border-color:#2563eb;}
+.dash-chip.solido svg{width:11px;height:11px;}
+/* Cabeçalho do Dashboard no claro: título azul e botões com presença,
+   no mesmo padrão fechado na Página inicial. */
+.btn-sec.dash-btn-rel,.btn.dash-btn-lead{font-size:15px;font-weight:700;padding:12px 24px;border-radius:10px;width:auto;
+  display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
+.dash-btn-rel svg{width:17px;height:17px;}
+.dash-btn-lead svg{width:17px;height:17px;}
+:root[data-theme="light"] .dash-topo h2{color:#1d4ed8;}
+:root[data-theme="light"] .dash-btn-rel{color:#1d4ed8;border-color:rgba(29,78,216,.45);}
+:root[data-theme="light"] .dash-btn-rel:hover{border-color:#2563eb;}
+:root[data-theme="light"] .dash-bloco .bt{color:#1d4ed8;}
 .sb-recolher{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02));
   border:1px solid var(--glass-border);border-radius:10px;color:var(--text-secondary);cursor:pointer;
@@ -10616,7 +10630,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27d';
+const APP_VERSAO='2026.08.27e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11688,7 +11702,7 @@ function renderDashboard(){
   feed.sort((a,b)=>b.ts-a.ts);
   const feedHtml=feed.slice(0,14).map(f=>{
     const chip=f.tipo==='pedido'
-      ?'<span class="dash-chip" style="--dc:#b45309;">🛒 Pedido</span>'
+      ?'<span class="dash-chip solido"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1.6 1.6 0 0 0 1.6 1.3h7.6a1.6 1.6 0 0 0 1.6-1.3L20 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="17" cy="20" r="1.4"/></svg> Pedido</span>'
       :'<span class="dash-chip" style="--dc:#15803d;">📦 Compra</span>';
     const ini=f.tipo==='compra'?'S':_cliIniciais(f.nome);
     return `<div class="dash-item">
@@ -11709,11 +11723,14 @@ function renderDashboard(){
         <p>Bem-vindo de volta${nome?', '+esc(nome):''}! Aqui está o resumo do seu negócio.</p>
       </div>
       <div style="display:flex;gap:10px;align-items:center;">
-        <button class="btn-sec" onclick="dashAbrir('registrovendas')" title="Abrir os pedidos e os números por período">
+        <button class="btn-sec dash-btn-rel" onclick="dashAbrir('registrovendas')" title="Abrir os pedidos e os números por período">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M6.5 16.4v-5.2M11.2 16.4V7.6M15.9 16.4v-3.4M20 16.4V5.4" stroke-width="1.8"/></svg>
           Relatórios
         </button>
-        <button class="btn btn-sm" style="width:auto;white-space:nowrap;" onclick="dashNovoLead()">👤 Novo Lead</button>
+        <button class="btn dash-btn-lead" onclick="dashNovoLead()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5.2 20.2a6.8 6.8 0 0 1 13.6 0"/></svg>
+          Novo Lead
+        </button>
       </div>
     </div>
 
