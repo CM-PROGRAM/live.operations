@@ -1581,8 +1581,8 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .topo-user{display:flex;align-items:center;gap:9px;padding:5px 8px 5px 6px;border-radius:10px;cursor:pointer;color:var(--text-muted);}
 .topo-user:hover{background:var(--veu-suave);}
 .topo-user-info{display:flex;flex-direction:column;line-height:1.25;text-align:left;}
-.topo-user-info b{font-size:12.5px;font-weight:700;color:var(--text-primary);}
-.topo-user-info small{font-size:10px;color:var(--text-muted);}
+.topo-user-info b{font-size:14.5px;font-weight:800;color:var(--text-primary);}
+.topo-user-info small{font-size:10.5px;color:var(--text-muted);}
 .topo-menu{position:absolute;top:52px;right:16px;min-width:215px;padding:6px;z-index:400;
   background:var(--bg-card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--sombra-painel);}
 .topo-menu .tm-cab{font-size:13px;font-weight:700;color:var(--text-primary);padding:9px 12px 10px;border-bottom:1px solid var(--border);margin-bottom:4px;}
@@ -1740,6 +1740,13 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 :root:not([data-theme="light"]) #tab-registrovendas .section-title{color:#60a5fa;}
 .pg-bt-azul{color:#1d4ed8 !important;}
 :root:not([data-theme="light"]) .pg-bt-azul{color:#60a5fa !important;}
+/* Rodapé da barra: versão em azul e Atualizar preto com letra branca */
+.sb-versao-azul{color:#2563eb !important;opacity:1 !important;}
+:root:not([data-theme="light"]) .sb-versao-azul{color:#60a5fa !important;}
+.sb-btn-atualizar{background:#0b0f19;border:1px solid #0b0f19;border-radius:999px;color:#fff;
+  font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:3px 11px;cursor:pointer;line-height:1.6;}
+.sb-btn-atualizar:hover{background:#1c2333;border-color:#1c2333;}
+:root:not([data-theme="light"]) .sb-btn-atualizar{border-color:#3a4356;}
 /* Jobs & Logs — o retrato do n8n dentro do sistema */
 #tab-jobs .pag-titulo{color:#1d4ed8;}
 :root:not([data-theme="light"]) #tab-jobs .pag-titulo{color:#60a5fa;}
@@ -1780,6 +1787,17 @@ details.jobs-det summary .seta-sanf{transition:transform .2s;font-size:12px;}
 details.jobs-det[open] summary .seta-sanf{transform:rotate(90deg);}
 details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);}
 .gup-chip.rodando{background:rgba(37,99,235,.1);color:#2563eb;border:1px solid rgba(37,99,235,.45);}
+/* Central de Tarefas, Atendimentos, Anúncios, Marketplaces e Financeiro
+   no mesmo padrão do Dashboard: título grande azul. */
+#tab-tarefas .section-title,#tab-atendimentos .section-title,
+#tab-atribuir .section-title,#tab-plataformas .section-title,
+#tab-financeiro .section-title,#tab-consultacpf .section-title{color:#1d4ed8;font-size:21px;}
+:root:not([data-theme="light"]) #tab-tarefas .section-title,
+:root:not([data-theme="light"]) #tab-atendimentos .section-title,
+:root:not([data-theme="light"]) #tab-atribuir .section-title,
+:root:not([data-theme="light"]) #tab-plataformas .section-title,
+:root:not([data-theme="light"]) #tab-financeiro .section-title,
+:root:not([data-theme="light"]) #tab-consultacpf .section-title{color:#60a5fa;}
 /* Acompanhamento inteiro no mesmo padrão */
 #tab-envios .pag-titulo,#tab-envios .etp-h,#tab-envios #etp-titulo{color:#1d4ed8;}
 :root:not([data-theme="light"]) #tab-envios .pag-titulo,
@@ -2737,6 +2755,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.5 14.4a1.5 1.5 0 0 0 .3 1.7l.1.1a1.8 1.8 0 1 1-2.6 2.6l-.1-.1a1.5 1.5 0 0 0-1.7-.3 1.5 1.5 0 0 0-.9 1.4v.2a1.8 1.8 0 1 1-3.6 0V20a1.5 1.5 0 0 0-1-1.4 1.5 1.5 0 0 0-1.7.3l-.1.1a1.8 1.8 0 1 1-2.6-2.6l.1-.1a1.5 1.5 0 0 0 .3-1.7 1.5 1.5 0 0 0-1.4-.9H4a1.8 1.8 0 1 1 0-3.6h.2a1.5 1.5 0 0 0 1.4-1 1.5 1.5 0 0 0-.3-1.7l-.1-.1a1.8 1.8 0 1 1 2.6-2.6l.1.1a1.5 1.5 0 0 0 1.7.3H9.7a1.5 1.5 0 0 0 .9-1.4V4a1.8 1.8 0 1 1 3.6 0v.2a1.5 1.5 0 0 0 .9 1.4 1.5 1.5 0 0 0 1.7-.3l.1-.1a1.8 1.8 0 1 1 2.6 2.6l-.1.1a1.5 1.5 0 0 0-.3 1.7v.1a1.5 1.5 0 0 0 1.4.9h.2a1.8 1.8 0 1 1 0 3.6H20a1.5 1.5 0 0 0-1.4.9z"/></svg>
             Configurações
           </button>
+          <button type="button" onclick="toggleTheme();try{_loTopoTemaLabel();}catch(e){}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.8v2M12 19.2v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2.8 12h2M19.2 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+            <span id="tm-tema-label">Modo claro</span>
+          </button>
           <div class="tm-sep"></div>
           <button type="button" onclick="doLogout()">Sair</button>
         </div>
@@ -3299,12 +3321,33 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <span class="section-title">Financeiro</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
-      <!-- Sub-abas: por ora só a conferência, mas o financeiro cresce por aqui -->
+      <!-- As três frentes do Financeiro. Contabilidade e Finanças ainda estão
+           em construção; Vendas WhatsApp é a conferência que a equipe já usa,
+           por isso ela abre selecionada. -->
       <div id="fin-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
+        <button class="atv-stab2" data-sub="contabilidade" onclick="finSetSubTab('contabilidade')">Contabilidade</button>
+        <button class="atv-stab2" data-sub="financas" onclick="finSetSubTab('financas')">Finanças</button>
         <button class="atv-stab2 active" data-c="concluida" data-sub="confvendas" onclick="finSetSubTab('confvendas')">
-          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Conferência Vendas WhatsApp
+          <span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>Vendas WhatsApp
           <span id="reg-cnt-conf" style="margin-left:2px;opacity:.85;font-family:var(--font-mono);"></span>
         </button>
+      </div>
+
+      <div id="fin-contabilidade" style="display:none;">
+        <div class="aba-futura">
+          <div class="af-ic" data-icone="financeiro"></div>
+          <h3>Contabilidade</h3>
+          <p>Os documentos e as rotinas contábeis da operação vão morar aqui. Me diga o que essa frente precisa mostrar e eu monto.</p>
+          <span class="af-selo">em construção</span>
+        </div>
+      </div>
+      <div id="fin-financas" style="display:none;">
+        <div class="aba-futura">
+          <div class="af-ic" data-icone="financeiro"></div>
+          <h3>Finanças</h3>
+          <p>Fluxo de caixa, contas a pagar e a receber. Me diga o que essa frente precisa mostrar e eu monto.</p>
+          <span class="af-selo">em construção</span>
+        </div>
       </div>
 
       <!-- CONFERÊNCIA — espelho da planilha de vendas -->
@@ -3823,8 +3866,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- ATENDIMENTOS GERAL -->
     <div class="tab-panel" id="tab-atendimentos">
       <div class="section-header">
-        <span class="section-title" id="ate-section-title">Registro Atendimentos Geral</span>
-        <button class="btn btn-sm" onclick="openAteModal()" id="btn-new-ate" style="display:none;--bc: var(--rgb-aco);">+ Criar</button>
+        <span class="section-title" id="ate-section-title">Atendimentos</span>
+        <button class="btn pg-btn-solido" onclick="openAteModal()" id="btn-new-ate" style="display:none;--bc: var(--rgb-aco);">+ Criar</button>
       </div>
       <!-- Em Atendimento / Concluídas na própria página, sem duas sub-abas -->
       <div id="ate-subtabs" style="display:flex;gap:8px;flex-wrap:wrap;margin:-2px 0 16px;">
@@ -3858,8 +3901,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- TAREFAS USUÁRIOS -->
     <div class="tab-panel" id="tab-tarefas">
       <div class="section-header">
-        <span class="section-title" id="atv-titulo-secao">Tarefas Suplelive</span>
-        <button class="btn btn-sm" id="atv-nova-diaria" onclick="abrirDiariaModal()" style="display:none;font-size:13px;padding:9px 18px;">+ Nova tarefa</button>
+        <span class="section-title" id="atv-titulo-secao">Central de Tarefas</span>
+        <button class="btn pg-btn-solido" id="atv-nova-diaria" onclick="abrirDiariaModal()" style="display:none;">+ Nova tarefa</button>
       </div>
 
       <!-- Painéis por área. O quadro só abre depois de escolher uma —
@@ -3868,7 +3911,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div id="atv-inicio"></div>
 
       <div id="atv-quadro" style="display:none;">
-      <button class="ini-voltar" onclick="atvIrArea('')">← Tarefas Suplelive</button>
+      <button class="ini-voltar" onclick="atvIrArea('')">← Central de Tarefas</button>
 
       <!-- Status filter tabs -->
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:14px;flex-wrap:wrap;" id="atv-status-tabs-row">
@@ -4112,7 +4155,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div class="tab-panel" id="tab-jobs">
       <div class="pag-topo">
         <div>
-          <h2 class="pag-titulo">Jobs &amp; Logs</h2>
+          <h2 class="pag-titulo">Fluxos n8n</h2>
           <p class="pag-sub">Os fluxos do n8n e as últimas execuções, sem sair do sistema</p>
         </div>
         <div class="pag-acoes">
@@ -10968,7 +11011,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28l';
+const APP_VERSAO='2026.08.28m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11217,61 +11260,41 @@ function iconeMenu(chave){
    Jobs e Integrações entram junto com Administrador. Quem usava aquele painel
    estava liberando outra coisa do que pensava. Agora as duas telas leem daqui,
    e uma aba nova aparece nas permissões no mesmo dia em que aparece no menu. */
+/* Ordem e nomes fechados com o master em 28/08. Os grupos com sub-aba única
+   viraram abas diretas — um clique, a página abre: Central de Tarefas
+   (antes grp → Tarefas Suplelive), Vendas (antes grp → WhatsApp (Chatwoot)),
+   Atendimentos (antes grp → Lançamentos) e Anúncios (antes grp → Criar
+   Tarefa). Os ids dos painéis não mudam: aparecem em permissão, tarefa e
+   notificação já gravadas, e trocá-los quebraria vínculo antigo. */
 const MENU_ABAS=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
     {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:null},
-    /* Inbox é onde as conversas do WhatsApp vão morar. Enquanto não moram,
-       a aba diz isso — tela vazia sem explicação vira chamado. */
     {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'inbox', permLegado:'whatsapp'},
     /* Templates mora colado no Inbox: é de lá que os comandos saem. */
     {id:'templates',  icon:'templates',    label:'Templates',       perm:'templates', permLegado:'admin'},
-    /* Clientes, Pedidos e Acompanhamento saíram de dentro de Vendas e viraram
-       abas de primeiro nível: são as três telas mais abertas do dia, e cada
-       uma custava dois cliques por estar enterrada num grupo. Os ids
-       continuam os mesmos (clientes, registrovendas, envios) porque aparecem
-       em vínculo já gravado — tarefa, notificação, permissão — e trocá-los
-       quebraria registro antigo sem ganho nenhum. */
-    {id:'clientes', icon:'clientes', label:'Clientes', perm:'clientes', permLegado:'whatsapp'},
+    {id:'tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas'},
+    {id:'whatsapp', icon:'vendas', label:'Vendas', perm:'whatsapp'},
     {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'registrovendas', permLegado:'whatsapp'},
-    {id:'estoque', icon:'estoque', label:'Estoque', perm:'estoque', permLegado:'admin'},
-    {type:'group', id:'grp-tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas', children:[
-      {id:'tarefas',   label:'Tarefas Suplelive'}
-    ]},
-    {type:'group', id:'grp-atendimentos', icon:'atendimentos', label:'Atendimentos', perm:'atendimentos', children:[
-      {id:'atendimentos', label:'Lançamentos'}
-    ]},
-    {type:'group', id:'grp-vendas', icon:'vendas', label:'Vendas', perm:null, children:[
-      {id:'whatsapp',  label:'WhatsApp (Chatwoot)', perm:'whatsapp'},
-      /* "Canceladas" e "Canceladas com NF" saíram do menu: viraram
-         sub-abas de Pedidos, que é onde se procura por pedido. */
-      // A consulta de CPF é de todo mundo: quem atende cliente precisa do
-      // telefone, e trancar isso só criava pedido de liberação para o master
-      {id:'consultacpf', label:'Consulta CPF', perm:null}
-    ]},
-    {type:'group', id:'grp-integracoes', icon:'anuncios', label:'Anúncios', perm:'integracoes', children:[
-      {id:'atribuir',  label:'Criar Tarefa'}
-    ]},
-    {type:'group', id:'grp-financeiro', icon:'financeiro', label:'Financeiro', perm:'financeiro', permLegado:'whatsapp', children:[
-      {id:'financeiro', label:'Conferência Vendas WhatsApp'}
-    ]},
-    {id:'plataformas',icon:'marketplaces', label:'Marketplaces',    perm:'plataformas'},
-    // Projetos saiu do menu a pedido. O painel (tab-projnotas) e as notas
-    // gravadas continuam no lugar: para trazer a aba de volta, basta
-    // devolver esta linha. Apagar o painel apagaria o que já foi escrito.
-    /* "Lançamentos" saiu do menu: as devoluções passaram a viver em
-       Acompanhamento → Devoluções, com as fotos, o pedido base, os links e o
-       estorno. O painel (tab-devolucoes) e os registros continuam no lugar —
-       apagar agora seria jogar fora o único lugar de onde se pode tentar de
-       novo se a migração tiver saído torta. Para trazer a aba de volta, basta
-       devolver a linha de baixo.
-         {id:'devolucoes', label:'Lançamentos'},                              */
-    {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'painelIntegracoes', permLegado:'admin'},
-    /* "Rastreador Live" virou "Acompanhamento": o nome antigo dizia a
-       tecnologia, o novo diz o trabalho. O id segue 'envios'. */
+    {id:'clientes', icon:'clientes', label:'Clientes', perm:'clientes', permLegado:'whatsapp'},
+    {id:'atendimentos', icon:'atendimentos', label:'Atendimentos', perm:'atendimentos'},
     {id:'envios',     icon:'acompanha',    label:'Acompanhamento',  perm:'envios'},
-    {id:'jobs',       icon:'jobs',         label:'Jobs & Logs',     perm:'jobs', permLegado:'admin'},
+    {id:'estoque', icon:'estoque', label:'Estoque', perm:'estoque', permLegado:'admin'},
+    {id:'atribuir', icon:'anuncios', label:'Anúncios', perm:'integracoes'},
+    {id:'plataformas',icon:'marketplaces', label:'Marketplaces',    perm:'plataformas'},
+    /* Financeiro abre com as frentes Contabilidade, Finanças e Vendas
+       WhatsApp dentro da própria página. */
+    {id:'financeiro', icon:'financeiro', label:'Financeiro', perm:'financeiro', permLegado:'whatsapp'},
+    // A consulta de CPF é de todo mundo: quem atende cliente precisa do
+    // telefone, e trancar isso só criava pedido de liberação para o master
+    {id:'consultacpf', icon:'cpf', label:'Consulta CPF', perm:null},
+    {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'painelIntegracoes', permLegado:'admin'},
+    {id:'jobs',       icon:'jobs',         label:'Fluxos n8n',     perm:'jobs', permLegado:'admin'},
     {id:'cnpjs',      icon:'cnpjs', label:'CNPJs Suplelive', perm:'cnpjs'},
     {id:'admin',      icon:'admin', label:'Administrador',       perm:'admin'}
+    // Projetos saiu do menu a pedido. O painel (tab-projnotas) e as notas
+    // gravadas continuam no lugar: para trazer a aba de volta, basta
+    // devolver a linha {id:'projnotas', ...}. Apagar o painel apagaria o que
+    // já foi escrito. Mesma coisa para {id:'devolucoes', label:'Lançamentos'}.
 ];
 
 /* ── Permissão por aba ────────────────────────────────────────────────
@@ -11486,28 +11509,20 @@ function buildTabs(){
       nav.appendChild(btn);
     }
   });
-  // footer: user + clock + logout
+  /* Rodapé enxuto: Modo claro e Sair moram no menu do usuário (canto
+     superior direito). Aqui fica só a versão e o botão de atualizar. */
   const footer=document.createElement('div');footer.className='sidebar-footer';
   footer.innerHTML=`
-    <div style="display:flex;align-items:center;gap:8px;">
-      <button id="theme-toggle" class="sb-tema" onclick="toggleTheme()" title="Alternar entre modo escuro e claro">
-        <span class="sb-tema-ic" id="theme-toggle-ic"></span>
-        <span class="sb-tema-txt" id="theme-toggle-label">Modo Escuro</span>
-      </button>
-      <button onclick="doLogout()" class="sb-sair" title="Encerrar a sessão">Sair</button>
-    </div>
-    <div style="margin-top:7px;display:flex;align-items:center;justify-content:center;gap:7px;">
-      <span id="sb-versao" style="font-size:9.5px;font-family:var(--font-mono);color:var(--text-muted);opacity:.75;"
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <span id="sb-versao" class="sb-versao-azul" style="font-size:10px;font-family:var(--font-mono);font-weight:700;"
             title="Versão que ESTE navegador está rodando.">versão ${APP_VERSAO}</span>
-      <button type="button" id="btn-atualizar-sistema" onclick="atualizarSistemaAgora()"
-              title="Buscar a versão publicada e recarregar o sistema"
-              style="background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:999px;color:var(--text-muted);
-                     font-family:var(--font-mono);font-size:9.5px;font-weight:700;padding:2px 9px;cursor:pointer;line-height:1.6;">
+      <button type="button" id="btn-atualizar-sistema" class="sb-btn-atualizar" onclick="atualizarSistemaAgora()"
+              title="Buscar a versão publicada e recarregar o sistema">
         ⟳<span class="sb-atu-txt"> Atualizar</span>
       </button>
     </div>`;
   nav.appendChild(footer);
-  try{ _loThemeIcon(); }catch(e){}
+  try{ _loTopoTemaLabel(); }catch(e){}
 
   const first=nav.querySelector('.tab-btn[data-tab]');if(first){switchTab(first.dataset.tab);fireTabHooks(first.dataset.tab);}
 }
@@ -11861,6 +11876,14 @@ function topoAtualizar(){
   document.getElementById('topo-papel').textContent=currentUser.master?'Master':'Colaborador';
   const cfg=document.getElementById('topo-config');
   if(cfg) cfg.style.display=currentUser.master?'':'none';
+  try{ _loTopoTemaLabel(); }catch(e){}
+}
+/* O item de tema no menu do usuário mostra para ONDE o clique leva:
+   no escuro oferece "Modo claro", no claro oferece "Modo escuro". */
+function _loTopoTemaLabel(){
+  const lb=document.getElementById('tm-tema-label'); if(!lb) return;
+  const claro=document.documentElement.getAttribute('data-theme')==='light';
+  lb.textContent=claro?'Modo escuro':'Modo claro';
 }
 function topoMenu(ev){
   if(ev) ev.stopPropagation();
@@ -14824,6 +14847,12 @@ function finSetSubTab(qual){
   document.querySelectorAll('#fin-subtabs .atv-stab2').forEach(b=>{
     b.classList.toggle('active', b.dataset.sub===_regSubTab);
   });
+  const secoes={contabilidade:'fin-contabilidade', financas:'fin-financas', confvendas:'reg-conferencia'};
+  Object.entries(secoes).forEach(([k,id])=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display=(k===_regSubTab)?'block':'none';
+  });
+  if(_regSubTab!=='confvendas') return;
   // Só busca uma vez por sessão; o botão Atualizar força de novo
   if(!_confVendas && !_confCarregando) carregarConferenciaVendas(false);
   else renderConferenciaVendas();
@@ -20436,12 +20465,11 @@ function makeTimerBtn(task){
       delete task.duration; delete task.timerStart; delete task.timerEnd;
       // Inicia imediatamente no próprio botão (sem esperar renderAll)
       startTimer(task.id,task,btn);
-      // Salva em background sem re-renderizar
-      saveLocal(appState);
-      if(db && fbConnected){
-        const payload=Object.assign({},appState,{_version:Date.now(),_savedBy:_sessionId});
-        db.ref(FB_PATH).set(payload).catch(()=>{});
-      }
+      /* Salva pelo caminho oficial. O atalho antigo fazia um set() do estado
+         INTEIRO direto na nuvem — passava por cima do nó de usuários com a
+         cópia desta sessão e foi por aí que as permissões concedidas pelo
+         master sumiam "sozinhas" toda vez que alguém iniciava um timer. */
+      saveState(appState);
     };
   } else {
     // ── Parado: clique INICIA
@@ -23606,7 +23634,9 @@ function toggleAtvTab(key,tabId,checked){
   if(!Array.isArray(user.atvTabsVisiveis)) user.atvTabsVisiveis=ATV_TAB_KEYS.slice();
   if(checked){ if(!user.atvTabsVisiveis.includes(tabId)) user.atvTabsVisiveis.push(tabId); }
   else { user.atvTabsVisiveis=user.atvTabsVisiveis.filter(t=>t!==tabId); }
+  user.permsAtualizadoEm=Date.now();
   saveState(appState);
+  _gravarPermissoesDireto(key);
   renderUsersGrid();
 }
 
@@ -23634,6 +23664,7 @@ function _gravarPermissoesDireto(k){
   try{
     const dados={perms:Array.isArray(u.perms)?u.perms:[], permsAtualizadoEm:u.permsAtualizadoEm||Date.now()};
     if(u.atvAreasVisiveis!==undefined) dados.atvAreasVisiveis=u.atvAreasVisiveis;
+    if(u.atvTabsVisiveis!==undefined) dados.atvTabsVisiveis=u.atvTabsVisiveis;
     db.ref(FB_PATH+'/users/'+k).update(dados);
   }catch(e){ console.warn('[perms] gravação direta:',e); }
 }
@@ -23655,6 +23686,7 @@ function _protegerPermissoes(novos, antigos){
     n.perms=Array.isArray(a.perms)?a.perms.slice():[];
     if(a.atvAreasVisiveis!==undefined) n.atvAreasVisiveis=JSON.parse(JSON.stringify(a.atvAreasVisiveis));
     else delete n.atvAreasVisiveis;
+    if(a.atvTabsVisiveis!==undefined) n.atvTabsVisiveis=JSON.parse(JSON.stringify(a.atvTabsVisiveis));
     n.permsAtualizadoEm=tsA;
     restaurados.push(k);
   });
@@ -23666,6 +23698,7 @@ function _protegerPermissoes(novos, antigos){
           const u=novos[k]; if(!u) return;
           const dados={perms:u.perms, permsAtualizadoEm:u.permsAtualizadoEm};
           if(u.atvAreasVisiveis!==undefined) dados.atvAreasVisiveis=u.atvAreasVisiveis;
+          if(u.atvTabsVisiveis!==undefined) dados.atvTabsVisiveis=u.atvTabsVisiveis;
           db.ref(FB_PATH+'/users/'+k).update(dados);
         }catch(e){}
       }); },300);
@@ -26589,7 +26622,7 @@ function ateSetSubTab(tab){
   // Restaura o filtro de plataforma guardado desta sub-aba (independente da outra)
   ateFiltroPlataforma=_ateFiltroPorAba[_ateAbaAtual()]||'';
   const titulo=document.getElementById('ate-section-title');
-  if(titulo) titulo.textContent = tab==='concluidas' ? 'Atendimentos Concluídos' : 'Registro Atendimentos Geral';
+  if(titulo) titulo.textContent = tab==='concluidas' ? 'Atendimentos Concluídos' : 'Atendimentos';
   try{renderAte();}catch(e){}
   try{renderAteStats();}catch(e){}
 }
@@ -27340,17 +27373,24 @@ function _atvPendentesDaArea(id){
 function renderAtvAreas(){
   const box=document.getElementById('atv-inicio');
   if(!box) return;
+  /* Mesmo desenho do Manual do Sistema: grade de cartões iguais, ícone e
+     título na cabeça, e o contador de abertos como selo. */
   const quadros=_atvAreasVisiveis().map(ar=>{
     const n=_atvPendentesDaArea(ar.id);
     return `
-      <div class="ini-quadro atv-area" onclick="atvIrArea('${ar.id}')">
-        <div class="ini-ic">${iconeMenu(ar.icone)}</div>
-        <div class="ini-tit">${ar.label}</div>
-        <div class="ini-sub">${ar.desc}</div>
+      <div class="ini-quadro bi-quadro atv-area" onclick="atvIrArea('${ar.id}')">
+        <div class="bi-cab">
+          <span class="ini-ic">${iconeMenu(ar.icone)}</span>
+          <span class="ini-tit">${ar.label}</span>
+        </div>
+        <div class="ini-sub" style="margin:9px 2px 12px;">${ar.desc}</div>
         <div class="atv-area-cnt">${n?(n+' em aberto'):'nada em aberto'}</div>
       </div>`;
   }).join('');
-  box.innerHTML=`<div class="ini-quadros atv-area-grade">${quadros}</div>`;
+  box.innerHTML=`
+    <p style="font-size:14.5px;color:var(--text-secondary);margin:0 0 20px;line-height:1.65;">
+      Escolha a área para abrir o quadro de tarefas dela.</p>
+    <div class="bi-grade">${quadros}</div>`;
 }
 
 /* ── Tarefa criada à mão, em Diárias ─────────────────────────────
@@ -27519,7 +27559,7 @@ function renderAtividades(){
   const tit=document.getElementById('atv-titulo-secao');
   if(tit){
     const ar=ATV_AREAS.find(x=>x.id===_atvAreaSel);
-    tit.textContent = ar ? ('Tarefas Suplelive · '+ar.label) : 'Tarefas Suplelive';
+    tit.textContent = ar ? ('Central de Tarefas · '+ar.label) : 'Central de Tarefas';
   }
   if(!naArea) return;
   appState.atividades.forEach((a,idx)=>{ if(typeof a.ordemManual!=='number') a.ordemManual=idx; });
