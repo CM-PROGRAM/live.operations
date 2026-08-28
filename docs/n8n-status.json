@@ -97,6 +97,68 @@
       ],
       "id": "Montar painel",
       "name": "Montar painel"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "n8n-controle",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -640,
+        240
+      ],
+      "id": "Webhook LiveOps (controle)",
+      "name": "Webhook LiveOps (controle)",
+      "webhookId": "n8n-controle"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Liga ou desliga um fluxo a pedido do painel. So aceita as duas acoes\n// conhecidas — qualquer outra coisa e recusada na porta.\nconst b = $json.body || $json;\nconst id = String(b.id || '').trim();\nconst acao = String(b.acao || '').trim();\nif (!id || (acao !== 'activate' && acao !== 'deactivate')) {\n  throw new Error('Pedido invalido: precisa de id e acao activate/deactivate.');\n}\nreturn [{ json: { id, acao } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -400,
+        240
+      ],
+      "id": "Validar comando",
+      "name": "Validar comando"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://n8n.suplelive.com.br/api/v1/workflows/{{ $json.id }}/{{ $json.acao }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -160,
+        240
+      ],
+      "id": "Executar comando",
+      "name": "Executar comando"
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $json || {};\nreturn [{ json: { ok: true, id: String(r.id || ''), ativo: !!r.active } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        240
+      ],
+      "id": "Responder",
+      "name": "Responder"
     }
   ],
   "connections": {
@@ -149,6 +211,39 @@
         [
           {
             "node": "Montar painel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook LiveOps (controle)": {
+      "main": [
+        [
+          {
+            "node": "Validar comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar comando": {
+      "main": [
+        [
+          {
+            "node": "Executar comando",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Executar comando": {
+      "main": [
+        [
+          {
+            "node": "Responder",
             "type": "main",
             "index": 0
           }

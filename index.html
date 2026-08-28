@@ -6546,6 +6546,7 @@ function defaultState(){
     extLinks:{},
     baseInfo:[],
     tplMsgs:[],
+    jobsSelecao:{},
     lucroFrete:3,
     lastReset:todayStr()
   };
@@ -6679,6 +6680,7 @@ function loadLocal(){
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     if(!Array.isArray(s.baseInfo)) s.baseInfo=[];
     if(!Array.isArray(s.tplMsgs)) s.tplMsgs=[];
+    if(!s.jobsSelecao || typeof s.jobsSelecao!=='object') s.jobsSelecao={};
     if(typeof s.lucroFrete!=='number') s.lucroFrete=3;
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
     if(s.tasks.plataformas && Array.isArray(s.tasks.plataformas)){
@@ -9450,6 +9452,8 @@ function _fundirListasDeOpcoes(novo, atual){
   }
   const semLinks = !novo.extLinks || typeof novo.extLinks!=='object' || !Object.keys(novo.extLinks).length;
   if(semLinks && atual.extLinks && Object.keys(atual.extLinks).length) novo.extLinks=atual.extLinks;
+  const semJobs = !novo.jobsSelecao || typeof novo.jobsSelecao!=='object' || !Object.keys(novo.jobsSelecao).length;
+  if(semJobs && atual.jobsSelecao && Object.keys(atual.jobsSelecao).length) novo.jobsSelecao=atual.jobsSelecao;
 }
 
 function applyRemoteState(data){
@@ -9506,6 +9510,7 @@ function applyRemoteState(data){
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
   if(!Array.isArray(data.baseInfo)) data.baseInfo = [];
   if(!Array.isArray(data.tplMsgs)) data.tplMsgs = [];
+  if(!data.jobsSelecao || typeof data.jobsSelecao!=='object') data.jobsSelecao = {};
   if(typeof data.lucroFrete!=='number') data.lucroFrete = 3;
   // Firebase omite arrays vazios — restaurar execs:[] para tasks com repeats>1
   if(data.tasks.plataformas && Array.isArray(data.tasks.plataformas)){
@@ -10937,7 +10942,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28j';
+const APP_VERSAO='2026.08.28k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13393,8 +13398,35 @@ function gupVerMais(i,btn){
    tem o atalho para abrir a execução no próprio n8n. A chave da API mora
    numa credencial do n8n — aqui só chega o retrato. */
 const JOBS_URL='https://webhookn8n.suplelive.com.br/webhook/n8n-status';
+const JOBS_CTRL_URL='https://webhookn8n.suplelive.com.br/webhook/n8n-controle';
 const JOBS_N8N='https://n8n.suplelive.com.br';
 let _jobsDados=null,_jobsErro='',_jobsCarregando=false,_jobsTs=0;
+let _jobsGerindo=false,_jobsVerTodos=false;
+/* Quais fluxos aparecem no painel. Vazio = todos; com escolha feita pelo
+   master, só os escolhidos — a seleção sincroniza para todo mundo. */
+function _jobsSelecao(){
+  if(!appState.jobsSelecao || typeof appState.jobsSelecao!=='object') appState.jobsSelecao={};
+  return appState.jobsSelecao;
+}
+function jobsGerir(){ _jobsGerindo=!_jobsGerindo; renderJobs(); }
+function jobsVerTodos(){ _jobsVerTodos=!_jobsVerTodos; renderJobs(); }
+function jobsMarcar(id){
+  if(!currentUser||!currentUser.master) return;
+  const sel=_jobsSelecao();
+  if(sel[id]) delete sel[id]; else sel[id]=1;
+  try{ saveState(appState); }catch(e){}
+  renderJobs();
+}
+/* Liga/desliga o fluxo direto daqui — o n8n-controle chama a API do n8n. */
+function jobsLigar(id,ligar,nome){
+  if(!currentUser||!currentUser.master){ showToast('Apenas o master liga/desliga fluxos','warn'); return; }
+  if(!ligar && !confirmar(()=>jobsLigar(id,ligar,nome),'Desligar o fluxo "'+(nome||'')+'"? Ele para de rodar até alguém religar.')) return;
+  fetch(JOBS_CTRL_URL,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:id, acao:ligar?'activate':'deactivate'})})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json().catch(()=>({})); })
+    .then(()=>{ showToast(ligar?'✓ Fluxo ligado':'Fluxo desligado','success'); _jobsTs=0; jobsAtualizar(true); })
+    .catch(e=>{ showToast('Não consegui: '+String((e&&e.message)||e)+' — o fluxo n8n-controle está ativo?','error'); });
+}
 function jobsCarregarSePreciso(){
   if(_jobsCarregando) return;
   if(_jobsDados && (Date.now()-_jobsTs)<60*1000) return;
@@ -13447,7 +13479,15 @@ function renderJobs(){
   if(!_jobsDados){
     box.innerHTML='<div class="gup-vazio">Clique em Atualizar para carregar os fluxos.</div>'; return;
   }
-  const f=_jobsDados.fluxos, ex=_jobsDados.execucoes;
+  const master=!!(currentUser&&currentUser.master);
+  const sel=_jobsSelecao();
+  const temSel=Object.keys(sel).length>0;
+  const filtrando=temSel && !_jobsVerTodos && !_jobsGerindo;
+  const fTodos=_jobsDados.fluxos;
+  const f=filtrando?fTodos.filter(w=>sel[w.id]):fTodos;
+  const idsVisiveis=new Set(f.map(w=>w.id));
+  const ex=filtrando?_jobsDados.execucoes.filter(e=>idsVisiveis.has(e.fluxoId)):_jobsDados.execucoes;
+  const ocultos=fTodos.length-f.length;
   const ativos=f.filter(x=>x.ativo).length;
   const erros=ex.filter(x=>String(x.status).toLowerCase()==='error').length;
   const kpis=`<div class="jobs-kpis">
@@ -13455,15 +13495,27 @@ function renderJobs(){
     <div class="jobs-kpi"><div class="n">${ex.length}</div><div class="r">Execuções recentes</div></div>
     <div class="jobs-kpi${erros?' ruim':''}"><div class="n">${erros}</div><div class="r">Com erro</div></div>
   </div>`;
-  const fluxos='<div class="jobs-secao">Fluxos criados</div>'+(f.length?'<div class="gup-grade">'+f.map(w=>`
-    <div class="gup-card">
+  const cabecalhoFluxos=`<div class="jobs-secao" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span>Fluxos${filtrando?' do LiveOps':' criados'}</span>
+    ${filtrando&&ocultos>0?`<button class="btn-sec" style="width:auto;font-size:11px;padding:4px 10px;" onclick="jobsVerTodos()">mostrar todos (${ocultos} ocultos)</button>`:''}
+    ${!filtrando&&temSel&&!_jobsGerindo?`<button class="btn-sec" style="width:auto;font-size:11px;padding:4px 10px;" onclick="jobsVerTodos()">só os escolhidos</button>`:''}
+    <div style="flex:1;"></div>
+    ${master?`<button class="btn-sec" style="width:auto;font-size:11px;padding:4px 12px;${_jobsGerindo?'color:#10b981;border-color:rgba(16,185,129,.5);':''}" onclick="jobsGerir()">${_jobsGerindo?'✓ Concluir escolha':'Escolher fluxos'}</button>`:''}
+  </div>`+(_jobsGerindo?`<p style="font-size:11.5px;color:var(--text-muted);margin:-4px 0 10px;">Marque os fluxos do sistema — só os marcados aparecem no painel (para todos os usuários). Sem nenhum marcado, aparecem todos.</p>`:'');
+  const fluxos=cabecalhoFluxos+(f.length?'<div class="gup-grade">'+f.map(w=>`
+    <div class="gup-card"${_jobsGerindo?' style="cursor:pointer;'+(sel[w.id]?'border-color:#2563eb;box-shadow:0 0 0 1px #2563eb;':'opacity:.68;')+'" onclick="jobsMarcar(\''+_iniEsc(w.id)+'\')"':''}>
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <span class="nome" style="font-family:var(--font-sans);font-size:13px;">${_iniEsc(w.nome)}</span>
+        <span class="nome" style="font-family:var(--font-sans);font-size:13px;">${_jobsGerindo?(sel[w.id]?'☑ ':'☐ '):''}${_iniEsc(w.nome)}</span>
         ${w.ativo?'<span class="gup-chip ok">ATIVO</span>':'<span class="gup-chip neutro">INATIVO</span>'}
       </div>
       <div class="meta">${w.atualizado?'alterado '+_jobsQuando(w.atualizado):''}</div>
-      <a href="${JOBS_N8N}/workflow/${_iniEsc(w.id)}" target="_blank" rel="noopener"
-         style="font-size:11.5px;font-weight:700;color:#2563eb;text-decoration:none;">Abrir no n8n ↗</a>
+      ${_jobsGerindo?'':`<div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <a href="${JOBS_N8N}/workflow/${_iniEsc(w.id)}" target="_blank" rel="noopener"
+           style="font-size:11.5px;font-weight:700;color:#2563eb;text-decoration:none;">Editar no n8n ↗</a>
+        ${master?(w.ativo
+          ?`<button class="btn-sec" style="width:auto;font-size:11px;padding:3px 10px;color:#ef4444;border-color:rgba(239,68,68,.45);" onclick="jobsLigar('${_iniEsc(w.id)}',false,'${_iniEsc(w.nome)}')">Desligar</button>`
+          :`<button class="btn-sec" style="width:auto;font-size:11px;padding:3px 10px;color:#10b981;border-color:rgba(16,185,129,.5);" onclick="jobsLigar('${_iniEsc(w.id)}',true,'${_iniEsc(w.nome)}')">Ligar</button>`):''}
+      </div>`}
     </div>`).join('')+'</div>':'<div class="gup-vazio">Nenhum fluxo encontrado.</div>');
   const linhas=ex.map(e=>{
     const url=JOBS_N8N+'/workflow/'+encodeURIComponent(e.fluxoId)+'/executions/'+encodeURIComponent(e.id);
