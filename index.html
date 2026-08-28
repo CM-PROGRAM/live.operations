@@ -1800,9 +1800,19 @@ details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-mu
    no mesmo padrão do Dashboard: título grande azul, na MESMA letra dos
    demais (o .section-title padrão é mono espaçado e destoava). */
 #tab-tarefas .section-title,#tab-atendimentos .section-title,
-#tab-atribuir .section-title,#tab-plataformas .section-title,
+#tab-atribuir .section-title,#tab-plataformas .section-title,#tab-whatsapp .section-title,
 #tab-financeiro .section-title,#tab-consultacpf .section-title{color:#1d4ed8;font-size:22px;
   font-family:var(--font-sans);font-weight:800;text-transform:none;letter-spacing:0;}
+:root:not([data-theme="light"]) #tab-whatsapp .section-title{color:#60a5fa;}
+/* Vendas: grade de 4 quadros por fileira, cards mais compactos que os da
+   frente antiga, título da área em azul */
+.vnd-grade{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding:10px 0 14px;align-items:stretch;}
+@media(max-width:1250px){.vnd-grade{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:640px){.vnd-grade{grid-template-columns:1fr;}}
+.ini-quadro.vnd-card{min-height:0;padding:20px 14px 16px;}
+.vnd-card .ini-ic{transform:scale(.85);margin-bottom:2px;}
+.vnd-tit{color:#1d4ed8;}
+:root:not([data-theme="light"]) .vnd-tit{color:#60a5fa;}
 #tab-inbox .pag-titulo{color:#1d4ed8;}
 :root:not([data-theme="light"]) #tab-inbox .pag-titulo{color:#60a5fa;}
 /* Nos cards da Central, o nome da área em azul, como nos demais títulos */
@@ -2899,35 +2909,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <!-- WHATSAPP -->
     <div class="tab-panel" id="tab-whatsapp">
       <div class="section-header">
-        <span class="section-title">WhatsApp — CM Andrade</span>
+        <span class="section-title">Vendas</span>
         <div class="live-badge"><div class="live-dot"></div>Tempo real</div>
       </div>
 
-      <!-- Três frentes, três quadros, no mesmo desenho da Página inicial.
-           Antes os três grupos vinham empilhados na mesma tela e a pessoa
-           rolava por tudo para chegar no que queria. -->
-      <!-- 1460px e não 980: com três quadros numa linha, a faixa estreita
-           os deixaria menores que os da Página inicial. -->
-      <div id="wpp-inicio" class="ini-wrap" style="max-width:1240px;padding:14px 0 10px;">
-        <div class="ini-quadros tres-colunas quadros-maiores">
-          <div class="ini-quadro" onclick="wppAbrirFrente('wpp_atend')">
-            <div class="ini-ic" data-icone="atendimentos"></div>
-            <div class="ini-tit">Atendimento</div>
-            <div class="ini-sub">Orçamento, cotação de frete e a cobrança — o que se resolve antes de o pedido existir.</div>
-          </div>
-          <div class="ini-quadro" onclick="wppAbrirFrente('wpp_pedido')">
-            <div class="ini-ic" data-icone="vendas"></div>
-            <div class="ini-tit">Pedido</div>
-            <div class="ini-sub">Cadastrar o pedido na Base e gerar a etiqueta de envio.</div>
-          </div>
-          <div class="ini-quadro" onclick="wppAbrirFrente('wpp_comp')">
-            <div class="ini-ic" data-icone="pedidos"></div>
-            <div class="ini-tit">Registro</div>
-            <div class="ini-sub">Registrar a venda, guardar o comprovante e alimentar a conferência.</div>
-          </div>
-        </div>
-      </div>
-      <button class="ini-voltar" id="wpp-voltar" style="display:none;" onclick="wppAbrirFrente('')">← WhatsApp</button>
+      <!-- As frentes viraram tela única: os oito quadros direto aqui, na
+           ordem fechada com o master, quatro por fileira. -->
+      <div id="wpp-inicio" style="display:none;"></div>
+      <button class="ini-voltar" id="wpp-voltar" style="display:none;" onclick="wppAbrirFrente('')">← Vendas</button>
       <!-- Fechamento do orçamento: junta o que os quadros preencheram.
            Só aparece na frente Atendimento, que é onde o rascunho é montado. -->
       <div class="atd-barra" id="atd-barra" style="display:none;">
@@ -2937,6 +2926,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <button class="btn atd-fechar" onclick="gerarTextoBoleto()">Boleto</button>
         <button class="btn btn-ghost atd-fechar" onclick="atdLimpar()" title="Começar outro orçamento">Limpar</button>
       </div>
+      <!-- Os oito quadros da operação, antes das listas de registro -->
+      <div class="date-header" id="wpp-date" style="display:none;"></div>
+      <div id="wpp-tasks" style="display:none;"></div>
       <!-- O Registro veio da aba Pedidos: quem acabou de fechar a venda no
            WhatsApp é quem vai lançá-la, e o caminho era trocar de aba para
            isso. Fica abaixo dos quadros, na tela de entrada. -->
@@ -2994,8 +2986,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
 
       </div>      </div>
-      <div class="date-header" id="wpp-date" style="display:none;"></div>
-      <div id="wpp-tasks" style="display:none;"></div>
+
 
     </div>
 
@@ -6811,10 +6802,8 @@ function loadLocal(){
               cad.btns.push({label:'Dados',action:'dadosCliente'});
             }
           }
-          const etiq=g.items?.find(i=>i.id==='wpp_p2');
-          if(etiq && Array.isArray(etiq.btns) && !etiq.btns.some(b=>b.action==='envioRastreio')){
-            etiq.btns.push({label:'Envio Rastreio',action:'envioRastreio'});
-          }
+          /* O botão de ação "Envio Rastreio" saiu do quadro: o card virou os
+             atalhos das cinco contas de envio, por decisão do master. */
         }
       });
     }
@@ -6835,8 +6824,8 @@ function loadLocal(){
         || !s.tasks.whatsapp.some(g=>g.id==='wpp_comp')
         || s.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='PEDIDO')
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='REGISTRO')
-        || s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&!g.items?.some(i=>i.id==='wpp_a2'&&i.text==='Orçamentos'))
-        || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c1'&&i.text==='Registro de Vendas'))
+        || !s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.versaoVendas===2)
+        || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c4'))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.items?.some(i=>i.text==='Registro Imagem Comprovante'||i.text==='Registro Venda Planilha'||i.linkLabel==='Daniel Sup'||i.linkLabel==='Planilha Comprovantes'))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.items?.some(i=>i.linkLabel==='Base'));
@@ -9642,10 +9631,8 @@ function applyRemoteState(data){
               cad.btns.push({label:'Dados',action:'dadosCliente'});
             }
           }
-          const etiq=g.items?.find(i=>i.id==='wpp_p2');
-          if(etiq && Array.isArray(etiq.btns) && !etiq.btns.some(b=>b.action==='envioRastreio')){
-            etiq.btns.push({label:'Envio Rastreio',action:'envioRastreio'});
-          }
+          /* O botão de ação "Envio Rastreio" saiu do quadro: o card virou os
+             atalhos das cinco contas de envio, por decisão do master. */
         }
       });
     }
@@ -9664,8 +9651,8 @@ function applyRemoteState(data){
       ||!data.tasks.whatsapp.some(g=>g.id==='wpp_comp')
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.group!=='PEDIDO')
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.group!=='REGISTRO')
-      ||data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&!g.items?.some(i=>i.id==='wpp_a2'&&i.text==='Orçamentos'))
-      ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c1'&&i.text==='Registro de Vendas'))
+      ||!data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.versaoVendas===2)
+      ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&!g.items?.some(i=>i.id==='wpp_c4'))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.items?.some(i=>i.text==='Registro Imagem Comprovante'||i.text==='Registro Venda Planilha'||i.linkLabel==='Daniel Sup'||i.linkLabel==='Planilha Comprovantes'))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.items?.some(i=>i.linkLabel==='Base'));
@@ -10063,25 +10050,27 @@ function makeBaixasItem(store){
   };
 }
 
+/* A aba Vendas em tela única: oito quadros na ordem fechada com o master
+   (28/08), quatro por fileira. A marca versaoVendas:2 é o que dispara a
+   migração dos estados antigos — sem ela, quem já tinha o desenho velho
+   gravado continuaria vendo os quadros de antes. */
 function initWpp(){return[
   {
-    id:'wpp_atend', group:'ATENDIMENTO', icon:'wpp-logo',
+    id:'wpp_atend', group:'ATENDIMENTO', icon:'wpp-logo', versaoVendas:2,
     link:'',
     linkLabel:'',
     items:[
-      {id:'wpp_a2',text:'Orçamentos',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+      {id:'wpp_a2',text:'Orçamento',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
           {label:'Valores',action:'valores'}
         ]
       },
       {id:'wpp_a34',text:'Frete',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
-          {label:'Manda Bem',link:'https://mandabem.com.br/calculador_frete'},
-          {label:'Melhor Envio',link:'https://melhorenvio.com.br/login'},
           {label:'Frete Escolhido',action:'freteEscolhido'}
         ]
       },
-      {id:'wpp_c3',text:'Pagamento',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+      {id:'wpp_c3',text:'Formas de Pagamento',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
           {label:'PIX',    action:'pagPix'},
           {label:'Cartão', action:'pagCartao'},
@@ -10097,15 +10086,17 @@ function initWpp(){return[
     items:[
       {id:'wpp_p1',text:'Cadastro',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
-          {label:'Cadastrar',link:'https://panel-u.baselinker.com/orders.php#status:all'},
-          {label:'Dados',action:'dadosCliente'}
+          {label:'Solicitação Dados',action:'dadosCliente'},
+          {label:'Cadastro',link:'https://panel-u.baselinker.com/orders.php#status:all'}
         ]
       },
-      {id:'wpp_p2',text:'Gerar Etiqueta',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+      {id:'wpp_p2',text:'Envio Rastreio',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
-          {label:'Manda Bem',link:'https://mandabem.com.br/gerar'},
-          {label:'Melhor Envio',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'},
-          {label:'Envio Rastreio',action:'envioRastreio'}
+          {label:'Manda Bem 4Vita',link:'https://mandabem.com.br/gerar'},
+          {label:'Manda Bem Daniel',link:'https://mandabem.com.br/gerar'},
+          {label:'Melhor Envio 4Vita',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'},
+          {label:'Melhor Envio Antonio Carlos',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'},
+          {label:'Melhor Envio Raphael',link:'https://melhorenvio.com.br/painel/meus-envios#liberados'}
         ]
       }
     ]
@@ -10115,11 +10106,19 @@ function initWpp(){return[
     link:'',
     linkLabel:'',
     items:[
-      {id:'wpp_c1',text:'Registro de Vendas',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+      {id:'wpp_c1',text:'Registro Venda',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
         btns:[
-          {label:'+ Registrar Venda',action:'registrarVenda'},
-          {label:'Pasta Comprovantes',link:'https://drive.google.com/drive/u/0/folders/1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr'},
-          {label:'Planilha Conferência',link:'https://docs.google.com/spreadsheets/d/15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY/edit?gid=968846937#gid=968846937'}
+          {label:'Registrar',action:'registrarVenda'}
+        ]
+      },
+      {id:'wpp_c4',text:'Pasta Comprovantes',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+        btns:[
+          {label:'Pasta Comprovante',link:'https://drive.google.com/drive/u/0/folders/1H6rq8v0ZHJfcgp3QTAnKWYrPQJfQoTsr'}
+        ]
+      },
+      {id:'wpp_c2',text:'Planilha Conferência',sub:'',link:'',linkLabel:'',done:false,doneBy:null,doneAt:null,owner:'cmandrade',
+        btns:[
+          {label:'Planilha Conferencia',link:'https://docs.google.com/spreadsheets/d/15aF5lcOi2Xg7iKuhsfcmxPALLUKHEqg5HRm7jmiAzhY/edit?gid=968846937#gid=968846937'}
         ]
       }
     ]
@@ -11025,7 +11024,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28u';
+const APP_VERSAO='2026.08.28v';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13651,31 +13650,32 @@ function renderAll(){
    está na frente da tela, não dado do sistema. */
 let _wppFrente='';
 
+/* As "frentes" acabaram: a aba Vendas é uma tela única — os oito quadros
+   em cima, a barra de fechamento do orçamento e o Registro embaixo. A
+   assinatura com id ficou porque vários pontos ainda chamam assim. */
 function wppAbrirFrente(id){
-  _wppFrente=id||'';
+  _wppFrente='';
   const inicio=document.getElementById('wpp-inicio');
+  if(inicio) inicio.style.display='none';
   const voltar=document.getElementById('wpp-voltar');
+  if(voltar) voltar.style.display='none';
   const data=document.getElementById('wpp-date');
+  if(data) data.style.display='none';
   const tarefas=document.getElementById('wpp-tasks');
-  const napagina=!_wppFrente;
-  if(inicio)  inicio.style.display  = napagina ? '' : 'none';
-  if(voltar)  voltar.style.display  = napagina ? 'none' : '';
-  if(data)    data.style.display    = napagina ? 'none' : '';
-  if(tarefas) tarefas.style.display = napagina ? 'none' : '';
+  if(tarefas) tarefas.style.display='block';
   const barra=document.getElementById('atd-barra');
   if(barra){
-    barra.style.display = (_wppFrente==='wpp_atend') ? 'flex' : 'none';
+    barra.style.display='flex';
     try{ preencherIconesDeclarados(barra); }catch(e){}
   }
-  // O Registro vive na tela de entrada, abaixo dos quadros
   const regs=document.getElementById('wpp-registros');
   if(regs){
-    regs.style.display = napagina ? 'block' : 'none';
-    if(napagina){ try{ renderPedidos(); }catch(e){ console.warn('renderPedidos:',e); } }
+    regs.style.display='block';
+    try{ renderPedidos(); }catch(e){ console.warn('renderPedidos:',e); }
   }
   try{ preencherIconesDeclarados(document.getElementById('tab-whatsapp')); }catch(e){}
   try{ atdAtualizarBarra(); }catch(e){}
-  if(!napagina) renderWpp();
+  renderWpp();
 }
 
 /* Os ícones dos quadros são os mesmos desenhos de traço do menu — sem emoji
@@ -13736,12 +13736,14 @@ function _wppRemendarAtendimento(g){
 
 /* Um ícone por quadro do WhatsApp, do mesmo conjunto de traço do menu. */
 const ICONE_QUADRO_WPP = {
-  wpp_a2:  'pedidos',      // Orçamentos
+  wpp_a2:  'pedidos',      // Orçamento
   wpp_a34: 'track',        // Frete
-  wpp_c3:  'financeiro',   // Pagamento
+  wpp_c3:  'financeiro',   // Formas de Pagamento
   wpp_p1:  'tarefas',      // Cadastro
-  wpp_p2:  'track',        // Gerar Etiqueta
-  wpp_c1:  'pedidos'       // Registro de Vendas
+  wpp_p2:  'acompanha',    // Envio Rastreio
+  wpp_c1:  'pedidos',      // Registro Venda
+  wpp_c4:  'manual',       // Pasta Comprovantes
+  wpp_c2:  'templates'     // Planilha Conferência
 };
 
 function renderWpp(){
@@ -13760,12 +13762,9 @@ function renderWpp(){
     g.items.forEach(i=>{
       if(i.btns && !Array.isArray(i.btns)) i.btns=Object.values(i.btns);
       else if(!i.btns) i.btns=[];
-      // Patch: renomeia M. Bem / M. Envio para os nomes completos (estados antigos incluídos)
-      i.btns.forEach(b=>{
-        if(b.link&&b.link.includes('mandabem'))   b.label='Manda Bem';
-        if(b.link&&b.link.includes('melhorenvio')) b.label='Melhor Envio';
-        if(b.action==='dadosCliente') b.label='Dados';
-      });
+      /* Os renomes antigos de Manda Bem/Melhor Envio saíram: agora cada
+         botão carrega o nome da CONTA (Manda Bem 4Vita, Melhor Envio
+         Raphael...) e renomear por link os igualaria de novo. */
     });
     // Patch pontual: garante o botão "Precificação Pix" e remove o antigo link direto, mesmo em estados antigos já salvos
     if(g.id==='wpp_atend'){
@@ -13792,11 +13791,6 @@ function renderWpp(){
           cad.btns.push({label:'Dados',action:'dadosCliente'});
         }
       }
-      // Patch pontual: garante o botão "Envio Rastreio" no item Gerar Etiqueta
-      const etiq=g.items.find(i=>i.id==='wpp_p2');
-      if(etiq && Array.isArray(etiq.btns) && !etiq.btns.some(b=>b.action==='envioRastreio')){
-        etiq.btns.push({label:'Envio Rastreio',action:'envioRastreio'});
-      }
     }
     // Patch pontual: força o ícone do logo do WhatsApp nos 3 grupos, mesmo
     // em estados antigos já salvos no Firebase/localStorage com emoji antigo (💬/📦/🧾)
@@ -13816,10 +13810,18 @@ function renderWpp(){
   let totalAll=0,doneAll=0;
   groups.forEach(g=>{ if(g&&Array.isArray(g.items)){ totalAll+=g.items.length; doneAll+=g.items.filter(i=>i.done).length; } });
 
-  groups.forEach(g=>{
+  /* Tela única: os quadros dos três grupos entram numa grade só, na ordem
+     fechada com o master — quatro por fileira. Os grupos continuam sendo a
+     casa dos dados; aqui eles são apenas a fonte. */
+  const ordemCards=['wpp_a2','wpp_a34','wpp_c3','wpp_p1','wpp_c1','wpp_c4','wpp_c2','wpp_p2'];
+  const porId={};
+  groups.forEach(g=>{ if(g&&Array.isArray(g.items)) g.items.forEach(i=>{ if(i&&i.id) porId[i.id]=i; }); });
+  const itensVendas=ordemCards.map(id=>porId[id]).filter(Boolean);
+  Object.keys(porId).forEach(id=>{ if(!ordemCards.includes(id)) itensVendas.push(porId[id]); });
+  const gruposRender=[{id:'wpp_tudo', group:'', icon:'wpp-logo', link:'', items:itensVendas}];
+
+  gruposRender.forEach(g=>{
     if(!g||!Array.isArray(g.items)||g.items.length===0) return;
-    // Só a frente aberta é desenhada — ver wppAbrirFrente
-    if(_wppFrente && g.id!==_wppFrente) return;
     try{
     const allDone=g.items.every(i=>i.done);
     const card=document.createElement('div');card.className='task-group';
@@ -13862,7 +13864,7 @@ function renderWpp(){
        repetir "Atendimento" logo abaixo, com o mesmo ícone, só ocupa espaço.
        Na visão de todos os grupos o cabeçalho continua, porque ali ele é o
        que separa um grupo do outro. */
-    const emFrente = !!_wppFrente;
+    const emFrente = true;
     if(!emFrente) card.appendChild(header);
 
     /* Na frente aberta o grupo não desenha caixa nenhuma: os quadros de
@@ -13905,14 +13907,13 @@ function renderWpp(){
     // Itens como cards 3D em grid
     if(cardItems.length > 0){
       const grid=document.createElement('div');
-      grid.style.cssText = emFrente
-        ? 'display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:22px;padding:10px 0 12px;align-items:stretch;max-width:1240px;margin:0 auto;'
-        : 'display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:14px;align-items:stretch;flex:1;'+(listItems.length>0?'border-top:1px solid var(--glass-border);':'');
+      if(emFrente){ grid.className='vnd-grade'; }
+      else grid.style.cssText='display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:14px;align-items:stretch;flex:1;'+(listItems.length>0?'border-top:1px solid var(--glass-border);':'');
       cardItems.forEach(tk=>{
         const isDone=tk.done;
         const c=document.createElement('div');
         if(emFrente){
-          c.className='ini-quadro quadro-acoes';
+          c.className='ini-quadro quadro-acoes vnd-card';
           c.style.cssText='cursor:default;';
         } else {
           c.style.cssText=`position:relative;display:flex;flex-direction:column;background:linear-gradient(135deg,rgba(255,255,255,${isDone?'0.03':'0.07'}) 0%,rgba(255,255,255,0.02) 100%);border:1px solid var(--glass-border);border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.09);backdrop-filter:blur(14px);overflow:hidden;transition:box-shadow .2s,transform .15s,border-color .2s;cursor:default;`;
@@ -13931,7 +13932,13 @@ function renderWpp(){
         }
         // Title — centralizado, maior, sem pill verde
         const titleRow=document.createElement('div');titleRow.style.cssText='display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:12px;';
-        const label=document.createElement('div');label.style.cssText=(emFrente?'font-size:20px;':'font-size:16px;')+'font-weight:800;text-align:center;color:'+(isDone?'var(--text-muted)':'#fff')+';letter-spacing:-0.01em;text-decoration:'+(isDone?'line-through':'none')+';flex:1;';
+        const label=document.createElement('div');
+        if(emFrente){
+          label.className='vnd-tit';
+          label.style.cssText='font-size:16px;font-weight:800;text-align:center;letter-spacing:-0.01em;flex:1;';
+        } else {
+          label.style.cssText='font-size:16px;font-weight:800;text-align:center;color:'+(isDone?'var(--text-muted)':'#fff')+';letter-spacing:-0.01em;text-decoration:'+(isDone?'line-through':'none')+';flex:1;';
+        }
         label.textContent=tk.text;
         titleRow.appendChild(label);c.appendChild(titleRow);
         // Buttons or link
@@ -13941,9 +13948,9 @@ function renderWpp(){
             const a=document.createElement('a');
             if(b.action){ a.href='javascript:void(0)'; a.onclick=(ev)=>{ev.preventDefault();executarAcaoBotao(b.action);}; }
             else { a.href=b.link; a.target='_blank'; }
-            a.style.cssText='display:inline-flex;align-items:center;gap:9px;background:var(--veu-medio);border:1px solid rgba(255,255,255,0.28);border-radius:50px;color:var(--text-primary);font-size:14px;font-weight:600;padding:6px 18px 6px 6px;text-decoration:none;transition:all .15s;font-family:var(--font-sans);white-space:nowrap;box-shadow:var(--realce-topo);';
-            a.onmouseover=()=>{a.style.background='rgba(255,255,255,0.14)';a.style.borderColor='rgba(255,255,255,0.5)';a.style.transform='translateY(-1px)';};
-            a.onmouseout=()=>{a.style.background='rgba(255,255,255,0.06)';a.style.borderColor='rgba(255,255,255,0.28)';a.style.transform='';};
+            a.style.cssText='display:inline-flex;align-items:center;gap:8px;background:var(--veu-medio);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-primary);font-size:12.5px;font-weight:600;padding:5px 14px 5px 6px;text-decoration:none;transition:all .15s;font-family:var(--font-sans);white-space:nowrap;box-shadow:var(--realce-topo);';
+            a.onmouseover=()=>{a.style.borderColor='#2563eb';a.style.transform='translateY(-1px)';};
+            a.onmouseout=()=>{a.style.borderColor='var(--glass-border)';a.style.transform='';};
             // Ícones personalizados: logo PIX (losango teal) e maquininha de cartão neon
             let iconInner = '↗';
             /* PIX, Cartão e Boleto ganham o desenho do próprio meio de
