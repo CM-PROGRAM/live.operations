@@ -10826,7 +10826,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28a';
+const APP_VERSAO='2026.08.28b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13056,6 +13056,7 @@ function _gupRender(){
       <div class="meta">${_iniEsc([t.categoria,t.idioma].filter(Boolean).join(' · '))}${t.atualizado?' · '+_iniEsc(t.atualizado):''}</div>
       <div class="corpo" id="gup-corpo-${i}">${_iniEsc(t.texto||'')}</div>
       ${String(t.texto||'').length>220?`<button class="mais" onclick="gupVerMais(${i},this)">ver tudo</button>`:''}
+      ${t.motivo?`<div style="margin-top:8px;font-size:11.5px;line-height:1.5;color:#ef4444;"><b>Motivo da Meta:</b> ${_iniEsc(t.motivo)}</div>`:''}
     </div>`).join('')+'</div>';
 }
 function gupVerMais(i,btn){

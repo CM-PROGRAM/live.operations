@@ -22,7 +22,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// >>> PREENCHA: nome do app no Gupshup <<<\n// E o App Name que aparece no painel do gupshup.io (Dashboard > seu app).\nconst APP_NAME = '';\nif (!APP_NAME) throw new Error('Preencha o APP_NAME neste no (nome do app no Gupshup).');\nreturn [{ json: { appName: APP_NAME } }];"
+        "jsCode": "// ID do aplicativo no Gupshup (Configuracoes > ID do aplicativo).\n// Ja preenchido com o app Suplelive; se um dia trocar de app, atualize aqui.\nconst APP_ID = 'abc8678f-7774-44f4-b7d0-71f71af860d0';\nif (!APP_ID) throw new Error('Preencha o APP_ID neste no (ID do aplicativo no Gupshup).');\nreturn [{ json: { appId: APP_ID } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -36,7 +36,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://api.gupshup.io/sm/api/v1/template/list/{{ $json.appName }}",
+        "url": "=https://api.gupshup.io/wa/app/{{ $json.appId }}/template",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
@@ -52,7 +52,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// A resposta do Gupshup vem como {status:'success', templates:[...]}.\n// Aqui vira o formato que o LiveOps desenha nos cards do espelho.\nconst r = $json || {};\nconst lista = Array.isArray(r.templates) ? r.templates : [];\nconst ord = { APPROVED: 0, PENDING: 1, SUBMITTED: 1, REJECTED: 2, FAILED: 2 };\nconst templates = lista\n  .filter(t => t && String(t.status || '').toUpperCase() !== 'DELETED')\n  .map(t => ({\n    nome: t.elementName || t.id || '—',\n    categoria: t.category || '',\n    idioma: t.languageCode || '',\n    status: String(t.status || '').toUpperCase(),\n    texto: t.data || '',\n    atualizado: t.modifiedOn ? new Date(t.modifiedOn).toLocaleDateString('pt-BR') : ''\n  }))\n  .sort((a, b) => ((ord[a.status] ?? 3) - (ord[b.status] ?? 3)) || a.nome.localeCompare(b.nome));\nreturn [{ json: { templates } }];"
+        "jsCode": "// A resposta do Gupshup vem como {status:'success', templates:[...]}.\n// Aqui vira o formato que o LiveOps desenha nos cards do espelho.\nconst r = $json || {};\nconst lista = Array.isArray(r.templates) ? r.templates : [];\nconst ord = { APPROVED: 0, PENDING: 1, SUBMITTED: 1, REJECTED: 2, FAILED: 2 };\nconst templates = lista\n  .filter(t => t && String(t.status || '').toUpperCase() !== 'DELETED')\n  .map(t => ({\n    nome: t.elementName || t.id || '—',\n    categoria: t.category || '',\n    idioma: t.languageCode || '',\n    status: String(t.status || '').toUpperCase(),\n    texto: t.data || '',\n    motivo: t.reason || '',\n    atualizado: t.modifiedOn ? new Date(t.modifiedOn).toLocaleDateString('pt-BR') : ''\n  }))\n  .sort((a, b) => ((ord[a.status] ?? 3) - (ord[b.status] ?? 3)) || a.nome.localeCompare(b.nome));\nreturn [{ json: { templates } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
