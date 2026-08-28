@@ -666,6 +666,8 @@ html{overflow-x:hidden;}
 .wa-topo-lista input{width:100%;}
 .wa-convs{flex:1;overflow-y:auto;}
 .wa-aguarde{padding:22px 16px;font-size:12.5px;line-height:1.7;color:var(--text-muted);}
+.wa-secao{padding:9px 13px 5px;font-family:var(--font-mono);font-size:9.5px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--linha-sutil);}
 .wa-conv{display:flex;gap:11px;align-items:center;padding:11px 13px;cursor:pointer;
   border-bottom:1px solid var(--linha-sutil);transition:background .12s;}
 .wa-conv:hover{background:var(--veu-suave);}
@@ -10733,7 +10735,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27k';
+const APP_VERSAO='2026.08.27l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11937,6 +11939,21 @@ function _waIni(nome){
   return String(nome||'?').trim().split(/\s+/).slice(0,2).map(p=>p.charAt(0)).join('').toUpperCase()||'?';
 }
 
+/* Contatos que a busca enxerga mesmo SEM conversa espelhada: os leads
+   cadastrados na tela de Clientes e os clientes dos pedidos da Base.
+   Só entra quem tem telefone — sem número não há WhatsApp. */
+function _waContatosLocais(){
+  const mapa={};
+  const poe=(nome,fone)=>{
+    const dig=String(fone||'').replace(/\D/g,'');
+    if(dig.length<10 || mapa[dig]) return;
+    mapa[dig]={dig, nome:String(nome||'').trim()||'Contato', telefone:fone};
+  };
+  (appState.leads||[]).forEach(l=>l&&poe(l.nome,l.telefone));
+  (appState.pedidosBase||[]).forEach(p=>p&&poe(p.cliente,p.telefone));
+  return mapa;
+}
+
 function inboxRender(){
   const box=document.getElementById('wa-convs');
   if(!box) return;
@@ -11945,9 +11962,42 @@ function inboxRender(){
     .map(([id,c])=>({id,...c}))
     .filter(c=>!q || _biNorm([c.nome,c.telefone,c.ultima].join(' ')).includes(q))
     .sort((a,b)=>(b.ts||0)-(a.ts||0));
-  if(!lista.length){
+
+  /* Conversa nova recém-criada no Chatwoot: quando o espelho dela chegar,
+     a tela troca sozinha da "conversa nova" para a conversa de verdade. */
+  if(_waAberta && _waAberta.indexOf('novo:')===0){
+    const dig=_waAberta.slice(5);
+    const pronta=Object.entries(_waConvs).find(([,c])=>String(c.telefone||'').replace(/\D/g,'').endsWith(dig.slice(-8)));
+    if(pronta){
+      _waPendentes[pronta[0]]=(_waPendentes[pronta[0]]||[]).concat(_waPendentes[_waAberta]||[]);
+      delete _waPendentes[_waAberta];
+      inboxAbrir(pronta[0]);
+      return;
+    }
+  }
+
+  /* Com busca ativa, contatos sem conversa aparecem numa faixa própria */
+  let contatosHtml='';
+  if(q){
+    const jaTem=new Set(Object.values(_waConvs).map(c=>String(c.telefone||'').replace(/\D/g,'')).filter(Boolean));
+    const achados=Object.values(_waContatosLocais())
+      .filter(ct=>!jaTem.has(ct.dig) && _biNorm(ct.nome+' '+ct.dig).includes(q))
+      .slice(0,8);
+    if(achados.length){
+      contatosHtml='<div class="wa-secao">Contatos — iniciar conversa</div>'+achados.map(ct=>`
+        <div class="wa-conv" onclick="inboxNovaConversa('${_iniEsc(ct.dig)}','${_iniEsc(ct.nome).replace(/'/g,'&#39;')}')">
+          <span class="wa-av">${_iniEsc(_waIni(ct.nome))}</span>
+          <div class="wa-conv-meio">
+            <div class="wa-conv-l1"><span class="nome">${_iniEsc(nomeProprio(ct.nome))}</span></div>
+            <div class="wa-conv-l2"><span class="previa">${_iniEsc(ct.telefone||ct.dig)}</span><span class="wa-caixa">novo</span></div>
+          </div>
+        </div>`).join('');
+    }
+  }
+
+  if(!lista.length && !contatosHtml){
     box.innerHTML='<div class="wa-aguarde">'+(q
-      ?'Nenhuma conversa encontrada para essa busca.'
+      ?'Nenhuma conversa nem contato encontrado para essa busca.'
       :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.')+'</div>';
     return;
   }
@@ -11961,7 +12011,34 @@ function inboxRender(){
           ${c.caixa?`<span class="wa-caixa">${_iniEsc(c.caixa)}</span>`:''}
         </div>
       </div>
-    </div>`).join('');
+    </div>`).join('')+contatosHtml;
+}
+
+/* Abre o painel de conversa para um contato que ainda não tem atendimento:
+   a primeira mensagem enviada cria a conversa no Chatwoot pelo n8n. */
+let _waNovo=null;
+function inboxNovaConversa(dig,nome){
+  _waAberta='novo:'+dig;
+  _waNovo={dig, nome};
+  try{ if(_waMsgConvRef) _waMsgConvRef.off(); }catch(e){}
+  _waMsgConvRef=null;
+  _waMsgs={};
+  const cab=document.getElementById('wa-chat-cab');
+  if(cab){
+    cab.style.display='flex';
+    cab.innerHTML=`
+      <span class="wa-av">${_iniEsc(_waIni(nome))}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="nome">${_iniEsc(nomeProprio(nome))}</div>
+        <div class="tel">+${dig.length<=11?'55':''}${_iniEsc(dig)} · conversa nova</div>
+      </div>`;
+  }
+  document.querySelector('.wa-wrap')?.classList.add('aberta');
+  const compor=document.getElementById('wa-compor');
+  if(compor) compor.style.display='flex';
+  _waPintarMsgs();
+  inboxRender();
+  setTimeout(()=>{ const i=document.getElementById('wa-input'); if(i) i.focus(); },60);
 }
 
 function inboxAbrir(id){
@@ -12009,7 +12086,10 @@ function _waPintarMsgs(){
   _waPendentes[_waAberta]=pend;
   const msgs=doFirebase.concat(pend).sort((a,b)=>(a.ts||0)-(b.ts||0));
   if(!msgs.length){
-    box.innerHTML='<div class="wa-vazio"><div class="wa-vazio-ic">💬</div><div>Sem mensagens gravadas ainda nesta conversa — só as novas chegam aqui.</div></div>';
+    const nova=_waAberta && _waAberta.indexOf('novo:')===0;
+    box.innerHTML='<div class="wa-vazio"><div class="wa-vazio-ic">💬</div><div>'+(nova
+      ?'Conversa nova — a primeira mensagem cria o atendimento no Chatwoot e abre o WhatsApp do cliente.'
+      :'Sem mensagens gravadas ainda nesta conversa — só as novas chegam aqui.')+'</div></div>';
     return;
   }
   let html='', diaAtual='';
@@ -12036,6 +12116,7 @@ function _waPintarMsgs(){
    lá) e o Chatwoot entrega no WhatsApp. O balão aparece na hora como
    "enviando" e vira ✓✓ quando o webhook confirma a mensagem de volta. */
 const WA_URL_ENVIA='https://webhookn8n.suplelive.com.br/webhook/chatwoot-envia';
+const WA_URL_ENVIA_NOVO='https://webhookn8n.suplelive.com.br/webhook/chatwoot-envia-novo';
 let _waPendentes={};   // convId -> [{_pid, texto, de:'agente', autor, ts, _pend}]
 
 function inboxEnviar(){
@@ -12055,8 +12136,15 @@ function inboxEnviar(){
 }
 
 function _waDisparar(p,convId){
-  fetch(WA_URL_ENVIA,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({conv:convId, texto:p.texto, autor:p._quem||''})})
+  /* Conversa existente vai para um webhook; conversa NOVA vai para outro,
+     que primeiro cria o atendimento no Chatwoot e depois envia. */
+  const nova=convId.indexOf('novo:')===0;
+  const url=nova?WA_URL_ENVIA_NOVO:WA_URL_ENVIA;
+  const dig=nova?convId.slice(5):'';
+  const corpo=nova
+    ? {telefone:'+'+(dig.length<=11?'55':'')+dig, nome:(_waNovo&&_waNovo.nome)||'', texto:p.texto, autor:p._quem||''}
+    : {conv:convId, texto:p.texto, autor:p._quem||''};
+  fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)})
   .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); })
   .catch(err=>{
     console.warn('[inbox] envio falhou:',err.message);
@@ -12064,6 +12152,9 @@ function _waDisparar(p,convId){
     _waPintarMsgsAgendado();
     showToast('Mensagem não enviada — toque no balão para tentar de novo','error');
   });
+  /* Se em 45s a confirmação não voltar do Chatwoot, o balão avisa — melhor
+     que um relógio eterno fingindo que está tudo bem. */
+  setTimeout(()=>{ if(p._pend==='enviando'){ p._pend='falhou'; _waPintarMsgsAgendado(); } },45000);
 }
 
 function inboxReenviar(pid){

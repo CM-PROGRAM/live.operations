@@ -173,6 +173,135 @@
       "id": "Criar contato no Chatwoot",
       "name": "Criar contato no Chatwoot",
       "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-envia-novo",
+        "responseMode": "onReceived",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        820
+      ],
+      "id": "Webhook LiveOps (nova conversa)",
+      "name": "Webhook LiveOps (nova conversa)",
+      "webhookId": "chatwoot-envia-novo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// >>> PREENCHA: id da caixa de entrada do WhatsApp no Chatwoot <<<\n// Configuracoes > Caixas de Entrada > 1. Oficial — e o numero no fim da URL\nconst INBOX_ID = 0;\nconst b = $json.body || $json;\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nconst telefone = String(b.telefone || '').trim();\nconst dig = telefone.replace(/\\D/g, '');\nif (!texto || dig.length < 10) return [];\nif (!INBOX_ID) throw new Error('Preencha o INBOX_ID neste no (id da caixa 1. Oficial).');\nreturn [{ json: { texto, telefone, dig, nome: String(b.nome || '').trim(),\n  autor: String(b.autor || '').trim() || '?', inboxId: INBOX_ID } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        820
+      ],
+      "id": "Preparar nova conversa",
+      "name": "Preparar nova conversa"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/contacts/search?q={{ $json.dig }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -120,
+        820
+      ],
+      "id": "Buscar contato",
+      "name": "Buscar contato"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Preparar nova conversa').first().json;\nconst lista = ($json.payload || $json.contacts || []);\nconst fim = prep.dig.slice(-8);\nlet contato = lista.find(c => String(c.phone_number || '').replace(/\\D/g, '').endsWith(fim));\nif (!contato && lista.length === 1) contato = lista[0];\nif (!contato) throw new Error('Contato ' + prep.telefone + ' nao existe no Chatwoot — cadastre-o primeiro (o formulario de Clientes ja faz isso).');\nconst ci = (contato.contact_inboxes || []).find(x => x.inbox && x.inbox.id === prep.inboxId);\nreturn [{ json: { ...prep, contactId: contato.id, sourceId: ci ? ci.source_id : '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        820
+      ],
+      "id": "Resolver contato",
+      "name": "Resolver contato"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/contacts/{{ $json.contactId }}/contact_inboxes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({inbox_id: $json.inboxId}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        820
+      ],
+      "id": "Garantir canal",
+      "name": "Garantir canal",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prev = $('Resolver contato').first().json;\nconst r = $json || {};\nconst sourceId = prev.sourceId || r.source_id || (r.payload && r.payload.source_id) || '';\nif (!sourceId) throw new Error('Sem source_id para abrir a conversa — confira o INBOX_ID no no Preparar nova conversa.');\nreturn [{ json: { ...prev, sourceId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        820
+      ],
+      "id": "Consolidar canal",
+      "name": "Consolidar canal"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/conversations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({inbox_id: $json.inboxId, contact_id: $json.contactId, source_id: $json.sourceId, status: 'open'}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        820
+      ],
+      "id": "Criar conversa",
+      "name": "Criar conversa"
+    },
+    {
+      "parameters": {
+        "jsCode": "const prep = $('Consolidar canal').first().json;\nconst conv = $json || {};\nconst num = conv.display_id || conv.id;\nif (!num) throw new Error('Chatwoot nao devolveu o id da conversa nova.');\nconst ts = Date.now();\nreturn [{ json: {\n  convNum: String(num),\n  corpo: { content: '*Manoel - Suplelive:*\\n' + prep.texto, message_type: 'outgoing', private: false },\n  convId: 'cw_' + num,\n  msgId: 'ls' + ts,\n  conv: { id: 'cw_' + num, nome: prep.nome || 'Contato', telefone: prep.telefone, caixa: '',\n          ultima: prep.texto.slice(0, 120), deUltima: 'agente', ts },\n  msg:  { texto: prep.texto, de: 'agente', autor: 'Manoel (' + prep.autor + ')', ts }\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        820
+      ],
+      "id": "Montar primeira mensagem",
+      "name": "Montar primeira mensagem"
     }
   ],
   "connections": {
@@ -251,6 +380,104 @@
         [
           {
             "node": "Criar contato no Chatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook LiveOps (nova conversa)": {
+      "main": [
+        [
+          {
+            "node": "Preparar nova conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar nova conversa": {
+      "main": [
+        [
+          {
+            "node": "Buscar contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar contato": {
+      "main": [
+        [
+          {
+            "node": "Resolver contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver contato": {
+      "main": [
+        [
+          {
+            "node": "Garantir canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Garantir canal": {
+      "main": [
+        [
+          {
+            "node": "Consolidar canal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consolidar canal": {
+      "main": [
+        [
+          {
+            "node": "Criar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar conversa": {
+      "main": [
+        [
+          {
+            "node": "Montar primeira mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar primeira mensagem": {
+      "main": [
+        [
+          {
+            "node": "Enviar no Chatwoot",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gravar conversa",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gravar mensagem",
             "type": "main",
             "index": 0
           }
