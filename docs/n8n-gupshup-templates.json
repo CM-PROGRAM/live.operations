@@ -1,0 +1,106 @@
+{
+  "name": "Gupshup → LiveOps · Espelho de Templates",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gupshup-templates",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        0
+      ],
+      "id": "Webhook LiveOps (templates)",
+      "name": "Webhook LiveOps (templates)",
+      "webhookId": "gupshup-templates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// >>> PREENCHA: nome do app no Gupshup <<<\n// E o App Name que aparece no painel do gupshup.io (Dashboard > seu app).\nconst APP_NAME = '';\nif (!APP_NAME) throw new Error('Preencha o APP_NAME neste no (nome do app no Gupshup).');\nreturn [{ json: { appName: APP_NAME } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "Preparar consulta",
+      "name": "Preparar consulta"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.gupshup.io/sm/api/v1/template/list/{{ $json.appName }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -80,
+        0
+      ],
+      "id": "Listar templates (Gupshup)",
+      "name": "Listar templates (Gupshup)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A resposta do Gupshup vem como {status:'success', templates:[...]}.\n// Aqui vira o formato que o LiveOps desenha nos cards do espelho.\nconst r = $json || {};\nconst lista = Array.isArray(r.templates) ? r.templates : [];\nconst ord = { APPROVED: 0, PENDING: 1, SUBMITTED: 1, REJECTED: 2, FAILED: 2 };\nconst templates = lista\n  .filter(t => t && String(t.status || '').toUpperCase() !== 'DELETED')\n  .map(t => ({\n    nome: t.elementName || t.id || '—',\n    categoria: t.category || '',\n    idioma: t.languageCode || '',\n    status: String(t.status || '').toUpperCase(),\n    texto: t.data || '',\n    atualizado: t.modifiedOn ? new Date(t.modifiedOn).toLocaleDateString('pt-BR') : ''\n  }))\n  .sort((a, b) => ((ord[a.status] ?? 3) - (ord[b.status] ?? 3)) || a.nome.localeCompare(b.nome));\nreturn [{ json: { templates } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        160,
+        0
+      ],
+      "id": "Formatar templates",
+      "name": "Formatar templates"
+    }
+  ],
+  "connections": {
+    "Webhook LiveOps (templates)": {
+      "main": [
+        [
+          {
+            "node": "Preparar consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar consulta": {
+      "main": [
+        [
+          {
+            "node": "Listar templates (Gupshup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar templates (Gupshup)": {
+      "main": [
+        [
+          {
+            "node": "Formatar templates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

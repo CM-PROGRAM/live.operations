@@ -737,6 +737,92 @@ html{overflow-x:hidden;}
 /* Largura fixa nas buscas. Sem ela o input de dentro pede o tamanho do seu
    próprio placeholder, os dois campos incham e a barra de filtros quebra em
    três linhas — foi o que aconteceu na primeira medição. */
+/* ── Templates de Mensagens (referência OmniCRM) ─────────────────────────
+   Abas por template, editor à esquerda, preview de WhatsApp à direita e,
+   logo abaixo, o espelho dos templates oficiais aprovados no Gupshup. */
+.tpl-abas{display:flex;border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;
+  margin-bottom:18px;background:var(--bg-card);}
+.tpl-aba{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;
+  cursor:pointer;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:var(--text-secondary);
+  background:transparent;border:none;border-right:1px solid var(--glass-border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tpl-aba:last-child{border-right:none;}
+.tpl-aba:hover{color:var(--text-primary);background:var(--veu-medio);}
+.tpl-aba.ativa{background:var(--bg-surface);color:var(--text-primary);box-shadow:inset 0 -2px 0 #2563eb;}
+.tpl-aba svg{width:15px;height:15px;flex:0 0 auto;}
+.tpl-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start;}
+@media(max-width:1050px){.tpl-grid{grid-template-columns:1fr;}}
+.tpl-card{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:14px;
+  padding:16px 18px;margin-bottom:14px;}
+.tpl-card-topo{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;}
+.tpl-card-topo .tit{font-family:var(--font-sans);font-size:16.5px;font-weight:800;color:var(--text-primary);}
+.tpl-card-topo .sub{font-size:12.5px;color:var(--text-muted);margin-top:2px;}
+.tpl-rotulo{display:block;font-size:12.5px;font-weight:700;color:var(--text-primary);margin:0 0 7px;}
+textarea.tpl-texto{width:100%;min-height:180px;font-family:var(--font-mono);font-size:12.5px;
+  line-height:1.8;resize:vertical;}
+.tpl-vars{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.tpl-var{font-family:var(--font-mono);font-size:11.5px;padding:4px 11px;border:1px solid rgba(37,99,235,.4);
+  border-radius:8px;color:#2563eb;background:rgba(37,99,235,.07);cursor:pointer;transition:background .15s;}
+.tpl-var:hover{background:rgba(37,99,235,.16);}
+:root[data-theme="light"] .tpl-var{color:#1d4ed8;}
+/* Interruptor azul, como o da referência */
+.tpl-tgl{position:relative;display:inline-block;width:42px;height:23px;flex:0 0 auto;cursor:pointer;}
+.tpl-tgl input{display:none;}
+.tpl-tgl .trilho{position:absolute;inset:0;border-radius:12px;background:var(--veu-medio);
+  border:1px solid var(--glass-border);transition:all .22s;}
+.tpl-tgl input:checked+.trilho{background:#2563eb;border-color:#2563eb;}
+.tpl-tgl .bola{position:absolute;top:3px;left:3px;width:17px;height:17px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.35);transition:left .22s;pointer-events:none;}
+.tpl-tgl input:checked~.bola{left:22px;}
+.tpl-conf-linha{display:flex;align-items:center;gap:10px;justify-content:space-between;}
+.tpl-filtro{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text-secondary);
+  padding:7px 0;cursor:pointer;user-select:none;}
+.tpl-filtro input{width:15px;height:15px;accent-color:#2563eb;cursor:pointer;}
+.tpl-acoes{display:flex;gap:9px;align-items:center;flex-wrap:wrap;}
+.tpl-salvo{font-size:11.5px;color:#10b981;font-weight:700;opacity:0;transition:opacity .3s;}
+.tpl-salvo.mostra{opacity:1;}
+/* Preview no clima do WhatsApp */
+.tpl-prev{background:linear-gradient(180deg,rgba(16,185,129,.10),rgba(16,185,129,.04));
+  border:1px solid rgba(16,185,129,.35);border-radius:14px;padding:16px;}
+.tpl-prev-tit{display:flex;align-items:center;gap:8px;font-family:var(--font-sans);font-size:15px;
+  font-weight:800;color:var(--text-primary);margin-bottom:12px;}
+.tpl-prev-linha{display:flex;gap:10px;align-items:flex-start;}
+.tpl-prev-av{width:36px;height:36px;border-radius:50%;background:#10b981;color:#fff;display:flex;
+  align-items:center;justify-content:center;font-weight:800;font-size:15px;flex:0 0 auto;font-family:var(--font-sans);}
+.tpl-prev-bolha{background:#d9fdd3;color:#111b21;border-radius:3px 14px 14px 14px;padding:10px 13px;
+  font-size:13.5px;line-height:1.65;max-width:100%;white-space:pre-wrap;word-break:break-word;
+  box-shadow:0 1px 2px rgba(0,0,0,.18);font-family:var(--font-sans);}
+.tpl-prev-hora{font-size:10.5px;color:var(--text-muted);margin:6px 2px 0 48px;}
+.tpl-info{display:flex;gap:10px;align-items:flex-start;background:rgba(37,99,235,.08);
+  border:1px solid rgba(37,99,235,.3);border-radius:12px;padding:13px 15px;margin-top:14px;}
+.tpl-info .rot{font-size:12.5px;font-weight:800;color:var(--text-primary);}
+.tpl-info .val{font-size:12.5px;color:#2563eb;font-weight:600;margin-top:2px;}
+:root[data-theme="light"] .tpl-info .val{color:#1d4ed8;}
+/* Espelho do Gupshup */
+.gup-secao{margin-top:26px;}
+.gup-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
+.gup-topo .tit{font-family:var(--font-sans);font-size:17px;font-weight:800;color:var(--text-primary);}
+.gup-topo .selo{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 9px;border-radius:20px;
+  background:rgba(139,92,246,.14);color:#8b5cf6;border:1px solid rgba(139,92,246,.4);font-family:var(--font-mono);}
+.gup-topo .acoes{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.gup-sub{font-size:12.5px;color:var(--text-muted);margin:0 0 14px;}
+.gup-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;}
+.gup-card{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:13px;padding:14px 15px;}
+.gup-card .nome{font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--text-primary);
+  word-break:break-all;margin-right:8px;}
+.gup-card .meta{font-size:11px;color:var(--text-muted);margin:7px 0 9px;font-family:var(--font-mono);}
+.gup-card .corpo{font-size:12px;line-height:1.65;color:var(--text-secondary);white-space:pre-wrap;
+  word-break:break-word;max-height:108px;overflow:hidden;position:relative;}
+.gup-card .corpo.aberto{max-height:none;}
+.gup-card .mais{background:none;border:none;color:#2563eb;font-size:11.5px;cursor:pointer;padding:4px 0 0;font-weight:700;}
+.gup-chip{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.3px;padding:3px 10px;
+  border-radius:20px;font-family:var(--font-mono);white-space:nowrap;}
+.gup-chip.ok{background:rgba(16,185,129,.14);color:#10b981;border:1px solid rgba(16,185,129,.45);}
+.gup-chip.espera{background:rgba(240,180,41,.13);color:#d97706;border:1px solid rgba(240,180,41,.45);}
+.gup-chip.nao{background:rgba(239,68,68,.12);color:#ef4444;border:1px solid rgba(239,68,68,.45);}
+.gup-chip.neutro{background:var(--veu-medio);color:var(--text-secondary);border:1px solid var(--glass-border);}
+.gup-vazio{padding:26px 18px;text-align:center;color:var(--text-muted);font-size:12.5px;line-height:1.8;
+  border:1px dashed var(--glass-border);border-radius:13px;}
+
 /* Rodapé de paginação, igual nas três listas. */
 .pag-rodape{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 16px;
   border-top:1px solid var(--glass-border);font-size:12px;color:var(--text-muted);}
@@ -3874,16 +3960,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     </div>
 
     <div class="tab-panel" id="tab-templates">
-      <div class="section-header">
-        <span class="section-title">Templates</span>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Templates de Mensagens</h2>
+          <p class="pag-sub">Personalize mensagens, timing de envio e filtros para cada tipo de automação</p>
+        </div>
       </div>
-      <div class="date-header">Textos prontos da operação</div>
-      <div class="aba-futura">
-        <div class="af-ic" data-icone="templates"></div>
-        <h3>Templates</h3>
-        <p>Os textos que a equipe repete todo dia — orçamento, frete, cobrança, pós-venda — guardados em um lugar só, para todo mundo mandar a mesma coisa.</p>
-        <span class="af-selo">em construção</span>
-      </div>
+      <div id="tpl-raiz"></div>
     </div>
 
     <div class="tab-panel" id="tab-integracoes">
@@ -6356,6 +6439,7 @@ function defaultState(){
     entradas:[],
     extLinks:{},
     baseInfo:[],
+    tplMsgs:[],
     lucroFrete:3,
     lastReset:todayStr()
   };
@@ -6488,6 +6572,7 @@ function loadLocal(){
     if(!Array.isArray(s.imagensReq)) s.imagensReq=[];
     if(!s.extLinks || typeof s.extLinks!=='object') s.extLinks={};
     if(!Array.isArray(s.baseInfo)) s.baseInfo=[];
+    if(!Array.isArray(s.tplMsgs)) s.tplMsgs=[];
     if(typeof s.lucroFrete!=='number') s.lucroFrete=3;
     // Restaurar execs:[] (Firebase/JSON omite arrays vazios)
     if(s.tasks.plataformas && Array.isArray(s.tasks.plataformas)){
@@ -8539,7 +8624,10 @@ const COLECOES_REG={
      com cópia velha reescrevia o pacote e levava os cards junto, sem
      ninguém tocar na aba. Aqui cada card é um registro, ausência não é
      remoção, e apagar é ato explícito de quem clicou em Excluir. */
-  baseInfo:      {get:s=>s.baseInfo,                   set:(s,v)=>{s.baseInfo=v;}}
+  baseInfo:      {get:s=>s.baseInfo,                   set:(s,v)=>{s.baseInfo=v;}},
+  /* Templates de mensagens do WhatsApp. Nasce já registro a registro —
+     lista compartilhada nova não entra mais no pacote, aprendemos caro. */
+  tplMsgs:       {get:s=>s.tplMsgs,                    set:(s,v)=>{s.tplMsgs=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -8855,6 +8943,7 @@ function _agendarRenderRegistros(){
     ['canc','cancnf'].forEach(p=>{ try{ renderCanceladas(p); }catch(e){} });
     // Base Conhecimento só se redesenha se for a vista aberta agora
     try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
+    try{ _tplRenderSeguro(); }catch(e){}
     if(novasTarefas){ try{ saveState(appState); }catch(e){} }
   },250);
 }
@@ -8910,6 +8999,7 @@ function _migrarParaRegistros(){
         ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
           .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
         try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
+        try{ _tplRenderSeguro(); }catch(e){}
       }
       return false;
     }
@@ -9309,6 +9399,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.entradas)) data.entradas = [];
   if(!data.extLinks || typeof data.extLinks!=='object') data.extLinks = {};
   if(!Array.isArray(data.baseInfo)) data.baseInfo = [];
+  if(!Array.isArray(data.tplMsgs)) data.tplMsgs = [];
   if(typeof data.lucroFrete!=='number') data.lucroFrete = 3;
   // Firebase omite arrays vazios — restaurar execs:[] para tasks com repeats>1
   if(data.tasks.plataformas && Array.isArray(data.tasks.plataformas)){
@@ -10735,7 +10826,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27m';
+const APP_VERSAO='2026.08.28a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11174,6 +11265,7 @@ function buildTabs(){
     if(id==='estoque'){ try{ renderEstoque(); }catch(e){ console.warn('renderEstoque:',e); } }
     if(id==='envios'){ try{ renderAcompanhamento(); }catch(e){ console.warn('renderAcompanhamento:',e); } }
     if(id==='inbox'){ try{ inboxIniciar(); inboxRender(); }catch(e){ console.warn('inbox:',e); } }
+    if(id==='templates'){ try{ renderTemplates(); gupCarregarSePreciso(); }catch(e){ console.warn('templates:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -12645,6 +12737,331 @@ function baseInfoExcluirConfirmar(id){
   saveState(appState);
   showToast('Informação excluída','success');
   renderBaseInfo();
+}
+
+/* ===== Templates de Mensagens (referência OmniCRM) =====
+   As três automações padrão (Boas-Vindas, Segunda Unidade, Recompra) são
+   desenhadas de fábrica e só viram registro no Firebase quando alguém salva
+   uma alteração — assim uma sessão recém-aberta nunca escreve por cima do
+   que a equipe já editou. Logo abaixo do editor fica o espelho do Gupshup:
+   os templates oficiais aprovados pela Meta, lidos ao vivo pelo n8n. */
+const TPL_URL_GUPSHUP='https://webhookn8n.suplelive.com.br/webhook/gupshup-templates';
+const TPL_VARS=[['{{client_name}}','João Silva'],['{{order_id}}','#48291']];
+const TPL_QUANDO={imediato:'Imediato após a criação do pedido',min15:'15 minutos depois do pedido',
+  h1:'1 hora depois do pedido',h4:'4 horas depois do pedido',h24:'24 horas depois do pedido'};
+const TPL_QUANDO_OPCAO={imediato:'Imediatamente',min15:'15 minutos depois',
+  h1:'1 hora depois',h4:'4 horas depois',h24:'24 horas depois'};
+let _tplSel='';
+let _tplDebounce=null;
+
+function _tplLista(){
+  if(!Array.isArray(appState.tplMsgs)) appState.tplMsgs=[];
+  return appState.tplMsgs;
+}
+function _tplPadroes(){
+  return [
+    {id:'tpl_boasvindas', ordem:1, nome:'Boas-Vindas',
+     desc:'Enviada para novos clientes após o primeiro pedido',
+     texto:'Olá {{client_name}}! 👋\n\nObrigado por escolher nossa loja!\nSeu pedido foi recebido e já estamos processando.\n\nQualquer dúvida, estou à disposição! 😊',
+     envioAtivo:true, quando:'imediato', fPrimeira:true, fHorario:false},
+    {id:'tpl_segunda', ordem:2, nome:'Segunda Unidade',
+     desc:'Oferta da segunda unidade para quem acabou de comprar',
+     texto:'Oi {{client_name}}! 😊\n\nSeu pedido {{order_id}} foi confirmado — e aproveitando: na compra de uma segunda unidade hoje, você garante um desconto especial.\n\nQuer que eu já separe a sua?',
+     envioAtivo:false, quando:'h1', fPrimeira:false, fHorario:true},
+    {id:'tpl_recompra', ordem:3, nome:'Recompra',
+     desc:'Lembrete de reposição quando o produto deve estar acabando',
+     texto:'Olá {{client_name}}! Tudo bem? 😊\n\nSeu suplemento do pedido {{order_id}} já deve estar acabando.\nQuer garantir a reposição para não ficar nenhum dia sem?',
+     envioAtivo:false, quando:'h24', fPrimeira:false, fHorario:true}
+  ];
+}
+function _tplItens(){
+  const l=_tplLista();
+  if(l.length) return {lista:l.slice().sort((a,b)=>(a.ordem||9e15)-(b.ordem||9e15)), virtual:false};
+  return {lista:_tplPadroes(), virtual:true};
+}
+const _TPL_ICONES={
+  tpl_boasvindas:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>',
+  tpl_segunda:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  tpl_recompra:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>'
+};
+function _tplIcone(id){
+  return _TPL_ICONES[id]||'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+}
+
+function renderTemplates(){
+  const raiz=document.getElementById('tpl-raiz'); if(!raiz) return;
+  const {lista}=_tplItens();
+  const master=!!(currentUser&&currentUser.master);
+  if(!lista.length){
+    raiz.innerHTML='<div class="gup-vazio">Nenhum template cadastrado.'+
+      (master?'<br><button class="btn btn-sm" style="margin-top:12px;width:auto;" onclick="tplNovo()">+ Novo template</button>':'')+'</div>';
+    return;
+  }
+  if(!_tplSel || !lista.some(x=>x&&x.id===_tplSel)) _tplSel=lista[0].id;
+  const t=lista.find(x=>x.id===_tplSel);
+
+  const abas=lista.map(x=>
+    `<button class="tpl-aba${x.id===_tplSel?' ativa':''}" onclick="tplSelecionar('${_iniEsc(x.id)}')">${_tplIcone(x.id)}<span>${_iniEsc(x.nome||'Sem nome')}</span></button>`
+  ).join('')+(master?`<button class="tpl-aba" style="flex:0 0 auto;color:#2563eb;" onclick="tplNovo()">+ Novo</button>`:'');
+
+  const selQuando=Object.keys(TPL_QUANDO).map(k=>
+    `<option value="${k}"${t.quando===k?' selected':''}>${TPL_QUANDO_OPCAO[k]}</option>`).join('');
+
+  const vars=TPL_VARS.map(v=>`<span class="tpl-var" onclick="tplInserirVar('${_iniEsc(v[0])}')">${_iniEsc(v[0])}</span>`).join('');
+
+  raiz.innerHTML=`
+    <div class="tpl-abas">${abas}</div>
+    <div class="tpl-grid">
+      <div>
+        <div class="tpl-card">
+          <div class="tpl-card-topo">
+            <span style="color:#2563eb;display:flex;margin-top:2px;">${_tplIcone(t.id)}</span>
+            <div>
+              <div class="tit">Mensagem de ${_iniEsc(t.nome||'')}</div>
+              <div class="sub">${_iniEsc(t.desc||'')}</div>
+            </div>
+          </div>
+          <label class="tpl-rotulo" for="tpl-texto">Template da Mensagem</label>
+          <textarea id="tpl-texto" class="tpl-texto" oninput="tplTextoInput()">${_iniEsc(t.texto||'')}</textarea>
+        </div>
+        <div class="tpl-card">
+          <div class="tpl-rotulo" style="margin-bottom:9px;">Variáveis disponíveis:</div>
+          <div class="tpl-vars">${vars}</div>
+        </div>
+        <div class="tpl-card">
+          <div class="tpl-conf-linha">
+            <div class="tpl-card-topo" style="margin-bottom:0;">
+              <span style="color:#2563eb;display:flex;margin-top:2px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+              <div>
+                <div class="tit" style="font-size:14.5px;">Configurações de Envio</div>
+                <div class="sub">${t.envioAtivo?_iniEsc(TPL_QUANDO[t.quando]||''):'Envio automático desligado'}</div>
+              </div>
+            </div>
+            <label class="tpl-tgl"><input type="checkbox" id="tpl-ativo"${t.envioAtivo?' checked':''} onchange="tplCampo()"><span class="trilho"></span><span class="bola"></span></label>
+          </div>
+          ${t.envioAtivo?`
+          <div style="margin-top:14px;">
+            <label class="tpl-rotulo" for="tpl-quando">Quando enviar?</label>
+            <select id="tpl-quando" onchange="tplCampo()" style="width:100%;">${selQuando}</select>
+          </div>`:''}
+        </div>
+        <div class="tpl-card">
+          <div class="tpl-card-topo" style="margin-bottom:6px;">
+            <span style="color:#8b5cf6;display:flex;margin-top:2px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span>
+            <div>
+              <div class="tit" style="font-size:14.5px;">Filtros de Envio</div>
+              <div class="sub">Defina quando esta mensagem deve ser enviada</div>
+            </div>
+          </div>
+          <label class="tpl-filtro"><input type="checkbox" id="tpl-fprimeira"${t.fPrimeira?' checked':''} onchange="tplCampo()"> Enviar apenas na primeira compra do cliente</label>
+          <label class="tpl-filtro"><input type="checkbox" id="tpl-fhorario"${t.fHorario?' checked':''} onchange="tplCampo()"> Enviar somente em horário comercial (8h às 20h)</label>
+        </div>
+        <div class="tpl-card">
+          <div class="tpl-rotulo">Identificação</div>
+          <div style="display:grid;grid-template-columns:1fr 1.6fr;gap:10px;">
+            <input type="text" id="tpl-nome" value="${_iniEsc(t.nome||'')}" placeholder="Nome" onchange="tplCampo(true)">
+            <input type="text" id="tpl-desc" value="${_iniEsc(t.desc||'')}" placeholder="Descrição curta (aparece sob o título)" onchange="tplCampo(true)">
+          </div>
+          <div class="tpl-acoes" style="margin-top:12px;">
+            <span class="tpl-salvo" id="tpl-salvo">✓ Salvo</span>
+            ${master&&lista.length>1?`<button class="btn-sec" style="margin-left:auto;color:#ef4444;border-color:rgba(239,68,68,.5);" onclick="tplExcluir('${_iniEsc(t.id)}')">Excluir template</button>`:''}
+          </div>
+          ${t.editadoPor?`<div style="font-size:11px;color:var(--text-muted);margin-top:9px;font-family:var(--font-mono);">última alteração: ${_iniEsc(t.editadoPor)} · ${_carimboDe(t.editadoEm)}</div>`:''}
+        </div>
+      </div>
+      <div>
+        <div class="tpl-prev">
+          <div class="tpl-prev-tit"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview da Mensagem</div>
+          <div class="tpl-prev-linha">
+            <div class="tpl-prev-av">${_iniEsc((t.nome||'?').trim().charAt(0).toUpperCase())}</div>
+            <div class="tpl-prev-bolha" id="tpl-prev-bolha"></div>
+          </div>
+          <div class="tpl-prev-hora">${new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+        <div class="tpl-info">
+          <span style="color:#2563eb;display:flex;margin-top:1px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <div>
+            <div class="rot">Timing de Envio:</div>
+            <div class="val">${t.envioAtivo?_iniEsc(TPL_QUANDO[t.quando]||''):'Envio automático desligado'}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="gup-secao">
+      <div class="gup-topo">
+        <span class="tit">Espelho do Gupshup</span>
+        <span class="selo">APROVAÇÃO META</span>
+        <div class="acoes">
+          <button class="btn-sec" onclick="gupAtualizar(true)">Atualizar</button>
+          <a class="btn-sec" style="text-decoration:none;display:inline-flex;align-items:center;" href="https://www.gupshup.io/whatsapp/dashboard" target="_blank" rel="noopener">Abrir gupshup.io ↗</a>
+        </div>
+      </div>
+      <p class="gup-sub">Os templates oficiais do WhatsApp criados no gupshup.io e a situação de cada um na aprovação da Meta. A criação e o envio para aprovação continuam sendo feitos lá — aqui é o espelho, sempre atual.</p>
+      <div id="gup-lista"></div>
+    </div>`;
+  _tplPreviewAtualizar();
+  _gupRender();
+}
+
+/* A sincronização chama isto quando outra sessão altera um template: só
+   redesenha se a aba estiver aberta e ninguém estiver digitando nela. */
+function _tplRenderSeguro(){
+  const p=document.getElementById('tab-templates');
+  if(!p || !p.classList.contains('active')) return;
+  const a=document.activeElement;
+  if(a && p.contains(a) && (a.tagName==='TEXTAREA'||a.tagName==='INPUT'||a.tagName==='SELECT')) return;
+  renderTemplates();
+}
+
+function tplSelecionar(id){ _tplSel=id; renderTemplates(); }
+
+function tplNovo(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master cria templates','warn'); return; }
+  const l=_tplLista();
+  if(!l.length) _tplPadroes().forEach(p=>l.push({...p, hist:[]}));  // materializa os padrões antes do primeiro extra
+  const o={id:'tpl'+Date.now().toString(36), ordem:Date.now(), nome:'Novo template', desc:'',
+    texto:'Olá {{client_name}}!', envioAtivo:false, quando:'imediato', fPrimeira:false, fHorario:false,
+    hist:[{q:(currentUser&&currentUser.name)||'',ts:Date.now(),acao:'criado'}]};
+  l.push(o);
+  try{ saveState(appState); }catch(e){}
+  _tplSel=o.id;
+  renderTemplates();
+  const n=document.getElementById('tpl-nome'); if(n){ n.focus(); n.select(); }
+}
+
+function tplExcluir(id){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master exclui templates','warn'); return; }
+  const {lista}=_tplItens();
+  const t=lista.find(x=>x&&x.id===id);
+  if(!confirmar(()=>tplExcluir(id),'Excluir o template "'+((t&&t.nome)||'')+'"? Essa ação não pode ser desfeita.')) return;
+  const l=_tplLista();
+  if(!l.length){ _tplPadroes().filter(p=>p.id!==id).forEach(p=>l.push({...p,hist:[]})); }
+  else{
+    const i=l.findIndex(x=>x&&x.id===id);
+    if(i>=0) l.splice(i,1);
+  }
+  try{ saveState(appState); }catch(e){}
+  _tplSel='';
+  renderTemplates();
+  showToast('Template excluído','success');
+}
+
+function _tplSalvarAgora(acao){
+  const id=_tplSel; if(!id) return;
+  const l=_tplLista();
+  let o=l.find(x=>x&&x.id===id);
+  if(!o){
+    // Ainda era um dos padrões de fábrica: materializa todos, preservando os três
+    _tplPadroes().forEach(p=>{ if(!l.some(x=>x&&x.id===p.id)) l.push({...p,hist:[]}); });
+    o=l.find(x=>x&&x.id===id);
+    if(!o) return;
+  }
+  const v=k=>document.getElementById(k);
+  if(v('tpl-texto')) o.texto=v('tpl-texto').value;
+  if(v('tpl-nome')) o.nome=v('tpl-nome').value.trim()||o.nome;
+  if(v('tpl-desc')) o.desc=v('tpl-desc').value.trim();
+  if(v('tpl-ativo')) o.envioAtivo=!!v('tpl-ativo').checked;
+  if(v('tpl-quando')) o.quando=v('tpl-quando').value;
+  if(v('tpl-fprimeira')) o.fPrimeira=!!v('tpl-fprimeira').checked;
+  if(v('tpl-fhorario')) o.fHorario=!!v('tpl-fhorario').checked;
+  o.editadoEm=Date.now(); o.editadoPor=(currentUser&&currentUser.name)||'';
+  const quem=o.editadoPor;
+  o.hist=Array.isArray(o.hist)?o.hist:[];
+  const ult=o.hist[o.hist.length-1];
+  if(ult && ult.q===quem && (Date.now()-ult.ts)<10*60*1000){ ult.ts=Date.now(); ult.acao=acao||ult.acao; }
+  else o.hist.push({q:quem,ts:Date.now(),acao:acao||'alterado'});
+  if(o.hist.length>30) o.hist=o.hist.slice(-30);
+  try{ saveState(appState); }catch(e){}
+  _tplMarcarSalvo();
+}
+function _tplMarcarSalvo(){
+  const el=document.getElementById('tpl-salvo'); if(!el) return;
+  el.classList.add('mostra');
+  clearTimeout(el._t); el._t=setTimeout(()=>el.classList.remove('mostra'),2200);
+}
+function tplCampo(rerender){
+  _tplSalvarAgora('configuração alterada');
+  renderTemplates();
+}
+function tplTextoInput(){
+  _tplPreviewAtualizar();
+  clearTimeout(_tplDebounce);
+  _tplDebounce=setTimeout(()=>_tplSalvarAgora('texto editado'),900);
+}
+function tplInserirVar(vr){
+  const t=document.getElementById('tpl-texto'); if(!t) return;
+  const i=(typeof t.selectionStart==='number')?t.selectionStart:t.value.length;
+  const f=(typeof t.selectionEnd==='number')?t.selectionEnd:i;
+  t.value=t.value.slice(0,i)+vr+t.value.slice(f);
+  t.focus(); t.selectionStart=t.selectionEnd=i+vr.length;
+  tplTextoInput();
+}
+function _tplPreviewAtualizar(){
+  const b=document.getElementById('tpl-prev-bolha');
+  const t=document.getElementById('tpl-texto');
+  if(!b) return;
+  let txt=t?t.value:'';
+  let html=_iniEsc(txt);
+  TPL_VARS.forEach(v=>{ html=html.split(_iniEsc(v[0])).join('<b>'+_iniEsc(v[1])+'</b>'); });
+  html=html.replace(/\*([^*\n]{1,160}?)\*/g,'<b>$1</b>');
+  b.innerHTML=html||'<span style="opacity:.55;">Digite o template para ver o preview…</span>';
+}
+
+/* ── Espelho do Gupshup ── */
+let _gupLista=null, _gupErro='', _gupCarregando=false, _gupTs=0;
+function gupCarregarSePreciso(){
+  if(_gupCarregando) return;
+  if(_gupLista && (Date.now()-_gupTs)<5*60*1000) return;
+  gupAtualizar();
+}
+function gupAtualizar(force){
+  if(_gupCarregando) return;
+  _gupCarregando=true; _gupErro='';
+  _gupRender();
+  fetch(TPL_URL_GUPSHUP,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(j=>{
+      const l=(j&&Array.isArray(j.templates))?j.templates:(Array.isArray(j)?j:[]);
+      _gupLista=l; _gupTs=Date.now();
+    })
+    .catch(e=>{ _gupErro=String((e&&e.message)||e); })
+    .finally(()=>{ _gupCarregando=false; _gupRender(); });
+}
+function _gupChip(st){
+  const s=String(st||'').toUpperCase();
+  if(s==='APPROVED') return '<span class="gup-chip ok">APROVADO</span>';
+  if(s==='PENDING'||s==='SUBMITTED'||s==='IN_APPEAL') return '<span class="gup-chip espera">EM ANÁLISE</span>';
+  if(s==='REJECTED'||s==='FAILED') return '<span class="gup-chip nao">REJEITADO</span>';
+  if(s==='PAUSED'||s==='DISABLED') return '<span class="gup-chip neutro">PAUSADO</span>';
+  return '<span class="gup-chip neutro">'+_iniEsc(s||'—')+'</span>';
+}
+function _gupRender(){
+  const box=document.getElementById('gup-lista'); if(!box) return;
+  if(_gupCarregando){
+    box.innerHTML='<div class="gup-vazio">Consultando o Gupshup…</div>'; return;
+  }
+  if(_gupErro){
+    box.innerHTML='<div class="gup-vazio">Não consegui falar com o Gupshup ('+_iniEsc(_gupErro)+').<br>'+
+      'Confira se o fluxo <b>gupshup-templates</b> está ativo no n8n.<br>'+
+      '<button class="btn-sec" style="margin-top:10px;" onclick="gupAtualizar(true)">Tentar de novo</button></div>';
+    return;
+  }
+  if(!_gupLista){ box.innerHTML='<div class="gup-vazio">Clique em Atualizar para carregar os templates.</div>'; return; }
+  if(!_gupLista.length){ box.innerHTML='<div class="gup-vazio">Nenhum template encontrado no Gupshup.</div>'; return; }
+  box.innerHTML='<div class="gup-grade">'+_gupLista.map((t,i)=>`
+    <div class="gup-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <span class="nome">${_iniEsc(t.nome||'—')}</span>${_gupChip(t.status)}
+      </div>
+      <div class="meta">${_iniEsc([t.categoria,t.idioma].filter(Boolean).join(' · '))}${t.atualizado?' · '+_iniEsc(t.atualizado):''}</div>
+      <div class="corpo" id="gup-corpo-${i}">${_iniEsc(t.texto||'')}</div>
+      ${String(t.texto||'').length>220?`<button class="mais" onclick="gupVerMais(${i},this)">ver tudo</button>`:''}
+    </div>`).join('')+'</div>';
+}
+function gupVerMais(i,btn){
+  const c=document.getElementById('gup-corpo-'+i); if(!c) return;
+  const aberto=c.classList.toggle('aberto');
+  if(btn) btn.textContent=aberto?'recolher':'ver tudo';
 }
 
 function switchTab(id, panelId){
