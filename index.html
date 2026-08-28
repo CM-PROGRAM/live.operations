@@ -1740,6 +1740,14 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 :root:not([data-theme="light"]) #tab-registrovendas .section-title{color:#60a5fa;}
 .pg-bt-azul{color:#1d4ed8 !important;}
 :root:not([data-theme="light"]) .pg-bt-azul{color:#60a5fa !important;}
+/* Botões de marketplace (Criar Tarefa, Entrada, Integração, Imagens,
+   Exclusão): fundo branco e nome azul — as cores por loja lavavam no claro. */
+#atrib-grid button,#entrada-grid button,#exint-grid button,#img-grid button,#integ-grid button{
+  background:#ffffff !important;border:1.5px solid rgba(37,99,235,.4) !important;
+  color:#1d4ed8 !important;box-shadow:var(--sombra-suave) !important;}
+#atrib-grid button:hover,#entrada-grid button:hover,#exint-grid button:hover,
+#img-grid button:hover,#integ-grid button:hover{
+  border-color:#2563eb !important;box-shadow:0 6px 16px rgba(37,99,235,.28) !important;}
 /* Rodapé da barra: versão em preto (branca no escuro) e Atualizar preto
    com letra branca */
 .sb-versao-azul{color:#0b0f19 !important;opacity:1 !important;}
@@ -11017,7 +11025,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28t';
+const APP_VERSAO='2026.08.28u';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -28490,8 +28498,8 @@ function renderProjetos(){
 
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;overflow:hidden;transition:border-color .15s,transform .15s;cursor:pointer;';
-    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';card.style.transform='translateY(-1px)';};
-    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';card.style.transform='';};
+    card.onmouseover=()=>{card.style.borderColor='rgba(37,99,235,.55)';card.style.transform='translateY(-1px)';};
+    card.onmouseout=()=>{card.style.borderColor='var(--linha-sutil)';card.style.transform='';};
     card.onclick=()=>openProjModal(p.id);
     card.innerHTML=`
       <div style="padding:10px 12px;">
@@ -30343,9 +30351,14 @@ const INTEGRACOES=[
    acao:{txt:'Configurar n8n', url:'https://n8n.suplelive.com.br/home/workflows'}},
 
   {nome:'Chatwoot (WhatsApp)', ic:'chat', cor:'#22c55e',
-   desc:'Atendimento no WhatsApp. As conversas ainda vivem lá fora — a aba Inbox é o lugar reservado para trazê-las.',
-   onde:'Token no Apps Script', uso:'em uso',
-   acao:{txt:'Abrir Chatwoot', url:'https://app.chatwoot.com/'}},
+   desc:'Atendimento no WhatsApp: o Inbox do LiveOps recebe e responde as conversas em tempo real por ele.',
+   onde:'Token no n8n', uso:'em uso',
+   acao:{txt:'Abrir Chatwoot', url:'https://chat.suplelive.com.br/'}},
+
+  {nome:'Gupshup (WhatsApp oficial)', ic:'chat', cor:'#25d366',
+   desc:'A linha oficial da Meta: templates aprovados, situação de cada um e o saldo de envio — espelhados na aba Templates.',
+   onde:'Chave de API no n8n', uso:'em uso',
+   acao:{txt:'Ver Templates', aba:'templates'}},
 
   {nome:'GhostAPIs (CPF)', ic:'lupa', cor:'#a78bfa',
    desc:'Consulta de CPF: traz nome e telefone do cliente a partir do documento.',
@@ -30466,8 +30479,8 @@ function renderIntegracoes(){
     }
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
-    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
-    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onmouseover=()=>{card.style.borderColor='rgba(37,99,235,.55)';};
+    card.onmouseout=()=>{card.style.borderColor='var(--linha-sutil)';};
     card.onclick=()=>openIntegModal({name:it.marketplace,tipo:it.tipo},it.id);
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
@@ -30673,8 +30686,8 @@ function renderAtribuir(){
     }
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
-    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
-    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onmouseover=()=>{card.style.borderColor='rgba(37,99,235,.55)';};
+    card.onmouseout=()=>{card.style.borderColor='var(--linha-sutil)';};
     card.onclick=()=>abrirSolicitacaoPorTipo(it._tipoTarefa,it);
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
@@ -30725,8 +30738,8 @@ function renderExcluirIntBase(){
     }
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
-    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
-    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onmouseover=()=>{card.style.borderColor='rgba(37,99,235,.55)';};
+    card.onmouseout=()=>{card.style.borderColor='var(--linha-sutil)';};
     card.onclick=()=>openIntegModal({name:it.marketplace,tipo:it.tipo},it.id,'excluirintbase');
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
@@ -30851,8 +30864,8 @@ function renderEntradas(){
     }
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
-    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
-    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onmouseover=()=>{card.style.borderColor='rgba(37,99,235,.55)';};
+    card.onmouseout=()=>{card.style.borderColor='var(--linha-sutil)';};
     card.onclick=()=>openEntradaModal({name:it.marketplace,tipo:it.tipo},it.id);
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
@@ -30975,8 +30988,8 @@ function renderImagens(){
     }
     const card=document.createElement('div');
     card.style.cssText='background:var(--bg-card);border:1px solid var(--linha-sutil);border-radius:10px;padding:10px 12px;cursor:pointer;transition:border-color .15s;';
-    card.onmouseover=()=>{card.style.borderColor='rgba(255,255,255,0.14)';};
-    card.onmouseout=()=>{card.style.borderColor='rgba(255,255,255,0.06)';};
+    card.onmouseover=()=>{card.style.borderColor='rgba(37,99,235,.55)';};
+    card.onmouseout=()=>{card.style.borderColor='var(--linha-sutil)';};
     card.onclick=()=>openImgModal({name:it.marketplace},it.id);
     card.innerHTML=`
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:5px;">
