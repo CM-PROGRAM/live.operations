@@ -42,7 +42,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://SEU-CHATWOOT.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
