@@ -11033,7 +11033,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28x';
+const APP_VERSAO='2026.08.28y';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -29958,15 +29958,54 @@ function renderCanceladas(p){
 // sistema completa: toda solicitação em aberto sem tarefa ganha a sua.
 // O id da tarefa é derivado do id da solicitação, então dois navegadores
 // abertos ao mesmo tempo geram exatamente o mesmo registro, sem duplicar.
+/* Cada cancelada gerava até TRÊS tarefas iguais: o id da tarefa ganhava um
+   sufixo de relógio e a checagem de duplicidade procurava o id SEM o
+   sufixo — nunca batia. Com dois ou três navegadores abertos, cada sessão
+   criava a "mesma" tarefa antes de receber a marca tarefaGerada das
+   outras. Aqui a varredura remove as cópias que já nasceram assim: fica
+   uma por solicitação (de preferência a que alguém já mexeu), e só cópia
+   automática ainda em aberto é removida. */
+function _cancRemoverDuplicadas(){
+  if(!Array.isArray(appState.atividades)) return false;
+  const porOrigem={};
+  appState.atividades.forEach(a=>{
+    if(!a) return;
+    const origem=a.origemCancId?('c:'+a.origemCancId):(a.origemCancNfId?('n:'+a.origemCancNfId):'');
+    if(!origem) return;
+    (porOrigem[origem]=porOrigem[origem]||[]).push(a);
+  });
+  let mudou=false;
+  Object.values(porOrigem).forEach(lst=>{
+    if(lst.length<2) return;
+    lst.sort((a,b)=>{
+      const ma=(a.status!=='aberta')?0:1, mb=(b.status!=='aberta')?0:1;
+      if(ma!==mb) return ma-mb;
+      return String(a.id).localeCompare(String(b.id));
+    });
+    lst.slice(1).forEach(dup=>{
+      if(dup.status!=='aberta') return;
+      const i=appState.atividades.indexOf(dup);
+      if(i>=0){ appState.atividades.splice(i,1); mudou=true; }
+    });
+  });
+  if(mudou) console.warn('[canceladas] tarefas duplicadas removidas');
+  return mudou;
+}
+
 function cancGarantirTarefas(){
   if(!currentUser) return false;
   if(!Array.isArray(appState.atividades)) appState.atividades=[];
   let criou=false;
+  try{ if(_cancRemoverDuplicadas()) criou=true; }catch(e){ console.warn('[canceladas] dedup:',e); }
   Object.keys(CANC_CTX).forEach(p=>{
     const c=_cancCtx(p);
     _cancLista(p).forEach(item=>{
       if(!item || !item.id || item.status==='concluida' || item.tarefaGerada) return;
-      if(appState.atividades.some(a=>a && a.id===c.autoPrefix+item.id)) { item.tarefaGerada=true; return; }
+      /* A tarefa existente é reconhecida pelo vínculo de origem OU pelo
+         prefixo do id — cobre também as antigas com sufixo de relógio. */
+      if(appState.atividades.some(a=>a && (a[c.origemKey]===item.id || String(a.id||'').indexOf(c.autoPrefix+item.id)===0))){
+        item.tarefaGerada=true; return;
+      }
       const t=_cancMontarTarefa(item,c);
       appState.atividades.push(t);
       item.tarefaGerada=true;
@@ -29979,7 +30018,10 @@ function cancGarantirTarefas(){
 
 function _cancMontarTarefa(item,c){
   return {
-    id:c.autoPrefix+item.id+'_'+Date.now().toString(36),
+    /* Id determinístico, derivado da solicitação: duas sessões gerando ao
+       mesmo tempo escrevem o MESMO registro, e duplicar fica impossível.
+       O sufixo de relógio que quebrava essa regra foi removido. */
+    id:c.autoPrefix+item.id,
     titulo:c.tarefaTitulo,
     [c.origemKey]:item.id,
     descricao:item.consideracoes||CANC_CONSIDERACAO,
