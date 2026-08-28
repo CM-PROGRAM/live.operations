@@ -11033,7 +11033,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28y';
+const APP_VERSAO='2026.08.28z';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -27772,12 +27772,12 @@ function renderAtividades(){
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
           ${(respKeys.length?respKeys:[a.responsavel]).map(k=>{
             const ru=appState.users[k];
-            return `<div title="${ru?ru.name:(k||'Não atribuído')}" style="width:28px;height:28px;border-radius:8px;background:var(--grad-avatar);border:1px solid rgba(143,168,216,.35);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${ru?(ru.color||'#888'):'#888'};font-size:10px;font-weight:800;font-family:var(--font-mono);">${ru?getUserInitials(ru):'?'}</div>`;
+            return `<div title="${ru?ru.name:(k||'Não atribuído')}" style="width:28px;height:28px;border-radius:8px;background:#2563eb;border:1px solid #2563eb;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffffff;font-size:10px;font-weight:800;font-family:var(--font-mono);">${ru?getUserInitials(ru):'?'}</div>`;
           }).join('')}
           ${feitoPorOutro?`
           <span style="font-size:12px;color:#fb7185;flex-shrink:0;line-height:1;">→</span>
           <div title="Concluída por ${outroNome} — a tarefa estava atribuída a ${respLine}"
-               style="width:28px;height:28px;border-radius:8px;background:var(--grad-avatar);border:1.5px solid rgba(251,113,133,.75);box-shadow:0 0 8px rgba(251,113,133,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${outroCor};font-size:10px;font-weight:800;font-family:var(--font-mono);">${outroInit}</div>`:''}
+               style="width:28px;height:28px;border-radius:8px;background:#2563eb;border:1.5px solid rgba(251,113,133,.75);box-shadow:0 0 8px rgba(251,113,133,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ffffff;font-size:10px;font-weight:800;font-family:var(--font-mono);">${outroInit}</div>`:''}
           <div style="flex:1;"></div>
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
