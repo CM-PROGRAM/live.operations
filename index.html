@@ -656,6 +656,60 @@ html{overflow-x:hidden;}
 :root[data-theme="light"] .acp-st.parado{color:#b91c1c;}
 :root[data-theme="light"] .acp-st.andando{color:#1d4ed8;}
 :root[data-theme="light"] .ped-sim{color:#15803d;}
+/* ── Inbox estilo WhatsApp ───────────────────────────────────
+   Duas colunas: conversas à esquerda, chat com balões à direita.
+   Cores calcadas no WhatsApp real, com par claro/escuro. */
+.wa-wrap{display:flex;height:calc(100vh - 175px);min-height:420px;border:1px solid var(--glass-border);
+  border-radius:14px;overflow:hidden;background:var(--bg-card);}
+.wa-lista{width:340px;min-width:260px;border-right:1px solid var(--glass-border);display:flex;flex-direction:column;}
+.wa-topo-lista{padding:10px;border-bottom:1px solid var(--linha-sutil);}
+.wa-topo-lista input{width:100%;}
+.wa-convs{flex:1;overflow-y:auto;}
+.wa-aguarde{padding:22px 16px;font-size:12.5px;line-height:1.7;color:var(--text-muted);}
+.wa-conv{display:flex;gap:11px;align-items:center;padding:11px 13px;cursor:pointer;
+  border-bottom:1px solid var(--linha-sutil);transition:background .12s;}
+.wa-conv:hover{background:var(--veu-suave);}
+.wa-conv.ativa{background:var(--veu-medio);}
+.wa-av{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#2563eb,#5b8def);color:#fff;font-weight:800;font-size:14px;font-family:var(--font-sans);}
+.wa-conv-meio{flex:1;min-width:0;}
+.wa-conv-l1{display:flex;align-items:baseline;gap:8px;}
+.wa-conv-l1 .nome{flex:1;font-size:13.5px;font-weight:700;color:var(--text-primary);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wa-conv-l1 .hora{font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);flex-shrink:0;}
+.wa-conv-l2{display:flex;align-items:center;gap:6px;margin-top:2px;}
+.wa-conv-l2 .previa{flex:1;font-size:12px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.wa-caixa{font-size:8.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;font-family:var(--font-mono);
+  color:var(--text-muted);background:var(--veu-suave);border:1px solid var(--linha-sutil);border-radius:999px;padding:1px 7px;flex-shrink:0;}
+.wa-chat{flex:1;display:flex;flex-direction:column;min-width:0;}
+.wa-chat-cab{display:flex;align-items:center;gap:11px;padding:10px 16px;border-bottom:1px solid var(--glass-border);
+  background:var(--bg-card);}
+.wa-chat-cab .nome{font-size:14.5px;font-weight:800;color:var(--text-primary);}
+.wa-chat-cab .tel{font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);}
+.wa-msgs{flex:1;overflow-y:auto;padding:18px 7%;display:flex;flex-direction:column;gap:3px;
+  background:#efeae2 url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" opacity="0.04"><circle cx="10" cy="10" r="2" fill="%23555"/><circle cx="40" cy="35" r="2" fill="%23555"/></svg>');}
+:root:not([data-theme="light"]) .wa-msgs{background-color:#0b141a;}
+.wa-vazio{margin:auto;text-align:center;color:var(--text-muted);font-size:13px;display:flex;flex-direction:column;gap:10px;align-items:center;}
+.wa-vazio-ic{font-size:34px;opacity:.5;}
+:root:not([data-theme="light"]) .wa-vazio{color:#8696a0;}
+.wa-dia{align-self:center;font-size:10.5px;font-weight:700;color:#54656f;background:#fff;
+  border-radius:8px;padding:4px 12px;margin:10px 0 6px;box-shadow:0 1px 1px rgba(0,0,0,.08);}
+:root:not([data-theme="light"]) .wa-dia{background:#182229;color:#8696a0;}
+.wa-msg{max-width:68%;padding:7px 10px 5px;border-radius:10px;font-size:13.2px;line-height:1.45;
+  color:#111b21;box-shadow:0 1px 1px rgba(0,0,0,.10);white-space:pre-wrap;word-break:break-word;margin-bottom:2px;}
+.wa-msg .autor{font-size:10.5px;font-weight:800;color:#2563eb;margin-bottom:2px;}
+.wa-msg .rodape{display:flex;justify-content:flex-end;gap:4px;align-items:center;
+  font-size:9.5px;color:#667781;font-family:var(--font-mono);margin-top:2px;}
+.wa-msg.in{align-self:flex-start;background:#ffffff;border-top-left-radius:2px;}
+.wa-msg.out{align-self:flex-end;background:#d9fdd3;border-top-right-radius:2px;}
+.wa-msg.out .rodape::after{content:'✓✓';color:#53bdeb;font-size:10px;}
+:root:not([data-theme="light"]) .wa-msg{color:#e9edef;box-shadow:0 1px 1px rgba(0,0,0,.3);}
+:root:not([data-theme="light"]) .wa-msg.in{background:#202c33;}
+:root:not([data-theme="light"]) .wa-msg.out{background:#005c4b;}
+:root:not([data-theme="light"]) .wa-msg .rodape{color:#8696a0;}
+@media(max-width:860px){.wa-lista{width:100%;}.wa-wrap.aberta .wa-lista{display:none;}
+  .wa-chat{display:none;}.wa-wrap.aberta .wa-chat{display:flex;}}
+
 /* ── Acompanhamento ─────────────────────────────────────────── */
 /* Largura fixa nas buscas. Sem ela o input de dentro pede o tamanho do seu
    próprio placeholder, os dois campos incham e a barra de filtros quebra em
@@ -3674,15 +3728,33 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
 
     <div class="tab-panel" id="tab-inbox">
-      <div class="section-header">
-        <span class="section-title">Inbox</span>
+      <div class="pag-topo">
+        <div>
+          <h2 class="pag-titulo">Inbox</h2>
+          <p class="pag-sub">As conversas do WhatsApp, em tempo real via Chatwoot</p>
+        </div>
       </div>
-      <div class="date-header">Conversas em um lugar só</div>
-      <div class="aba-futura">
-        <div class="af-ic" data-icone="inbox"></div>
-        <h3>Inbox</h3>
-        <p>Aqui vão ficar as conversas do WhatsApp, para atender sem sair do LiveOps. Hoje elas vivem no Chatwoot, em <b>Vendas → WhatsApp</b>.</p>
-        <span class="af-selo">em construção</span>
+      <!-- Duas colunas no desenho do WhatsApp: conversas à esquerda, chat à
+           direita. As mensagens chegam do Chatwoot pelo n8n e vivem em
+           suplelive/inbox — só o robô escreve lá, a tela apenas lê. -->
+      <div class="wa-wrap">
+        <div class="wa-lista">
+          <div class="wa-topo-lista">
+            <input id="wa-q" type="text" placeholder="Pesquisar conversa..." oninput="inboxRender()" autocomplete="off">
+          </div>
+          <div id="wa-convs" class="wa-convs">
+            <div class="wa-aguarde">Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.</div>
+          </div>
+        </div>
+        <div class="wa-chat">
+          <div class="wa-chat-cab" id="wa-chat-cab" style="display:none;"></div>
+          <div class="wa-msgs" id="wa-msgs">
+            <div class="wa-vazio">
+              <div class="wa-vazio-ic">💬</div>
+              <div>Selecione uma conversa no painel da esquerda</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -10532,6 +10604,7 @@ function doLogout(){
   clearInterval(syncTimer);
   if(db && fbListener){ db.ref(FB_PATH).off('value', fbListener); fbListener=null; }
   if(db){ try{ _pararDeOuvirRegistros(); }catch(e){} }
+  try{ inboxParar(); }catch(e){}
   _regAtivo=false;
   Object.keys(_regEnviado).forEach(k=>delete _regEnviado[k]);
   // A próxima sessão precisa ler a nuvem antes de publicar de novo
@@ -10630,7 +10703,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27e';
+const APP_VERSAO='2026.08.27f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11068,6 +11141,7 @@ function buildTabs(){
     if(id==='integracoes'){ try{ renderIntegracoesTab(); }catch(e){ console.warn('renderIntegracoesTab:',e); } }
     if(id==='estoque'){ try{ renderEstoque(); }catch(e){ console.warn('renderEstoque:',e); } }
     if(id==='envios'){ try{ renderAcompanhamento(); }catch(e){ console.warn('renderAcompanhamento:',e); } }
+    if(id==='inbox'){ try{ inboxIniciar(); inboxRender(); }catch(e){ console.warn('inbox:',e); } }
   }
 
   tabs.forEach(tb=>{
@@ -11779,6 +11853,140 @@ function renderDashboard(){
       </div>
     </div>
   </div>`;
+}
+
+/* ── INBOX · WhatsApp via Chatwoot ───────────────────────────────
+   As mensagens chegam do Chatwoot por um webhook no n8n, que grava em
+   suplelive/inbox (conv/<id> e msg/<id>/<msgId>). Só o robô escreve lá;
+   esta tela apenas lê — por isso nenhuma sessão consegue apagar conversa
+   de ninguém. Nada disso entra no appState nem no localStorage: 3 mil
+   conversas não têm o que fazer dentro do pacote de sincronização. */
+const FB_INBOX='suplelive/inbox';
+let _waConvs={};          // id -> {nome, telefone, ultima, ts, caixa, deUltima}
+let _waMsgs={};           // id da conversa aberta -> {msgId: msg}
+let _waAberta=null;
+let _waMsgConvRef=null;   // referência ligada da conversa aberta
+let _waIniciado=false;
+let _waRenderTimer=null;
+
+function inboxIniciar(){
+  if(_waIniciado || !db || !fbConnected) return;
+  _waIniciado=true;
+  // As 300 conversas mais recentes; as antigas continuam no Chatwoot
+  const ref=db.ref(FB_INBOX+'/conv').orderByChild('ts').limitToLast(300);
+  const trata=s=>{ const v=s.val(); if(v){ _waConvs[s.key]=v; _inboxAgendarRender(); } };
+  ref.on('child_added',trata);
+  ref.on('child_changed',trata);
+  ref.on('child_removed',s=>{ delete _waConvs[s.key]; _inboxAgendarRender(); });
+}
+function inboxParar(){
+  try{ if(db) db.ref(FB_INBOX+'/conv').off(); }catch(e){}
+  try{ if(_waMsgConvRef) _waMsgConvRef.off(); }catch(e){}
+  _waMsgConvRef=null; _waIniciado=false; _waAberta=null; _waConvs={}; _waMsgs={};
+}
+function _inboxAgendarRender(){
+  clearTimeout(_waRenderTimer);
+  _waRenderTimer=setTimeout(()=>{ try{ inboxRender(); }catch(e){} },150);
+}
+
+function _waHora(ts){
+  if(!ts) return '';
+  const d=new Date(ts), hoje=new Date();
+  if(d.toDateString()===hoje.toDateString()) return d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  const ontem=new Date(Date.now()-86400000);
+  if(d.toDateString()===ontem.toDateString()) return 'ontem';
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+}
+function _waDiaRotulo(ts){
+  const d=new Date(ts), hoje=new Date(), ontem=new Date(Date.now()-86400000);
+  if(d.toDateString()===hoje.toDateString()) return 'Hoje';
+  if(d.toDateString()===ontem.toDateString()) return 'Ontem';
+  return d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'});
+}
+function _waIni(nome){
+  return String(nome||'?').trim().split(/\s+/).slice(0,2).map(p=>p.charAt(0)).join('').toUpperCase()||'?';
+}
+
+function inboxRender(){
+  const box=document.getElementById('wa-convs');
+  if(!box) return;
+  const q=_biNorm((document.getElementById('wa-q')||{}).value||'').trim();
+  const lista=Object.entries(_waConvs)
+    .map(([id,c])=>({id,...c}))
+    .filter(c=>!q || _biNorm([c.nome,c.telefone,c.ultima].join(' ')).includes(q))
+    .sort((a,b)=>(b.ts||0)-(a.ts||0));
+  if(!lista.length){
+    box.innerHTML='<div class="wa-aguarde">'+(q
+      ?'Nenhuma conversa encontrada para essa busca.'
+      :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.')+'</div>';
+    return;
+  }
+  box.innerHTML=lista.map(c=>`
+    <div class="wa-conv${_waAberta===c.id?' ativa':''}" onclick="inboxAbrir('${_iniEsc(c.id)}')">
+      <span class="wa-av">${_iniEsc(_waIni(c.nome))}</span>
+      <div class="wa-conv-meio">
+        <div class="wa-conv-l1"><span class="nome">${_iniEsc(nomeProprio(c.nome||'Contato'))}</span><span class="hora">${_waHora(c.ts)}</span></div>
+        <div class="wa-conv-l2">
+          <span class="previa">${c.deUltima==='agente'?'Você: ':''}${_iniEsc(String(c.ultima||'').slice(0,90))}</span>
+          ${c.caixa?`<span class="wa-caixa">${_iniEsc(c.caixa)}</span>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function inboxAbrir(id){
+  _waAberta=id;
+  const c=_waConvs[id]||{};
+  const cab=document.getElementById('wa-chat-cab');
+  if(cab){
+    const tel=String(c.telefone||'').replace(/\D/g,'');
+    cab.style.display='flex';
+    cab.innerHTML=`
+      <span class="wa-av">${_iniEsc(_waIni(c.nome))}</span>
+      <div style="flex:1;min-width:0;">
+        <div class="nome">${_iniEsc(nomeProprio(c.nome||'Contato'))}</div>
+        ${c.telefone?`<div class="tel">${_iniEsc(c.telefone)}</div>`:''}
+      </div>
+      ${tel?`<a class="btn-sec" style="width:auto;padding:7px 14px;font-size:12px;" target="_blank" rel="noopener"
+        href="https://wa.me/${tel.length<=11?'55':''}${tel}">Abrir no WhatsApp ↗</a>`:''}`;
+  }
+  document.querySelector('.wa-wrap')?.classList.add('aberta');
+  // Troca a escuta de mensagens para a conversa aberta (as últimas 120)
+  try{ if(_waMsgConvRef) _waMsgConvRef.off(); }catch(e){}
+  _waMsgs={};
+  _waPintarMsgs();
+  if(db && fbConnected){
+    _waMsgConvRef=db.ref(FB_INBOX+'/msg/'+id).orderByChild('ts').limitToLast(120);
+    const trata=s=>{ const v=s.val(); if(v){ _waMsgs[s.key]=v; _waPintarMsgsAgendado(); } };
+    _waMsgConvRef.on('child_added',trata);
+    _waMsgConvRef.on('child_changed',trata);
+  }
+  inboxRender();
+}
+
+let _waPintarTimer=null;
+function _waPintarMsgsAgendado(){ clearTimeout(_waPintarTimer); _waPintarTimer=setTimeout(_waPintarMsgs,120); }
+function _waPintarMsgs(){
+  const box=document.getElementById('wa-msgs');
+  if(!box) return;
+  const msgs=Object.values(_waMsgs).filter(Boolean).sort((a,b)=>(a.ts||0)-(b.ts||0));
+  if(!msgs.length){
+    box.innerHTML='<div class="wa-vazio"><div class="wa-vazio-ic">💬</div><div>Sem mensagens gravadas ainda nesta conversa — só as novas chegam aqui.</div></div>';
+    return;
+  }
+  let html='', diaAtual='';
+  msgs.forEach(m=>{
+    const rot=_waDiaRotulo(m.ts||0);
+    if(rot!==diaAtual){ diaAtual=rot; html+=`<div class="wa-dia">${_iniEsc(rot)}</div>`; }
+    const hora=m.ts?new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    const saida=m.de==='agente';
+    html+=`<div class="wa-msg ${saida?'out':'in'}">
+      ${saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:''}${_iniEsc(m.texto||'')}
+      <div class="rodape">${hora}</div>
+    </div>`;
+  });
+  box.innerHTML=html;
+  box.scrollTop=box.scrollHeight;
 }
 
 /* Símbolo de boas-vindas: uma mão dando joia (thumbs up), em ícone cheio —
