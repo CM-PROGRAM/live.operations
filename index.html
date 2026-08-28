@@ -743,11 +743,20 @@ html{overflow-x:hidden;}
 .tpl-abas{display:flex;border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;
   margin-bottom:18px;background:var(--bg-card);}
 .tpl-aba{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 14px;
-  cursor:pointer;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:var(--text-secondary);
+  cursor:pointer;font-family:var(--font-sans);font-size:13.5px;font-weight:700;color:#2563eb;
   background:transparent;border:none;border-right:1px solid var(--glass-border);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+:root:not([data-theme="light"]) .tpl-aba{color:#60a5fa;}
 .tpl-aba:last-child{border-right:none;}
-.tpl-aba:hover{color:var(--text-primary);background:var(--veu-medio);}
-.tpl-aba.ativa{background:var(--bg-surface);color:var(--text-primary);box-shadow:inset 0 -2px 0 #2563eb;}
+.tpl-aba:hover{background:var(--veu-medio);}
+.tpl-aba.ativa{background:var(--bg-surface);box-shadow:inset 0 -2px 0 #2563eb;}
+/* "+ Novo": botão azul sólido com letra branca */
+.tpl-aba.nova,:root:not([data-theme="light"]) .tpl-aba.nova{flex:0 0 auto;background:#2563eb;color:#fff;padding:11px 20px;}
+.tpl-aba.nova:hover{background:#1d4ed8;}
+/* Títulos no padrão azul do sistema */
+#tab-templates .pag-titulo,.tpl-card-topo .tit,.gup-topo .tit{color:#1d4ed8;}
+:root:not([data-theme="light"]) #tab-templates .pag-titulo,
+:root:not([data-theme="light"]) .tpl-card-topo .tit,
+:root:not([data-theme="light"]) .gup-topo .tit{color:#60a5fa;}
 .tpl-aba svg{width:15px;height:15px;flex:0 0 auto;}
 .tpl-grid{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start;}
 @media(max-width:1050px){.tpl-grid{grid-template-columns:1fr;}}
@@ -801,8 +810,8 @@ textarea.tpl-texto{width:100%;min-height:180px;font-family:var(--font-mono);font
 .gup-secao{margin-top:26px;}
 .gup-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
 .gup-topo .tit{font-family:var(--font-sans);font-size:17px;font-weight:800;color:var(--text-primary);}
-.gup-topo .selo{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 9px;border-radius:20px;
-  background:rgba(139,92,246,.14);color:#8b5cf6;border:1px solid rgba(139,92,246,.4);font-family:var(--font-mono);}
+.gup-topo .selo{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 10px;border-radius:20px;
+  background:#2563eb;color:#fff;border:1px solid #2563eb;font-family:var(--font-mono);}
 .gup-topo .acoes{margin-left:auto;display:flex;gap:8px;align-items:center;}
 .gup-sub{font-size:12.5px;color:var(--text-muted);margin:0 0 14px;}
 .gup-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;}
@@ -10863,7 +10872,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28c';
+const APP_VERSAO='2026.08.28d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12971,7 +12980,7 @@ function renderTemplates(){
 
   const abas=lista.map(x=>
     `<button class="tpl-aba${x.id===_tplSel?' ativa':''}" onclick="tplSelecionar('${_iniEsc(x.id)}')">${_tplIcone(x.id)}<span>${_iniEsc(x.nome||'Sem nome')}</span></button>`
-  ).join('')+(master?`<button class="tpl-aba" style="flex:0 0 auto;color:#2563eb;" onclick="tplNovo()">+ Novo</button>`:'');
+  ).join('')+(master?`<button class="tpl-aba nova" onclick="tplNovo()">+ Novo</button>`:'');
 
   const selQuando=Object.keys(TPL_QUANDO).map(k=>
     `<option value="${k}"${t.quando===k?' selected':''}>${TPL_QUANDO_OPCAO[k]}</option>`).join('');
@@ -13016,7 +13025,7 @@ function renderTemplates(){
         </div>
         <div class="tpl-card">
           <div class="tpl-card-topo" style="margin-bottom:6px;">
-            <span style="color:#8b5cf6;display:flex;margin-top:2px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span>
+            <span style="color:#2563eb;display:flex;margin-top:2px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg></span>
             <div>
               <div class="tit" style="font-size:14.5px;">Filtros de Envio</div>
               <div class="sub">Defina quando esta mensagem deve ser enviada</div>
@@ -13190,10 +13199,14 @@ function _gupPintarSaldo(){
   const aviso=document.getElementById('gup-saldo-aviso');
   if(!s) return;
   if(!_gupSaldo || typeof _gupSaldo.valor!=='number'){
-    s.style.display='none';
+    s.style.display='inline-block';
+    s.textContent='Saldo: —';
+    s.className='gup-chip neutro';
+    s.title='O fluxo do n8n ainda não devolveu o saldo — importe a versão do fluxo com o nó "Consultar saldo".';
     if(aviso) aviso.innerHTML='';
     return;
   }
+  s.title='Saldo da carteira no Gupshup — é dele que saem as tarifas de cada mensagem.';
   const v=_gupSaldo.valor;
   s.style.display='inline-block';
   s.textContent='Saldo: US$ '+v.toFixed(2);

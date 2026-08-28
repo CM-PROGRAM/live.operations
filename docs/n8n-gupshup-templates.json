@@ -83,16 +83,34 @@
     },
     {
       "parameters": {
-        "jsCode": "// Junta os templates com o saldo da carteira em uma resposta so.\n// Se a consulta de saldo falhar, o espelho segue funcionando sem ele.\nconst templates = $('Formatar templates').first().json.templates;\nconst r = $json || {};\nfunction achar(o){\n  if(!o || typeof o !== 'object') return null;\n  for(const k of ['balance','currentBalance','walletBalance']){\n    if(typeof o[k] === 'number') return o[k];\n  }\n  for(const k of Object.keys(o)){\n    const v=o[k];\n    if(v && typeof v === 'object'){ const a=achar(v); if(a !== null) return a; }\n  }\n  return null;\n}\nconst valor = achar(r);\nconst saldo = (valor === null) ? null : { valor, moeda: 'USD' };\nreturn [{ json: { templates, saldo } }];"
+        "jsCode": "// Junta os templates com o saldo da carteira em uma resposta so.\n// O saldo vem de dois endpoints (conta e app) — vale o primeiro que\n// devolver numero; se ambos falharem, o espelho segue sem ele.\nconst templates = $('Formatar templates').first().json.templates;\nfunction achar(o){\n  if(!o || typeof o !== 'object') return null;\n  for(const k of ['balance','currentBalance','walletBalance']){\n    if(typeof o[k] === 'number') return o[k];\n    const num = parseFloat(o[k]);\n    if(typeof o[k] === 'string' && !isNaN(num)) return num;\n  }\n  for(const k of Object.keys(o)){\n    const v=o[k];\n    if(v && typeof v === 'object'){ const a=achar(v); if(a !== null) return a; }\n  }\n  return null;\n}\nlet valor = null;\ntry{ valor = achar($('Consultar saldo (Gupshup)').first().json); }catch(e){}\nif(valor === null){ try{ valor = achar($json); }catch(e){} }\nconst saldo = (valor === null) ? null : { valor, moeda: 'USD' };\nreturn [{ json: { templates, saldo } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        640,
+        880,
         0
       ],
       "id": "Montar resposta",
       "name": "Montar resposta"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api.gupshup.io/wa/app/{{ $('Preparar consulta').first().json.appId }}/wallet/balance",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        160
+      ],
+      "id": "Consultar saldo (reserva)",
+      "name": "Consultar saldo (reserva)",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -141,6 +159,17 @@
       ]
     },
     "Consultar saldo (Gupshup)": {
+      "main": [
+        [
+          {
+            "node": "Consultar saldo (reserva)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar saldo (reserva)": {
       "main": [
         [
           {
