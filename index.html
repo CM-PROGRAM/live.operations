@@ -811,7 +811,13 @@ textarea.tpl-texto{width:100%;min-height:180px;font-family:var(--font-mono);font
 .gup-topo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px;}
 .gup-topo .tit{font-family:var(--font-sans);font-size:17px;font-weight:800;color:var(--text-primary);}
 .gup-topo .selo{font-size:10px;font-weight:800;letter-spacing:.4px;padding:3px 10px;border-radius:20px;
-  background:#2563eb;color:#fff;border:1px solid #2563eb;font-family:var(--font-mono);}
+  background:#2563eb;color:#ffffff !important;border:1px solid #2563eb;font-family:var(--font-mono);}
+/* Saldo: borda azul, fundo branco, valor colorido pelo estado (verde ok,
+   âmbar de olho, vermelho recarrega) */
+#gup-saldo.gup-chip{background:#ffffff;border:1.5px solid #2563eb;color:#10b981;}
+#gup-saldo.gup-chip.espera{color:#d97706;}
+#gup-saldo.gup-chip.nao{color:#ef4444;}
+#gup-saldo.gup-chip.neutro{color:var(--text-muted);}
 .gup-topo .acoes{margin-left:auto;display:flex;gap:8px;align-items:center;}
 .gup-sub{font-size:12.5px;color:var(--text-muted);margin:0 0 14px;}
 .gup-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;}
@@ -10879,7 +10885,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28e';
+const APP_VERSAO='2026.08.28f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
