@@ -10725,7 +10725,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27g';
+const APP_VERSAO='2026.08.27h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12035,8 +12035,10 @@ function inboxEnviar(){
   const texto=inp.value.trim();
   if(!texto) return;
   inp.value='';
+  /* Persona única da empresa: para o cliente (e no balão), quem responde é
+     sempre "Manoel", seja quem for o atendente logado. */
   const p={_pid:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-           texto, de:'agente', autor:(currentUser&&currentUser.name)||'', ts:Date.now(), _pend:'enviando'};
+           texto, de:'agente', autor:'Manoel', ts:Date.now(), _pend:'enviando'};
   (_waPendentes[_waAberta]=_waPendentes[_waAberta]||[]).push(p);
   _waPintarMsgs();
   _waDisparar(p,_waAberta);
