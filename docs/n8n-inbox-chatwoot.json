@@ -302,6 +302,55 @@
       ],
       "id": "Montar primeira mensagem",
       "name": "Montar primeira mensagem"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-busca",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -560,
+        1080
+      ],
+      "id": "Webhook LiveOps (busca)",
+      "name": "Webhook LiveOps (busca)",
+      "webhookId": "chatwoot-busca"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/contacts/search?q={{ encodeURIComponent(($json.body && $json.body.q) || $json.q || '') }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        1080
+      ],
+      "id": "Buscar contatos (Chatwoot)",
+      "name": "Buscar contatos (Chatwoot)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Devolve para o LiveOps so o que a tela precisa: nome e telefone.\nconst lista = ($json.payload || []);\nconst contatos = lista.slice(0, 12)\n  .map(c => ({ nome: c.name || 'Contato', telefone: String(c.phone_number || '').trim() }))\n  .filter(c => c.telefone);\nreturn [{ json: { contatos } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -80,
+        1080
+      ],
+      "id": "Formatar contatos",
+      "name": "Formatar contatos"
     }
   ],
   "connections": {
@@ -478,6 +527,28 @@
           },
           {
             "node": "Gravar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook LiveOps (busca)": {
+      "main": [
+        [
+          {
+            "node": "Buscar contatos (Chatwoot)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar contatos (Chatwoot)": {
+      "main": [
+        [
+          {
+            "node": "Formatar contatos",
             "type": "main",
             "index": 0
           }

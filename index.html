@@ -10735,7 +10735,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27l';
+const APP_VERSAO='2026.08.27m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11976,23 +11976,40 @@ function inboxRender(){
     }
   }
 
-  /* Com busca ativa, contatos sem conversa aparecem numa faixa própria */
+  /* Com busca ativa, contatos sem conversa aparecem numa faixa própria:
+     os do sistema (leads + clientes da Base) e os da base do CHATWOOT,
+     consultados ao vivo pelo n8n enquanto você digita. */
   let contatosHtml='';
   if(q){
+    const bruto=String((document.getElementById('wa-q')||{}).value||'').trim();
+    _waAgendarBuscaRemota(bruto);
     const jaTem=new Set(Object.values(_waConvs).map(c=>String(c.telefone||'').replace(/\D/g,'')).filter(Boolean));
-    const achados=Object.values(_waContatosLocais())
-      .filter(ct=>!jaTem.has(ct.dig) && _biNorm(ct.nome+' '+ct.dig).includes(q))
-      .slice(0,8);
-    if(achados.length){
-      contatosHtml='<div class="wa-secao">Contatos — iniciar conversa</div>'+achados.map(ct=>`
+    const mapa={};
+    Object.values(_waContatosLocais()).forEach(ct=>{
+      if(!jaTem.has(ct.dig) && _biNorm(ct.nome+' '+ct.dig).includes(q)) mapa[ct.dig]=ct;
+    });
+    if(_waBuscaRemota.q===bruto){
+      (_waBuscaRemota.lista||[]).forEach(ct=>{
+        const dig=String(ct.telefone||'').replace(/\D/g,'');
+        if(dig.length>=10 && !jaTem.has(dig)) mapa[dig]={dig, nome:ct.nome, telefone:ct.telefone};
+      });
+    }
+    const achados=Object.values(mapa).slice(0,10);
+    const buscando=_waBuscaRemota.carregando && _waBuscaRemota.q===bruto;
+    if(achados.length || buscando){
+      contatosHtml='<div class="wa-secao">Contatos — iniciar conversa</div>'
+        +achados.map(ct=>`
         <div class="wa-conv" onclick="inboxNovaConversa('${_iniEsc(ct.dig)}','${_iniEsc(ct.nome).replace(/'/g,'&#39;')}')">
           <span class="wa-av">${_iniEsc(_waIni(ct.nome))}</span>
           <div class="wa-conv-meio">
             <div class="wa-conv-l1"><span class="nome">${_iniEsc(nomeProprio(ct.nome))}</span></div>
             <div class="wa-conv-l2"><span class="previa">${_iniEsc(ct.telefone||ct.dig)}</span><span class="wa-caixa">novo</span></div>
           </div>
-        </div>`).join('');
+        </div>`).join('')
+        +(buscando?'<div class="wa-aguarde" style="padding:10px 13px;">Buscando na base do Chatwoot…</div>':'');
     }
+  } else {
+    _waBuscaRemota={q:'',lista:[],carregando:false};
   }
 
   if(!lista.length && !contatosHtml){
@@ -12012,6 +12029,29 @@ function inboxRender(){
         </div>
       </div>
     </div>`).join('')+contatosHtml;
+}
+
+/* Busca ao vivo na base de contatos do CHATWOOT, via n8n. Debounce de meio
+   segundo para não metralhar a API a cada tecla; só a resposta da consulta
+   mais recente é aproveitada. */
+const WA_URL_BUSCA='https://webhookn8n.suplelive.com.br/webhook/chatwoot-busca';
+let _waBuscaTimer=null;
+let _waBuscaRemota={q:'',lista:[],carregando:false};
+function _waAgendarBuscaRemota(q){
+  if(!q || q.length<2){ _waBuscaRemota={q:'',lista:[],carregando:false}; return; }
+  if(_waBuscaRemota.q===q && !_waBuscaRemota.carregando) return;
+  clearTimeout(_waBuscaTimer);
+  _waBuscaTimer=setTimeout(()=>{
+    _waBuscaRemota={q, lista:[], carregando:true};
+    fetch(WA_URL_BUSCA,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({q})})
+      .then(r=>r.ok?r.json():{contatos:[]})
+      .then(j=>{
+        if(_waBuscaRemota.q!==q) return;   // já digitou outra coisa
+        _waBuscaRemota={q, lista:(j&&j.contatos)||[], carregando:false};
+        inboxRender();
+      })
+      .catch(()=>{ if(_waBuscaRemota.q===q){ _waBuscaRemota.carregando=false; inboxRender(); } });
+  },450);
 }
 
 /* Abre o painel de conversa para um contato que ainda não tem atendimento:
