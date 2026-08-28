@@ -11046,7 +11046,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28ah';
+const APP_VERSAO='2026.08.28ai';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -18279,6 +18279,16 @@ function acpEstornarNF(id){
   showToast('✔ Tarefa de estorno criada para o Carlos Red','success');
 }
 
+/* Acha o pedido na Base pelo número interno OU pelo número da plataforma.
+   Comparar os dois separadamente importa: o registro pode ter ambos, e o
+   número que o operador conhece costuma ser o da plataforma (externo). */
+function _pedidoBasePorNumero(num){
+  const chave=String(num==null?'':num).trim();
+  if(!chave) return null;
+  return (appState.pedidosBase||[]).find(x=>x&&(
+    String(x.numero||'').trim()===chave || String(x.externo||'').trim()===chave))||null;
+}
+
 /* ── Card do estorno de NF ───────────────────────────────────────────
    O que quem estorna precisa: a plataforma, o SKU devolvido, o número da
    NF estornada, a data do estorno e os comentários. As fotos são as do
@@ -18323,11 +18333,13 @@ function _estornoRender(){
   set('estorno-nf',  t.estornoNf);
   set('estorno-data',t.estornoData || (concluida?'':_hojeISO()));
 
-  /* O SKU e a quantidade vêm do próprio pedido da Base: um produto só,
-     preenche sozinho; mais de um, vira chips para escolher com um clique. */
+  /* O SKU e a quantidade vêm primeiro da própria devolução — é o que foi
+     devolvido de fato, com a quantidade certa. Sem produtos lá, cai para o
+     pedido da Base. Um produto só preenche sozinho; mais de um vira chips. */
   let prods=[];
-  if(pedido){
-    const pb=(appState.pedidosBase||[]).find(x=>x&&String(x.numero||x.externo||'')===String(pedido));
+  if(a&&Array.isArray(a.produtos)) prods=a.produtos.filter(x=>x&&x.sku);
+  if(!prods.length&&pedido){
+    const pb=_pedidoBasePorNumero(pedido);
     if(pb&&Array.isArray(pb.produtos)) prods=pb.produtos.filter(x=>x&&x.sku);
   }
   window._estornoProds=prods;
@@ -18486,7 +18498,7 @@ function _cancNfRender(){
      precisa ser atualizado para trazer o produto. */
   let produtos=(r&&Array.isArray(r.produtos))?r.produtos:[];
   if(!produtos.length && r&&r.pedidoBase){
-    const p=(appState.pedidosBase||[]).find(x=>x&&String(x.numero||x.externo||'')===String(r.pedidoBase));
+    const p=_pedidoBasePorNumero(r.pedidoBase);
     if(p&&Array.isArray(p.produtos)) produtos=p.produtos;
   }
   document.getElementById('ccard-sku').innerHTML=produtos.length
