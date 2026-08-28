@@ -2800,8 +2800,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <span id="estorno-cliente" style="font-size:12px;color:var(--text-secondary);"></span>
             <span id="estorno-selo" style="margin-left:auto;font-size:11px;font-weight:700;font-family:var(--font-mono);"></span>
           </div>
-          <div class="input-group"><label>SKU do produto devolvido</label>
-            <input type="text" id="estorno-sku" placeholder="Ex: DHEA25"></div>
+          <div style="display:grid;grid-template-columns:1.5fr 1fr;gap:12px;">
+            <div class="input-group"><label>SKU do produto devolvido</label>
+              <input type="text" id="estorno-sku" placeholder="Ex: DHEA25"></div>
+            <div class="input-group"><label>Quantidade</label>
+              <input type="text" id="estorno-qtd" inputmode="numeric" placeholder="Ex: 1"></div>
+          </div>
+          <div id="estorno-prod-chips" style="display:none;align-items:center;gap:7px;flex-wrap:wrap;margin:-4px 0 12px;"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
             <div class="input-group"><label>Nº da NF estornada <b>*</b></label>
               <input type="text" id="estorno-nf" inputmode="numeric" placeholder="Ex: 12345"></div>
@@ -9561,6 +9566,8 @@ function applyRemoteState(data){
   patchUsers(data);
   // Concessão local mais nova que a da cópia recebida vale — e é regravada
   try{ if(typeof appState!=='undefined' && appState && appState.users) _protegerPermissoes(data.users, appState.users); }catch(e){ console.warn('[perms]',e); }
+  // O nó oficial de permissões vale por cima de QUALQUER cópia que chegue
+  try{ _permsAplicarOficiais(data.users); }catch(e){ console.warn('[perms] oficiais:',e); }
   if(!data.weekHistory) data.weekHistory = {};
   if(!data.vendasWpp) data.vendasWpp = {};
   if(!Array.isArray(data.pedidosWpp)) data.pedidosWpp = [];
@@ -10902,6 +10909,7 @@ function doLogin(){
         // A cópia deste navegador pode conhecer concessões mais novas que a
         // nuvem (a nuvem foi revertida por uma sessão velha): elas valem.
         try{ _protegerPermissoes(appState.users, locais); }catch(e){ console.warn('[perms]',e); }
+        try{ _permsAplicarOficiais(appState.users); }catch(e){ console.warn('[perms] oficiais:',e); }
       }
       /* A cópia da nuvem pode ser anterior à correção dos e-mails: enquanto
          ninguém tiver entrado e sincronizado, ela ainda traz usuário sem
@@ -10929,6 +10937,8 @@ function doLogout(){
   clearInterval(syncTimer);
   if(db && fbListener){ db.ref(FB_PATH).off('value', fbListener); fbListener=null; }
   if(db){ try{ _pararDeOuvirRegistros(); }catch(e){} }
+  if(db){ try{ db.ref(FB_PERMS).off(); }catch(e){} }
+  _permsOuvindo=false;
   try{ inboxParar(); }catch(e){}
   _regAtivo=false;
   Object.keys(_regEnviado).forEach(k=>delete _regEnviado[k]);
@@ -10960,6 +10970,9 @@ function initApp(){
   // Esta máquina está com a versão publicada? Se não, ela se atualiza sozinha
   try{ verificarVersaoPublicada(true); }catch(e){ console.warn('[versao]',e); }
   initNotifListener();
+  // As permissões oficiais: escuta desde o login, e aplica por cima de tudo
+  try{ _permsOuvirOficiais(); }catch(e){ console.warn('[perms] ouvir:',e); }
+  setTimeout(()=>{ try{ _permsOuvirOficiais(); }catch(e){} }, 8000);
   // O vigia do Inbox no sino começa junto; tenta de novo depois caso o
   // Firebase ainda estivesse conectando neste primeiro momento
   try{ inboxNotifIniciar(); }catch(e){}
@@ -11033,7 +11046,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28ab';
+const APP_VERSAO='2026.08.28ac';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -18306,8 +18319,31 @@ function _estornoRender(){
 
   const set=(id2,v)=>{ const el=document.getElementById(id2); if(el){ el.value=v||''; el.disabled=concluida; } };
   set('estorno-sku', t.estornoSku);
+  set('estorno-qtd', t.estornoQtd);
   set('estorno-nf',  t.estornoNf);
   set('estorno-data',t.estornoData || (concluida?'':_hojeISO()));
+
+  /* O SKU e a quantidade vêm do próprio pedido da Base: um produto só,
+     preenche sozinho; mais de um, vira chips para escolher com um clique. */
+  let prods=[];
+  if(pedido){
+    const pb=(appState.pedidosBase||[]).find(x=>x&&String(x.numero||x.externo||'')===String(pedido));
+    if(pb&&Array.isArray(pb.produtos)) prods=pb.produtos.filter(x=>x&&x.sku);
+  }
+  window._estornoProds=prods;
+  const chips=document.getElementById('estorno-prod-chips');
+  if(chips){
+    if(prods.length&&!concluida){
+      chips.style.display='flex';
+      chips.innerHTML='<span style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);">Do pedido:</span>'+
+        prods.map((p,i)=>`<button type="button" class="btn-sec" style="width:auto;font-size:11px;padding:4px 11px;font-family:var(--font-mono);" title="${esc(p.nome||'')}" onclick="estornoUsarProduto(${i})">${esc(p.sku)}${p.qtd?' ×'+esc(p.qtd):''}</button>`).join('');
+    } else { chips.style.display='none'; chips.innerHTML=''; }
+  }
+  if(prods.length===1 && !concluida){
+    const elS=document.getElementById('estorno-sku'), elQ=document.getElementById('estorno-qtd');
+    if(elS && !elS.value.trim()) elS.value=prods[0].sku||'';
+    if(elQ && !elQ.value.trim() && prods[0].qtd) elQ.value=String(prods[0].qtd);
+  }
 
   // Fotos do cadastro da devolução — só visualização
   const fw=document.getElementById('estorno-fotos-wrap');
@@ -18336,6 +18372,12 @@ function _estornoRender(){
   const bs=document.getElementById('estorno-btn-salvar');
   if(bs) bs.style.display=concluida?'none':'';
 }
+function estornoUsarProduto(i){
+  const p=(window._estornoProds||[])[i]; if(!p) return;
+  const elS=document.getElementById('estorno-sku'), elQ=document.getElementById('estorno-qtd');
+  if(elS) elS.value=p.sku||'';
+  if(elQ) elQ.value=p.qtd?String(p.qtd):'1';
+}
 function _estornoPodeMexer(t){
   return currentUser && (currentUser.master || getAtvResponsaveis(t).includes(currentUser.key));
 }
@@ -18343,6 +18385,7 @@ function estornoSalvar(silencioso){
   const t=_estornoTarefa(); if(!t) return false;
   if(!_estornoPodeMexer(t)){ showToast('Só o responsável ou o master alteram este estorno','warn'); return false; }
   t.estornoSku=(document.getElementById('estorno-sku').value||'').trim();
+  t.estornoQtd=(document.getElementById('estorno-qtd').value||'').replace(/\D/g,'');
   t.estornoNf=(document.getElementById('estorno-nf').value||'').trim();
   t.estornoData=document.getElementById('estorno-data').value||'';
   saveState(appState);
@@ -23678,6 +23721,75 @@ function toggleAtvArea(key,areaId,checked){
   renderUsersGrid();
 }
 
+/* ═══ PERMISSÕES OFICIAIS — um nó próprio, um dono só ═══
+   As permissões viviam dentro do nó de usuários, que viaja no pacote e é
+   tocado por muita coisa — cada caminho novo de gravação era um jeito novo
+   de elas sumirem. Agora a fonte da verdade é suplelive/permissoes/<user>,
+   que SÓ o clique do master escreve. Toda sessão escuta esse nó e o aplica
+   por cima de qualquer cópia de usuários que chegar: não importa o que o
+   pacote diga, a concessão do master é a palavra final. */
+const FB_PERMS='suplelive/permissoes';
+let _permsOficiais=null;   // key -> {perms, atvAreasVisiveis?, atvTabsVisiveis?, ts, por}
+
+function _permsAplicarOficiais(users){
+  if(!_permsOficiais || !users) return;
+  Object.entries(_permsOficiais).forEach(([k,g])=>{
+    const u=users[k];
+    if(!u || !g || u.master) return;
+    if(Array.isArray(g.perms)) u.perms=g.perms.slice();
+    if(g.atvAreasVisiveis!==undefined && g.atvAreasVisiveis!==null) u.atvAreasVisiveis=JSON.parse(JSON.stringify(g.atvAreasVisiveis));
+    else delete u.atvAreasVisiveis;
+    if(g.atvTabsVisiveis!==undefined && g.atvTabsVisiveis!==null) u.atvTabsVisiveis=JSON.parse(JSON.stringify(g.atvTabsVisiveis));
+    else delete u.atvTabsVisiveis;
+    const ts=Number(g.ts)||0;
+    if(ts>Number(u.permsAtualizadoEm||0)) u.permsAtualizadoEm=ts;
+  });
+}
+
+function _permsGravarOficial(k){
+  const u=appState.users&&appState.users[k];
+  if(!u || u.master) return;
+  const g={perms:Array.isArray(u.perms)?u.perms.slice():[], ts:Date.now(), por:(currentUser&&currentUser.name)||''};
+  if(u.atvAreasVisiveis!==undefined) g.atvAreasVisiveis=u.atvAreasVisiveis;
+  if(u.atvTabsVisiveis!==undefined) g.atvTabsVisiveis=u.atvTabsVisiveis;
+  (_permsOficiais=_permsOficiais||{})[k]=JSON.parse(JSON.stringify(g));
+  if(db && fbConnected){
+    try{ db.ref(FB_PERMS+'/'+k).set(g); }catch(e){ console.warn('[perms] nó oficial:',e); }
+  }
+}
+
+let _permsOuvindo=false;
+function _permsOuvirOficiais(){
+  if(_permsOuvindo || !db || !fbConnected) return;
+  _permsOuvindo=true;
+  db.ref(FB_PERMS).on('value',snap=>{
+    const v=snap.val();
+    if(!v || !Object.keys(v).length){
+      /* Nó ainda vazio: o master semeia a partir do estado atual, UMA vez.
+         Sessão de colaborador não semeia — ela pode estar com cópia velha. */
+      if(currentUser && currentUser.master && appState && appState.users){
+        Object.keys(appState.users).forEach(k=>{ try{ _permsGravarOficial(k); }catch(e){} });
+      }
+      return;
+    }
+    _permsOficiais=v;
+    try{
+      _permsAplicarOficiais(appState.users);
+      if(currentUser && !currentUser.master && appState.users[currentUser.key]){
+        const eu=appState.users[currentUser.key];
+        currentUser.perms=Array.isArray(eu.perms)?eu.perms.slice():[];
+        if(eu.atvAreasVisiveis!==undefined) currentUser.atvAreasVisiveis=JSON.parse(JSON.stringify(eu.atvAreasVisiveis));
+        else delete currentUser.atvAreasVisiveis;
+        if(eu.atvTabsVisiveis!==undefined) currentUser.atvTabsVisiveis=JSON.parse(JSON.stringify(eu.atvTabsVisiveis));
+        else delete currentUser.atvTabsVisiveis;
+        try{ _aplicarPermissoesNaBarra(); }catch(e){}
+      }
+      try{ saveLocal(appState); }catch(e){}
+      try{ if(currentUser && currentUser.master) renderUsersGrid(); }catch(e){}
+    }catch(e){ console.warn('[perms] aplicar oficiais:',e); }
+  });
+}
+
 /* Grava o nó de permissões do usuário DIRETO na nuvem, com carimbo de hora.
    A concessão deixa de depender do diff do pacote: sobe na hora, e o carimbo
    é o que permite a guarda (_protegerPermissoes) reconhecer e desfazer
@@ -23691,6 +23803,8 @@ function _gravarPermissoesDireto(k){
     if(u.atvTabsVisiveis!==undefined) dados.atvTabsVisiveis=u.atvTabsVisiveis;
     db.ref(FB_PATH+'/users/'+k).update(dados);
   }catch(e){ console.warn('[perms] gravação direta:',e); }
+  // A fonte da verdade: o nó oficial, que só o clique do master escreve
+  try{ _permsGravarOficial(k); }catch(e){ console.warn('[perms] oficial:',e); }
 }
 
 /* A guarda das permissões. Toda cópia de usuários que chega (pacote de outra
