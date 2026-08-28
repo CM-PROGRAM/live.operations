@@ -5938,7 +5938,20 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div id="orc-erro" style="display:none;font-size:11.5px;color:var(--tom-vermelho);margin-bottom:10px;line-height:1.5;"></div>
     <div style="display:flex;gap:8px;">
       <button class="btn btn-sm" onclick="salvarOrcamento()" style="flex:1;">Salvar</button>
+      <button class="btn btn-sm" onclick="gerarTextoOrcamento()" style="flex:1;">Gerar Texto</button>
       <button class="btn btn-ghost btn-sm" onclick="fecharModalOrcamento()" style="flex:0 0 auto;">Cancelar</button>
+    </div>
+    <div id="orc-resultado" style="display:none;margin-top:14px;">
+      <label style="font-size:10px;color:var(--text-muted);font-family:var(--font-mono);letter-spacing:1px;text-transform:uppercase;display:block;margin-bottom:7px;">Texto pronto para o WhatsApp</label>
+      <textarea id="orc-texto" readonly style="background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:var(--radius);color:var(--text-primary);font-family:var(--font-mono);font-size:12px;line-height:1.6;padding:11px 12px;outline:none;width:100%;box-sizing:border-box;height:235px;resize:vertical;white-space:pre-wrap;"></textarea>
+      <div id="orc-img-wrap" style="display:none;align-items:center;gap:10px;margin-top:9px;padding:8px 10px;border:1px solid var(--linha-sutil);border-radius:10px;background:var(--veu-suave);">
+        <img id="orc-img" alt="imagem do produto" style="max-height:56px;max-width:56px;border-radius:8px;background:#fff;">
+        <a id="orc-img-link" href="#" target="_blank" rel="noopener" style="font-size:12px;font-weight:700;color:#2563eb;text-decoration:none;">Abrir imagem do site ↗</a>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn btn-sm" onclick="copiarTextoOrcamento()" style="flex:1;">📋 Copiar texto</button>
+        <button class="btn btn-ghost btn-sm" onclick="document.getElementById('orc-resultado').style.display='none';" style="flex:0 0 auto;">← Editar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -11020,7 +11033,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28w';
+const APP_VERSAO='2026.08.28x';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -33340,6 +33353,9 @@ function buscarSkuNaBase(){
        de desistir. Só quando as duas fontes falham é que se admite não saber,
        em vez de fingir que o código é o nome. */
     _atd.produto=String(j.nome||'').trim() || _orcNomePorSku(sku) || '';
+    /* Se o Apps Script devolver a imagem do produto, ela acompanha o texto
+       gerado — quando não vem, o bloco da imagem simplesmente não aparece. */
+    _atd.imagem=String(j.imagem||j.img||j.foto||'').trim();
     if(j.preco) document.getElementById('orc-preco').value=String(j.preco).replace('.',',');
     _orcMostrarAchado(sku,_atd.produto);
     if(ach) ach.style.display='block';
@@ -33398,6 +33414,67 @@ function salvarOrcamento(){
   showToast('Orçamento: '+_atd.produto+' · '+qtd+' und. · '+_atdFmt(preco),'success');
   fecharModalOrcamento();
   atdAtualizarBarra();
+}
+
+/* "Gerar Texto": valida os mesmos campos do Salvar, guarda o rascunho e
+   monta a mensagem de oferta no formato fechado com o master — preço do
+   site sem desconto e a escadinha do Pix pelas faixas da precificação
+   (a mesma tabela que ele edita na engrenagem, não uma cópia). */
+function gerarTextoOrcamento(){
+  const err=document.getElementById('orc-erro');
+  const sku=(document.getElementById('orc-sku').value||'').trim();
+  const preco=_atdMoeda(document.getElementById('orc-preco').value);
+  const qtd=parseInt((document.getElementById('orc-qtd').value||'').replace(/\D/g,''),10)||0;
+  const falta=[];
+  if(!sku) falta.push('o SKU');
+  if(!(preco>0)) falta.push('o preço do site');
+  if(!(qtd>0)) falta.push('a quantidade');
+  if(falta.length){
+    if(err){ err.textContent='Informe '+falta.join(', ')+'.'; err.style.display='block'; }
+    return;
+  }
+  if(err) err.style.display='none';
+  _atd.sku=sku; _atd.precoSite=preco; _atd.qtd=qtd;
+  if(!_atd.produto) _atd.produto=_orcNomePorSku(sku)||sku;
+
+  const fmt=n=>'R$ '+Number(n).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const faixas=_atdFaixas();
+  const linhas=faixas.map(f=>`${f.qtd} und   ${fmt(preco*(1-f.pct/100))}   ${f.pct}% OFF`).join('\n');
+  const texto=
+`${_atd.produto}
+
+Valor do produto no site: ${fmt(preco)} (Sem desconto)
+
+Aproveite as condições exclusivas no Pix para compras pelo WhatsApp:
+
+${linhas}
+
+Valores válidos no Pix. Consultar condições para cartão.
+
+Qual opção atende melhor a sua necessidade hoje?`;
+
+  document.getElementById('orc-texto').value=texto;
+  const wrap=document.getElementById('orc-img-wrap');
+  if(wrap){
+    const img=String(_atd.imagem||'').trim();
+    if(img && /^https?:\/\//.test(img)){
+      document.getElementById('orc-img').src=img;
+      document.getElementById('orc-img-link').href=img;
+      wrap.style.display='flex';
+    } else wrap.style.display='none';
+  }
+  document.getElementById('orc-resultado').style.display='block';
+  atdAtualizarBarra();
+}
+function copiarTextoOrcamento(){
+  const t=document.getElementById('orc-texto'); if(!t) return;
+  t.select(); t.setSelectionRange(0,999999);
+  navigator.clipboard.writeText(t.value).then(()=>{
+    showToast('📋 Texto copiado!','success');
+  }).catch(()=>{
+    try{ document.execCommand('copy'); showToast('📋 Texto copiado!','success'); }
+    catch(e){ showToast('⚠ Não consegui copiar — selecione e copie manualmente.','warn'); }
+  });
 }
 
 /* ── Pagamento: três meios, cada um com as suas contas ───────────── */
