@@ -860,6 +860,12 @@ textarea.tpl-texto{width:100%;min-height:180px;font-family:var(--font-mono);font
 .wa-tpl-item .tx{font-size:11.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}
 .wa-tpl-nada{padding:14px;text-align:center;font-size:12px;color:var(--text-muted);}
+/* Bolinha azul de não lidas no item Inbox da barra lateral */
+.tab-btn{position:relative;}
+.wa-tab-badge{position:absolute;right:9px;top:50%;transform:translateY(-50%);min-width:19px;height:19px;
+  border-radius:10px;background:#2563eb;color:#fff;font-size:10.5px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;padding:0 5px;font-family:var(--font-mono);
+  box-shadow:0 1px 4px rgba(37,99,235,.5);pointer-events:none;}
 
 /* Rodapé de paginação, igual nas três listas. */
 .pag-rodape{display:none;align-items:center;gap:10px;flex-wrap:wrap;padding:11px 16px;
@@ -10804,6 +10810,7 @@ function initApp(){
   // Firebase ainda estivesse conectando neste primeiro momento
   try{ inboxNotifIniciar(); }catch(e){}
   setTimeout(()=>{ try{ inboxNotifIniciar(); }catch(e){} }, 8000);
+  setTimeout(()=>{ try{ _waBadgeAtualizar(); }catch(e){} }, 3000);
   // Cópia diária automática — roda um pouco depois, para não competir com
   // o carregamento inicial dos dados
   setTimeout(()=>{ try{ verificarBackupAutomatico(); }catch(e){ console.warn('[backup]',e); } }, 6000);
@@ -10872,7 +10879,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28d';
+const APP_VERSAO='2026.08.28e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11283,6 +11290,7 @@ function buildTabs(){
 
   function fireTabHooks(id){
     try{ normalizarBuscas(); }catch(e){ console.warn('normalizarBuscas:',e); }
+    try{ _waBadgeAtualizar(); }catch(e){}
     // Os painéis novos desenham o ícone por data-icone, como as frentes do WhatsApp
     try{ preencherIconesDeclarados(document.getElementById('tab-'+id)); }catch(e){}
     if(id==='whatsapp'){ try{ wppAbrirFrente(_wppFrente); }catch(e){ console.warn('wppAbrirFrente:',e); } }
@@ -12064,6 +12072,47 @@ function inboxParar(){
    o mesmo aviso em vez de encher a caixa — e é determinístico, então duas
    abas do mesmo usuário não duplicam. Conversa aberta na tela não avisa:
    a pessoa já está lendo. */
+/* ── Bolinha azul de não lidas no item Inbox ──
+   "Lida" é por usuário e por máquina (localStorage): abrir a conversa marca
+   como lida. Na primeira vez que o vigia roda numa máquina, tudo que já
+   existe é dado como lido — a bolinha conta só o movimento dali em diante,
+   senão ela nasceria com as 40 conversas antigas. */
+let _waBadgeConvs={};
+function _waLidoMapa(){
+  if(!currentUser) return {};
+  try{ return JSON.parse(localStorage.getItem('liveops_walidas_'+currentUser.key)||'{}'); }catch(e){ return {}; }
+}
+function _waMarcarLida(id,ts){
+  if(!currentUser||!id) return;
+  const m=_waLidoMapa();
+  m[id]=Math.max(m[id]||0, ts||Date.now());
+  try{ localStorage.setItem('liveops_walidas_'+currentUser.key, JSON.stringify(m)); }catch(e){}
+  _waBadgeAtualizar();
+}
+function _waBadgeAtualizar(){
+  const btn=document.querySelector('.tab-btn[data-tab="inbox"]');
+  if(!btn||!currentUser) return;
+  const marcaSeed='liveops_walidas_seed_'+currentUser.key;
+  const convs=Object.assign({},_waBadgeConvs);
+  Object.entries(_waConvs||{}).forEach(([k,c])=>{ if(c) convs[k]={ts:c.ts,deUltima:c.deUltima}; });
+  let seed=false;
+  try{ seed=localStorage.getItem(marcaSeed)!=='1'; }catch(e){}
+  if(seed){
+    const m=_waLidoMapa();
+    Object.entries(convs).forEach(([k,c])=>{ m[k]=Math.max(m[k]||0,c.ts||0); });
+    try{
+      localStorage.setItem('liveops_walidas_'+currentUser.key, JSON.stringify(m));
+      localStorage.setItem(marcaSeed,'1');
+    }catch(e){}
+  }
+  const lido=_waLidoMapa();
+  const n=Object.entries(convs).filter(([k,c])=>c && c.deUltima==='cliente' && (c.ts||0)>(lido[k]||0)).length;
+  let b=btn.querySelector('.wa-tab-badge');
+  if(!n){ if(b) b.remove(); return; }
+  if(!b){ b=document.createElement('span'); b.className='wa-tab-badge'; btn.appendChild(b); }
+  b.textContent=n>99?'99+':String(n);
+}
+
 let _waNotifRef=null, _waNotifDesde=0;
 function inboxNotifIniciar(){
   if(_waNotifRef || !db || !fbConnected || !currentUser) return;
@@ -12071,11 +12120,13 @@ function inboxNotifIniciar(){
   _waNotifRef=db.ref(FB_INBOX+'/conv').orderByChild('ts').limitToLast(40);
   const trata=s=>{
     const c=s.val()||{};
+    _waBadgeConvs[s.key]={ts:c.ts,deUltima:c.deUltima};
+    try{ _waBadgeAtualizar(); }catch(e){}
     if(c.deUltima!=='cliente') return;
     if(!c.ts || c.ts<=_waNotifDesde) return;
     const painel=document.getElementById('tab-inbox');
     const lendo=painel && painel.classList.contains('active') && _waAberta===s.key && !document.hidden;
-    if(lendo) return;
+    if(lendo){ _waMarcarLida(s.key,c.ts); return; }
     const id='nwa_'+String(s.key).replace(/[^a-zA-Z0-9_]/g,'');
     const nome=nomeProprio(c.nome||'Contato');
     try{
@@ -12260,6 +12311,7 @@ function inboxNovaConversa(dig,nome){
 function inboxAbrir(id){
   _waAberta=id;
   const c=_waConvs[id]||{};
+  try{ _waMarcarLida(id, c.ts||Date.now()); }catch(e){}
   const cab=document.getElementById('wa-chat-cab');
   if(cab){
     const tel=String(c.telefone||'').replace(/\D/g,'');
