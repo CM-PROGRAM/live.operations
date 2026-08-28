@@ -695,18 +695,25 @@ html{overflow-x:hidden;}
 .wa-dia{align-self:center;font-size:10.5px;font-weight:700;color:#54656f;background:#fff;
   border-radius:8px;padding:4px 12px;margin:10px 0 6px;box-shadow:0 1px 1px rgba(0,0,0,.08);}
 :root:not([data-theme="light"]) .wa-dia{background:#182229;color:#8696a0;}
-.wa-msg{max-width:68%;padding:7px 10px 5px;border-radius:10px;font-size:13.2px;line-height:1.45;
-  color:#111b21;box-shadow:0 1px 1px rgba(0,0,0,.10);white-space:pre-wrap;word-break:break-word;margin-bottom:2px;}
-.wa-msg .autor{font-size:10.5px;font-weight:800;color:#2563eb;margin-bottom:2px;}
-.wa-msg .rodape{display:flex;justify-content:flex-end;gap:4px;align-items:center;
-  font-size:9.5px;color:#667781;font-family:var(--font-mono);margin-top:2px;}
+/* Balão no acabamento do WhatsApp de verdade: abraça o texto, e o
+   horário + ✓✓ ficam miúdos, flutuando no canto de baixo à direita,
+   na MESMA linha do texto — o texto contorna, como no app. */
+.wa-msg{max-width:65%;padding:6px 8px 8px 9px;border-radius:8px;font-size:13.4px;line-height:1.4;
+  color:#111b21;box-shadow:0 1px .5px rgba(11,20,26,.13);white-space:pre-wrap;word-break:break-word;margin-bottom:2px;}
+.wa-msg .autor{font-size:10.5px;font-weight:800;color:#2563eb;margin-bottom:1px;}
+.wa-msg .meta{float:right;margin:9px -3px -6px 9px;font-size:10.5px;color:#667781;
+  white-space:nowrap;line-height:1;user-select:none;}
+.wa-msg .tick{font-size:11.5px;letter-spacing:-2.5px;color:#8696a0;}
+.wa-msg .tick.azul{color:#53bdeb;}
+.wa-msg .tick.pend{font-size:10px;letter-spacing:0;}
+.wa-msg .tick.falha{color:#ef4444;font-size:11px;letter-spacing:0;}
 .wa-msg.in{align-self:flex-start;background:#ffffff;border-top-left-radius:2px;}
 .wa-msg.out{align-self:flex-end;background:#d9fdd3;border-top-right-radius:2px;}
-.wa-msg.out .rodape::after{content:'✓✓';color:#53bdeb;font-size:10px;}
-:root:not([data-theme="light"]) .wa-msg{color:#e9edef;box-shadow:0 1px 1px rgba(0,0,0,.3);}
+:root:not([data-theme="light"]) .wa-msg{color:#e9edef;box-shadow:0 1px .5px rgba(0,0,0,.3);}
 :root:not([data-theme="light"]) .wa-msg.in{background:#202c33;}
 :root:not([data-theme="light"]) .wa-msg.out{background:#005c4b;}
-:root:not([data-theme="light"]) .wa-msg .rodape{color:#8696a0;}
+:root:not([data-theme="light"]) .wa-msg .meta{color:#8696a0;}
+:root:not([data-theme="light"]) .wa-msg.out .meta{color:rgba(255,255,255,.62);}
 /* Rodapé de digitação, como no WhatsApp */
 .wa-compor{display:flex;align-items:flex-end;gap:9px;padding:9px 12px;background:#f0f2f5;
   border-top:1px solid var(--linha-sutil);}
@@ -720,7 +727,6 @@ html{overflow-x:hidden;}
 .wa-enviar svg{width:20px;height:20px;margin-left:2px;}
 .wa-enviar:hover{filter:brightness(1.08);}
 .wa-enviar:disabled{opacity:.55;cursor:default;}
-.wa-msg .rodape .pend{font-size:10px;}
 .wa-msg.falhou{outline:1.5px solid rgba(239,68,68,.7);cursor:pointer;}
 @media(max-width:860px){.wa-lista{width:100%;}.wa-wrap.aberta .wa-lista{display:none;}
   .wa-chat{display:none;}.wa-wrap.aberta .wa-chat{display:flex;}}
@@ -10725,7 +10731,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.27i';
+const APP_VERSAO='2026.08.27j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12010,13 +12016,14 @@ function _waPintarMsgs(){
     if(rot!==diaAtual){ diaAtual=rot; html+=`<div class="wa-dia">${_iniEsc(rot)}</div>`; }
     const hora=m.ts?new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
     const saida=m.de==='agente';
-    const rodape=m._pend==='enviando' ? hora+' <span class="pend">🕓</span>'
-               : m._pend==='falhou'   ? hora+' <span class="pend" style="color:#ef4444;">⚠ tocar para reenviar</span>'
-               : hora;
-    html+=`<div class="wa-msg ${saida?'out':'in'}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')"`:''}>
-      ${saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:''}${_iniEsc(m.texto||'')}
-      <div class="rodape">${rodape}</div>
-    </div>`;
+    const tick=m._pend==='enviando' ? '<span class="tick pend">🕓</span>'
+             : m._pend==='falhou'   ? '<span class="tick falha">⚠</span>'
+             : (saida?'<span class="tick azul">✓✓</span>':'');
+    /* Tudo numa linha só: o balão usa white-space:pre-wrap, então qualquer
+       quebra de linha do template viraria espaço em branco dentro dele. */
+    html+=`<div class="wa-msg ${saida?'out':'in'}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')" title="Não enviada — toque para reenviar"`:''}>`
+        +`${saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:''}`
+        +`${_iniEsc(m.texto||'')}<span class="meta">${hora}${tick?' '+tick:''}</span></div>`;
   });
   box.innerHTML=html;
   box.scrollTop=box.scrollHeight;
