@@ -9,13 +9,13 @@
   "theme_color": "#0d0d0d",
   "icons": [
     {
-      "src": "icone-liv-192.png",
+      "src": "icone-lop-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "icone-liv-512.png",
+      "src": "icone-lop-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
