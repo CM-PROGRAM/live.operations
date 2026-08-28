@@ -62,6 +62,37 @@
       ],
       "id": "Formatar templates",
       "name": "Formatar templates"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://api.gupshup.io/sm/api/v2/wallet/balance",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        400,
+        0
+      ],
+      "id": "Consultar saldo (Gupshup)",
+      "name": "Consultar saldo (Gupshup)",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Junta os templates com o saldo da carteira em uma resposta so.\n// Se a consulta de saldo falhar, o espelho segue funcionando sem ele.\nconst templates = $('Formatar templates').first().json.templates;\nconst r = $json || {};\nfunction achar(o){\n  if(!o || typeof o !== 'object') return null;\n  for(const k of ['balance','currentBalance','walletBalance']){\n    if(typeof o[k] === 'number') return o[k];\n  }\n  for(const k of Object.keys(o)){\n    const v=o[k];\n    if(v && typeof v === 'object'){ const a=achar(v); if(a !== null) return a; }\n  }\n  return null;\n}\nconst valor = achar(r);\nconst saldo = (valor === null) ? null : { valor, moeda: 'USD' };\nreturn [{ json: { templates, saldo } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        0
+      ],
+      "id": "Montar resposta",
+      "name": "Montar resposta"
     }
   ],
   "connections": {
@@ -92,6 +123,28 @@
         [
           {
             "node": "Formatar templates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatar templates": {
+      "main": [
+        [
+          {
+            "node": "Consultar saldo (Gupshup)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Consultar saldo (Gupshup)": {
+      "main": [
+        [
+          {
+            "node": "Montar resposta",
             "type": "main",
             "index": 0
           }
