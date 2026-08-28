@@ -381,18 +381,9 @@ html{overflow-x:hidden;}
 :root:not([data-theme="light"]) .lg-lock .so-claro{display:none;}
 :root:not([data-theme="light"]) .lg-lock .so-escuro{display:block;}
 .sb-ave{height:40px;width:auto;display:block;flex-shrink:0;}
-/* A marca em texto: "Live" azul; "Ops" preto no claro e branco no escuro. */
-.marca-txt{font-family:var(--font-sans);font-weight:900;font-size:22.5px;letter-spacing:-.6px;
-  line-height:1;white-space:nowrap;user-select:none;}
-.marca-txt b{color:#2563eb;font-weight:900;}
-.marca-txt i{font-style:normal;color:#0b0f19;font-weight:900;}
-:root:not([data-theme="light"]) .marca-txt i{color:#ffffff;}
-.marca-login{font-size:42px;letter-spacing:-1px;display:block;text-align:center;}
-.marca-tagline{display:block;text-align:center;margin-top:7px;font-family:var(--font-mono);
-  font-size:10.5px;font-weight:700;letter-spacing:5px;color:var(--text-muted);}
 /* O nome vem recortado da mesma arte, sem a tagline — em 30px de altura o
    "LIVE OPERATIONS" viraria ruído. */
-.sb-nome{height:22px;width:auto;display:block;margin-left:8px;min-width:0;}
+.sb-nome{height:22px;width:auto;display:block;margin-left:2px;min-width:0;}
 .sb-nome.so-escuro{display:none;}
 :root:not([data-theme="light"]) .sb-nome.so-claro{display:none;}
 :root:not([data-theme="light"]) .sb-nome.so-escuro{display:block;}
@@ -2619,11 +2610,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <button type="button" class="lg-tema-b" data-t="light" onclick="escolherTema('light')">☀ Claro</button>
     <button type="button" class="lg-tema-b" data-t="dark" onclick="escolherTema('dark')">☾ Escuro</button>
   </div>
-  <!-- A marca virou texto: Live em azul, Ops acompanhando o tema (preto no
-       claro, branco no escuro). O pássaro saiu a pedido do master. -->
+  <!-- A arte oficial do master, recolorida: LIVE azul, OPS preto no claro e
+       branco no escuro. O pássaro saiu a pedido. O ?v=azul fura o cache do
+       navegador, que ainda teria a versão vermelha guardada. -->
   <div class="lg-lock" role="img" aria-label="LiveOps — Live Operations">
-    <span class="marca-txt marca-login"><b>Live</b><i>Ops</i></span>
-    <span class="marca-tagline">LIVE OPERATIONS</span>
+    <img class="lg-nome so-claro" src="logo-nome.png?v=azul" alt="LiveOps">
+    <img class="lg-nome so-escuro" src="logo-nome-escura.png?v=azul" alt="LiveOps">
+    <img class="lg-tagl so-claro" src="logo-tagline.png" alt="Live Operations">
+    <img class="lg-tagl so-escuro" src="logo-tagline-escura.png" alt="Live Operations">
   </div>
   <form class="login-box" id="login-form" autocomplete="on" onsubmit="doLogin();return false;">
     <h2>Login</h2>
@@ -11012,7 +11006,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28o';
+const APP_VERSAO='2026.08.28p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11374,7 +11368,7 @@ function buildTabs(){
   const topo=document.createElement('div');
   topo.className='sb-topo';
   topo.innerHTML=`
-    <div class="sb-marca" role="img" aria-label="LiveOps" title="LiveOps"><span class="marca-txt"><b>Live</b><i>Ops</i></span></div>
+    <div class="sb-marca" role="img" aria-label="LiveOps" title="LiveOps"><img class="sb-nome so-claro" src="logo-nome.png?v=azul" alt="LiveOps"><img class="sb-nome so-escuro" src="logo-nome-escura.png?v=azul" alt="LiveOps"></div>
     <button type="button" class="sb-recolher" id="btn-esconder-menu"
             title="Esconder menu" aria-label="Esconder menu"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m14.5 6-6 6 6 6"/></svg></button>`;
   nav.appendChild(topo);
