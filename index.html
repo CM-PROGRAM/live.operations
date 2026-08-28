@@ -1800,6 +1800,10 @@ details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-mu
 /* Nos cards da Central, o nome da área em azul, como nos demais títulos */
 #atv-inicio .bi-quadro .ini-tit{color:#1d4ed8;}
 :root:not([data-theme="light"]) #atv-inicio .bi-quadro .ini-tit{color:#60a5fa;}
+/* Três cards por fileira na Central (dois em tela média, um no celular) */
+#atv-inicio .bi-grade{grid-template-columns:repeat(3,minmax(0,1fr));}
+@media(max-width:1150px){#atv-inicio .bi-grade{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:720px){#atv-inicio .bi-grade{grid-template-columns:1fr;}}
 :root:not([data-theme="light"]) #tab-tarefas .section-title,
 :root:not([data-theme="light"]) #tab-atendimentos .section-title,
 :root:not([data-theme="light"]) #tab-atribuir .section-title,
@@ -11013,7 +11017,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28s';
+const APP_VERSAO='2026.08.28t';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
