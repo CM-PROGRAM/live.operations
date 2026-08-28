@@ -195,7 +195,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// >>> PREENCHA: id da caixa de entrada do WhatsApp no Chatwoot <<<\n// Configuracoes > Caixas de Entrada > 1. Oficial — e o numero no fim da URL\nconst INBOX_ID = 0;\nconst b = $json.body || $json;\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nconst telefone = String(b.telefone || '').trim();\nconst dig = telefone.replace(/\\D/g, '');\nif (!texto || dig.length < 10) return [];\nif (!INBOX_ID) throw new Error('Preencha o INBOX_ID neste no (id da caixa 1. Oficial).');\nreturn [{ json: { texto, telefone, dig, nome: String(b.nome || '').trim(),\n  autor: String(b.autor || '').trim() || '?', inboxId: INBOX_ID } }];"
+        "jsCode": "// Id da caixa de entrada do WhatsApp no Chatwoot (1. Oficial).\n// Se mudar de caixa um dia: Configuracoes > Caixas de Entrada — e o numero no fim da URL.\nconst INBOX_ID = 9;\nconst b = $json.body || $json;\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nconst telefone = String(b.telefone || '').trim();\nconst dig = telefone.replace(/\\D/g, '');\nif (!texto || dig.length < 10) return [];\nif (!INBOX_ID) throw new Error('Preencha o INBOX_ID neste no (id da caixa 1. Oficial).');\nreturn [{ json: { texto, telefone, dig, nome: String(b.nome || '').trim(),\n  autor: String(b.autor || '').trim() || '?', inboxId: INBOX_ID } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
