@@ -10406,6 +10406,7 @@ function _cfAplicarLinhaDaSala(l){
     if(!_cfLeituraAtiva) return;
     if(p[0]==='permissoes'){ _cfRecarregarPermissoes(); return; }
     if(p[0]==='activity'){ _cfRecarregarFeed(); return; }
+    if(p[0]==='notificacoes' && currentUser && p[1]===currentUser.key){ _cfRecarregarAvisos(); return; }
     if(p[0]==='forceLogout' && currentUser && p[1]===currentUser.key && !l.apagada){
       _cfDadosReq('registro?colecao='+encodeURIComponent(l.colecao)+'&chave='+encodeURIComponent(l.chave))
         .then(r=>r.json())
@@ -11847,7 +11848,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29k';
+const APP_VERSAO='2026.08.29l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -33101,10 +33102,19 @@ function _notifContador(n){ return n > 999 ? '999+' : String(n); }
 
 function initNotifListener(){
   if(!db || !fbConnected || !currentUser) return;
-  _notifRef = db.ref('suplelive/notificacoes/'+currentUser.key);
   _notifPushExibidas = null;
-  _notifRef.on('value', snap=>{
-    const data = snap.val()||{};
+  if(_cfLeituraAtiva){ _cfRecarregarAvisos(); return; }
+  _notifRef = db.ref('suplelive/notificacoes/'+currentUser.key);
+  _notifRef.on('value', snap=>_aplicarNotificacoes(snap.val()||{}));
+}
+
+/* Os avisos desta pessoa, venham do Firebase ou da Cloudflare. Guarda
+   também a cópia de cada um: marcar como lido precisa reenviar o aviso
+   inteiro para o espelho, que grava por registro e não por campo. */
+const _notifCache={};
+function _aplicarNotificacoes(data){
+    Object.keys(_notifCache).forEach(k=>delete _notifCache[k]);
+    Object.entries(data||{}).forEach(([k,v])=>{ _notifCache[k]=v; });
     const todas = Object.entries(data).map(([k,v])=>({fbKey:k,...v})).sort((a,b)=>b.ts-a.ts);
     const naoLidas = todas.filter(n=>!n.lida);
     // Badge
@@ -33131,7 +33141,22 @@ function initNotifListener(){
     }
     // Renderizar lista
     renderNotifList(todas);
-  });
+}
+
+// Relê os últimos avisos desta pessoa pelo espelho (uma vez por rajada)
+let _cfAvisosTimer=null;
+function _cfRecarregarAvisos(){
+  if(!currentUser) return;
+  clearTimeout(_cfAvisosTimer);
+  _cfAvisosTimer=setTimeout(()=>{
+    cfLerColecao('notificacoes/'+currentUser.key,{ultimos:true,limite:80})
+      .then(linhas=>{
+        const data={};
+        linhas.forEach(l=>{ data[l.chave]=l.dados; });
+        _aplicarNotificacoes(data);
+      })
+      .catch(err=>console.warn('[cf] avisos:',err.message));
+  },300);
 }
 
 // Título do alerta push conforme o tipo de aviso
@@ -33257,8 +33282,14 @@ function renderNotifPagina(){
 
 
 function marcarLida(fbKey){
-  if(!_notifRef||!fbKey) return;
-  _notifRef.child(fbKey).update({lida:true});
+  if(!fbKey || !currentUser) return;
+  const guardado=_notifCache[fbKey];
+  if(guardado){
+    _notifCache[fbKey]={...guardado, lida:true};
+    _espelharCaminho('suplelive/notificacoes/'+currentUser.key+'/'+fbKey, _notifCache[fbKey]);
+  }
+  try{ if(db && fbConnected) db.ref('suplelive/notificacoes/'+currentUser.key+'/'+fbKey).update({lida:true}); }catch(e){}
+  if(_cfLeituraAtiva) _aplicarNotificacoes(_notifCache);
 }
 
 // Clique na notificação: marca como lida e abre direto o registro citado
@@ -33304,18 +33335,30 @@ function abrirNotificacao(fbKey,alvoTipo,alvoId){
 }
 
 function marcarTodasLidas(){
-  if(!_notifRef) return;
-  _notifRef.once('value',snap=>{
-    const updates={};
-    let n=0;
-    Object.entries(snap.val()||{}).forEach(([k,v])=>{ if(v && !v.lida){ updates[k+'/lida']=true; n++; } });
-    if(!n){ showToast('Nenhuma notificação não lida','warn'); return; }
-    _notifRef.update(updates)
-      .then(()=>showToast(n+' notificação(ões) marcada(s) como lida(s)','success'))
-      .catch(err=>showToast('Falha: '+err.message,'error'));
-  });
-}
+  if(!currentUser) return;
+  const naoLidas=Object.entries(_notifCache).filter(([,v])=>v && !v.lida);
+  if(!naoLidas.length){ showToast('Nenhuma notificação não lida','warn'); return; }
 
+  /* O espelho grava por registro, não por campo: cada aviso sobe inteiro,
+     já marcado. O Firebase continua recebendo a marcação enxuta enquanto
+     ainda houver quem leia de lá. */
+  const linhas=naoLidas.map(([k,v])=>{
+    _notifCache[k]={...v, lida:true};
+    return {colecao:'notificacoes/'+currentUser.key, chave:k, dados:_notifCache[k]};
+  });
+  try{ _cfEspelharLinhas(linhas); }catch(e){}
+
+  const quantas=naoLidas.length;
+  if(db && fbConnected){
+    const updates={};
+    naoLidas.forEach(([k])=>{ updates[k+'/lida']=true; });
+    db.ref('suplelive/notificacoes/'+currentUser.key).update(updates)
+      .catch(err=>showToast('Falha: '+err.message,'error'));
+  }
+  // Lendo pela Cloudflare não há listener para redesenhar sozinho
+  if(_cfLeituraAtiva) _aplicarNotificacoes(_notifCache);
+  showToast(quantas+' notificação(ões) marcada(s) como lida(s)','success');
+}
 
 </script>
 
