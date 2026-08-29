@@ -1,13 +1,16 @@
-/* LiveOps — Worker da migração Cloudflare (R2 + D1)
-   ==================================================
-   Etapa 1 — IMAGENS: guarda e serve as imagens originais no R2.
-   Etapa 2 — DADOS:   recebe o espelho de tudo que o sistema grava no
-                      Firebase — registros no banco D1, pacote de estado
-                      no R2 — para toda a informação viver também aqui.
+/* LiveOps — Worker da migração Cloudflare (R2 + D1 + tempo real)
+   ===============================================================
+   Etapa 1 — IMAGENS:    guarda e serve as imagens originais no R2.
+   Etapa 2 — DADOS:      recebe o espelho de tudo que o sistema grava no
+                         Firebase — registros no D1, pacote de estado no R2.
+   Etapa 4 — TEMPO REAL: leitura dos dados espelhados + a "sala" (Durable
+                         Object com WebSocket) que avisa todo navegador
+                         conectado quando algo muda — a peça que um dia
+                         substitui o tempo real do Firebase.
 
-   IMPORTANTE: nada aqui substitui o Firebase — é cópia em paralelo. O
-   sistema continua gravando no Firebase como sempre; este worker recebe
-   uma segunda via. Se ele cair ou nem existir, nada muda para quem usa.
+   IMPORTANTE: nada aqui substitui o Firebase ainda — é cópia e ensaio em
+   paralelo. O sistema continua gravando e lendo no Firebase; se este
+   worker cair, nada muda para quem usa.
 
    Rotas (todas exigem o login do sistema, exceto /saude):
      GET    /saude                  → "ok" (teste de publicação)
@@ -19,7 +22,19 @@
      GET    /dados/pacote/<nome>    → devolve o pacote
      POST   /dados/lote             → grava/apaga registros no D1 em lote
                                       corpo: {linhas:[{colecao,chave,dados|null},…]}
+     GET    /dados/registro?colecao=X&chave=Y          → um registro
+     GET    /dados/colecao?nome=X&depois=K&limite=N    → página de registros
      GET    /dados/resumo           → contagem por coleção + pacotes guardados
+     GET    /rt?token=<token>       → WebSocket da sala de tempo real
+                                      (o token vai na URL porque WebSocket de
+                                      navegador não envia cabeçalhos)
+
+   A sala transmite para todos os conectados:
+     {t:'mudanca', linhas:[{colecao,chave,apagada?}…]}  — registros que mudaram
+     {t:'mudanca', pacote:'state'}                      — o pacote foi regravado
+     {t:'mudanca', img:'<chave>', apagada?}             — imagem gravada/removida
+     {t:'presenca', lista:[{uid,nome}…]}                — quem está na sala
+   E responde {t:'pong'} a {t:'ping'} sem nem acordar (auto-resposta).
 
    Segurança: o MESMO login do sistema. O navegador manda o token do
    Firebase Auth (Authorization: Bearer ...) e o worker confere a
@@ -28,10 +43,11 @@
    nem sai. CORS liberado com "*" de propósito: quem protege é o token.
 
    Configuração esperada (painel da Cloudflare):
-     · Binding R2 chamado IMAGENS → bucket liveops-imagens  (etapa 1)
-     · Binding D1 chamado DADOS  → banco liveops-dados      (etapa 2)
-   Sem o binding DADOS, as rotas /dados respondem erro e o resto segue
-   funcionando — dá para publicar este código antes de criar o banco. */
+     · Binding R2 chamado IMAGENS → bucket liveops-imagens   (etapa 1)
+     · Binding D1 chamado DADOS  → banco liveops-dados       (etapa 2)
+     · Binding Durable Object SALA → classe Sala deste script (etapa 4)
+   Sem um binding, as rotas dele respondem erro e o resto segue
+   funcionando — dá para publicar este código antes das amarrações. */
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -86,9 +102,12 @@ async function chavesGoogle(forcar) {
 // Confere o token do Firebase Auth. Devolve o payload (com .sub = uid)
 // ou null. Qualquer defeito cai no null: não existe "meio autenticado".
 async function conferirToken(req) {
+  const bruto = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
+  return conferirTokenBruto(bruto);
+}
+async function conferirTokenBruto(bruto) {
   try {
-    const bruto = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-    const partes = bruto.split('.');
+    const partes = String(bruto || '').split('.');
     if (partes.length !== 3) return null;
     const dec = new TextDecoder();
     const cab = JSON.parse(dec.decode(b64urlBytes(partes[0])));
@@ -144,14 +163,113 @@ async function garantirTabelas(env) {
   _tabelasOk = true;
 }
 
+// ── A SALA: o coração do tempo real (Durable Object) ─────────────────
+// Uma única sala para o sistema inteiro. Cada navegador logado abre um
+// WebSocket para cá; toda gravação que passa pelo worker é anunciada a
+// todos; a lista de presentes sai do próprio conjunto de conexões.
+// Usa a API de hibernação: a sala dorme sem custo entre mensagens, e os
+// dados de cada conexão (uid, nome) sobrevivem no "attachment".
+export class Sala {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+    try {
+      this.ctx.setWebSocketAutoResponse(
+        new WebSocketRequestResponsePair('{"t":"ping"}', '{"t":"pong"}')
+      );
+    } catch (e) { /* versões antigas do runtime */ }
+  }
+
+  async fetch(req) {
+    const url = new URL(req.url);
+    // Aviso interno de mudança, vindo do próprio worker após uma gravação
+    if (url.pathname === '/avisar' && req.method === 'POST') {
+      const aviso = await req.json().catch(() => null);
+      if (aviso) this._transmitir(JSON.stringify({ t: 'mudanca', ...aviso }));
+      return new Response('ok');
+    }
+    // Entrada de um navegador (o worker já conferiu o login antes de encaminhar)
+    if ((req.headers.get('Upgrade') || '').toLowerCase() === 'websocket') {
+      const par = new WebSocketPair();
+      this.ctx.acceptWebSocket(par[1]);
+      try {
+        par[1].serializeAttachment({ uid: req.headers.get('X-Uid') || '', nome: '', ts: Date.now() });
+      } catch (e) {}
+      this._presenca();
+      return new Response(null, { status: 101, webSocket: par[0] });
+    }
+    return new Response('sala', { status: 200 });
+  }
+
+  webSocketMessage(ws, msg) {
+    let m = null;
+    try { m = JSON.parse(String(msg)); } catch (e) { return; }
+    if (m && m.t === 'ola') {
+      try {
+        const a = ws.deserializeAttachment() || {};
+        a.nome = String(m.nome || '').slice(0, 60);
+        ws.serializeAttachment(a);
+      } catch (e) {}
+      this._presenca();
+    }
+  }
+  webSocketClose() { this._presenca(); }
+  webSocketError() { this._presenca(); }
+
+  _transmitir(texto) {
+    for (const ws of this.ctx.getWebSockets()) {
+      try { ws.send(texto); } catch (e) {}
+    }
+  }
+  _presenca() {
+    const lista = [];
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        const a = ws.deserializeAttachment() || {};
+        if (a.uid) lista.push({ uid: a.uid, nome: a.nome || '' });
+      } catch (e) {}
+    }
+    this._transmitir(JSON.stringify({ t: 'presenca', lista }));
+  }
+}
+
+// Anuncia uma mudança para a sala — melhor esforço, nunca atrasa a resposta
+async function avisarSala(env, aviso) {
+  try {
+    if (!env.SALA) return;
+    const id = env.SALA.idFromName('liveops');
+    await env.SALA.get(id).fetch('https://sala/avisar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(aviso),
+    });
+  } catch (e) { /* sala fora do ar não pode derrubar gravação */ }
+}
+
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') return resposta(204, null);
     if (url.pathname === '/saude') return resposta(200, 'ok', { 'Content-Type': 'text/plain' });
 
     if (!env.IMAGENS) return respostaJson(500, { erro: 'binding-IMAGENS-ausente' });
+
+    // ── TEMPO REAL (etapa 4): entrada na sala ──────────────────
+    // Fica antes da porta comum porque o token vem na URL, não no
+    // cabeçalho — WebSocket de navegador não envia Authorization.
+    if (url.pathname === '/rt') {
+      if (!env.SALA) return respostaJson(500, { erro: 'binding-SALA-ausente' });
+      if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') {
+        return respostaJson(400, { erro: 'esperava-websocket' });
+      }
+      const quemRt = await conferirTokenBruto(url.searchParams.get('token') || '');
+      if (!quemRt) return respostaJson(401, { erro: 'sem-login' });
+      const cab = new Headers(req.headers);
+      cab.set('X-Uid', quemRt.sub);
+      const id = env.SALA.idFromName('liveops');
+      return env.SALA.get(id).fetch(new Request('https://sala/ws', { method: 'GET', headers: cab }));
+    }
 
     const quem = await conferirToken(req);
     if (!quem) return respostaJson(401, { erro: 'sem-login' });
@@ -171,6 +289,7 @@ export default {
             httpMetadata: { contentType: 'application/json' },
             customMetadata: { por: quem.sub, ts: String(Date.now()) },
           });
+          ctx.waitUntil(avisarSala(env, { pacote: nome }));
           return respostaJson(200, { ok: true });
         }
         if (req.method === 'GET') {
@@ -184,6 +303,39 @@ export default {
       if (!env.DADOS) return respostaJson(500, { erro: 'binding-DADOS-ausente' });
       await garantirTabelas(env);
 
+      // ── Leitura (etapa 4): um registro, ou uma página da coleção ──
+      // Os dados já estão guardados como JSON; devolvê-los "crus" evita
+      // codificar duas vezes.
+      if (url.pathname === '/dados/registro' && req.method === 'GET') {
+        const colecao = url.searchParams.get('colecao') || '';
+        const chave = url.searchParams.get('chave') || '';
+        if (!COLECAO_OK.test(colecao) || !CHAVE_OK.test(chave)) {
+          return respostaJson(400, { erro: 'parametros' });
+        }
+        const linha = await env.DADOS.prepare(
+          'SELECT dados, ts FROM registros WHERE colecao = ?1 AND chave = ?2'
+        ).bind(colecao, chave).first();
+        if (!linha) return respostaJson(404, { erro: 'nao-achado' });
+        return resposta(200, '{"ts":' + (linha.ts || 0) + ',"dados":' + linha.dados + '}',
+          { 'Content-Type': 'application/json' });
+      }
+      if (url.pathname === '/dados/colecao' && req.method === 'GET') {
+        const nome = url.searchParams.get('nome') || '';
+        if (!COLECAO_OK.test(nome)) return respostaJson(400, { erro: 'parametros' });
+        const depois = url.searchParams.get('depois') || '';
+        let limite = parseInt(url.searchParams.get('limite') || '500', 10);
+        if (!(limite > 0 && limite <= 1000)) limite = 500;
+        const rs = await env.DADOS.prepare(
+          'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND chave > ?2 ORDER BY chave LIMIT ?3'
+        ).bind(nome, depois, limite).all();
+        const linhas = rs.results || [];
+        const corpo = '{"linhas":[' + linhas.map(l =>
+          '{"chave":' + JSON.stringify(l.chave) + ',"ts":' + (l.ts || 0) + ',"dados":' + l.dados + '}'
+        ).join(',') + '],"proxima":' +
+          (linhas.length === limite ? JSON.stringify(linhas[linhas.length - 1].chave) : 'null') + '}';
+        return resposta(200, corpo, { 'Content-Type': 'application/json' });
+      }
+
       if (url.pathname === '/dados/lote' && req.method === 'POST') {
         const corpo = await req.json().catch(() => null);
         const linhas = corpo && Array.isArray(corpo.linhas) ? corpo.linhas : null;
@@ -195,6 +347,7 @@ export default {
         );
         const apaga = env.DADOS.prepare('DELETE FROM registros WHERE colecao = ?1 AND chave = ?2');
         const stmts = [];
+        const mudancas = [];
         let puladas = 0;
         const agora = Date.now();
         for (const l of linhas) {
@@ -203,15 +356,20 @@ export default {
             || !COLECAO_OK.test(colecao) || !CHAVE_OK.test(chave)) { puladas++; continue; }
           if (l.dados === null || l.dados === undefined) {
             stmts.push(apaga.bind(colecao, chave));
+            mudancas.push({ colecao, chave, apagada: true });
           } else {
             let json;
             try { json = typeof l.dados === 'string' ? l.dados : JSON.stringify(l.dados); }
             catch (e) { puladas++; continue; }
             if (!json || json.length > LINHA_MAX) { puladas++; continue; }
             stmts.push(insere.bind(colecao, chave, json, agora));
+            mudancas.push({ colecao, chave });
           }
         }
-        if (stmts.length) await env.DADOS.batch(stmts);
+        if (stmts.length) {
+          await env.DADOS.batch(stmts);
+          ctx.waitUntil(avisarSala(env, { linhas: mudancas }));
+        }
         return respostaJson(200, { ok: true, gravadas: stmts.length, puladas });
       }
 
@@ -275,11 +433,13 @@ export default {
         httpMetadata: { contentType: tipo },
         customMetadata: { por: quem.sub, ts: String(Date.now()) },
       });
+      ctx.waitUntil(avisarSala(env, { img: chave }));
       return respostaJson(200, { ok: true });
     }
 
     if (req.method === 'DELETE') {
       await env.IMAGENS.delete(chave);
+      ctx.waitUntil(avisarSala(env, { img: chave, apagada: true }));
       return respostaJson(200, { ok: true });
     }
 

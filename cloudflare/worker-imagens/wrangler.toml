@@ -20,3 +20,13 @@ bucket_name = "liveops-imagens"
 binding = "DADOS"
 database_name = "liveops-dados"
 database_id = "20b313cd-963c-4c4d-8584-f3c907124d12"
+
+# Etapa 4 — a sala de tempo real. Pelo painel: Settings → Bindings →
+# Durable Object (variável SALA → classe Sala, deste mesmo worker).
+[[durable_objects.bindings]]
+name = "SALA"
+class_name = "Sala"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Sala"]
