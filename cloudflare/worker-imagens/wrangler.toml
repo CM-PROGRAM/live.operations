@@ -19,4 +19,4 @@ bucket_name = "liveops-imagens"
 [[d1_databases]]
 binding = "DADOS"
 database_name = "liveops-dados"
-database_id = "PREENCHER-PELO-PAINEL"
+database_id = "20b313cd-963c-4c4d-8584-f3c907124d12"
