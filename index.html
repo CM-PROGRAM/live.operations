@@ -7129,6 +7129,39 @@ function _cfEspelharPacote(payload){
   },4000);
 }
 
+/* Espelha uma gravação avulsa do Firebase — ramos que não têm caminho
+   próprio de sincronia (avisos, feed de atividade). Recebe o caminho
+   inteiro e reparte no formato do espelho: tudo menos a última parte
+   vira a coleção, a última é a chave. */
+function _espelharCaminho(caminho,dados){
+  try{
+    const p=String(caminho||'').replace(/^suplelive\//,'').split('/').filter(Boolean);
+    if(p.length<2) return;
+    const chave=p.pop();
+    _cfEspelharLinhas([{colecao:p.join('/'), chave, dados:dados===undefined?null:dados}]);
+  }catch(e){}
+}
+
+/* Os avisos por usuário são gravados em dez pontos diferentes da tela.
+   Em vez de mexer em dez lugares, esta função devolve algo com as MESMAS
+   duas operações que eles já usam (push e set) — e que, de quebra,
+   espelha na Cloudflare. Nenhum ponto de chamada muda de forma. */
+function _refNotificacoes(caminho){
+  const ref=db.ref(caminho);
+  return {
+    push(valor){
+      const r=ref.push(valor);
+      _espelharCaminho(caminho+'/'+r.key, valor);
+      return r;
+    },
+    set(valor){
+      const promessa=ref.set(valor);
+      _espelharCaminho(caminho, valor);
+      return promessa;
+    }
+  };
+}
+
 // Grava a imagem original fora do pacote. Devolve a chave, ou '' se não
 // houver conexão — nesse caso o chamador mantém a imagem embutida, para
 // não perder nada enquanto está offline.
@@ -7272,6 +7305,10 @@ function migrarDadosParaCloudflare(){
     {nome:'solicitacoesAcesso', niveis:1},
     {nome:'permissoes', niveis:1},
     {nome:'backupsIndex', niveis:1},
+    {nome:'notificacoes', niveis:2},
+    /* As cópias diárias do estado. Só o índice vinha antes — as cópias
+       em si, que são a rede de segurança, ficavam de fora. */
+    {nome:'backups', niveis:2},
     {nome:'reg', niveis:2},
     {nome:'arquivo', niveis:2},
     {nome:'inbox', niveis:2},
@@ -9737,7 +9774,7 @@ function importExternalTask(key, item){
     // Notifica o responsável, igual ao fluxo manual
     const respUser=appState.users[responsavelKey];
     const notifMsg = `📌 Nova tarefa atribuída via automação: "${item.titulo||''}"`;
-    db.ref('suplelive/notificacoes/'+responsavelKey).push({
+    _refNotificacoes('suplelive/notificacoes/'+responsavelKey).push({
       msg: notifMsg, ts: Date.now(), lida:false, tipo:'tarefa', de:'n8n', alvoTipo:'tarefa', alvoId:novaTarefaId
     });
 
@@ -10603,7 +10640,9 @@ function logActivity(action, task, section){
     sessionId:_sessionId,
     ts:Date.now()
   };
-  db.ref(FB_ACT_PATH).push(entry).catch(()=>{});
+  const _refAtv=db.ref(FB_ACT_PATH).push(entry);
+  _refAtv.catch(()=>{});
+  _espelharCaminho(FB_ACT_PATH+'/'+_refAtv.key, entry);
 }
 
 function initActivityListener(){
@@ -11692,7 +11731,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29i';
+const APP_VERSAO='2026.08.29j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -11783,7 +11822,7 @@ function _avisarVersaoNaCaixa(nova){
   try{ if(localStorage.getItem(marca)==='1') return; }catch(e){}
   if(!(db && fbConnected)) return;
   try{
-    db.ref('suplelive/notificacoes/'+currentUser.key).push({
+    _refNotificacoes('suplelive/notificacoes/'+currentUser.key).push({
       msg:`🔄 ATUALIZE O SISTEMA — saiu a versão ${nova} e este computador está na ${APP_VERSAO}. Clique aqui para atualizar.`,
       ts:Date.now(), lida:false, tipo:'sistema', de:'Sistema',
       alvoTipo:'atualizacao', alvoId:nova
@@ -12918,7 +12957,7 @@ function inboxNotifIniciar(){
     const id='nwa_'+String(s.key).replace(/[^a-zA-Z0-9_]/g,'');
     const nome=nomeProprio(c.nome||'Contato');
     try{
-      db.ref('suplelive/notificacoes/'+currentUser.key+'/'+id).set({
+      _refNotificacoes('suplelive/notificacoes/'+currentUser.key+'/'+id).set({
         msg:'📱 WhatsApp de '+nome+': "'+String(c.ultima||'').slice(0,90)+'"',
         ts:c.ts, lida:false, tipo:'inbox', de:nome, alvoTipo:'inbox', alvoId:s.key
       });
@@ -19063,7 +19102,7 @@ function estornoComentar(){
   _estornoRender();
   getAtvResponsaveis(t).forEach(k=>{
     if(k===currentUser.key || !db || !fbConnected) return;
-    db.ref('suplelive/notificacoes/'+k).push({msg:'💬 Novo comentário de '+currentUser.name+' em "'+(t.titulo||'estorno')+'"',
+    _refNotificacoes('suplelive/notificacoes/'+k).push({msg:'💬 Novo comentário de '+currentUser.name+' em "'+(t.titulo||'estorno')+'"',
       ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,alvoTipo:'tarefa',alvoId:t.id});
   });
   showToast('💬 Comentário publicado','success');
@@ -21534,7 +21573,7 @@ function ateVerificarAlertaPrazo(d, vencido){
   d.alertaPrazoEnviado=true;
   saveState(appState);
   if(db && fbConnected && d.criadoPorKey){
-    const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
+    const notifRef=_refNotificacoes('suplelive/notificacoes/'+d.criadoPorKey);
     notifRef.push({
       msg:`⚠️ Atendimento de "${d.cliente||d.natend||'cliente'}" venceu o prazo de retorno (${d.prazo||''}) e continua em aberto.`,
       ts:Date.now(),
@@ -21572,7 +21611,7 @@ function ateVerificarTarefaAutomatica(d, chegouODiaDeCobrar){
   d.tarefaAutoCriada=true;
   logComoAutomacao(()=>saveState(appState));
   if(db && fbConnected && d.criadoPorKey){
-    const notifRef=db.ref('suplelive/notificacoes/'+d.criadoPorKey);
+    const notifRef=_refNotificacoes('suplelive/notificacoes/'+d.criadoPorKey);
     notifRef.push({
       msg:`🚨 Atendimento de "${d.cliente||d.natend||'cliente'}" chegou na Data Retorno (${d.prazo||''}) e gerou uma tarefa em Central de Tarefas.`,
       ts:Date.now(),
@@ -28751,7 +28790,7 @@ function _notifDescricaoItem(item){
 function _notifEnviar(destKey,msg,tipo,alvoTipo,alvoId){
   if(!destKey || !currentUser || destKey===currentUser.key) return;
   if(!(db && fbConnected)) return;
-  db.ref('suplelive/notificacoes/'+destKey).push({
+  _refNotificacoes('suplelive/notificacoes/'+destKey).push({
     msg, ts:Date.now(), lida:false, tipo:tipo||'tarefa', de:currentUser.name,
     alvoTipo:alvoTipo||tipo||'tarefa', alvoId:alvoId||''
   });
@@ -28763,7 +28802,7 @@ function _notifEnviar(destKey,msg,tipo,alvoTipo,alvoId){
 // está com o navegador aberto na hora em que o registro chegou.
 function _notifEnviarDeFora(destKey,msg,de,tipo,alvoTipo,alvoId){
   if(!destKey || !(db && fbConnected)) return;
-  db.ref('suplelive/notificacoes/'+destKey).push({
+  _refNotificacoes('suplelive/notificacoes/'+destKey).push({
     msg, ts:Date.now(), lida:false, tipo:tipo||'tarefa', de:de||'automação',
     alvoTipo:alvoTipo||tipo||'tarefa', alvoId:alvoId||''
   });
@@ -32506,7 +32545,7 @@ function atvComentar(){
   getAtvResponsaveis(alvo).forEach(k=>{
     if(k===currentUser.key) return;
     if(db && fbConnected){
-      db.ref('suplelive/notificacoes/'+k).push({msg:'💬 Novo comentário de '+currentUser.name+' em "'+titulo+'"',
+      _refNotificacoes('suplelive/notificacoes/'+k).push({msg:'💬 Novo comentário de '+currentUser.name+' em "'+titulo+'"',
         ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,alvoTipo:'tarefa',alvoId:alvo.id});
     }
   });
@@ -32806,7 +32845,7 @@ function _atvPersistirCampos(statusFinal,pendenciaTexto){
     // É a mesma regra de _notifEnviar, que este trecho não seguia.
     if(respKey===currentUser.key) return;
     if(db && fbConnected){
-      db.ref('suplelive/notificacoes/'+respKey).push({msg:notifMsg,ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,
+      _refNotificacoes('suplelive/notificacoes/'+respKey).push({msg:notifMsg,ts:Date.now(),lida:false,tipo:'tarefa',de:currentUser.name,
         alvoTipo:'tarefa', alvoId:editId});
     }
   });
