@@ -6441,6 +6441,17 @@ const FB_CONFIG = {
 // Regras do banco (cole no painel Firebase > Rules):
 // { "rules": { ".read": true, ".write": true } }
 
+// ── CLOUDFLARE R2 · IMAGENS (etapa 1 da migração) ────────────
+// Com um endereço aqui, as imagens passam a ter uma cópia no R2 da
+// Cloudflare (guardar custa centavos, baixar é grátis) e a leitura tenta
+// o R2 primeiro. O Firebase segue recebendo e servindo tudo como sempre:
+// nada é desligado, e se o R2 falhar a leitura volta para o Firebase
+// sozinha. VAZIO = tudo desativado, sistema idêntico ao de antes.
+// Passo a passo para publicar o worker: docs/cloudflare-imagens.md
+// Depois de publicado, cole o endereço dele aqui, ex.:
+//   const CF_IMG_URL='https://liveops-imagens.SUACONTA.workers.dev';
+const CF_IMG_URL='';
+
 // ── INICIALIZA FIREBASE ──────────────────────────────────────
 let db = null;
 let fbConnected = false;
@@ -7031,39 +7042,136 @@ function imgGerarThumb(dataUrl,cb){
   }catch(e){ cb(dataUrl); }
 }
 
+// ── Ponte com o worker de imagens na Cloudflare (R2) ─────────
+// O token é o mesmo do login: o worker confere a assinatura do Firebase
+// Auth, então só quem está logado no sistema lê ou grava por lá.
+function _cfImgAtivo(){ return !!CF_IMG_URL; }
+function _cfToken(){
+  try{
+    const u=(typeof firebase!=='undefined' && firebase.auth) ? firebase.auth().currentUser : null;
+    return u ? u.getIdToken() : Promise.resolve('');
+  }catch(e){ return Promise.resolve(''); }
+}
+function _cfImgReq(metodo,chave,corpo){
+  if(!_cfImgAtivo()) return Promise.reject(new Error('cf-desativado'));
+  return _cfToken().then(tk=>{
+    if(!tk) throw new Error('sem-login');
+    const cab={'Authorization':'Bearer '+tk};
+    if(corpo) cab['Content-Type']='text/plain';
+    return fetch(CF_IMG_URL+'/img/'+encodeURIComponent(chave),
+      {method:metodo, headers:cab, body:corpo||undefined});
+  }).then(res=>{
+    if(!res.ok) throw new Error('http-'+res.status);
+    return res;
+  });
+}
+
 // Grava a imagem original fora do pacote. Devolve a chave, ou '' se não
 // houver conexão — nesse caso o chamador mantém a imagem embutida, para
 // não perder nada enquanto está offline.
+// Com a Cloudflare configurada, uma segunda via vai para o R2 em
+// paralelo — sem atrasar nem derrubar a gravação principal: o Firebase
+// continua sendo a fonte da verdade enquanto a migração não termina.
 function imgGuardarOriginal(chave,dataUrl){
-  if(!(db && fbConnected) || !dataUrl) return Promise.resolve('');
+  if(!dataUrl) return Promise.resolve('');
+  if(_cfImgAtivo()){
+    _cfImgReq('PUT',chave,dataUrl)
+      .catch(err=>console.warn('[img][r2] falha ao guardar',chave,err.message));
+  }
+  if(!(db && fbConnected)) return Promise.resolve('');
   return db.ref(FB_IMG_PATH+'/'+chave).set({d:dataUrl, ts:Date.now()})
     .then(()=>{ _imgCache[chave]=dataUrl; return chave; })
     .catch(err=>{ console.warn('[img] falha ao guardar',chave,err.message); return ''; });
 }
 
-// Busca a imagem original (com cache em memória por sessão)
+// Busca a imagem original (com cache em memória por sessão).
+// Ordem: R2 da Cloudflare primeiro (download grátis, alivia a cota do
+// Firebase) e, se ele não tiver ou falhar, o Firebase como sempre.
 function imgCarregarOriginal(chave){
   if(!chave) return Promise.resolve('');
   if(_imgCache[chave]) return Promise.resolve(_imgCache[chave]);
   if(_imgCarregando[chave]) return _imgCarregando[chave];
-  if(!(db && fbConnected)) return Promise.resolve('');
-  _imgCarregando[chave]=db.ref(FB_IMG_PATH+'/'+chave).once('value')
-    .then(snap=>{
-      const v=snap.val();
-      const d=(v && (v.d||v))||'';
+  const doFirebase=()=>{
+    if(!(db && fbConnected)) return Promise.resolve('');
+    return db.ref(FB_IMG_PATH+'/'+chave).once('value')
+      .then(snap=>{
+        const v=snap.val();
+        return (v && (v.d||v))||'';
+      })
+      .catch(err=>{ console.warn('[img] falha ao ler',chave,err.message); return ''; });
+  };
+  const doR2=()=>{
+    if(!_cfImgAtivo()) return Promise.resolve('');
+    return _cfImgReq('GET',chave)
+      .then(res=>res.blob())
+      .then(bl=>new Promise(resolve=>{
+        const fr=new FileReader();
+        fr.onload=()=>resolve(String(fr.result||''));
+        fr.onerror=()=>resolve('');
+        fr.readAsDataURL(bl);
+      }))
+      .catch(()=>'');
+  };
+  _imgCarregando[chave]=doR2()
+    .then(d=>d || doFirebase())
+    .then(d=>{
       if(d) _imgCache[chave]=d;
       delete _imgCarregando[chave];
       return d;
-    })
-    .catch(err=>{ console.warn('[img] falha ao ler',chave,err.message); delete _imgCarregando[chave]; return ''; });
+    });
   return _imgCarregando[chave];
 }
 
-// Remove a original quando o registro é apagado
+// Remove a original quando o registro é apagado — dos dois lados
 function imgApagarOriginal(chave){
-  if(!chave || !(db && fbConnected)) return;
+  if(!chave) return;
   delete _imgCache[chave];
-  db.ref(FB_IMG_PATH+'/'+chave).remove().catch(()=>{});
+  if(_cfImgAtivo()) _cfImgReq('DELETE',chave).catch(()=>{});
+  if(db && fbConnected) db.ref(FB_IMG_PATH+'/'+chave).remove().catch(()=>{});
+}
+
+// ── MIGRAÇÃO ÚNICA: copia as imagens que já existem para o R2 ────────
+// Roda no navegador de quem estiver logado (o master), onde os dois
+// acessos convivem: lê tudo de suplelive/imagens no Firebase e manda uma
+// cópia para o worker. NÃO apaga nada do Firebase — é cópia, não mudança.
+// Pode rodar de novo à vontade: regravar a mesma chave só sobrescreve a
+// cópia com o mesmo conteúdo.
+// Como usar: F12 → Console → migrarImagensParaCloudflare()
+function migrarImagensParaCloudflare(){
+  if(!_cfImgAtivo()){
+    const msg='Cloudflare desativada: preencha CF_IMG_URL antes (docs/cloudflare-imagens.md)';
+    console.warn(msg); try{ showToast(msg,'warn'); }catch(e){}
+    return Promise.resolve(null);
+  }
+  if(!(db && fbConnected)){
+    console.warn('Sem conexão com o Firebase'); return Promise.resolve(null);
+  }
+  console.log('[migração] lendo as imagens do Firebase…');
+  return db.ref(FB_IMG_PATH).once('value').then(snap=>{
+    const todas=snap.val()||{};
+    const chaves=Object.keys(todas);
+    let ok=0, falha=0, vazia=0;
+    const passo=i=>{
+      if(i>=chaves.length){
+        const msg=`Migração de imagens: ${ok} copiada(s), ${falha} falha(s), ${vazia} vazia(s), ${chaves.length} no total`;
+        console.log('[migração] '+msg);
+        try{ showToast(msg, falha?'warn':'success'); }catch(e){}
+        return {ok,falha,vazia,total:chaves.length};
+      }
+      const c=chaves[i];
+      const d=(todas[c] && (todas[c].d||todas[c]))||'';
+      if(!d || typeof d!=='string'){ vazia++; return passo(i+1); }
+      if(i%10===0) console.log(`[migração] ${i}/${chaves.length}…`);
+      return _cfImgReq('PUT',c,d)
+        .then(()=>{ ok++; })
+        .catch(err=>{ falha++; console.warn('[migração] falhou',c,err.message); })
+        .then(()=>passo(i+1));
+    };
+    return passo(0);
+  }).catch(err=>{
+    console.warn('[migração] não consegui ler as imagens:',err.message);
+    return null;
+  });
 }
 
 // Prepara uma imagem para gravação: devolve {thumb, chave}. A original vai
@@ -11046,7 +11154,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.28ai';
+const APP_VERSAO='2026.08.29a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

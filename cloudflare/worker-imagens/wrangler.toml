@@ -1,0 +1,13 @@
+# Configuração do worker de imagens — OPCIONAL.
+#
+# O caminho recomendado (docs/cloudflare-imagens.md) é publicar pelo site
+# da Cloudflare, colando o worker.js no editor deles: não precisa instalar
+# nada no computador. Este arquivo só existe para quem preferir publicar
+# por linha de comando um dia:  npx wrangler deploy
+name = "liveops-imagens"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+[[r2_buckets]]
+binding = "IMAGENS"
+bucket_name = "liveops-imagens"
