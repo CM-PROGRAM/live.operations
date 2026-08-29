@@ -6452,6 +6452,16 @@ const FB_CONFIG = {
 // Para DESLIGAR tudo isso, basta esvaziar o endereço: const CF_IMG_URL='';
 const CF_IMG_URL='https://liveops-imagens.carlosmagnoav94.workers.dev';
 
+// ── CLOUDFLARE D1 · ESPELHO DE DADOS (etapa 2 da migração) ───
+// Com true, tudo que o sistema grava no Firebase ganha cópia na
+// Cloudflare: registros no banco D1, pacote de estado no R2 — pela rota
+// /dados do mesmo worker. O Firebase continua sendo a fonte da verdade;
+// o espelho falhando, nada acontece com a operação.
+// Pré-requisitos no painel (docs/cloudflare-dados.md): banco D1
+// 'liveops-dados' criado + binding DADOS no worker + worker atualizado.
+// false = espelho desligado; o sistema não muda em nada.
+const CF_DADOS_ATIVO=false;
+
 // ── INICIALIZA FIREBASE ──────────────────────────────────────
 let db = null;
 let fbConnected = false;
@@ -7066,6 +7076,58 @@ function _cfImgReq(metodo,chave,corpo){
   });
 }
 
+// ── Espelho de dados na Cloudflare (etapa 2) ─────────────────────────
+// Mesmo token de login; rota /dados do worker. Tudo aqui é "melhor
+// esforço": falhou, avisa no console e a vida segue — o Firebase é quem
+// manda até a migração terminar.
+function _cfDadosReq(caminho,metodo,corpo){
+  if(!_cfImgAtivo() || !CF_DADOS_ATIVO) return Promise.reject(new Error('cf-dados-desativado'));
+  return _cfToken().then(tk=>{
+    if(!tk) throw new Error('sem-login');
+    return fetch(CF_IMG_URL+'/dados/'+caminho,{
+      method:metodo||'GET',
+      headers:{'Authorization':'Bearer '+tk,'Content-Type':'application/json'},
+      body:corpo!==undefined?JSON.stringify(corpo):undefined
+    });
+  }).then(res=>{
+    if(!res.ok) throw new Error('http-'+res.status);
+    return res;
+  });
+}
+
+// Fila de registros para o espelho: as gravações do dia a dia entram
+// aqui e sobem agrupadas, sem atrasar nem competir com a gravação
+// principal no Firebase.
+let _cfFilaLinhas=[], _cfFilaTimer=null;
+function _cfEspelharLinhas(linhas){
+  if(!CF_DADOS_ATIVO) return;
+  if(linhas && linhas.length) _cfFilaLinhas.push(...linhas);
+  if(_cfFilaTimer || !_cfFilaLinhas.length) return;
+  _cfFilaTimer=setTimeout(()=>{
+    _cfFilaTimer=null;
+    const lote=_cfFilaLinhas.splice(0,400);
+    if(!lote.length) return;
+    _cfDadosReq('lote','POST',{linhas:lote})
+      .catch(err=>console.warn('[dados][cf] espelho falhou:',err.message))
+      .then(()=>{ if(_cfFilaLinhas.length) _cfEspelharLinhas(); });
+  },1500);
+}
+
+// O pacote de estado sobe espaçado (uma vez a cada poucos segundos, por
+// mais que se grave) — é um espelho, não precisa de cada batida.
+let _cfPacoteTimer=null, _cfPacotePend=null;
+function _cfEspelharPacote(payload){
+  if(!CF_DADOS_ATIVO || !payload) return;
+  _cfPacotePend=payload;
+  if(_cfPacoteTimer) return;
+  _cfPacoteTimer=setTimeout(()=>{
+    _cfPacoteTimer=null;
+    const p=_cfPacotePend; _cfPacotePend=null;
+    _cfDadosReq('pacote/state','PUT',p)
+      .catch(err=>console.warn('[dados][cf] pacote falhou:',err.message));
+  },4000);
+}
+
 // Grava a imagem original fora do pacote. Devolve a chave, ou '' se não
 // houver conexão — nesse caso o chamador mantém a imagem embutida, para
 // não perder nada enquanto está offline.
@@ -7174,6 +7236,87 @@ function migrarImagensParaCloudflare(){
   });
 }
 
+// ── MIGRAÇÃO ÚNICA: copia os DADOS que já existem para a Cloudflare ──
+// Lê o banco do Firebase ramo a ramo e manda tudo para o espelho
+// (registros no D1, pacote de estado no R2). Só copia — não apaga nem
+// muda nada no Firebase. Pode rodar de novo à vontade: regravar
+// sobrescreve a cópia com o mesmo conteúdo, e rodar de novo também é o
+// jeito de atualizar os ramos que não têm espelho contínuo (autorizados,
+// permissões, inbox…). Ficam de fora, de propósito: imagens (têm a
+// migração própria para o R2), backups (são cópias do estado, que o
+// espelho contínuo já cobre) e presence/forceLogout (passageiros).
+// Como usar: F12 → Console → migrarDadosParaCloudflare()
+function _cfAchatar(colecao,valor,niveis,saida){
+  if(!valor || typeof valor!=='object') return;
+  if(niveis<=1){
+    Object.entries(valor).forEach(([k,v])=>{ if(v!=null) saida.push({colecao, chave:k, dados:v}); });
+    return;
+  }
+  Object.entries(valor).forEach(([k,v])=>{
+    if(v && typeof v==='object') _cfAchatar(colecao+'/'+k, v, niveis-1, saida);
+  });
+}
+function migrarDadosParaCloudflare(){
+  if(!CF_DADOS_ATIVO){
+    const msg='Espelho de dados desativado: siga docs/cloudflare-dados.md antes';
+    console.warn(msg); try{ showToast(msg,'warn'); }catch(e){}
+    return Promise.resolve(null);
+  }
+  if(!(db && fbConnected)){ console.warn('Sem conexão com o Firebase'); return Promise.resolve(null); }
+  const RAMOS=[
+    {nome:'state', pacote:true},
+    {nome:'activity', niveis:1},
+    {nome:'atividadesExternas', niveis:1},
+    {nome:'autorizados', niveis:1},
+    {nome:'solicitacoesAcesso', niveis:1},
+    {nome:'permissoes', niveis:1},
+    {nome:'backupsIndex', niveis:1},
+    {nome:'reg', niveis:2},
+    {nome:'arquivo', niveis:2},
+    {nome:'inbox', niveis:2},
+    /* logs: o histórico por registro tem um nível a mais que o índice
+       geral — por isso o _geral entra como ramo próprio e sai do outro */
+    {nome:'logs/_geral', niveis:1},
+    {nome:'logs', niveis:3, ignorar:['_geral']}
+  ];
+  let totalLinhas=0, totalPuladas=0, pacotes=0;
+  const umRamo=i=>{
+    if(i>=RAMOS.length){
+      const msg=`Espelho inicial concluído: ${pacotes} pacote(s), ${totalLinhas} registro(s) copiado(s), ${totalPuladas} pulado(s)`;
+      console.log('[migração] '+msg);
+      try{ showToast(msg,'success'); }catch(e){}
+      return Promise.resolve({pacotes,linhas:totalLinhas,puladas:totalPuladas});
+    }
+    const ramo=RAMOS[i];
+    console.log(`[migração] lendo suplelive/${ramo.nome}…`);
+    return db.ref('suplelive/'+ramo.nome).once('value').then(snap=>{
+      let v=snap.val();
+      if(v==null){ console.log(`[migração] ${ramo.nome}: vazio`); return; }
+      if(ramo.pacote){
+        return _cfDadosReq('pacote/state','PUT',v).then(()=>{ pacotes++; });
+      }
+      if(ramo.ignorar && typeof v==='object'){
+        v={...v}; ramo.ignorar.forEach(k=>{ delete v[k]; });
+      }
+      const linhas=[];
+      _cfAchatar(ramo.nome, v, ramo.niveis, linhas);
+      const umLote=j=>{
+        if(j>=linhas.length){ console.log(`[migração] ${ramo.nome}: ${linhas.length} registro(s)`); return Promise.resolve(); }
+        const lote=linhas.slice(j,j+300);
+        return _cfDadosReq('lote','POST',{linhas:lote})
+          .then(res=>res.json())
+          .then(r=>{ totalLinhas+=(r&&r.gravadas)||0; totalPuladas+=(r&&r.puladas)||0; })
+          .then(()=>umLote(j+300));
+      };
+      return umLote(0);
+    }).catch(err=>{
+      console.warn(`[migração] falha em ${ramo.nome}:`,err.message);
+    }).then(()=>umRamo(i+1));
+  };
+  console.log('[migração] começando o espelho inicial dos dados…');
+  return umRamo(0);
+}
+
 // Prepara uma imagem para gravação: devolve {thumb, chave}. A original vai
 // para fora do pacote; se não der, a própria imagem volta como "thumb"
 // (comportamento antigo), garantindo que nada se perca.
@@ -7235,7 +7378,10 @@ function arquivarRegistro(area,registro,extras){
     dados:JSON.parse(JSON.stringify(registro)),
     ...(extras||{})
   };
-  return db.ref(FB_ARQUIVO+'/'+area+'/'+String(id).replace(/[.#$/\[\]]/g,'_')).set(pacote)
+  const chaveArq=String(id).replace(/[.#$/\[\]]/g,'_');
+  // Espelho Cloudflare (etapa 2): o arquivo permanente também em cópia
+  try{ _cfEspelharLinhas([{colecao:'arquivo/'+area, chave:chaveArq, dados:pacote}]); }catch(e){}
+  return db.ref(FB_ARQUIVO+'/'+area+'/'+chaveArq).set(pacote)
     .then(()=>true)
     .catch(err=>{ console.warn('[arquivo] falha:',err.message); return false; });
 }
@@ -8819,8 +8965,19 @@ function _logGravar(entidade,registroId,evento,campos,resumo){
   const entrada={ts:Date.now(), autor:_logAutorAtual(), evento, campos:campos||[]};
   if(resumo) entrada.resumo=resumo;
   // Por registro (histórico dentro do card) e no índice geral (Adm. Master)
-  db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push(entrada).catch(()=>{});
-  db.ref(FB_LOGS_PATH+'/_geral').push(Object.assign({entidade,registroId},entrada)).catch(()=>{});
+  const refReg=db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push(entrada);
+  refReg.catch(()=>{});
+  const geral=Object.assign({entidade,registroId},entrada);
+  const refGeral=db.ref(FB_LOGS_PATH+'/_geral').push(geral);
+  refGeral.catch(()=>{});
+  // Espelho Cloudflare (etapa 2): cada lançamento do histórico em cópia
+  try{
+    const regLimpo=String(registroId).replace(/[.#$/\[\]]/g,'_');
+    _cfEspelharLinhas([
+      {colecao:'logs/'+entidade+'/'+regLimpo, chave:refReg.key, dados:entrada},
+      {colecao:'logs/_geral', chave:refGeral.key, dados:geral}
+    ]);
+  }catch(e){}
 }
 
 // Descrição curta do registro, para o índice geral fazer sentido sem abrir o card
@@ -9013,6 +9170,14 @@ function _gravarRegistrosAlterados(s){
     _avisarApagamentoBloqueado();
   }
   if(!alterados && !removidos) return;
+  // Espelho Cloudflare (etapa 2): as mesmas alterações, já filtradas
+  // pela trava de apagamento em massa, seguem em cópia para o D1.
+  try{
+    _cfEspelharLinhas(Object.entries(updates).map(([caminho,v])=>{
+      const p=caminho.split('/');   // suplelive / reg / <colecao> / <chave>
+      return {colecao:'reg/'+p[2], chave:p[3], dados:v};
+    }));
+  }catch(e){}
   db.ref().update(updates).catch(err=>{
     console.error('[reg] falha ao gravar:',err.message);
     // Desfaz a marca, para que a próxima gravação tente de novo
@@ -9408,6 +9573,8 @@ function saveState(s){
       }
     }catch(e){}
     _gravarPacotePorPartes(payload);
+    // Espelho Cloudflare (etapa 2): o mesmo pacote, espaçado no tempo
+    try{ _cfEspelharPacote(payload); }catch(e){}
   }
 }
 
@@ -11154,7 +11321,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29b';
+const APP_VERSAO='2026.08.29c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
