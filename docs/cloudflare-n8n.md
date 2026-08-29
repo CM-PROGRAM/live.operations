@@ -105,6 +105,33 @@ Em todo nó da lista abaixo:
 
 Nada mais muda: método, corpo, expressões `{{ }}`, tudo igual.
 
+### Situação em 29/08/2026
+
+Migrados e rodando em produção (URL trocada + credencial `LiveOps (chave
+do robô)`), todos confirmados com `"firebase":"ok"` na execução:
+
+| Fluxo | Nós | Confirmação |
+|---|---|---|
+| Base → LiveOps · Catálogo e estoque | 1 | 613 produtos gravados |
+| #1(CM) LiveOps → Pedidos Base WhatsApp | 2 | execução verde a cada minuto |
+| #1(CM) LiveOps → Integração ChatWoot (WhatsApp) | 2 | mensagem real de ponta a ponta |
+| #1(CM) LiveOps → Pedidos Base Canc. & Canc. com NF | 4 | 48 registros em cada gravação |
+
+Adiados a pedido do master — **os projetos não seguiram e serão
+retomados depois**. Não existem mais (ou estão parados) no n8n, então
+não há o que migrar hoje; no dia de retomá-los, trocar os nós ANTES de
+ligar, senão voltam a gravar direto no Firebase:
+
+- `LiveOps · Live Track (rastreio de hora em hora)` — 2 nós
+- `LiveOps → Base · Entrada de estoque` — 2 nós
+- `LiveOps · Carga histórica de pedidos (rodar na mão)` — 2 nós
+
+Fluxo em que a exportação de `docs/` ficou para trás: a **Integração
+ChatWoot** cresceu bastante (ganhou envio, contato, nova conversa e
+busca). Os nós novos falam com o Chatwoot, não com o Firebase — a regra
+que vale para achar o que migrar é sempre a mesma: **só o nó cuja URL
+contém `firebaseio.com`**.
+
 ### Os 19 nós, fluxo por fluxo
 
 | Fluxo | Nó | Método | Caminho (depois de `/robo/`) |
