@@ -49,6 +49,11 @@
    Sem um binding, as rotas dele respondem erro e o resto segue
    funcionando — dá para publicar este código antes das amarrações. */
 
+/* Muda a cada versão colada no painel. O /saude devolve este número, e é
+   assim que se sabe, em dois segundos, se o que está no ar é o código
+   novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
+const VERSAO_WORKER = 'v8';
+
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 // As chaves seguem o formato do imgChave()/push do sistema: letras,
@@ -525,7 +530,7 @@ export default {
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') return resposta(204, null);
-    if (url.pathname === '/saude') return resposta(200, 'ok', { 'Content-Type': 'text/plain' });
+    if (url.pathname === '/saude') return resposta(200, 'ok ' + VERSAO_WORKER, { 'Content-Type': 'text/plain' });
 
     /* Os robôs entram por outra porta: chave própria, sem login de pessoa.
        Um erro aqui não pode virar "exceção não tratada": o n8n mostraria
