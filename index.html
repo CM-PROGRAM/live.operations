@@ -10126,17 +10126,17 @@ function cfLerColecao(nome){
 // Todas as listas da operação, em {nome: [linhas]}. Uma que falhe volta
 // como null — quem chama decide o que fazer, sem derrubar o resto.
 function cfLerRegistros(){
+  /* Todas as listas de uma vez, e não uma esperando a outra: enfileiradas,
+     as 22 idas e voltas somavam 13 segundos para abrir o sistema — tempo
+     que ninguém aceitaria trocar pelo Firebase. O navegador já limita
+     quantas viajam ao mesmo tempo, então não há avalanche. */
   const nomes=Object.keys(COLECOES_REG);
   const saida={};
-  const uma=i=>{
-    if(i>=nomes.length) return Promise.resolve(saida);
-    const nome=nomes[i];
-    return cfLerColecao('reg/'+nome)
+  return Promise.all(nomes.map(nome=>
+    cfLerColecao('reg/'+nome)
       .then(linhas=>{ saida[nome]=linhas; })
       .catch(err=>{ console.warn('[cf] falha ao ler',nome,err.message); saida[nome]=null; })
-      .then(()=>uma(i+1));
-  };
-  return uma(0);
+  )).then(()=>saida);
 }
 
 // ── Conferência: o espelho bate com o que está na tela? ──────────
@@ -11692,7 +11692,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29h';
+const APP_VERSAO='2026.08.29i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
