@@ -9423,10 +9423,29 @@ function _agendarRenderRegistros(){
 function _ouvirRegistros(){
   Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
     const ref=db.ref(FB_REG+'/'+nome);
-    const trata=snap=>{ if(_aplicarRegistroRemoto(nome,acc,snap.key,snap.val())) _agendarRenderRegistros(); };
+    /* Espelhar o que CHEGA, e não só o que esta tela grava: os robôs do
+       n8n escrevem direto no Firebase (pedidos da Base, rastreios,
+       canceladas), e sem isto o pedido novo nunca chegaria à Cloudflare —
+       quem já abrisse por lá ficaria sem ver a venda do dia.
+       Só o que mudou de verdade é reenviado: na abertura o Firebase
+       despeja a lista inteira, e reespelhar tudo a cada login seria
+       gastar gravação à toa. */
+    const trata=snap=>{
+      const antes=(_regEnviado[nome]||{})[snap.key];
+      if(!_aplicarRegistroRemoto(nome,acc,snap.key,snap.val())) return;
+      _agendarRenderRegistros();
+      const depois=(_regEnviado[nome]||{})[snap.key];
+      if(depois && depois!==antes){
+        try{ _cfEspelharLinhas([{colecao:'reg/'+nome, chave:snap.key, dados:depois}]); }catch(e){}
+      }
+    };
     ref.on('child_added',trata);
     ref.on('child_changed',trata);
-    ref.on('child_removed',snap=>{ if(_removerRegistroRemoto(nome,acc,snap.key,snap.val())) _agendarRenderRegistros(); });
+    ref.on('child_removed',snap=>{
+      if(!_removerRegistroRemoto(nome,acc,snap.key,snap.val())) return;
+      _agendarRenderRegistros();
+      try{ _cfEspelharLinhas([{colecao:'reg/'+nome, chave:snap.key, dados:null}]); }catch(e){}
+    });
   });
 }
 function _pararDeOuvirRegistros(){
@@ -11653,7 +11672,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29e';
+const APP_VERSAO='2026.08.29f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

@@ -148,6 +148,105 @@ function abrirDataUrl(texto) {
   return { tipo: 'text/plain; charset=utf-8', bytes: new TextEncoder().encode(texto || '') };
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   ETAPA 3 — OS ROBÔS DO n8n
+   ══════════════════════════════════════════════════════════════════
+   Os fluxos do n8n gravam direto no Firebase. Enquanto for assim, o
+   que eles trazem (pedidos da Base, rastreios, canceladas, inbox) não
+   chega ao espelho da Cloudflare — e quem já abrir o sistema por aqui
+   não veria pedido novo.
+
+   A saída é este worker virar o CARTEIRO: o fluxo entrega aqui, e
+   daqui a informação vai para os dois lados — o banco D1 e o Firebase.
+   Assim cada fluxo muda uma coisa só (o começo da URL), nada é
+   acrescentado, e no dia de desligar o Firebase basta apagar o
+   repasse aqui: nenhum fluxo precisa ser tocado de novo.
+
+   As rotas imitam o Firebase de propósito — mesmo caminho, mesmo
+   ".json" no fim, mesmo ?shallow=true, mesma resposta. O nó do n8n
+   não percebe a troca:
+
+     GET    /robo/reg/pedidosBase.json[?shallow=true]
+     GET    /robo/reg/pedidosBase/<chave>.json
+     PATCH  /robo/reg/pedidosBase/<chave>.json     corpo: {campos}
+     PATCH  /robo/reg/canceladas.json              corpo: {chave:{...}}
+     PUT    /robo/inbox/msg/<conv>/<msg>.json      corpo: {campos}
+     DELETE /robo/reg/<lista>/<chave>.json
+
+   Quem pode: só quem apresentar o cabeçalho X-LiveOps-Chave com o
+   segredo CHAVE_ROBO. É a credencial dos robôs — não dá acesso a
+   imagem, a pacote, nem à sala. */
+const ROBO_PREFIXOS = ['reg/', 'inbox/', 'atividadesExternas'];
+const FB_BASE = 'https://suplelive-8a700-default-rtdb.firebaseio.com';
+
+function b64urlDeTexto(txt) {
+  return btoa(unescape(encodeURIComponent(txt))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64urlDeBytes(buf) {
+  let s = '';
+  const b = new Uint8Array(buf);
+  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Token do Google para escrever no Firebase, a partir da MESMA conta de
+// serviço que o n8n já usa. Vale uma hora; guardado até perto do fim.
+let _tokenGoogle = null, _tokenGoogleAte = 0;
+async function tokenGoogle(env) {
+  if (_tokenGoogle && Date.now() < _tokenGoogleAte) return _tokenGoogle;
+  const email = env.FB_SA_EMAIL, pem = env.FB_SA_KEY;
+  if (!email || !pem) return null;          // sem credencial: não repassa
+  const agora = Math.floor(Date.now() / 1000);
+  const cabecalho = b64urlDeTexto(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
+  const corpo = b64urlDeTexto(JSON.stringify({
+    iss: email,
+    scope: 'https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: agora, exp: agora + 3600,
+  }));
+  const limpo = String(pem).replace(/\\n/g, '\n').replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
+  const bin = atob(limpo);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const chave = await crypto.subtle.importKey(
+    'pkcs8', bytes.buffer, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
+  );
+  const assinatura = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5', chave, new TextEncoder().encode(cabecalho + '.' + corpo)
+  );
+  const jwt = cabecalho + '.' + corpo + '.' + b64urlDeBytes(assinatura);
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + encodeURIComponent(jwt),
+  });
+  if (!res.ok) throw new Error('token-google-' + res.status);
+  const j = await res.json();
+  _tokenGoogle = j.access_token;
+  _tokenGoogleAte = Date.now() + (((j.expires_in || 3600) - 300) * 1000);
+  return _tokenGoogle;
+}
+
+// Repassa a gravação ao Firebase, igualzinha à que o fluxo mandaria.
+// Falha aqui não derruba a resposta ao robô: o dado já está guardado no
+// D1, e o que se perde é a cópia — que o relatório de erro deixa visível.
+async function repassarAoFirebase(env, caminho, metodo, corpo) {
+  try {
+    const tk = await tokenGoogle(env);
+    if (!tk) return { status: 'sem-credencial' };
+    const res = await fetch(FB_BASE + '/suplelive/' + caminho + '.json', {
+      method: metodo,
+      headers: { 'Authorization': 'Bearer ' + tk, 'Content-Type': 'application/json' },
+      body: corpo,
+    });
+    let dados = null;
+    if (res.ok && metodo === 'POST') { try { dados = await res.json(); } catch (e) {} }
+    return { status: res.ok ? 'ok' : ('http-' + res.status), dados };
+  } catch (e) {
+    return { status: 'erro-' + (e.message || 'desconhecido') };
+  }
+}
+
 // A tabela nasce sozinha no primeiro uso — ninguém precisa rodar SQL à mão
 let _tabelasOk = false;
 async function garantirTabelas(env) {
@@ -246,12 +345,157 @@ async function avisarSala(env, aviso) {
   } catch (e) { /* sala fora do ar não pode derrubar gravação */ }
 }
 
+// Junta os campos que chegaram por cima do registro que já existe — é o
+// que o PATCH do Firebase faz, e é disso que os fluxos dependem para não
+// apagar o resto do pedido a cada atualização.
+function _juntarCampos(jsonAtual, novos) {
+  let base = {};
+  if (jsonAtual) { try { base = JSON.parse(jsonAtual) || {}; } catch (e) { base = {}; } }
+  return JSON.stringify(Object.assign(base, novos || {}));
+}
+
+async function atenderRobo(req, env, ctx, url) {
+  const segredo = req.headers.get('X-LiveOps-Chave') || '';
+  if (!env.CHAVE_ROBO) return respostaJson(500, { erro: 'CHAVE_ROBO-ausente' });
+  if (segredo !== env.CHAVE_ROBO) return respostaJson(401, { erro: 'chave-invalida' });
+  if (!env.DADOS) return respostaJson(500, { erro: 'binding-DADOS-ausente' });
+  await garantirTabelas(env);
+
+  const caminho = decodeURIComponent(url.pathname.replace(/^\/robo\//, '')).replace(/\.json$/, '');
+  if (!/^[A-Za-z0-9_/-]{1,200}$/.test(caminho)) return respostaJson(400, { erro: 'caminho-invalido' });
+  if (!ROBO_PREFIXOS.some(p => caminho.indexOf(p) === 0)) return respostaJson(403, { erro: 'caminho-nao-liberado' });
+
+  const partes = caminho.split('/').filter(Boolean);
+  const ehColecao = partes.length <= 2;            // reg/pedidosBase, inbox/conv
+  const colecao = ehColecao ? caminho : partes.slice(0, -1).join('/');
+  const chave = ehColecao ? '' : partes[partes.length - 1];
+  if (chave && !CHAVE_OK.test(chave)) return respostaJson(400, { erro: 'chave-invalida-no-caminho' });
+
+  // ── Leitura: mesma cara das respostas do Firebase ──
+  if (req.method === 'GET') {
+    if (ehColecao) {
+      const rs = await env.DADOS.prepare(
+        'SELECT chave, dados FROM registros WHERE colecao = ?1 ORDER BY chave'
+      ).bind(colecao).all();
+      const linhas = rs.results || [];
+      const raso = url.searchParams.get('shallow') === 'true';
+      const corpo = '{' + linhas.map(l =>
+        JSON.stringify(l.chave) + ':' + (raso ? 'true' : l.dados)
+      ).join(',') + '}';
+      return resposta(200, corpo, { 'Content-Type': 'application/json' });
+    }
+    const l = await env.DADOS.prepare(
+      'SELECT dados FROM registros WHERE colecao = ?1 AND chave = ?2'
+    ).bind(colecao, chave).first();
+    return resposta(200, l ? l.dados : 'null', { 'Content-Type': 'application/json' });
+  }
+
+  if (['PATCH', 'PUT', 'POST', 'DELETE'].indexOf(req.method) < 0) {
+    return respostaJson(405, { erro: 'metodo-nao-suportado' });
+  }
+  /* Substituir ou apagar uma lista inteira de uma vez não é coisa que
+     robô faça por bem — nenhum fluxo precisa disso, e um engano aqui
+     levaria a operação junto. Na lista só passam PATCH (vários
+     registros) e POST (um registro novo, com chave inventada). */
+  if (ehColecao && ['PATCH', 'POST'].indexOf(req.method) < 0) {
+    return respostaJson(403, { erro: 'lista-inteira-nao-pode' });
+  }
+  if (!ehColecao && req.method === 'POST') {
+    return respostaJson(400, { erro: 'post-e-so-na-lista' });
+  }
+
+  const texto = req.method === 'DELETE' ? '' : await req.text();
+  let corpo = null;
+  if (texto) {
+    try { corpo = JSON.parse(texto); }
+    catch (e) { return respostaJson(400, { erro: 'json-invalido' }); }
+  }
+  if (texto && texto.length > TAMANHO_MAX) return respostaJson(413, { erro: 'grande-demais' });
+
+  const agora = Date.now();
+
+  /* POST cria um registro com chave inventada. Quem inventa é o Firebase,
+     e o repasse vai ANTES justamente por isso: assim os dois lados ficam
+     com a MESMA chave, e a fila que o sistema consome não vira duas. */
+  if (req.method === 'POST') {
+    const json = JSON.stringify(corpo === null ? {} : corpo);
+    if (json.length > LINHA_MAX) return respostaJson(413, { erro: 'registro-grande-demais' });
+    const r = await repassarAoFirebase(env, caminho, 'POST', texto);
+    const nova = (r.dados && r.dados.name) ? r.dados.name : ('cf' + Date.now().toString(36) + '-' + crypto.randomUUID().slice(0, 8));
+    if (!CHAVE_OK.test(nova)) return respostaJson(500, { erro: 'chave-gerada-invalida' });
+    await env.DADOS.prepare(
+      'INSERT INTO registros (colecao, chave, dados, ts) VALUES (?1, ?2, ?3, ?4) ' +
+      'ON CONFLICT(colecao, chave) DO UPDATE SET dados = ?3, ts = ?4'
+    ).bind(colecao, nova, json, agora).run();
+    ctx.waitUntil(avisarSala(env, { linhas: [{ colecao, chave: nova }] }));
+    // O Firebase responde {"name":"<chave>"} — os fluxos contam com isso
+    return respostaJson(200, { name: nova, firebase: r.status });
+  }
+  const insere = env.DADOS.prepare(
+    'INSERT INTO registros (colecao, chave, dados, ts) VALUES (?1, ?2, ?3, ?4) ' +
+    'ON CONFLICT(colecao, chave) DO UPDATE SET dados = ?3, ts = ?4'
+  );
+  const stmts = [];
+  const mudancas = [];
+
+  if (req.method === 'DELETE') {
+    stmts.push(env.DADOS.prepare('DELETE FROM registros WHERE colecao = ?1 AND chave = ?2').bind(colecao, chave));
+    mudancas.push({ colecao, chave, apagada: true });
+
+  } else if (ehColecao) {
+    // PATCH na lista: o corpo traz vários registros de uma vez
+    if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
+      return respostaJson(400, { erro: 'esperava-um-objeto-de-registros' });
+    }
+    const chaves = Object.keys(corpo);
+    if (!chaves.length) return respostaJson(200, { ok: true, gravadas: 0 });
+    if (chaves.length > LOTE_MAX) return respostaJson(413, { erro: 'lote-grande-demais' });
+    const existentes = {};
+    const rs = await env.DADOS.prepare(
+      'SELECT chave, dados FROM registros WHERE colecao = ?1'
+    ).bind(colecao).all();
+    (rs.results || []).forEach(l => { existentes[l.chave] = l.dados; });
+    for (const k of chaves) {
+      if (!CHAVE_OK.test(k)) continue;
+      const json = _juntarCampos(existentes[k], corpo[k]);
+      if (json.length > LINHA_MAX) continue;
+      stmts.push(insere.bind(colecao, k, json, agora));
+      mudancas.push({ colecao, chave: k });
+    }
+
+  } else {
+    const atual = await env.DADOS.prepare(
+      'SELECT dados FROM registros WHERE colecao = ?1 AND chave = ?2'
+    ).bind(colecao, chave).first();
+    // PATCH junta com o que já existe; PUT põe no lugar
+    const json = req.method === 'PATCH'
+      ? _juntarCampos(atual && atual.dados, corpo)
+      : JSON.stringify(corpo === null ? {} : corpo);
+    if (json.length > LINHA_MAX) return respostaJson(413, { erro: 'registro-grande-demais' });
+    stmts.push(insere.bind(colecao, chave, json, agora));
+    mudancas.push({ colecao, chave });
+  }
+
+  if (stmts.length) await env.DADOS.batch(stmts);
+  // Quem já abriu o sistema pela Cloudflare vê o pedido novo na hora
+  ctx.waitUntil(avisarSala(env, { linhas: mudancas }));
+
+  /* O repasse é esperado de propósito: enquanto o Firebase for a fonte de
+     quem ainda não virou, uma falha aqui precisa aparecer na execução do
+     fluxo, e não sumir num log que ninguém lê. */
+  const r = await repassarAoFirebase(env, caminho, req.method, texto || undefined);
+  return respostaJson(200, { ok: true, gravadas: stmts.length, firebase: r.status });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') return resposta(204, null);
     if (url.pathname === '/saude') return resposta(200, 'ok', { 'Content-Type': 'text/plain' });
+
+    // Os robôs entram por outra porta: chave própria, sem login de pessoa
+    if (url.pathname.indexOf('/robo/') === 0) return atenderRobo(req, env, ctx, url);
 
     if (!env.IMAGENS) return respostaJson(500, { erro: 'binding-IMAGENS-ausente' });
 
