@@ -59,6 +59,10 @@ const COLECAO_OK = /^[A-Za-z0-9_/-]{1,160}$/;
 const TAMANHO_MAX = 15 * 1024 * 1024;      // 15 MB por imagem/pacote
 const LINHA_MAX = 900 * 1024;              // registro individual no banco
 const LOTE_MAX = 400;                      // registros gravados de uma vez no banco
+/* O banco aceita no máximo 100 valores por consulta. A busca dos
+   registros que já existem passa um valor por chave, então ela vai em
+   blocos menores — passar disso derruba a chamada inteira. */
+const BLOCO_LEITURA = 90;
 const ROBO_MAX_REGISTROS = 20000;          // teto de sanidade por chamada do robô
 const AVISO_MAX_LINHAS = 100;              // acima disso, a sala avisa a lista toda
 
@@ -460,18 +464,20 @@ async function atenderRobo(req, env, ctx, url) {
     if (chaves.length > ROBO_MAX_REGISTROS) {
       return respostaJson(413, { erro: 'registros-demais', limite: ROBO_MAX_REGISTROS });
     }
-    for (let i = 0; i < chaves.length; i += LOTE_MAX) {
-      const bloco = chaves.slice(i, i + LOTE_MAX);
-      // Só os registros deste bloco são lidos para a junção — puxar a
-      // lista inteira a cada página não caberia num catálogo grande.
+    // Só os registros que estão chegando são lidos para a junção — puxar
+    // a lista inteira a cada página não caberia num catálogo grande.
+    const existentes = {};
+    for (let i = 0; i < chaves.length; i += BLOCO_LEITURA) {
+      const bloco = chaves.slice(i, i + BLOCO_LEITURA);
       const marcas = bloco.map((_, j) => '?' + (j + 2)).join(',');
       const rs = await env.DADOS.prepare(
         'SELECT chave, dados FROM registros WHERE colecao = ?1 AND chave IN (' + marcas + ')'
       ).bind(colecao, ...bloco).all();
-      const existentes = {};
       (rs.results || []).forEach(l => { existentes[l.chave] = l.dados; });
+    }
+    for (let i = 0; i < chaves.length; i += LOTE_MAX) {
       const lote = [];
-      for (const k of bloco) {
+      for (const k of chaves.slice(i, i + LOTE_MAX)) {
         const json = _juntarCampos(existentes[k], corpo[k]);
         if (json.length > LINHA_MAX) continue;
         lote.push(insere.bind(colecao, k, json, agora));
@@ -521,8 +527,15 @@ export default {
     if (req.method === 'OPTIONS') return resposta(204, null);
     if (url.pathname === '/saude') return resposta(200, 'ok', { 'Content-Type': 'text/plain' });
 
-    // Os robôs entram por outra porta: chave própria, sem login de pessoa
-    if (url.pathname.indexOf('/robo/') === 0) return atenderRobo(req, env, ctx, url);
+    /* Os robôs entram por outra porta: chave própria, sem login de pessoa.
+       Um erro aqui não pode virar "exceção não tratada": o n8n mostraria
+       só que "o serviço não conseguiu processar", sem dizer o quê. O
+       motivo volta escrito, na execução do fluxo, onde alguém vai ler. */
+    if (url.pathname.indexOf('/robo/') === 0) {
+      return atenderRobo(req, env, ctx, url).catch(e =>
+        respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
+      );
+    }
 
     if (!env.IMAGENS) return respostaJson(500, { erro: 'binding-IMAGENS-ausente' });
 
