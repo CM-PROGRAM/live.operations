@@ -52,7 +52,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v8';
+const VERSAO_WORKER = 'v9';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -318,6 +318,9 @@ export class Sala {
       try {
         const a = ws.deserializeAttachment() || {};
         a.nome = String(m.nome || '').slice(0, 60);
+        a.chave = String(m.chave || '').slice(0, 60);
+        a.cor = String(m.cor || '').slice(0, 20);
+        a.desde = Number(m.desde) || Date.now();
         ws.serializeAttachment(a);
       } catch (e) {}
       this._presenca();
@@ -336,7 +339,8 @@ export class Sala {
     for (const ws of this.ctx.getWebSockets()) {
       try {
         const a = ws.deserializeAttachment() || {};
-        if (a.uid) lista.push({ uid: a.uid, nome: a.nome || '' });
+        if (a.uid) lista.push({ uid: a.uid, nome: a.nome || '', chave: a.chave || '',
+          cor: a.cor || '', desde: a.desde || 0 });
       } catch (e) {}
     }
     this._transmitir(JSON.stringify({ t: 'presenca', lista }));
@@ -614,14 +618,25 @@ export default {
         const depois = url.searchParams.get('depois') || '';
         let limite = parseInt(url.searchParams.get('limite') || '500', 10);
         if (!(limite > 0 && limite <= 1000)) limite = 500;
-        const rs = await env.DADOS.prepare(
-          'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND chave > ?2 ORDER BY chave LIMIT ?3'
-        ).bind(nome, depois, limite).all();
-        const linhas = rs.results || [];
+        /* ?ultimos=1 devolve o FIM da lista, não o começo. Feed de atividade
+           e avisos só querem as últimas dezenas de um ramo com milhares —
+           ler tudo para jogar fora quase tudo é o desperdício que esta
+           migração existe para acabar. As chaves são cronológicas, então a
+           ordem inversa basta; a resposta volta na ordem de sempre. */
+        const doFim = url.searchParams.get('ultimos') === '1';
+        const rs = doFim
+          ? await env.DADOS.prepare(
+              'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 ORDER BY chave DESC LIMIT ?2'
+            ).bind(nome, limite).all()
+          : await env.DADOS.prepare(
+              'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND chave > ?2 ORDER BY chave LIMIT ?3'
+            ).bind(nome, depois, limite).all();
+        const linhas = (rs.results || []);
+        if (doFim) linhas.reverse();
         const corpo = '{"linhas":[' + linhas.map(l =>
           '{"chave":' + JSON.stringify(l.chave) + ',"ts":' + (l.ts || 0) + ',"dados":' + l.dados + '}'
         ).join(',') + '],"proxima":' +
-          (linhas.length === limite ? JSON.stringify(linhas[linhas.length - 1].chave) : 'null') + '}';
+          ((!doFim && linhas.length === limite) ? JSON.stringify(linhas[linhas.length - 1].chave) : 'null') + '}';
         return resposta(200, corpo, { 'Content-Type': 'application/json' });
       }
 

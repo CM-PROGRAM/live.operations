@@ -8663,8 +8663,7 @@ function derrubarTodosUsuarios(){
   const ts=Date.now();
   let enviados=0;
   alvos.forEach(k=>{
-    db.ref('suplelive/forceLogout/'+k)
-      .set({ts, reason:'manutencao', por:currentUser.name,
+    _forceLogoutEnviar(k, {ts, reason:'manutencao', por:currentUser.name,
             msg:'Manutenção do sistema. Aguarde alguns instantes e entre novamente.'})
       .then(()=>{ enviados++; })
       .catch(err=>console.warn('[forceLogout]',k,err.message));
@@ -10148,9 +10147,12 @@ function cfLerPacote(){
 }
 
 // Uma coleção inteira, página a página (o banco devolve em blocos)
-function cfLerColecao(nome){
+function cfLerColecao(nome,opcoes){
+  const o=opcoes||{};
+  const limite=o.limite||500;
   const linhas=[];
-  const pagina=depois=>_cfDadosReq('colecao?nome='+encodeURIComponent(nome)+'&limite=500'
+  const pagina=depois=>_cfDadosReq('colecao?nome='+encodeURIComponent(nome)+'&limite='+limite
+      +(o.ultimos?'&ultimos=1':'')
       +(depois?('&depois='+encodeURIComponent(depois)):''))
     .then(r=>r.json())
     .then(r=>{
@@ -10248,7 +10250,11 @@ function cfSalaConectar(){
     ws.onopen=()=>{
       _cfSalaTentativas=0;
       console.log('[cf][sala] conectada');
-      try{ ws.send(JSON.stringify({t:'ola', nome:(currentUser&&currentUser.name)||''})); }catch(e){}
+      try{ ws.send(JSON.stringify({t:'ola',
+        nome:(currentUser&&currentUser.name)||'',
+        chave:(currentUser&&currentUser.key)||'',
+        cor:(currentUser&&currentUser.color)||'#8fa8d8',
+        desde:Date.now()})); }catch(e){}
       // Um ping de tempos em tempos: proxy e roteador derrubam conexão parada
       clearInterval(_cfSalaPing);
       _cfSalaPing=setInterval(()=>{ try{ ws.send('{"t":"ping"}'); }catch(e){} }, 45000);
@@ -10282,6 +10288,66 @@ function cfSalaFechar(){
   if(_cfSala){ try{ _cfSala.close(); }catch(e){} _cfSala=null; }
 }
 
+/* O sinal que derruba uma sessão precisa chegar a quem já lê pela
+   Cloudflare — por isso ele também é espelhado, e não só gravado no
+   Firebase. */
+function _forceLogoutEnviar(chaveUsuario,dados){
+  const caminho='suplelive/forceLogout/'+chaveUsuario;
+  _espelharCaminho(caminho,dados);
+  if(!(db && fbConnected)) return Promise.resolve();
+  return db.ref(caminho).set(dados);
+}
+function _forceLogoutApagar(chaveUsuario){
+  const caminho='suplelive/forceLogout/'+chaveUsuario;
+  _espelharCaminho(caminho,null);
+  try{ if(db && fbConnected) db.ref(caminho).remove(); }catch(e){}
+}
+
+// Relê o nó oficial de permissões pela Cloudflare (uma vez por rajada)
+let _cfPermsTimer=null;
+function _cfRecarregarPermissoes(){
+  clearTimeout(_cfPermsTimer);
+  _cfPermsTimer=setTimeout(()=>{
+    cfLerColecao('permissoes')
+      .then(linhas=>{
+        const v={};
+        linhas.forEach(l=>{ v[l.chave]=l.dados; });
+        _aplicarPermissoesOficiais(Object.keys(v).length?v:null);
+      })
+      .catch(err=>console.warn('[cf] permissões:',err.message));
+  },400);
+}
+
+// Relê as últimas do feed pela Cloudflare (uma vez por rajada)
+let _cfFeedTimer=null;
+function _cfRecarregarFeed(){
+  clearTimeout(_cfFeedTimer);
+  _cfFeedTimer=setTimeout(()=>{
+    cfLerColecao('activity',{ultimos:true,limite:30})
+      .then(linhas=>{
+        const data={};
+        linhas.forEach(l=>{ data[l.chave]=l.dados; });
+        _aplicarFeedAtividade(data);
+      })
+      .catch(err=>console.warn('[cf] feed:',err.message));
+  },400);
+}
+
+/* A sala já sabe quem está conectado — é a presença, sem precisar de nó
+   no banco nem de sinal de vida periódico. Aqui a lista dela é vestida
+   com a forma que o painel do master já espera. */
+function _cfPresencaComoAntes(){
+  const fora={};
+  (_cfSalaPresenca||[]).forEach((pes,i)=>{
+    const k=pes.chave||pes.uid;
+    if(!k) return;
+    if(!fora[k]) fora[k]={};
+    fora[k]['sala'+i]={nome:pes.nome||'', cor:pes.cor||'#8fa8d8',
+      desde:pes.desde||Date.now(), ts:Date.now()};
+  });
+  return fora;
+}
+
 // Quem a sala está vendo agora — o futuro substituto do presence do
 // Firebase, e por enquanto o jeito de conferir que ela reconhece as pessoas
 function cfQuemEstaNaSala(){
@@ -10291,7 +10357,11 @@ function cfQuemEstaNaSala(){
 
 function _cfSalaMensagem(m){
   if(!m || !m.t || m.t==='pong') return;
-  if(m.t==='presenca'){ _cfSalaPresenca=m.lista||[]; return; }
+  if(m.t==='presenca'){
+    _cfSalaPresenca=m.lista||[];
+    if(_cfLeituraAtiva){ try{ _renderPresenca(_cfPresencaComoAntes()); }catch(e){} }
+    return;
+  }
   if(m.t!=='mudanca') return;
   if(!_cfLeituraAtiva){
     // Modo conferir: só mostra que a mensagem chegou, sem mexer em nada
@@ -10330,7 +10400,21 @@ function _cfRecarregarLista(nomeCompleto){
 function _cfAplicarLinhaDaSala(l){
   if(!l || typeof l.colecao!=='string' || !l.chave) return;
   const p=l.colecao.split('/');
-  if(p[0]!=='reg') return;                    // logs e arquivo não aparecem na tela
+  if(p[0]!=='reg'){
+    // Só quem já lê pela Cloudflare depende da sala para estes ramos;
+    // quem ainda está no Firebase recebe por lá, como sempre.
+    if(!_cfLeituraAtiva) return;
+    if(p[0]==='permissoes'){ _cfRecarregarPermissoes(); return; }
+    if(p[0]==='activity'){ _cfRecarregarFeed(); return; }
+    if(p[0]==='forceLogout' && currentUser && p[1]===currentUser.key && !l.apagada){
+      _cfDadosReq('registro?colecao='+encodeURIComponent(l.colecao)+'&chave='+encodeURIComponent(l.chave))
+        .then(r=>r.json())
+        .then(r=>{ try{ _aplicarForceLogout(r&&r.dados); }catch(e){} })
+        .catch(()=>{});
+      return;
+    }
+    return;                                   // logs e arquivo não aparecem na tela
+  }
   const nome=p[1], acc=COLECOES_REG[nome];
   if(!acc) return;
   if(l.apagada){
@@ -10412,6 +10496,14 @@ function cfBootLeitura(){
       console.warn('[cf] não deu para abrir pela Cloudflare, seguindo pelo Firebase:',err.message);
       try{ showToast('Cloudflare indisponível — abrindo pelo Firebase','warn'); }catch(e){}
       _cfLeituraAtiva=false;
+      /* O login já passou pelo feed, pelas permissões e pela presença
+         acreditando que a fonte seria a Cloudflare. Agora que ela falhou,
+         os três precisam ser refeitos pelo Firebase — senão a sessão fica
+         sem histórico, sem permissões oficiais e invisível para os outros. */
+      _permsOuvindo=false;
+      try{ initActivityListener(); }catch(e){}
+      try{ _permsOuvirOficiais(); }catch(e){}
+      try{ registerPresence(); }catch(e){}
       return false;
     });
 }
@@ -10436,6 +10528,12 @@ function startFirebaseSync(){
   if(cfLeituraModo()==='preferir' && !_cfBootTentado){
     _cfBootTentado=true;
     _fbSyncStarted=false;
+    /* A leitura se declara ativa AQUI, antes de a busca terminar: o resto
+       do login segue rodando em seguida (feed, presença, permissões) e
+       precisa saber desde já que a fonte é outra — senão esses três se
+       ligariam ao Firebase e a troca ficaria pela metade. Falhando a
+       busca, o próprio cfBootLeitura desfaz e refaz os três. */
+    _cfLeituraAtiva=true;
     cfBootLeitura().then(()=>startFirebaseSync());
     return;
   }
@@ -10450,33 +10548,8 @@ function startFirebaseSync(){
   // Listener de forceLogout — desconecta este usuário quando o master altera
   // suas permissões ou quando é acionada uma derrubada geral para manutenção
   if(currentUser){
-    db.ref('suplelive/forceLogout/'+currentUser.key).on('value', snap => {
-      const data = snap.val();
-      if(!data || !currentUser) return;
-      // Só reage a sinais mais recentes que o login desta sessão
-      if(!(data.ts && data.ts > _actLoginTs)) return;
-      const manutencao = data.reason==='manutencao';
-      // Mudança de permissão não derruba master (comportamento de sempre);
-      // já a manutenção derruba todo mundo, menos quem acionou
-      if(!manutencao && currentUser.master) return;
-      // Remove o sinal para não disparar novamente
-      db.ref('suplelive/forceLogout/'+currentUser.key).remove();
-      // Recarrega a página em vez de só voltar para a tela de login: sair do
-      // usuário não troca o código que já está rodando no navegador. Sem o
-      // recarregamento, derrubar a equipe para publicar uma correção deixava
-      // todo mundo entrando de novo na versão antiga.
-      const sair=()=>{
-        try{ doLogout(); }catch(e){}
-        try{ location.reload(); }catch(e){}
-      };
-      if(manutencao){
-        showToast('🛠 '+(data.msg||'Manutenção do sistema — você será desconectado.'),'warn');
-        setTimeout(sair, 4000);
-      } else {
-        showToast('⚠ Suas permissões foram atualizadas. Reconectando...','warn');
-        setTimeout(sair, 2000);
-      }
-    });
+    if(!_cfLeituraAtiva) db.ref('suplelive/forceLogout/'+currentUser.key)
+      .on('value', snap => _aplicarForceLogout(snap.val()));
   }
 
   // Fila de tarefas criadas externamente via n8n — só o master processa
@@ -10603,6 +10676,35 @@ function _aplicarPacoteDaNuvem(data){
     if(adminTab && adminTab.classList.contains('active')){ try{renderTimeGoals();}catch(e){} }
 }
 
+/* O sinal que derruba a sessão — de manutenção ou de troca de permissão.
+   Vale igual vindo do Firebase ou da sala da Cloudflare. */
+function _aplicarForceLogout(data){
+      if(!data || !currentUser) return;
+      // Só reage a sinais mais recentes que o login desta sessão
+      if(!(data.ts && data.ts > _actLoginTs)) return;
+      const manutencao = data.reason==='manutencao';
+      // Mudança de permissão não derruba master (comportamento de sempre);
+      // já a manutenção derruba todo mundo, menos quem acionou
+      if(!manutencao && currentUser.master) return;
+      // Remove o sinal para não disparar novamente
+      _forceLogoutApagar(currentUser.key);
+      // Recarrega a página em vez de só voltar para a tela de login: sair do
+      // usuário não troca o código que já está rodando no navegador. Sem o
+      // recarregamento, derrubar a equipe para publicar uma correção deixava
+      // todo mundo entrando de novo na versão antiga.
+      const sair=()=>{
+        try{ doLogout(); }catch(e){}
+        try{ location.reload(); }catch(e){}
+      };
+      if(manutencao){
+        showToast('🛠 '+(data.msg||'Manutenção do sistema — você será desconectado.'),'warn');
+        setTimeout(sair, 4000);
+      } else {
+        showToast('⚠ Suas permissões foram atualizadas. Reconectando...','warn');
+        setTimeout(sair, 2000);
+      }
+}
+
 let _localSyncStarted = false;
 function startLocalSync(){
   if(_localSyncStarted){
@@ -10646,10 +10748,25 @@ function logActivity(action, task, section){
 }
 
 function initActivityListener(){
-  if(!db || !fbConnected) return;
   _actLoginTs = Date.now();
-  db.ref(FB_ACT_PATH).limitToLast(30).on('value', snap=>{
-    const data=snap.val();
+  /* Pela Cloudflare só as últimas 30 viajam — o ramo tem milhares, e ler
+     tudo para mostrar trinta é o desperdício que esta migração combate. */
+  if(_cfLeituraAtiva){
+    cfLerColecao('activity',{ultimos:true,limite:30})
+      .then(linhas=>{
+        const data={};
+        linhas.forEach(l=>{ data[l.chave]=l.dados; });
+        _aplicarFeedAtividade(data);
+      })
+      .catch(err=>console.warn('[cf] feed de atividade:',err.message));
+    return;
+  }
+  if(!db || !fbConnected) return;
+  db.ref(FB_ACT_PATH).limitToLast(30).on('value', snap=>_aplicarFeedAtividade(snap.val()));
+}
+
+// Mesmo tratamento do feed, venha ele do Firebase ou da Cloudflare
+function _aplicarFeedAtividade(data){
     const entries=data ? Object.values(data).sort((a,b)=>b.ts-a.ts) : [];
     renderActPanel(entries);
     if(entries.length){
@@ -10668,7 +10785,6 @@ function initActivityListener(){
         showToast(icon+' '+newest.user+': '+newest.task, type);
       }
     }
-  });
 }
 
 function renderActPanel(entries){
@@ -11170,7 +11286,7 @@ function forcarResetSenhaTodos(){
     saveState(appState);
     // Derruba as sessões para que ninguém siga usando a senha antiga
     alvos.forEach(([k])=>{
-      db.ref('suplelive/forceLogout/'+k).set({ts, reason:'manutencao', por:currentUser.name,
+      _forceLogoutEnviar(k, {ts, reason:'manutencao', por:currentUser.name,
         msg:'Sua senha precisa ser redefinida. Entre e siga as instruções na tela.'}).catch(()=>{});
     });
     let msg=`📧 E-mail enviado para ${enviados} pessoa(s)`;
@@ -11731,7 +11847,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29j';
+const APP_VERSAO='2026.08.29k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -24072,6 +24188,9 @@ const PRES_TOLERANCIA = 120000; // sem sinal por mais que isso = fora do ar
 let _presTimer=null, _presRef=null;
 
 function registerPresence(){
+  // Pela Cloudflare, estar conectado à sala JÁ é estar presente: não há nó
+  // para gravar nem sinal de vida para repetir a cada 40 segundos.
+  if(_cfLeituraAtiva) return;
   if(!db || !fbConnected || !currentUser) return;
   pararPresenca();
   _presRef = db.ref('suplelive/presence/'+currentUser.key+'/'+_sessionId);
@@ -24093,6 +24212,7 @@ function pararPresenca(){
 // Painel do Adm. Master: quem está no sistema agora, atualizando sozinho
 let _presListener=null;
 function ouvirPresenca(){
+  if(_cfLeituraAtiva){ try{ _renderPresenca(_cfPresencaComoAntes()); }catch(e){} return; }
   if(!db || !fbConnected) return;
   if(_presListener) return;
   _presListener = db.ref('suplelive/presence').on('value', snap=>{
@@ -24451,16 +24571,32 @@ function _permsGravarOficial(k){
   if(u.atvTabsVisiveis!==undefined) g.atvTabsVisiveis=u.atvTabsVisiveis;
   (_permsOficiais=_permsOficiais||{})[k]=JSON.parse(JSON.stringify(g));
   if(db && fbConnected){
-    try{ db.ref(FB_PERMS+'/'+k).set(g); }catch(e){ console.warn('[perms] nó oficial:',e); }
+    try{
+      db.ref(FB_PERMS+'/'+k).set(g);
+      _espelharCaminho(FB_PERMS+'/'+k, g);
+    }catch(e){ console.warn('[perms] nó oficial:',e); }
   }
 }
 
 let _permsOuvindo=false;
 function _permsOuvirOficiais(){
-  if(_permsOuvindo || !db || !fbConnected) return;
+  if(_permsOuvindo) return;
+  // Lendo pela Cloudflare, as permissões vêm de lá e as mudanças chegam
+  // pela sala — o Firebase não é consultado.
+  if(_cfLeituraAtiva){
+    _permsOuvindo=true;
+    _cfRecarregarPermissoes();
+    return;
+  }
+  if(!db || !fbConnected) return;
   _permsOuvindo=true;
-  db.ref(FB_PERMS).on('value',snap=>{
-    const v=snap.val();
+  db.ref(FB_PERMS).on('value',snap=>_aplicarPermissoesOficiais(snap.val()));
+}
+
+/* O que fazer com o nó oficial de permissões, venha ele do Firebase ou da
+   Cloudflare. Um caminho só: quem manda nas abas de cada pessoa não pode
+   depender de por onde a informação chegou. */
+function _aplicarPermissoesOficiais(v){
     if(!v || !Object.keys(v).length){
       /* Nó ainda vazio: o master semeia a partir do estado atual, UMA vez.
          Sessão de colaborador não semeia — ela pode estar com cópia velha. */
@@ -24484,7 +24620,6 @@ function _permsOuvirOficiais(){
       try{ saveLocal(appState); }catch(e){}
       try{ if(currentUser && currentUser.master) renderUsersGrid(); }catch(e){}
     }catch(e){ console.warn('[perms] aplicar oficiais:',e); }
-  });
 }
 
 /* Grava o nó de permissões do usuário DIRETO na nuvem, com carimbo de hora.
