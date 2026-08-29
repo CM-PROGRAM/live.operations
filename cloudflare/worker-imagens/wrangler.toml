@@ -11,3 +11,12 @@ compatibility_date = "2026-08-01"
 [[r2_buckets]]
 binding = "IMAGENS"
 bucket_name = "liveops-imagens"
+
+# Etapa 2 — banco do espelho de dados. Pelo painel, o binding se faz em
+# Settings → Bindings (variável DADOS → banco liveops-dados); este bloco
+# serve só para deploy por linha de comando (preencha o database_id que
+# aparece na tela do banco).
+[[d1_databases]]
+binding = "DADOS"
+database_name = "liveops-dados"
+database_id = "PREENCHER-PELO-PAINEL"
