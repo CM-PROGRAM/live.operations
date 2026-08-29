@@ -10180,7 +10180,8 @@ function conferirNuvens(){
     console.table(linhas);
     const ok = !divergentes && !faltando;
     const veredito = ok
-      ? '✓ o espelho bate com a tela'+(soNaNuvem?(' — '+soNaNuvem+' registro(s) a mais na nuvem (apagados antes do espelho existir)'):'')
+      ? '✓ o espelho bate com a tela'+(soNaNuvem?(' — e '+soNaNuvem+' registro(s) que a nuvem tem e a tela não mostra'
+          + ' (confira o mesmo número no Firebase: batendo, é limpeza local do sistema, não falha do espelho)'):'')
       : '⚠ '+divergentes+' divergente(s) e '+faltando+' faltando na nuvem — rode migrarDadosParaCloudflare() e confira de novo';
     console.log('[cf] '+veredito);
     try{ showToast(veredito, ok?'success':'warn'); }catch(e){}
@@ -11691,7 +11692,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29g';
+const APP_VERSAO='2026.08.29h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
