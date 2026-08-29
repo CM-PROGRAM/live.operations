@@ -10042,6 +10042,304 @@ function applyRemoteState(data){
   return data;
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   ETAPA 4 · PARTE 2 — LER PELA CLOUDFLARE
+   ══════════════════════════════════════════════════════════════════
+   Até aqui a Cloudflare só RECEBIA cópia. Estas funções fazem o
+   caminho de volta: ler o que está guardado lá e ouvir a sala de
+   tempo real, que avisa quando alguém grava alguma coisa.
+
+   Três modos, escolhidos POR NAVEGADOR (não por publicação) — assim
+   o master testa sozinho sem mexer no que a equipe está usando:
+
+     off      · nada muda; o sistema é o de sempre (padrão)
+     conferir · o Firebase continua mandando; a Cloudflare é lida em
+                paralelo e COMPARADA com o que está na tela, só
+                relatando. A sala fica conectada para provar que
+                aguenta o dia inteiro.
+     preferir · a virada: o sistema ABRE pela Cloudflare e recebe as
+                mudanças pela sala; os listeners do Firebase nem são
+                ligados (é isso que economiza o download). O Firebase
+                segue recebendo cópia de tudo e volta a ser ouvido
+                sozinho se a Cloudflare falhar.
+
+   No console:  cfLeitura('conferir')  → e recarregar a página
+                cfLeitura('off')       → volta ao normal
+*/
+const CF_LEITURA_PADRAO='off';
+function cfLeituraModo(){
+  if(!_cfImgAtivo() || !CF_DADOS_ATIVO) return 'off';
+  try{
+    const m=localStorage.getItem('lo-cf-leitura');
+    if(m==='conferir'||m==='preferir'||m==='off') return m;
+  }catch(e){}
+  return CF_LEITURA_PADRAO;
+}
+function cfLeitura(modo){
+  if(['off','conferir','preferir'].indexOf(modo)<0){
+    console.warn('Use cfLeitura("off"), cfLeitura("conferir") ou cfLeitura("preferir")');
+    return;
+  }
+  try{ localStorage.setItem('lo-cf-leitura',modo); }catch(e){}
+  const msg='Leitura pela Cloudflare: '+modo+' — recarregue a página (F5) para valer';
+  console.log('[cf] '+msg);
+  try{ showToast(msg,'info'); }catch(e){}
+}
+
+// ── Leitura ──────────────────────────────────────────────────────
+function cfLerPacote(){
+  return _cfDadosReq('pacote/state').then(r=>r.json());
+}
+
+// Uma coleção inteira, página a página (o banco devolve em blocos)
+function cfLerColecao(nome){
+  const linhas=[];
+  const pagina=depois=>_cfDadosReq('colecao?nome='+encodeURIComponent(nome)+'&limite=500'
+      +(depois?('&depois='+encodeURIComponent(depois)):''))
+    .then(r=>r.json())
+    .then(r=>{
+      (r.linhas||[]).forEach(l=>linhas.push(l));
+      return r.proxima ? pagina(r.proxima) : linhas;
+    });
+  return pagina('');
+}
+
+// Todas as listas da operação, em {nome: [linhas]}. Uma que falhe volta
+// como null — quem chama decide o que fazer, sem derrubar o resto.
+function cfLerRegistros(){
+  const nomes=Object.keys(COLECOES_REG);
+  const saida={};
+  const uma=i=>{
+    if(i>=nomes.length) return Promise.resolve(saida);
+    const nome=nomes[i];
+    return cfLerColecao('reg/'+nome)
+      .then(linhas=>{ saida[nome]=linhas; })
+      .catch(err=>{ console.warn('[cf] falha ao ler',nome,err.message); saida[nome]=null; })
+      .then(()=>uma(i+1));
+  };
+  return uma(0);
+}
+
+// ── Conferência: o espelho bate com o que está na tela? ──────────
+// Comparar JSON.stringify direto acusaria diferença por ordem de campo;
+// aqui as chaves são ordenadas antes, então só sobra diferença de verdade.
+function _cfEstavel(v){
+  if(v===null || typeof v!=='object') return JSON.stringify(v);
+  if(Array.isArray(v)) return '['+v.map(_cfEstavel).join(',')+']';
+  return '{'+Object.keys(v).sort().map(k=>JSON.stringify(k)+':'+_cfEstavel(v[k])).join(',')+'}';
+}
+
+function conferirNuvens(){
+  if(cfLeituraModo()==='off' && !CF_DADOS_ATIVO){
+    console.warn('Espelho de dados desligado'); return Promise.resolve(null);
+  }
+  console.log('[cf] conferindo o espelho contra o que está na tela…');
+  return cfLerRegistros().then(nuvem=>{
+    const linhas=[];
+    let divergentes=0, faltando=0, soNaNuvem=0;
+    Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
+      const daNuvem=nuvem[nome];
+      const local=acc.get(appState);
+      const aqui=Array.isArray(local)?local:[];
+      if(!Array.isArray(daNuvem)){ linhas.push({lista:nome, aqui:aqui.length, nuvem:'erro de leitura'}); return; }
+      const mapa={};
+      daNuvem.forEach(l=>{ const d={...(l.dados||{})}; delete d._by; mapa[l.chave]=d; });
+      let iguais=0, dif=0, falta=0;
+      aqui.forEach(r=>{
+        if(!r || !r.id) return;
+        const k=_regChave(r.id);
+        if(!(k in mapa)){ falta++; return; }
+        if(_cfEstavel(mapa[k])===_cfEstavel(r)) iguais++; else dif++;
+      });
+      const idsAqui={};
+      aqui.forEach(r=>{ if(r&&r.id) idsAqui[_regChave(r.id)]=1; });
+      const sobra=Object.keys(mapa).filter(k=>!idsAqui[k]).length;
+      divergentes+=dif; faltando+=falta; soNaNuvem+=sobra;
+      linhas.push({lista:nome, aqui:aqui.length, nuvem:daNuvem.length,
+        iguais, divergentes:dif, 'falta na nuvem':falta, 'só na nuvem':sobra});
+    });
+    console.table(linhas);
+    const ok = !divergentes && !faltando;
+    const veredito = ok
+      ? '✓ o espelho bate com a tela'+(soNaNuvem?(' — '+soNaNuvem+' registro(s) a mais na nuvem (apagados antes do espelho existir)'):'')
+      : '⚠ '+divergentes+' divergente(s) e '+faltando+' faltando na nuvem — rode migrarDadosParaCloudflare() e confira de novo';
+    console.log('[cf] '+veredito);
+    try{ showToast(veredito, ok?'success':'warn'); }catch(e){}
+    return {linhas, divergentes, faltando, soNaNuvem, ok};
+  });
+}
+
+// ── A sala: o tempo real pela Cloudflare ─────────────────────────
+let _cfSala=null, _cfSalaTentativas=0, _cfSalaTimer=null, _cfSalaPing=null;
+let _cfSalaPresenca=[], _cfBootTentado=false, _cfLeituraAtiva=false;
+/* Sair do sistema fecha a sala, e o fechamento dispara o mesmo onclose de
+   uma queda de conexão. Sem esta marca, a reconexão automática levantaria
+   a sala de novo para uma sessão que já saiu. */
+let _cfSalaDesejada=false;
+
+function cfSalaConectar(){
+  if(cfLeituraModo()==='off' || !currentUser) return;
+  _cfSalaDesejada=true;
+  // 0=conectando, 1=aberta: já tem uma de pé
+  if(_cfSala && (_cfSala.readyState===0 || _cfSala.readyState===1)) return;
+  _cfToken().then(tk=>{
+    if(!tk) throw new Error('sem-login');
+    if(!_cfSalaDesejada) throw new Error('sessao-encerrada');
+    // O token vai na URL porque WebSocket de navegador não manda cabeçalho
+    const ws=new WebSocket(CF_IMG_URL.replace(/^http/,'ws')+'/rt?token='+encodeURIComponent(tk));
+    _cfSala=ws;
+    ws.onopen=()=>{
+      _cfSalaTentativas=0;
+      console.log('[cf][sala] conectada');
+      try{ ws.send(JSON.stringify({t:'ola', nome:(currentUser&&currentUser.name)||''})); }catch(e){}
+      // Um ping de tempos em tempos: proxy e roteador derrubam conexão parada
+      clearInterval(_cfSalaPing);
+      _cfSalaPing=setInterval(()=>{ try{ ws.send('{"t":"ping"}'); }catch(e){} }, 45000);
+    };
+    ws.onmessage=ev=>{ try{ _cfSalaMensagem(JSON.parse(ev.data)); }catch(e){} };
+    ws.onclose=()=>{ clearInterval(_cfSalaPing); _cfSalaReagendar(); };
+    ws.onerror=()=>{};   // o onclose vem logo atrás e é lá que se reage
+  }).catch(err=>{
+    console.warn('[cf][sala] não conectou:',err.message);
+    _cfSalaReagendar();
+  });
+}
+
+function _cfSalaReagendar(){
+  if(!_cfSalaDesejada || cfLeituraModo()==='off') return;
+  clearTimeout(_cfSalaTimer);
+  const espera=Math.min(30000, 1000*Math.pow(2, Math.min(5,_cfSalaTentativas)));
+  _cfSalaTentativas++;
+  _cfSalaTimer=setTimeout(cfSalaConectar, espera);
+  /* Sem sala, quem abriu pela Cloudflare está trabalhando às cegas: não
+     recebe o que os outros gravam. Depois de algumas tentativas sem
+     sucesso, o Firebase volta a ser ouvido — melhor gastar download do
+     que deixar duas pessoas com telas diferentes. */
+  if(_cfLeituraAtiva && _cfSalaTentativas>=4) _cfVoltarParaFirebase('a sala não reconectou');
+}
+
+function cfSalaFechar(){
+  _cfSalaDesejada=false;
+  _cfSalaTentativas=0;
+  clearTimeout(_cfSalaTimer); clearInterval(_cfSalaPing);
+  if(_cfSala){ try{ _cfSala.close(); }catch(e){} _cfSala=null; }
+}
+
+// Quem a sala está vendo agora — o futuro substituto do presence do
+// Firebase, e por enquanto o jeito de conferir que ela reconhece as pessoas
+function cfQuemEstaNaSala(){
+  console.table(_cfSalaPresenca);
+  return _cfSalaPresenca;
+}
+
+function _cfSalaMensagem(m){
+  if(!m || !m.t || m.t==='pong') return;
+  if(m.t==='presenca'){ _cfSalaPresenca=m.lista||[]; return; }
+  if(m.t!=='mudanca') return;
+  if(!_cfLeituraAtiva){
+    // Modo conferir: só mostra que a mensagem chegou, sem mexer em nada
+    console.log('[cf][sala] mudança recebida:', JSON.stringify(m).slice(0,180));
+    return;
+  }
+  if(m.pacote==='state'){
+    cfLerPacote()
+      .then(p=>{ try{ _aplicarPacoteDaNuvem(p); }catch(e){ console.warn('[cf] pacote:',e); } })
+      .catch(err=>console.warn('[cf][sala] pacote:',err.message));
+  }
+  if(Array.isArray(m.linhas)) m.linhas.forEach(_cfAplicarLinhaDaSala);
+}
+
+// Um registro mudou na nuvem: busca a versão nova e entrega ao mesmo
+// caminho que o Firebase usa (que já sabe ignorar o eco da própria sessão)
+function _cfAplicarLinhaDaSala(l){
+  if(!l || typeof l.colecao!=='string' || !l.chave) return;
+  const p=l.colecao.split('/');
+  if(p[0]!=='reg') return;                    // logs e arquivo não aparecem na tela
+  const nome=p[1], acc=COLECOES_REG[nome];
+  if(!acc) return;
+  if(l.apagada){
+    if(_removerRegistroRemoto(nome,acc,l.chave,null)) _agendarRenderRegistros();
+    return;
+  }
+  _cfDadosReq('registro?colecao='+encodeURIComponent(l.colecao)+'&chave='+encodeURIComponent(l.chave))
+    .then(r=>r.json())
+    .then(r=>{ if(_aplicarRegistroRemoto(nome,acc,l.chave,r&&r.dados)) _agendarRenderRegistros(); })
+    .catch(err=>console.warn('[cf][sala] registro',l.chave,err.message));
+}
+
+// A Cloudflare falhou depois de a sessão já estar aberta por ela: o
+// Firebase reassume a leitura, sem deslogar ninguém.
+function _cfVoltarParaFirebase(motivo){
+  if(!_cfLeituraAtiva) return;
+  _cfLeituraAtiva=false;
+  console.warn('[cf] voltando a ouvir o Firebase:',motivo);
+  try{ showToast('Tempo real pela Cloudflare indisponível — voltando ao Firebase','warn'); }catch(e){}
+  try{
+    if(db && fbConnected){
+      _ouvirRegistros();
+      fbListener = db.ref(FB_PATH).on('value', snap=>{
+        const d=snap.val();
+        if(d) _aplicarPacoteDaNuvem(d);
+      });
+    }
+  }catch(e){ console.warn('[cf] religar o Firebase:',e); }
+}
+
+/* A virada: abre o sistema com o que está na Cloudflare. Devolve true se
+   conseguiu — e é esse true que faz os listeners do Firebase não serem
+   ligados. Qualquer tropeço devolve false e o dia segue como sempre. */
+function cfBootLeitura(){
+  const inicio=Date.now();
+  console.log('[cf] abrindo pela Cloudflare…');
+  return Promise.all([cfLerPacote(), cfLerRegistros()])
+    .then(([pacote,colecoes])=>{
+      /* As listas entram ANTES do pacote: o pacote não as carrega, e o
+         _aplicarPacoteDaNuvem preserva o que já estiver em memória. */
+      let registros=0, listas=0, faltou=0;
+      Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
+        const linhas=colecoes[nome];
+        if(!Array.isArray(linhas)){ faltou++; return; }  // erro de leitura: não mexe
+        _regEnviado[nome]={};
+        const lista=[];
+        linhas.forEach(l=>{
+          const reg={...(l.dados||{})};
+          delete reg._by;
+          if(!reg.id) return;
+          _regEnviado[nome][_regChave(reg.id)]=JSON.stringify(reg);
+          lista.push(reg);
+        });
+        acc.set(appState,lista);
+        registros+=lista.length; listas++;
+      });
+      if(faltou) throw new Error(faltou+' lista(s) não vieram');
+      if(pacote) _aplicarPacoteDaNuvem(pacote);
+
+      _regAtivo=true;
+      _liberarGravacaoNaNuvem();
+      _liberarGravacaoNaNuvem('registros');
+      _cfLeituraAtiva=true;
+      cfSalaConectar();
+
+      try{ saveLocal(appState); }catch(e){}
+      try{ renderAll(); }catch(e){}
+      ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase',
+       'renderEntradas','renderImagens','renderProjetos','renderProjNotas']
+        .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+      try{ mktRotinaSincronizar(); }catch(e){}
+
+      console.log('[cf] aberto pela Cloudflare:',registros,'registro(s) em',listas,
+        'lista(s) —',(Date.now()-inicio)+'ms');
+      try{ showToast('☁ Sistema aberto pela Cloudflare — '+registros+' registros','success'); }catch(e){}
+      return true;
+    })
+    .catch(err=>{
+      console.warn('[cf] não deu para abrir pela Cloudflare, seguindo pelo Firebase:',err.message);
+      try{ showToast('Cloudflare indisponível — abrindo pelo Firebase','warn'); }catch(e){}
+      _cfLeituraAtiva=false;
+      return false;
+    });
+}
+
 let _fbSyncStarted = false;
 function startFirebaseSync(){
   if(!db || !fbConnected) {
@@ -10054,6 +10352,17 @@ function startFirebaseSync(){
     return;
   }
   _fbSyncStarted = true;
+
+  /* Etapa 4, parte 2 — nesta sessão a leitura pode vir da Cloudflare. O
+     boot é assíncrono, então a função se chama de volta quando ele acaba:
+     deu certo, os listeners do Firebase não são ligados (é aí que o
+     download deixa de ser gasto); falhou, tudo segue como sempre. */
+  if(cfLeituraModo()==='preferir' && !_cfBootTentado){
+    _cfBootTentado=true;
+    _fbSyncStarted=false;
+    cfBootLeitura().then(()=>startFirebaseSync());
+    return;
+  }
 
   // Monitor online/offline
   db.ref('.info/connected').on('value', snap => {
@@ -10098,8 +10407,10 @@ function startFirebaseSync(){
   startExternalTasksListener();
 
   // Sincronização por registro: migra na primeira vez e passa a escutar
-  // cada lista separadamente, em vez do pacote inteiro
-  _migrarParaRegistros()
+  // cada lista separadamente, em vez do pacote inteiro.
+  // Com a leitura pela Cloudflare de pé, as listas já vieram de lá — ouvir
+  // o Firebase de novo seria baixar tudo outra vez, que é o que se quer evitar.
+  if(!_cfLeituraAtiva) _migrarParaRegistros()
     .then(()=>{
       _regAtivo=true;
       _ouvirRegistros();
@@ -10117,8 +10428,9 @@ function startFirebaseSync(){
       _liberarGravacaoNaNuvem('registros');
     });
 
-  // Listener único em tempo real — dispara na conexão e em cada mudança
-  fbListener = db.ref(FB_PATH).on('value', snap => {
+  // Listener único em tempo real — dispara na conexão e em cada mudança.
+  // Na leitura pela Cloudflare quem faz esse papel é a sala.
+  if(!_cfLeituraAtiva) fbListener = db.ref(FB_PATH).on('value', snap => {
     const data = snap.val();
 
     // Nuvem vazia: sobe o estado local (primeira vez). Mesmo aqui as listas
@@ -10139,8 +10451,31 @@ function startFirebaseSync(){
 
     // Já sabemos o que a nuvem tem: esta sessão pode publicar
     _liberarGravacaoNaNuvem();
+    _aplicarPacoteDaNuvem(data);
 
-    if(!currentUser) return;
+  }, err => {
+    console.error('[SYNC] Firebase listener error:', err);
+    // Se o pacote nunca chega, a gravação não pode ficar travada para sempre —
+    // a sessão segue com o que os registros trouxeram
+    _liberarGravacaoNaNuvem();
+    startLocalSync();
+  });
+
+  /* Etapa 4, parte 2 — modo de conferência: o Firebase segue mandando e a
+     Cloudflare fica só provando que serve. A sala conectada o dia inteiro
+     mostra se a conexão aguenta; a comparação roda depois que a
+     sincronização assentou, para não medir o sistema pela metade. */
+  if(cfLeituraModo()==='conferir'){
+    cfSalaConectar();
+    setTimeout(()=>{ try{ conferirNuvens(); }catch(e){ console.warn('[cf]',e); } }, 20000);
+  }
+}
+
+/* Aplica um pacote de estado vindo da nuvem — do Firebase ou, na etapa 4,
+   da Cloudflare. Um caminho só: as duas pontas precisam tratar eco,
+   coleções e permissões exatamente da mesma forma. */
+function _aplicarPacoteDaNuvem(data){
+    if(!data || !currentUser) return;
 
     const remoteSavedBy = data._savedBy || '';
     console.log('[SYNC] recebido. savedBy:', remoteSavedBy, '| meu sessionId:', _sessionId, '| é eco?', remoteSavedBy === _sessionId);
@@ -10190,14 +10525,6 @@ function startFirebaseSync(){
 
     const adminTab = document.getElementById('tab-admin');
     if(adminTab && adminTab.classList.contains('active')){ try{renderTimeGoals();}catch(e){} }
-
-  }, err => {
-    console.error('[SYNC] Firebase listener error:', err);
-    // Se o pacote nunca chega, a gravação não pode ficar travada para sempre —
-    // a sessão segue com o que os registros trouxeram
-    _liberarGravacaoNaNuvem();
-    startLocalSync();
-  });
 }
 
 let _localSyncStarted = false;
@@ -11213,6 +11540,10 @@ function doLogout(){
   clearInterval(syncTimer);
   if(db && fbListener){ db.ref(FB_PATH).off('value', fbListener); fbListener=null; }
   if(db){ try{ _pararDeOuvirRegistros(); }catch(e){} }
+  // Sai da sala da Cloudflare junto: sessão encerrada não fica na lista
+  // de presentes nem recebe mudança que não vai usar.
+  try{ cfSalaFechar(); }catch(e){}
+  _cfLeituraAtiva=false; _cfBootTentado=false;
   if(db){ try{ db.ref(FB_PERMS).off(); }catch(e){} }
   _permsOuvindo=false;
   try{ inboxParar(); }catch(e){}
@@ -11322,7 +11653,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29d';
+const APP_VERSAO='2026.08.29e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

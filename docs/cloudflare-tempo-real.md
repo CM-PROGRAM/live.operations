@@ -54,14 +54,84 @@ Deve aparecer `[sala] conectado!` e, em seguida, uma mensagem de
 
 ---
 
-## O que vem depois (a virada de leitura)
+---
 
-Com a sala no ar, o passo seguinte — feito em código, com teste
-acompanhado — é o sistema **abrir pela Cloudflare**: estado do
-`/dados/pacote/state`, coleções do `/dados/colecao`, atualizações pela
-sala, presença pela sala. O Firebase continua recebendo cópia de tudo
-(gravação dupla) e fica de reserva até a decisão final de desligar —
-que é a etapa 5 (login próprio), a última.
+# Parte 2 — o sistema lendo pela Cloudflare
+
+Esta parte já está no código. Ela **não muda nada para a equipe**: vem
+desligada e é ligada **por navegador**, não por publicação — assim o
+master testa sozinho, na máquina dele, enquanto todo mundo continua no
+Firebase de sempre.
+
+## Os três modos
+
+| Modo | O que faz |
+|---|---|
+| `off` | O sistema de sempre (padrão de todos os navegadores) |
+| `conferir` | O Firebase continua mandando. A Cloudflare é lida em paralelo e **comparada** com o que está na tela, só relatando no console; a sala fica conectada o dia inteiro para provar que aguenta |
+| `preferir` | **A virada**: o sistema abre pela Cloudflare e recebe as mudanças pela sala; os listeners do Firebase nem são ligados — é aí que o download deixa de ser gasto |
+
+Em `preferir`, o Firebase **continua recebendo cópia de tudo** (a
+gravação segue dupla) e volta a ser ouvido sozinho se a Cloudflare
+falhar: se o boot não conseguir ler, ou se a sala cair e não reconectar
+em quatro tentativas, a sessão religa os listeners do Firebase e avisa
+na tela. Ninguém trabalha às cegas.
+
+## Como testar (no console do sistema, F12)
+
+**Passo 1 — conferência (um dia inteiro, sem risco):**
+
+```js
+cfLeitura('conferir')
+```
+
+Recarregue a página (F5). A partir daí, a cada abertura:
+
+- a sala conecta e fica conectada (`[cf][sala] conectada`);
+- 20 segundos depois sai no console uma tabela comparando, lista por
+  lista, o que está na tela com o que está no espelho — e o veredito
+  `✓ o espelho bate com a tela` ou o aviso do que divergiu;
+- cada gravação feita por qualquer pessoa aparece como
+  `[cf][sala] mudança recebida:` — a prova de que o tempo real chega.
+
+A qualquer momento dá para repetir a comparação com `conferirNuvens()`
+e ver quem a sala enxerga com `cfQuemEstaNaSala()`.
+
+**Passo 2 — a virada, só depois da conferência limpa:**
+
+```js
+cfLeitura('preferir')
+```
+
+Recarregue. O sistema abre com `☁ Sistema aberto pela Cloudflare — N
+registros`. Confira: as telas devem estar iguais, e uma alteração feita
+em outro navegador precisa aparecer aqui sozinha, como sempre apareceu.
+
+**Para voltar ao normal, a qualquer instante:**
+
+```js
+cfLeitura('off')
+```
+
+Recarregue — e a sessão volta a ser exatamente a de antes.
+
+## Por que isso é o degrau que importa
+
+É aqui que o download sai do Firebase: em `preferir`, o sistema não
+baixa mais o pacote nem as listas de lá na abertura — que é justamente
+o que estourou a cota de agosto (14,6 GB de 10 GB). Com a equipe toda
+em `preferir`, o consumo do Firebase cai para quase nada mesmo antes de
+ele ser desligado.
+
+## O que vem depois
+
+| Etapa | O quê | Situação |
+|---|---|---|
+| 4 · parte 1 | Sala + rotas de leitura no worker | ✅ publicada |
+| 4 · parte 2 | Sistema lendo pela Cloudflare (este documento) | ✅ no código, desligada por padrão |
+| 4 · parte 3 | Ligar `preferir` para todo mundo, por publicação | depois da conferência limpa em uso real |
+| 3 | Robôs do n8n gravando na Cloudflare | depois |
+| 5 | Login próprio e **desligar o Firebase** | última |
 
 ## Custos
 
