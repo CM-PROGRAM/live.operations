@@ -6448,9 +6448,9 @@ const FB_CONFIG = {
 // nada é desligado, e se o R2 falhar a leitura volta para o Firebase
 // sozinha. VAZIO = tudo desativado, sistema idêntico ao de antes.
 // Passo a passo para publicar o worker: docs/cloudflare-imagens.md
-// Depois de publicado, cole o endereço dele aqui, ex.:
-//   const CF_IMG_URL='https://liveops-imagens.SUACONTA.workers.dev';
-const CF_IMG_URL='';
+// Worker publicado em 29/08/2026 pela conta Cloudflare do master.
+// Para DESLIGAR tudo isso, basta esvaziar o endereço: const CF_IMG_URL='';
+const CF_IMG_URL='https://liveops-imagens.carlosmagnoav94.workers.dev';
 
 // ── INICIALIZA FIREBASE ──────────────────────────────────────
 let db = null;
@@ -11154,7 +11154,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29a';
+const APP_VERSAO='2026.08.29b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
