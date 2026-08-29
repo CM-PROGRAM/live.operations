@@ -124,7 +124,13 @@ ligar, senão voltam a gravar direto no Firebase:
 
 - `LiveOps · Live Track (rastreio de hora em hora)` — 2 nós
 - `LiveOps → Base · Entrada de estoque` — 2 nós
+- `LiveOps · Rastreador Live` — 4 nós (fluxo desativado no n8n)
 - `LiveOps · Carga histórica de pedidos (rodar na mão)` — 2 nós
+
+**Com isso a etapa 3 está concluída**: todo fluxo que roda hoje grava
+pelo worker. Nada mais escreve direto no Firebase, a não ser o repasse
+que o próprio worker faz — e é esse repasse que se apaga no dia de
+desligar o Firebase, sem tocar em fluxo nenhum.
 
 Fluxo em que a exportação de `docs/` ficou para trás: a **Integração
 ChatWoot** cresceu bastante (ganhou envio, contato, nova conversa e
