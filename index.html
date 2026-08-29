@@ -6460,7 +6460,8 @@ const CF_IMG_URL='https://liveops-imagens.carlosmagnoav94.workers.dev';
 // Pré-requisitos no painel (docs/cloudflare-dados.md): banco D1
 // 'liveops-dados' criado + binding DADOS no worker + worker atualizado.
 // false = espelho desligado; o sistema não muda em nada.
-const CF_DADOS_ATIVO=false;
+// Ligado em 29/08/2026, com o banco liveops-dados e o binding DADOS no ar.
+const CF_DADOS_ATIVO=true;
 
 // ── INICIALIZA FIREBASE ──────────────────────────────────────
 let db = null;
@@ -11321,7 +11322,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29c';
+const APP_VERSAO='2026.08.29d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
