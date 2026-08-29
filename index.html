@@ -10266,6 +10266,25 @@ function _cfSalaMensagem(m){
       .catch(err=>console.warn('[cf][sala] pacote:',err.message));
   }
   if(Array.isArray(m.linhas)) m.linhas.forEach(_cfAplicarLinhaDaSala);
+  if(Array.isArray(m.listas)) m.listas.forEach(_cfRecarregarLista);
+}
+
+/* Carga grande (o catálogo da Base chega a milhares de produtos de uma
+   vez): buscar registro a registro seriam milhares de idas à rede. A
+   sala avisa a lista inteira e ela é lida de uma vez só. */
+function _cfRecarregarLista(nomeCompleto){
+  const p=String(nomeCompleto||'').split('/');
+  if(p[0]!=='reg') return;
+  const nome=p[1], acc=COLECOES_REG[nome];
+  if(!acc) return;
+  cfLerColecao('reg/'+nome).then(linhas=>{
+    let mudou=false;
+    linhas.forEach(l=>{ if(_aplicarRegistroRemoto(nome,acc,l.chave,l.dados)) mudou=true; });
+    if(mudou){
+      console.log('[cf][sala]',nome,'recarregada —',linhas.length,'registro(s)');
+      _agendarRenderRegistros();
+    }
+  }).catch(err=>console.warn('[cf][sala] recarregar',nome,err.message));
 }
 
 // Um registro mudou na nuvem: busca a versão nova e entrega ao mesmo
@@ -11672,7 +11691,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29f';
+const APP_VERSAO='2026.08.29g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

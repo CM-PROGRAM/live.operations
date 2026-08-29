@@ -58,7 +58,9 @@ const CHAVE_OK = /^[A-Za-z0-9_-]{1,200}$/;
 const COLECAO_OK = /^[A-Za-z0-9_/-]{1,160}$/;
 const TAMANHO_MAX = 15 * 1024 * 1024;      // 15 MB por imagem/pacote
 const LINHA_MAX = 900 * 1024;              // registro individual no banco
-const LOTE_MAX = 400;                      // linhas por chamada
+const LOTE_MAX = 400;                      // registros gravados de uma vez no banco
+const ROBO_MAX_REGISTROS = 20000;          // teto de sanidade por chamada do robô
+const AVISO_MAX_LINHAS = 100;              // acima disso, a sala avisa a lista toda
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -437,30 +439,45 @@ async function atenderRobo(req, env, ctx, url) {
   );
   const stmts = [];
   const mudancas = [];
+  let gravadasAgora = 0;
 
   if (req.method === 'DELETE') {
     stmts.push(env.DADOS.prepare('DELETE FROM registros WHERE colecao = ?1 AND chave = ?2').bind(colecao, chave));
     mudancas.push({ colecao, chave, apagada: true });
 
   } else if (ehColecao) {
-    // PATCH na lista: o corpo traz vários registros de uma vez
+    /* PATCH na lista: o corpo traz vários registros de uma vez — o
+       catálogo da Base manda uma página inteira. Quem se adapta é o
+       worker: em vez de recusar o que passar do tamanho do lote, ele
+       divide em blocos e grava um atrás do outro. Recusar obrigaria a
+       mexer na lógica do fluxo, que é justamente o que esta migração
+       promete não fazer. */
     if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
       return respostaJson(400, { erro: 'esperava-um-objeto-de-registros' });
     }
-    const chaves = Object.keys(corpo);
+    const chaves = Object.keys(corpo).filter(k => CHAVE_OK.test(k));
     if (!chaves.length) return respostaJson(200, { ok: true, gravadas: 0 });
-    if (chaves.length > LOTE_MAX) return respostaJson(413, { erro: 'lote-grande-demais' });
-    const existentes = {};
-    const rs = await env.DADOS.prepare(
-      'SELECT chave, dados FROM registros WHERE colecao = ?1'
-    ).bind(colecao).all();
-    (rs.results || []).forEach(l => { existentes[l.chave] = l.dados; });
-    for (const k of chaves) {
-      if (!CHAVE_OK.test(k)) continue;
-      const json = _juntarCampos(existentes[k], corpo[k]);
-      if (json.length > LINHA_MAX) continue;
-      stmts.push(insere.bind(colecao, k, json, agora));
-      mudancas.push({ colecao, chave: k });
+    if (chaves.length > ROBO_MAX_REGISTROS) {
+      return respostaJson(413, { erro: 'registros-demais', limite: ROBO_MAX_REGISTROS });
+    }
+    for (let i = 0; i < chaves.length; i += LOTE_MAX) {
+      const bloco = chaves.slice(i, i + LOTE_MAX);
+      // Só os registros deste bloco são lidos para a junção — puxar a
+      // lista inteira a cada página não caberia num catálogo grande.
+      const marcas = bloco.map((_, j) => '?' + (j + 2)).join(',');
+      const rs = await env.DADOS.prepare(
+        'SELECT chave, dados FROM registros WHERE colecao = ?1 AND chave IN (' + marcas + ')'
+      ).bind(colecao, ...bloco).all();
+      const existentes = {};
+      (rs.results || []).forEach(l => { existentes[l.chave] = l.dados; });
+      const lote = [];
+      for (const k of bloco) {
+        const json = _juntarCampos(existentes[k], corpo[k]);
+        if (json.length > LINHA_MAX) continue;
+        lote.push(insere.bind(colecao, k, json, agora));
+        mudancas.push({ colecao, chave: k });
+      }
+      if (lote.length) { await env.DADOS.batch(lote); gravadasAgora += lote.length; }
     }
 
   } else {
@@ -476,15 +493,25 @@ async function atenderRobo(req, env, ctx, url) {
     mudancas.push({ colecao, chave });
   }
 
-  if (stmts.length) await env.DADOS.batch(stmts);
-  // Quem já abriu o sistema pela Cloudflare vê o pedido novo na hora
-  ctx.waitUntil(avisarSala(env, { linhas: mudancas }));
+  if (stmts.length) { await env.DADOS.batch(stmts); gravadasAgora += stmts.length; }
+
+  /* Quem já abriu o sistema pela Cloudflare vê a novidade na hora. Numa
+     carga grande, porém, mandar uma linha por registro faria cada tela
+     buscar milhares de registros um a um: aí o aviso é de lista inteira,
+     e quem recebe recarrega a lista de uma vez só. */
+  if (mudancas.length > AVISO_MAX_LINHAS) {
+    const listas = [];
+    mudancas.forEach(m => { if (listas.indexOf(m.colecao) < 0) listas.push(m.colecao); });
+    ctx.waitUntil(avisarSala(env, { listas }));
+  } else if (mudancas.length) {
+    ctx.waitUntil(avisarSala(env, { linhas: mudancas }));
+  }
 
   /* O repasse é esperado de propósito: enquanto o Firebase for a fonte de
      quem ainda não virou, uma falha aqui precisa aparecer na execução do
      fluxo, e não sumir num log que ninguém lê. */
   const r = await repassarAoFirebase(env, caminho, req.method, texto || undefined);
-  return respostaJson(200, { ok: true, gravadas: stmts.length, firebase: r.status });
+  return respostaJson(200, { ok: true, gravadas: gravadasAgora, firebase: r.status });
 }
 
 export default {
