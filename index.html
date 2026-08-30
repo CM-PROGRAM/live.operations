@@ -821,6 +821,13 @@ html{overflow-x:hidden;}
 .wa-msg .tick.falha{color:#ef4444;font-size:11px;letter-spacing:0;}
 .wa-msg.in{align-self:flex-start;background:#ffffff;border-top-left-radius:2px;}
 .wa-msg.out{align-self:flex-end;background:#d9fdd3;border-top-right-radius:2px;}
+/* Nota interna: o amarelo do bloco de nota do Chatwoot, para não se
+   confundir com o que o cliente leu */
+.wa-msg.nota{align-self:flex-end;background:#fff3c4;border:1px solid #f0d488;
+  border-top-right-radius:2px;}
+.wa-msg.nota .autor{color:#92700e;}
+:root:not([data-theme="light"]) .wa-msg.nota{background:#4a3f1c;border-color:#6b5a24;color:#f3e6c0;}
+:root:not([data-theme="light"]) .wa-msg.nota .autor{color:#e3c96a;}
 :root:not([data-theme="light"]) .wa-msg{color:#e9edef;box-shadow:0 1px .5px rgba(0,0,0,.3);}
 :root:not([data-theme="light"]) .wa-msg.in{background:#202c33;}
 :root:not([data-theme="light"]) .wa-msg.out{background:#005c4b;}
@@ -13007,7 +13014,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30w';
+const APP_VERSAO='2026.08.30x';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14766,7 +14773,7 @@ function inboxRender(){
       <div class="wa-conv-meio">
         <div class="wa-conv-l1"><span class="nome">${_iniEsc(nomeProprio(c.nome||'Contato'))}</span><span class="hora">${_waHora(c.ts)}</span></div>
         <div class="wa-conv-l2">
-          <span class="previa">${c.deUltima==='agente'?'Você: ':''}${_iniEsc(String(c.ultima||'').slice(0,90))}</span>
+          <span class="previa">${c.deUltima==='agente'?'Você: ':(c.deUltima==='nota'?'🔒 ':'')}${_iniEsc(String(c.ultima||'').slice(0,90))}</span>
           ${c.caixa?`<span class="wa-caixa">${_iniEsc(c.caixa)}</span>`:''}
         </div>
         ${tags.length?`<div class="wa-conv-tags">${tags.map(t=>_waTagChip(t)).join('')}</div>`:''}
@@ -14927,14 +14934,18 @@ function _waPintarMsgs(){
     const rot=_waDiaRotulo(m.ts||0);
     if(rot!==diaAtual){ diaAtual=rot; html+=`<div class="wa-dia">${_iniEsc(rot)}</div>`; }
     const hora=m.ts?new Date(m.ts).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-    const saida=m.de==='agente';
+    /* Nota interna do Chatwoot (o cadeado lá) — é assim que o envio de
+       template pelo Gupshup fica registrado. Não é fala do cliente nem
+       resposta nossa, então tem balão próprio, do lado de quem atende. */
+    const nota=m.de==='nota';
+    const saida=m.de==='agente'||nota;
     const tick=m._pend==='enviando' ? '<span class="tick pend">🕓</span>'
              : m._pend==='falhou'   ? '<span class="tick falha">⚠</span>'
-             : (saida?'<span class="tick azul">✓✓</span>':'');
+             : (saida&&!nota?'<span class="tick azul">✓✓</span>':'');
     /* Tudo numa linha só: o balão usa white-space:pre-wrap, então qualquer
        quebra de linha do template viraria espaço em branco dentro dele. */
-    html+=`<div class="wa-msg ${saida?'out':'in'}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')" title="Não enviada — toque para reenviar"`:''}>`
-        +`${saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:''}`
+    html+=`<div class="wa-msg ${saida?'out':'in'}${nota?' nota':''}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')" title="Não enviada — toque para reenviar"`:''}>`
+        +`${nota?'<div class="autor">🔒 Nota interna'+(m.autor?' · '+_iniEsc(m.autor):'')+'</div>':(saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:'')}`
         +`${_iniEsc(m.texto||'')}<span class="meta">${hora}${tick?' '+tick:''}</span></div>`;
   });
   box.innerHTML=html;
