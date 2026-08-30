@@ -7062,12 +7062,18 @@ function _cfImgAtivo(){ return !!CF_IMG_URL; }
    crachá sozinho ao recarregar a página. */
 let _cfSessao=null;
 function _cfSessaoCarregar(){
+  /* Crachá de outra pessoa não serve. Numa máquina compartilhada — a
+     sessão anterior fechada na tampa do notebook, sem sair do sistema —
+     o crachá de quem usou antes continuaria falando com o worker em nome
+     dela, e a senha de quem entrou agora seria semeada no nome errado. */
+  const dono=currentUser ? currentUser.key : '';
+  if(_cfSessao && dono && _cfSessao.chave && _cfSessao.chave!==dono) _cfSessaoGuardar(null);
   if(_cfSessao) return _cfSessao;
   try{
     const bruto=localStorage.getItem('lo-sessao');
     if(bruto){
       const o=JSON.parse(bruto);
-      if(o && o.token && o.exp>Date.now()+60000) _cfSessao=o;
+      if(o && o.token && o.exp>Date.now()+60000 && (!dono || o.chave===dono)) _cfSessao=o;
     }
   }catch(e){}
   return _cfSessao;
@@ -7086,6 +7092,9 @@ function _cfSessaoGuardar(o){
 function _cfToken(){
   const s=_cfSessaoCarregar();
   if(s && s.exp>Date.now()+60000) return Promise.resolve(s.token);
+  return _cfTokenDoFirebase();
+}
+function _cfTokenDoFirebase(){
   try{
     const u=(typeof firebase!=='undefined' && firebase.auth) ? firebase.auth().currentUser : null;
     return u ? u.getIdToken() : Promise.resolve('');
@@ -7119,16 +7128,24 @@ function _cfEntrar(chave,senha){
    novo. Falhar aqui não impede ninguém de entrar. */
 function _cfSemear(chave,senha){
   if(!_cfImgAtivo()) return Promise.resolve(false);
-  return _cfToken().then(tk=>{
+  /* O crachá do Firebase vem na frente aqui de propósito: é ele que
+     acabou de provar, agora, que esta pessoa é esta pessoa. O crachá
+     guardado no navegador pode ser antigo — e o worker, com razão,
+     recusa semear a senha de um apresentando o crachá de outro. */
+  return _cfTokenDoFirebase().then(tk=>tk||_cfToken()).then(tk=>{
     if(!tk) return false;
     return fetch(CF_IMG_URL+'/auth/semear',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
       body:JSON.stringify({chave,senha})
-    }).then(r=>r.ok);
-  }).then(ok=>{
-    if(ok) console.log('[auth] senha registrada também na Cloudflare');
-    return ok;
+    }).then(r=>r.ok ? true : r.json().then(j=>({erro:(j&&j.erro)||('http-'+r.status)})).catch(()=>({erro:'http-'+r.status})));
+  }).then(r=>{
+    if(r===true){ console.log('[auth] senha registrada também na Cloudflare'); return true; }
+    /* Falhar aqui não impede ninguém de entrar hoje — mas impede de
+       entrar no dia em que o Firebase sair. Por isso o motivo aparece:
+       é a diferença entre descobrir agora e descobrir tarde demais. */
+    if(r && r.erro) console.warn('[auth][cf] a senha NÃO foi registrada na Cloudflare:',r.erro);
+    return false;
   }).catch(err=>{ console.warn('[auth][cf] semear:',err.message); return false; });
 }
 
@@ -10478,6 +10495,33 @@ function conferirNuvens(){
   });
 }
 
+/* ── A pergunta que decide o desligamento do Firebase ──────────────
+   Enquanto alguém não tiver entrado uma vez depois da etapa 5, a senha
+   dessa pessoa só existe no Firebase — e desligá-lo a deixaria do lado de
+   fora. Este comando não estima: pergunta ao worker quem já está lá e
+   compara com a lista de gente do sistema. */
+function conferirSenhasNaNuvem(){
+  if(!_cfImgAtivo()){ console.warn('Cloudflare desligada'); return Promise.resolve(null); }
+  return _cfToken().then(tk=>fetch(CF_IMG_URL+'/auth/semeados',{headers:{'Authorization':'Bearer '+tk}}))
+    .then(r=>r.json()).then(j=>{
+      if(!j || !j.ok){ console.warn('[auth] não deu para ler a lista:',(j&&j.erro)||'?'); return j; }
+      const semeados={}; (j.usuarios||[]).forEach(u=>{ semeados[u.chave]=u.desde; });
+      const pessoas=Object.entries(appState.users||{})
+        .filter(([k,u])=>u && u.active!==false)
+        .map(([k,u])=>({usuário:(u.name||k), chave:k,
+          'senha na Cloudflare': semeados[k] ? ('sim — '+new Date(semeados[k]).toLocaleString('pt-BR')) : 'AINDA NÃO'}));
+      console.table(pessoas);
+      const faltam=pessoas.filter(p=>p['senha na Cloudflare']==='AINDA NÃO');
+      const veredito = faltam.length
+        ? '⚠ '+faltam.length+' pessoa(s) ainda sem senha na Cloudflare: '+faltam.map(p=>p.chave).join(', ')
+          +' — cada uma precisa entrar uma vez ANTES de o Firebase ser desligado'
+        : '✓ todo mundo já tem senha na Cloudflare — o Firebase pode ser desligado';
+      console.log('[auth] '+veredito);
+      try{ showToast(veredito, faltam.length?'warn':'success'); }catch(e){}
+      return {pessoas, faltam:faltam.map(p=>p.chave), pronto:!faltam.length};
+    }).catch(err=>{ console.warn('[auth] falha ao conferir:',err.message); return null; });
+}
+
 // ── A sala: o tempo real pela Cloudflare ─────────────────────────
 let _cfSala=null, _cfSalaTentativas=0, _cfSalaTimer=null, _cfSalaPing=null;
 let _cfSalaPresenca=[], _cfBootTentado=false, _cfLeituraAtiva=false;
@@ -12133,7 +12177,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29r';
+const APP_VERSAO='2026.08.30a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

@@ -52,7 +52,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v10';
+const VERSAO_WORKER = 'v11';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -277,7 +277,9 @@ async function repassarAoFirebase(env, caminho, metodo, corpo) {
      POST /auth/semear   (com token do Firebase)  → guarda a senha desta
        pessoa aqui, com hash. É a ponte: no primeiro login de cada um,
        feito pelo Firebase como sempre, a senha passa a existir também
-       deste lado. Ninguém precisa redefinir nada.
+       deste lado. Ninguém precisa redefinir nada. Semear é sempre a
+       PRÓPRIA senha: o crachá diz de quem é, a conta precisa estar na
+       lista de aprovados, e o primeiro dono de um nome fica com ele.
      POST /auth/entrar   {chave, senha}           → confere e devolve um
        token próprio, válido por 12 horas.
 
@@ -360,16 +362,78 @@ async function garantirTabelaUsuarios(env) {
   if (_tabelaUsuariosOk) return;
   await env.DADOS.prepare(
     'CREATE TABLE IF NOT EXISTS usuarios (' +
-    ' chave TEXT PRIMARY KEY, sal TEXT NOT NULL, hash TEXT NOT NULL, ts INTEGER NOT NULL)'
+    ' chave TEXT PRIMARY KEY, sal TEXT NOT NULL, hash TEXT NOT NULL,' +
+    ' uid TEXT, ts INTEGER NOT NULL)'
   ).run();
+  /* Banco criado pela v10 nao tem a coluna `uid`. Acrescenta-la aqui e o
+     que evita rodar SQL a mao: o erro de "ja existe" e o caso normal
+     depois da primeira vez, nao um defeito. */
+  try {
+    await env.DADOS.prepare('ALTER TABLE usuarios ADD COLUMN uid TEXT').run();
+  } catch (e) { /* a coluna ja estava la */ }
   _tabelaUsuariosOk = true;
+}
+
+/* A lista de aprovados do sistema (suplelive/autorizados/<uid>) chega ao
+   espelho como qualquer outra colecao. Consulta-la aqui e o que impede
+   uma conta criada por fora de semear senha: a configuracao do Firebase
+   esta a vista na pagina, entao "ter um token do Firebase" nunca foi o
+   mesmo que "trabalhar aqui". */
+async function _autorizadoNoEspelho(env, uid) {
+  if (!uid) return 'sem-autorizacao';
+  const l = await env.DADOS.prepare(
+    "SELECT 1 AS ok FROM registros WHERE colecao = 'autorizados' AND chave = ?1"
+  ).bind(uid).first();
+  if (l) return 'ok';
+  /* Lista vazia nao e "voce nao trabalha aqui": e o espelho que ainda nao
+     recebeu a copia desse ramo. Os dois casos recusam do mesmo jeito, mas
+     dizem coisas diferentes — e quem le no console precisa saber qual dos
+     dois consertar. */
+  const algum = await env.DADOS.prepare(
+    "SELECT 1 AS ok FROM registros WHERE colecao = 'autorizados' LIMIT 1"
+  ).first();
+  return algum ? 'sem-autorizacao' : 'espelho-sem-autorizados';
 }
 
 async function atenderAuth(req, env, url) {
   if (!env.DADOS) return respostaJson(500, { erro: 'binding-DADOS-ausente' });
   if (!_segredoSessao(env)) return respostaJson(500, { erro: 'sem-segredo-de-sessao' });
-  if (req.method !== 'POST') return respostaJson(405, { erro: 'metodo-nao-suportado' });
+  await garantirTabelas(env);
   await garantirTabelaUsuarios(env);
+
+  /* Duas rotas de manutencao, abertas so pela chave do robo — que so o
+     master tem. Existem para responder a unica pergunta que decide o
+     desligamento do Firebase: todo mundo ja tem senha deste lado? */
+  if (url.pathname === '/auth/semeados' || url.pathname === '/auth/soltar') {
+    /* Ler a lista vale com o cracha comum — quem esta logado ja le o
+       espelho inteiro, e a pergunta precisa ser respondivel do console do
+       sistema, nao so de um terminal. Apagar, nao: destruir e sempre so
+       pela chave do robo. */
+    let podeLer = false;
+    if (env.CHAVE_ROBO && (req.headers.get('X-LiveOps-Chave') || '') === env.CHAVE_ROBO) podeLer = true;
+    if (url.pathname === '/auth/semeados') {
+      if (!podeLer && !(await conferirToken(req, env))) return respostaJson(401, { erro: 'sem-login' });
+    } else if (!podeLer) {
+      return respostaJson(401, { erro: 'chave-invalida' });
+    }
+    if (url.pathname === '/auth/semeados') {
+      const r = await env.DADOS.prepare('SELECT chave, ts FROM usuarios ORDER BY chave').all();
+      const lista = (r.results || []).map(x => ({
+        chave: x.chave, desde: new Date(x.ts).toISOString(),
+      }));
+      return respostaJson(200, { ok: true, total: lista.length, usuarios: lista });
+    }
+    /* Soltar uma chave e o conserto do caso raro: a conta do Firebase foi
+       refeita, o uid mudou, e o dono nao consegue mais semear. Apagar a
+       linha devolve o nome para o proximo login legitimo. */
+    if (req.method !== 'POST') return respostaJson(405, { erro: 'metodo-nao-suportado' });
+    const alvo = String(url.searchParams.get('chave') || '').trim().toLowerCase();
+    if (!alvo) return respostaJson(400, { erro: 'falta-chave' });
+    await env.DADOS.prepare('DELETE FROM usuarios WHERE chave = ?1').bind(alvo).run();
+    return respostaJson(200, { ok: true, soltou: alvo });
+  }
+
+  if (req.method !== 'POST') return respostaJson(405, { erro: 'metodo-nao-suportado' });
 
   const corpo = await req.json().catch(() => null);
   const chave = String((corpo && corpo.chave) || '').trim().toLowerCase();
@@ -385,12 +449,43 @@ async function atenderAuth(req, env, url) {
   if (url.pathname === '/auth/semear') {
     const quem = await conferirToken(req, env);
     if (!quem) return respostaJson(401, { erro: 'sem-login' });
+    const jaTem = await env.DADOS.prepare(
+      'SELECT uid FROM usuarios WHERE chave = ?1'
+    ).bind(chave).first();
+
+    /* De QUEM e o cracha apresentado? Sem esta pergunta, estar logado
+       bastaria para escolher a senha de qualquer um — e entrar como o
+       master no dia em que o Firebase sair. Ter provado quem se e nunca
+       foi o mesmo que ter provado quem se diz ser. */
+    let uid;
+    if (quem.iss === 'liveops') {
+      // Cracha deste worker: ele proprio diz de quem e. Trocar a senha
+      // da propria conta, sim; a de outra, nao.
+      if (String(quem.chave || '') !== chave) {
+        return respostaJson(403, { erro: 'chave-de-outra-pessoa' });
+      }
+      uid = '';   // preservado abaixo, no COALESCE
+    } else {
+      uid = String(quem.sub || '');
+      const veredito = await _autorizadoNoEspelho(env, uid);
+      if (veredito !== 'ok') return respostaJson(403, { erro: veredito });
+      /* Quem chega primeiro fica com o nome: o primeiro a entrar como
+         `master` e o master, porque so ele tem a senha do master. Dali em
+         diante a conta e dele, e outro uid nao a sobrescreve. */
+      if (jaTem && jaTem.uid && jaTem.uid !== uid) {
+        return respostaJson(403, { erro: 'chave-de-outra-pessoa' });
+      }
+    }
+
     const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer);
     const hash = await _hashSenha(senha, sal);
     await env.DADOS.prepare(
-      'INSERT INTO usuarios (chave, sal, hash, ts) VALUES (?1, ?2, ?3, ?4) ' +
-      'ON CONFLICT(chave) DO UPDATE SET sal = ?2, hash = ?3, ts = ?4'
-    ).bind(chave, sal, hash, Date.now()).run();
+      'INSERT INTO usuarios (chave, sal, hash, uid, ts) VALUES (?1, ?2, ?3, ?4, ?5) ' +
+      // NULLIF/COALESCE: cracha proprio nao traz uid, e um vazio nao pode
+      // apagar o dono ja registrado
+      'ON CONFLICT(chave) DO UPDATE SET sal = ?2, hash = ?3, ' +
+      ' uid = COALESCE(NULLIF(?4, \'\'), uid), ts = ?5'
+    ).bind(chave, sal, hash, uid, Date.now()).run();
     return respostaJson(200, { ok: true });
   }
 
