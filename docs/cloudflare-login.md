@@ -180,11 +180,11 @@ No próximo login, o nome é reivindicado pela conta nova.
 
 Só depois do `✓` acima. Nesta ordem, e um passo por vez:
 
-1. **Todo mundo em `preferir`.** Hoje a leitura pela Cloudflare é ligada
-   por navegador. Vira padrão de todos trocando, no `index.html`,
-   `CF_LEITURA_PADRAO='off'` por `'preferir'`, e publicando. A partir daí
-   o Firebase deixa de ser lido — o download some antes mesmo do
-   desligamento.
+1. ~~**Todo mundo em `preferir`.**~~ ✅ **feito em 30/08/2026**
+   (`CF_LEITURA_PADRAO='preferir'`). O Firebase deixou de ser lido pela
+   equipe — o download some antes mesmo do desligamento, que é a parte que
+   estourou a cota de agosto. Este passo não depende dos outros e por isso
+   foi o primeiro: é o que para a conta de crescer enquanto o resto anda.
 2. **Uma semana de convivência.** Tudo continua sendo copiado para o
    Firebase. É a rede de segurança: qualquer surpresa, `cfLeitura('off')`
    em um navegador devolve o sistema de antes, na hora.
@@ -212,5 +212,6 @@ por isso que eles são os demorados.
 | 2 | Espelho de todos os dados | ✅ em produção |
 | 3 | Robôs do n8n gravando pelo worker | ✅ em produção (4 fluxos migrados; 4 parados, a migrar antes de religar) |
 | 4 | Sala de tempo real e leitura pela Cloudflare | ✅ no ar, ligada por navegador |
-| 5 | Login próprio (este documento) | ✅ no código — falta cada pessoa entrar uma vez |
+| 4 · leitura | `preferir` como padrão de toda a equipe | ✅ 30/08/2026 |
+| 5 | Login próprio (este documento) | ✅ funcionando — falta cada pessoa entrar uma vez |
 | 6 | Desligar o Firebase | os 7 passos acima |

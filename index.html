@@ -10323,8 +10323,19 @@ function applyRemoteState(data){
 
    No console:  cfLeitura('conferir')  → e recarregar a página
                 cfLeitura('off')       → volta ao normal
-*/
-const CF_LEITURA_PADRAO='off';
+
+   Desde 30/08/2026 o padrão é `preferir` para TODA a equipe. Antes disso
+   ele foi `off` por publicação e ligado só no navegador do master, que
+   rodou dias em `conferir` e depois em `preferir` — a virada é a
+   conclusão desse teste, não o começo dele.
+
+   É aqui que o download sai do Firebase: em `preferir` o sistema não
+   baixa mais o pacote nem as listas de lá na abertura, que é justamente
+   o que estourou a cota de agosto (14,6 GB de 10 GB).
+
+   E continua reversível por navegador: quem precisar volta com
+   cfLeitura('off') e um F5, sem esperar publicação nenhuma. */
+const CF_LEITURA_PADRAO='preferir';
 function cfLeituraModo(){
   if(!_cfImgAtivo() || !CF_DADOS_ATIVO) return 'off';
   try{
@@ -12193,7 +12204,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30d';
+const APP_VERSAO='2026.08.30e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
