@@ -10508,8 +10508,18 @@ function conferirNuvens(){
    compara com a lista de gente do sistema. */
 function conferirSenhasNaNuvem(){
   if(!_cfImgAtivo()){ console.warn('Cloudflare desligada'); return Promise.resolve(null); }
-  return _cfToken().then(tk=>fetch(CF_IMG_URL+'/auth/semeados',{headers:{'Authorization':'Bearer '+tk}}))
-    .then(r=>r.json()).then(j=>{
+  return _cfToken().then(tk=>{
+    /* Sem sessão aberta não há crachá para apresentar, e o worker recusa
+       com um 401 seco. Dizer isso aqui evita o que já aconteceu duas
+       vezes: ler "sem-login" e procurar defeito onde não havia. */
+    if(!tk){
+      const m='Entre no sistema antes de conferir — sem login não há crachá para apresentar à Cloudflare';
+      console.warn('[auth] '+m); try{ showToast(m,'warn'); }catch(e){}
+      return null;
+    }
+    return fetch(CF_IMG_URL+'/auth/semeados',{headers:{'Authorization':'Bearer '+tk}}).then(r=>r.json());
+  }).then(j=>{
+      if(j===null) return null;
       if(!j || !j.ok){ console.warn('[auth] não deu para ler a lista:',(j&&j.erro)||'?'); return j; }
       const semeados={}; (j.usuarios||[]).forEach(u=>{ semeados[u.chave]=u.desde; });
       const pessoas=Object.entries(appState.users||{})
@@ -12183,7 +12193,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30c';
+const APP_VERSAO='2026.08.30d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
