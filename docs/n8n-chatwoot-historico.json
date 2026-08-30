@@ -1,0 +1,174 @@
+{
+  "name": "Chatwoot → LiveOps · Histórico completo (rodar na mão)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-780, 0],
+      "id": "Rodar agora",
+      "name": "Rodar agora"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── O QUE AJUSTAR AQUI ───────────────────────────────────────────\n// PAGINA_INICIAL / PAGINAS: o Chatwoot devolve 25 conversas por pagina.\n// Rodar em blocos e mais seguro que puxar tudo de uma vez: faca\n// 1..20, depois 21..40, e assim por diante, ate vir pagina vazia.\n// TRAZER_MENSAGENS: false traz so a lista de conversas (rapido, e ja\n// enche o Inbox); true traz tambem as ultimas mensagens de cada uma.\nconst PAGINA_INICIAL = 1;\nconst PAGINAS = 20;\nconst TRAZER_MENSAGENS = true;\n\nconst paginas = [];\nfor (let p = PAGINA_INICIAL; p < PAGINA_INICIAL + PAGINAS; p++) {\n  paginas.push({ json: { pagina: p, trazerMensagens: TRAZER_MENSAGENS } });\n}\nreturn paginas;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-560, 0],
+      "id": "Paginas a varrer",
+      "name": "Paginas a varrer"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/inboxes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-560, -180],
+      "id": "Listar caixas",
+      "name": "Listar caixas",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations?status=all&assignee_type=all&page={{ $json.pagina }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-340, 0],
+      "id": "Listar conversas",
+      "name": "Listar conversas",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cada conversa do Chatwoot vira um registro no formato que o Inbox ja\n// desenha — o MESMO de sempre, para historico e mensagem nova ficarem\n// indistinguiveis na tela.\n//\n// Nao filtra por caixa de proposito: assim o numero novo e o antigo\n// entram na mesma varredura, que e o que se quer ao trazer o historico.\nconst caixas = {};\ntry {\n  const lc = $('Listar caixas').first().json;\n  (lc.payload || lc.data || []).forEach(i => { caixas[i.id] = i.name || ''; });\n} catch (e) { /* sem os nomes, o Inbox so nao mostra o selo da caixa */ }\n\nconst saida = [];\nfor (const item of $input.all()) {\n  const r = item.json || {};\n  const lista = (r.data && r.data.payload) || r.payload || [];\n  for (const c of lista) {\n    const num = c.id;                    // display_id da conversa\n    if (!num) continue;\n    const contato = (c.meta && c.meta.sender) || {};\n    const ultima = c.last_non_activity_message || {};\n    const mtU = ultima.message_type;\n    const deU = ultima.private === true ? 'nota'\n              : (mtU === 1 || mtU === 3 || mtU === 'outgoing' || mtU === 'template') ? 'agente'\n              : 'cliente';\n    let ts = (c.timestamp || c.last_activity_at || ultima.created_at || 0);\n    if (ts && ts < 1e12) ts = ts * 1000;\n    let texto = String(ultima.content || '').trim();\n    if (!texto && Array.isArray(ultima.attachments) && ultima.attachments.length) {\n      const tipos = { image: 'imagem', audio: 'audio', video: 'video', file: 'arquivo' };\n      texto = '[' + (tipos[ultima.attachments[0].file_type] || 'anexo') + ']';\n    }\n    saida.push({ json: {\n      convId: 'cw_' + num,\n      convNum: num,\n      trazerMensagens: item.json.trazerMensagens !== false,\n      conv: {\n        id: 'cw_' + num,\n        nome: contato.name || 'Contato',\n        telefone: String(contato.phone_number || '').trim(),\n        caixa: caixas[c.inbox_id] || '',\n        ultima: texto.slice(0, 120),\n        deUltima: deU,\n        ts: ts || Date.now(),\n      },\n    } });\n  }\n}\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-120, 0],
+      "id": "Converter conversas",
+      "name": "Converter conversas"
+    },
+    {
+      "parameters": {
+        "jsCode": "// As conversas sobem em blocos de 200 numa chamada so — uma por uma\n// seriam milhares de chamadas e a varredura levaria horas.\nconst BLOCO = 200;\nconst todas = $input.all().map(i => i.json.conv).filter(c => c && c.id);\nconst saida = [];\nfor (let i = 0; i < todas.length; i += BLOCO) {\n  const mapa = {};\n  todas.slice(i, i + BLOCO).forEach(c => { mapa[c.id] = c; });\n  saida.push({ json: { corpo: mapa, quantas: Object.keys(mapa).length } });\n}\nreturn saida.length ? saida : [{ json: { corpo: {}, quantas: 0 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [100, -140],
+      "id": "Agrupar conversas",
+      "name": "Agrupar conversas"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/conv.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, -140],
+      "id": "Gravar conversas no LiveOps",
+      "name": "Gravar conversas no LiveOps",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sem mensagens pedidas, a varredura para aqui: as conversas ja foram\n// gravadas e o Inbox ja mostra todo mundo com a ultima fala.\nreturn $input.all().filter(i => i.json.trazerMensagens);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [100, 140],
+      "id": "So quem quer mensagens",
+      "name": "So quem quer mensagens"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 140],
+      "id": "Listar mensagens",
+      "name": "Listar mensagens",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mesma classificacao do fluxo ao vivo — cliente, agente e a NOTA\n// interna (o cadeado), que e como o envio de template pelo Gupshup fica\n// registrado. Historico e mensagem nova precisam ficar iguais na tela.\nconst saida = [];\nconst entradas = $input.all();\nfor (let i = 0; i < entradas.length; i++) {\n  const r = entradas[i].json || {};\n  const lista = r.payload || (r.data && r.data.payload) || [];\n  let convId = '';\n  try { convId = $('So quem quer mensagens').all()[i].json.convId; } catch (e) {}\n  if (!convId || !lista.length) continue;\n\n  const mapa = {};\n  for (const m of lista) {\n    const mt = m.message_type;\n    const deCliente = mt === 0 || mt === 'incoming';\n    const ehTemplate = mt === 3 || mt === 'template';\n    const deAgente = mt === 1 || mt === 'outgoing' || ehTemplate;\n    if (!deCliente && !deAgente) continue;          // atividade do sistema\n    const privada = m.private === true;\n\n    let texto = String(m.content || '').trim();\n    const anexos = Array.isArray(m.attachments) ? m.attachments : [];\n    if (!texto && anexos.length) {\n      const tipos = { image: 'imagem', audio: 'audio', video: 'video', file: 'arquivo' };\n      texto = '[' + (tipos[anexos[0].file_type] || 'anexo') + ']';\n    }\n    if (!texto) continue;\n    // O eco da persona e os comandos internos nao viram balao\n    if (deAgente && !privada && texto.indexOf('*Manoel - Suplelive:*') === 0) continue;\n    if (deAgente && !privada && texto[0] === '/') continue;\n\n    let ts = m.created_at || 0;\n    if (ts && ts < 1e12) ts = ts * 1000;\n    const quem = (((m.sender && m.sender.name) || '?').trim().split(/\\s+/)[0]);\n    mapa['m' + m.id] = {\n      texto: texto.slice(0, 4000),\n      de: privada ? 'nota' : (deAgente ? 'agente' : 'cliente'),\n      autor: privada ? quem : (deAgente ? ('Manoel (' + quem + ')') : ''),\n      ts: ts || Date.now(),\n    };\n  }\n  if (Object.keys(mapa).length) saida.push({ json: { convId, corpo: mapa, quantas: Object.keys(mapa).length } });\n}\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [540, 140],
+      "id": "Converter mensagens",
+      "name": "Converter mensagens"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/msg/{{ $json.convId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 140],
+      "id": "Gravar mensagens no LiveOps",
+      "name": "Gravar mensagens no LiveOps",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// O placar da varredura, para saber onde parou e o que ainda falta.\nlet conversas = 0, mensagens = 0, falhas = 0;\ntry {\n  $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); });\n} catch (e) {}\ntry {\n  $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); });\n} catch (e) {}\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.ok === false || j.erro) falhas++;\n}\nreturn [{ json: {\n  conversas, mensagens, falhas,\n  recado: conversas\n    ? ('Varredura concluida: ' + conversas + ' conversa(s) e ' + mensagens + ' mensagem(ns). '\n       + 'Se veio o bloco cheio, rode de novo mudando PAGINA_INICIAL no primeiro no ate vir zero.')\n    : 'Nenhuma conversa nessa faixa de paginas — o historico acabou.',\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [980, 0],
+      "id": "Placar",
+      "name": "Placar"
+    }
+  ],
+  "connections": {
+    "Rodar agora": { "main": [[{ "node": "Listar caixas", "type": "main", "index": 0 }]] },
+    "Listar caixas": { "main": [[{ "node": "Paginas a varrer", "type": "main", "index": 0 }]] },
+    "Paginas a varrer": { "main": [[{ "node": "Listar conversas", "type": "main", "index": 0 }]] },
+    "Listar conversas": { "main": [[{ "node": "Converter conversas", "type": "main", "index": 0 }]] },
+    "Converter conversas": {
+      "main": [[
+        { "node": "Agrupar conversas", "type": "main", "index": 0 },
+        { "node": "So quem quer mensagens", "type": "main", "index": 0 }
+      ]]
+    },
+    "Agrupar conversas": { "main": [[{ "node": "Gravar conversas no LiveOps", "type": "main", "index": 0 }]] },
+    "So quem quer mensagens": { "main": [[{ "node": "Listar mensagens", "type": "main", "index": 0 }]] },
+    "Listar mensagens": { "main": [[{ "node": "Converter mensagens", "type": "main", "index": 0 }]] },
+    "Converter mensagens": { "main": [[{ "node": "Gravar mensagens no LiveOps", "type": "main", "index": 0 }]] },
+    "Gravar mensagens no LiveOps": { "main": [[{ "node": "Placar", "type": "main", "index": 0 }]] },
+    "Gravar conversas no LiveOps": { "main": [[{ "node": "Placar", "type": "main", "index": 0 }]] }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}

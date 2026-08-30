@@ -55,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v14';
+const VERSAO_WORKER = 'v15';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -687,7 +687,13 @@ async function atenderRobo(req, env, ctx, url) {
   if (!ROBO_PREFIXOS.some(p => caminho.indexOf(p) === 0)) return respostaJson(403, { erro: 'caminho-nao-liberado' });
 
   const partes = caminho.split('/').filter(Boolean);
-  const ehColecao = partes.length <= 2;            // reg/pedidosBase, inbox/conv
+  /* Coleção é o ramo onde os registros ficam pendurados: reg/pedidosBase,
+     inbox/conv — dois níveis. As mensagens do Inbox têm um nível a mais
+     (inbox/msg/<conversa>/<mensagem>), e sem esta exceção a importação do
+     histórico teria de gravar uma mensagem por chamada: dezenas de
+     milhares delas, uma a uma. */
+  const ehMsgDaConversa = partes.length === 3 && partes[0] === 'inbox' && partes[1] === 'msg';
+  const ehColecao = partes.length <= 2 || ehMsgDaConversa;
   const colecao = ehColecao ? caminho : partes.slice(0, -1).join('/');
   const chave = ehColecao ? '' : partes[partes.length - 1];
   if (chave && !CHAVE_OK.test(chave)) return respostaJson(400, { erro: 'chave-invalida-no-caminho' });

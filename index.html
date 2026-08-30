@@ -720,6 +720,25 @@ html{overflow-x:hidden;}
 .wa-etq-x{color:var(--text-muted);font-size:17px;line-height:1;padding:0 4px;border-radius:5px;cursor:pointer;}
 .wa-etq-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
 .wa-etq-vazio{padding:8px 8px 14px;font-size:12px;color:var(--text-muted);line-height:1.7;}
+/* ── Agenda de contatos ── */
+#wa-vista-contatos{display:flex;flex-direction:column;height:100%;}
+.wa-ct-busca{padding:0 12px 8px;}
+.wa-ct-busca input{width:100%;font-size:12.5px;}
+.wa-ct-lista{flex:1;overflow-y:auto;padding:0 8px;}
+.wa-ct-linha{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:9px;}
+.wa-ct-linha:hover{background:var(--veu-suave);}
+.wa-ct-linha .wa-av{width:32px;height:32px;font-size:11.5px;flex-shrink:0;}
+.wa-ct-meio{flex:1;min-width:0;cursor:pointer;}
+.wa-ct-nome{font-size:13px;font-weight:600;color:var(--text-primary);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.wa-ct-tel{font-size:11px;color:var(--text-muted);font-family:var(--font-mono);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.wa-ct-x{color:var(--text-muted);font-size:17px;line-height:1;padding:0 4px;border-radius:5px;cursor:pointer;}
+.wa-ct-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
+.wa-ct-vazio{padding:10px 8px;font-size:12px;color:var(--text-muted);line-height:1.7;}
+.wa-ct-selo{font-size:11px;font-family:var(--font-mono);color:var(--tom-verde);white-space:nowrap;
+  padding:7px 10px;}
+.wa-etq-nova input+input{margin-top:-2px;}
 .wa-etq-nova{margin-top:auto;padding:12px 14px 14px;border-top:1px solid var(--linha-sutil);}
 .wa-etq-nova-tit{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
   color:var(--text-muted);font-family:var(--font-mono);margin-bottom:7px;}
@@ -4153,6 +4172,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             onclick="waPainelLateral('etiquetas')" title="Etiquetas">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h8l8.6 8.6a2 2 0 0 1 0 1.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>
           </button>
+          <button type="button" class="wa-rail-btn" id="wa-rail-contatos"
+            onclick="waPainelLateral('contatos')" title="Contatos salvos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H7.4A3.4 3.4 0 0 0 4 18.4V20"/><circle cx="10.5" cy="8" r="3.4"/><path d="M19 8.5v5M21.5 11h-5"/></svg>
+          </button>
         </div>
         <div class="wa-lista">
           <!-- Painel 1: as conversas -->
@@ -4170,6 +4193,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
           <!-- Painel 2: as etiquetas — ver, criar (com cor), renomear, excluir -->
           <div id="wa-vista-etiquetas" style="display:none;"></div>
+          <!-- Painel 3: a agenda de quem atende — contatos salvos aqui -->
+          <div id="wa-vista-contatos" style="display:none;"></div>
         </div>
         <div class="wa-chat">
           <div class="wa-chat-cab" id="wa-chat-cab" style="display:none;"></div>
@@ -6808,7 +6833,7 @@ function defaultState(){
     vendasWpp:{},
     pedidosWpp:[],
     pedidosBase:[],
-    waEtiquetas:[], waConvTags:[],
+    waEtiquetas:[], waConvTags:[], waContatos:[],
     produtos:[],
     entradasEstoque:[],
     acompanhamentos:[],
@@ -6940,6 +6965,7 @@ function loadLocal(){
     if(!Array.isArray(s.pedidosBase)) s.pedidosBase=[];
     if(!Array.isArray(s.waEtiquetas)) s.waEtiquetas=[];
     if(!Array.isArray(s.waConvTags)) s.waConvTags=[];
+    if(!Array.isArray(s.waContatos)) s.waContatos=[];
     if(!Array.isArray(s.produtos)) s.produtos=[];
     if(!Array.isArray(s.entradasEstoque)) s.entradasEstoque=[];
     if(!Array.isArray(s.acompanhamentos)) s.acompanhamentos=[];
@@ -10086,7 +10112,12 @@ const COLECOES_REG={
      pelo robô do n8n, e etiqueta gravada lá dentro seria apagada na
      próxima mensagem que chegasse. */
   waEtiquetas:   {get:s=>s.waEtiquetas,                set:(s,v)=>{s.waEtiquetas=v;}},
-  waConvTags:    {get:s=>s.waConvTags,                 set:(s,v)=>{s.waConvTags=v;}}
+  waConvTags:    {get:s=>s.waConvTags,                 set:(s,v)=>{s.waConvTags=v;}},
+  /* Contatos salvos no Inbox — a agenda de quem atende. Separada dos
+     leads da aba Clientes de propósito: aquela é da prospecção e alimenta
+     outros fluxos; esta é o telefone que se quer à mão para puxar
+     conversa. */
+  waContatos:    {get:s=>s.waContatos,                 set:(s,v)=>{s.waContatos=v;}}
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
@@ -10916,6 +10947,7 @@ function applyRemoteState(data){
   if(!Array.isArray(data.pedidosBase)) data.pedidosBase = [];
   if(!Array.isArray(data.waEtiquetas)) data.waEtiquetas = [];
   if(!Array.isArray(data.waConvTags)) data.waConvTags = [];
+  if(!Array.isArray(data.waContatos)) data.waContatos = [];
   if(!Array.isArray(data.produtos)) data.produtos = [];
   if(!Array.isArray(data.entradasEstoque)) data.entradasEstoque = [];
   if(!Array.isArray(data.acompanhamentos)) data.acompanhamentos = [];
@@ -13014,7 +13046,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30x';
+const APP_VERSAO='2026.08.30y';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14521,18 +14553,115 @@ function waArquivar(convId,arquivar){
   try{ inboxAbrir(convId); }catch(e){}
   showToast(arquivar?'Conversa arquivada':'Conversa desarquivada','success');
 }
-/* Troca o painel da coluna esquerda — conversas ou etiquetas */
+/* Troca o painel da coluna esquerda — conversas, etiquetas ou contatos */
 function waPainelLateral(qual){
   _waPainel=qual||'conversas';
-  const conv=document.getElementById('wa-vista-conversas');
-  const etq=document.getElementById('wa-vista-etiquetas');
-  if(conv) conv.style.display=_waPainel==='conversas'?'':'none';
-  if(etq) etq.style.display=_waPainel==='etiquetas'?'':'none';
-  const bc=document.getElementById('wa-rail-conversas'), be=document.getElementById('wa-rail-etiquetas');
-  if(bc) bc.classList.toggle('ativa',_waPainel==='conversas');
-  if(be) be.classList.toggle('ativa',_waPainel==='etiquetas');
+  [['conversas','wa-vista-conversas','wa-rail-conversas'],
+   ['etiquetas','wa-vista-etiquetas','wa-rail-etiquetas'],
+   ['contatos','wa-vista-contatos','wa-rail-contatos']].forEach(([nome,vista,botao])=>{
+    const v=document.getElementById(vista), b=document.getElementById(botao);
+    if(v) v.style.display=_waPainel===nome?'':'none';
+    if(b) b.classList.toggle('ativa',_waPainel===nome);
+  });
   if(_waPainel==='etiquetas') _waPintarPainelEtiquetas();
+  else if(_waPainel==='contatos') _waPintarPainelContatos();
   else inboxRender();
+}
+
+/* ── Contatos salvos ─────────────────────────────────────────────────
+   A agenda de quem atende: o telefone que se quer à mão para puxar
+   conversa sem procurar. Separada dos leads da aba Clientes de
+   propósito — aquela é da prospecção e alimenta outros fluxos. */
+function _waContatos(){ return (appState.waContatos||[]).filter(Boolean); }
+function _waDigitos(t){ return String(t||'').replace(/\D/g,''); }
+function _waContatoSalvo(tel){
+  const d=_waDigitos(tel); if(d.length<10) return null;
+  const fim=d.slice(-8);
+  return _waContatos().find(c=>_waDigitos(c.telefone).endsWith(fim))||null;
+}
+function _waPintarPainelContatos(){
+  const box=document.getElementById('wa-vista-contatos');
+  if(!box) return;
+  const q=_biNorm((document.getElementById('wa-ct-busca')||{}).value||'').trim();
+  const lista=_waContatos()
+    .filter(c=>!q || _biNorm([c.nome,c.telefone,c.obs].join(' ')).includes(q))
+    .sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+  const linhas=lista.length ? lista.map(c=>`
+    <div class="wa-ct-linha">
+      <span class="wa-av">${_iniEsc(_waIni(c.nome))}</span>
+      <div class="wa-ct-meio" onclick="waContatoConversar('${c.id}')">
+        <div class="wa-ct-nome">${_iniEsc(nomeProprio(c.nome||'Contato'))}</div>
+        <div class="wa-ct-tel">${_iniEsc(c.telefone||'')}${c.obs?' · '+_iniEsc(c.obs):''}</div>
+      </div>
+      <span class="wa-ct-x" title="Remover da agenda" onclick="waContatoExcluir('${c.id}')">×</span>
+    </div>`).join('')
+    : `<div class="wa-ct-vazio">${_waContatos().length
+        ? 'Nenhum contato para essa busca.'
+        : 'Agenda vazia. Salve aqui os telefones que você usa sempre — ou abra uma conversa e clique em <b>Salvar contato</b>.'}</div>`;
+  box.innerHTML=`
+    <div class="wa-etq-cab">Contatos salvos</div>
+    <div class="wa-ct-busca">
+      <input id="wa-ct-busca" type="text" placeholder="Buscar na agenda..." value="${_iniEsc(q?((document.getElementById('wa-ct-busca')||{}).value||''):'')}"
+        oninput="_waPintarPainelContatos()" autocomplete="off">
+    </div>
+    <div class="wa-ct-lista">${linhas}</div>
+    <div class="wa-etq-nova">
+      <div class="wa-etq-nova-tit">Novo contato</div>
+      <input id="wa-ct-nome" type="text" placeholder="Nome" maxlength="60" onkeydown="waContatoTecla(event)" autocomplete="off">
+      <input id="wa-ct-tel" type="text" placeholder="Telefone com DDD (ex.: 11 98888-7777)" maxlength="24" onkeydown="waContatoTecla(event)" autocomplete="off">
+      <input id="wa-ct-obs" type="text" placeholder="Observação (opcional)" maxlength="60" onkeydown="waContatoTecla(event)" autocomplete="off">
+      <button class="btn btn-sm" style="width:auto;" onclick="waContatoSalvar()">Salvar contato</button>
+    </div>`;
+  const b=document.getElementById('wa-ct-busca');
+  if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
+}
+function waContatoTecla(ev){ if(ev.key==='Enter'){ ev.preventDefault(); waContatoSalvar(); } }
+function waContatoSalvar(nomeFixo,telFixo){
+  if(!currentUser){ showToast('Faça login para salvar contatos','warn'); return; }
+  const nome=String(nomeFixo!==undefined?nomeFixo:((document.getElementById('wa-ct-nome')||{}).value||'')).trim().slice(0,60);
+  const tel =String(telFixo !==undefined?telFixo :((document.getElementById('wa-ct-tel')||{}).value ||'')).trim();
+  const obs =String(nomeFixo!==undefined?'':((document.getElementById('wa-ct-obs')||{}).value||'')).trim().slice(0,60);
+  if(!nome){ showToast('Escreva o nome do contato','warn'); return; }
+  if(_waDigitos(tel).length<10){ showToast('Telefone incompleto — precisa do DDD','warn'); return; }
+  const ja=_waContatoSalvo(tel);
+  if(ja){ showToast('"'+nomeProprio(ja.nome)+'" já está na agenda com esse telefone','warn'); return; }
+  if(!Array.isArray(appState.waContatos)) appState.waContatos=[];
+  appState.waContatos.push({
+    id:'wct_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+    nome, telefone:tel, obs,
+    criadoEm:Date.now(), criadoPor:currentUser.name});
+  saveState(appState);
+  if(nomeFixo===undefined){
+    ['wa-ct-nome','wa-ct-tel','wa-ct-obs'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  }
+  _waPintarPainelContatos();
+  try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
+  showToast('✔ '+nomeProprio(nome)+' salvo na agenda','success');
+}
+/* Salvar quem está na conversa aberta: um clique, sem redigitar nada */
+function waSalvarContatoDaConversa(id){
+  const c=_waConvs[id]||{};
+  if(!c.telefone){ showToast('Esta conversa não tem telefone para salvar','warn'); return; }
+  waContatoSalvar(c.nome||'Contato', c.telefone);
+}
+function waContatoExcluir(id){
+  const c=_waContatos().find(x=>x.id===id); if(!c) return;
+  if(!confirmar(()=>waContatoExcluir(id), `Tirar "${nomeProprio(c.nome)}" da agenda?`)) return;
+  appState.waContatos=_waContatos().filter(x=>x.id!==id);
+  saveState(appState);
+  _waPintarPainelContatos();
+  try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
+  showToast('Contato removido da agenda','success');
+}
+/* Da agenda para a conversa: se já existe atendimento com aquele número,
+   abre o que existe; senão, começa um novo. */
+function waContatoConversar(id){
+  const c=_waContatos().find(x=>x.id===id); if(!c) return;
+  const dig=_waDigitos(c.telefone), fim=dig.slice(-8);
+  const achada=Object.entries(_waConvs).find(([,v])=>_waDigitos(v.telefone).endsWith(fim));
+  waPainelLateral('conversas');
+  if(achada) inboxAbrir(achada[0]);
+  else inboxNovaConversa(dig, c.nome||'Contato');
 }
 function _waTagChip(t,extra){
   return `<span class="wa-tag" style="--tc:${t.cor||'#2563eb'};"${extra||''}>${_iniEsc(t.nome)}</span>`;
@@ -14888,6 +15017,10 @@ function inboxAbrir(id){
       <button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
         onclick="waArquivar('${_iniEsc(id)}',${_waArquivada(id)?'false':'true'})"
         title="${_waArquivada(id)?'Tirar do arquivo':'Arquivar esta conversa'}">${_waArquivada(id)?'↩ Desarquivar':'🗄 Arquivar'}</button>
+      ${c.telefone?(_waContatoSalvo(c.telefone)
+        ? `<span class="wa-ct-selo" title="Já está na sua agenda">✓ Na agenda</span>`
+        : `<button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
+             onclick="waSalvarContatoDaConversa('${_iniEsc(id)}')" title="Guardar na agenda">＋ Salvar contato</button>`):''}
       ${tel?`<a class="btn-sec" style="width:auto;padding:7px 14px;font-size:12px;" target="_blank" rel="noopener"
         href="https://wa.me/${tel.length<=11?'55':''}${tel}">Abrir no WhatsApp ↗</a>`:''}`;
   }
