@@ -5,19 +5,42 @@
       "parameters": {},
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [-780, 0],
+      "position": [
+        -780,
+        0
+      ],
       "id": "Rodar agora",
       "name": "Rodar agora"
     },
     {
       "parameters": {
-        "jsCode": "// ── O QUE AJUSTAR AQUI ───────────────────────────────────────────\n// PAGINA_INICIAL / PAGINAS: o Chatwoot devolve 25 conversas por pagina.\n// Rodar em blocos e mais seguro que puxar tudo de uma vez: faca\n// 1..20, depois 21..40, e assim por diante, ate vir pagina vazia.\n// TRAZER_MENSAGENS: false traz so a lista de conversas (rapido, e ja\n// enche o Inbox); true traz tambem as ultimas mensagens de cada uma.\nconst PAGINA_INICIAL = 1;\nconst PAGINAS = 20;\nconst TRAZER_MENSAGENS = true;\n\nconst paginas = [];\nfor (let p = PAGINA_INICIAL; p < PAGINA_INICIAL + PAGINAS; p++) {\n  paginas.push({ json: { pagina: p, trazerMensagens: TRAZER_MENSAGENS } });\n}\nreturn paginas;"
+        "jsCode": "// ── O QUE AJUSTAR AQUI ───────────────────────────────────────────\n// Nada, no caso normal. O no anterior perguntou ao Chatwoot QUANTAS\n// conversas existem no total, e daqui saem todas as paginas ate cobrir\n// esse numero — janeiro incluido. Foi o erro da primeira versao: ela\n// varria 20 paginas fixas (500 conversas) e, como o Chatwoot devolve da\n// mais recente para a mais antiga, so trazia os ultimos dez dias.\n//\n// COMO RODAR (duas passadas, e de proposito):\n//\n//   1a) Assim como esta. So a lista de conversas: 132 chamadas para 3.286\n//       conversas, um minuto, e o WhatsLive ja mostra todo mundo desde\n//       janeiro com a ultima fala de cada um.\n//\n//   2a) Depois, para trazer as mensagens: TRAZER_MENSAGENS = true e\n//       PAGINAS_MAX = 20, rodando com PAGINA_INICIAL 1, 21, 41... ate o\n//       Placar dizer que a ultima pagina passou. Aqui e UMA chamada por\n//       conversa — 3.286 delas de uma vez estoura o tempo da execucao.\nconst TRAZER_MENSAGENS = false;\nconst PAGINA_INICIAL = 1;\nconst PAGINAS_MAX = 0;\n\nconst POR_PAGINA = 25;   // o Chatwoot nao deixa passar disso\nconst TETO = 600;        // trava de seguranca: 15.000 conversas\n\nconst r = $json || {};\nconst meta = (r.data && r.data.meta) || r.meta || {};\nconst total = Number(meta.all_count || 0);\nif (!total) {\n  throw new Error('O Chatwoot nao informou o total de conversas (meta.all_count). '\n    + 'Confira a credencial e se a conta e mesmo a de id 1.');\n}\n\nconst ultimaPagina = Math.min(Math.ceil(total / POR_PAGINA), TETO);\nconst fim = PAGINAS_MAX > 0\n  ? Math.min(PAGINA_INICIAL + PAGINAS_MAX - 1, ultimaPagina)\n  : ultimaPagina;\n\nconst paginas = [];\nfor (let p = PAGINA_INICIAL; p <= fim; p++) {\n  paginas.push({ json: { pagina: p, trazerMensagens: TRAZER_MENSAGENS, total, ultimaPagina } });\n}\nif (!paginas.length) {\n  throw new Error('PAGINA_INICIAL (' + PAGINA_INICIAL + ') passou da ultima pagina (' + ultimaPagina + ').');\n}\nreturn paginas;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-560, 0],
+      "position": [
+        80,
+        0
+      ],
       "id": "Paginas a varrer",
       "name": "Paginas a varrer"
+    },
+    {
+      "parameters": {
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/conversations?status=all&assignee_type=all&page=1",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "Contar conversas",
+      "name": "Contar conversas"
     },
     {
       "parameters": {
@@ -29,7 +52,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-560, -180],
+      "position": [
+        -560,
+        -180
+      ],
       "id": "Listar caixas",
       "name": "Listar caixas",
       "onError": "continueRegularOutput"
@@ -40,11 +66,21 @@
         "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations?status=all&assignee_type=all&page={{ $json.pagina }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [-340, 0],
+      "position": [
+        300,
+        0
+      ],
       "id": "Listar conversas",
       "name": "Listar conversas",
       "onError": "continueRegularOutput"
@@ -55,7 +91,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [-120, 0],
+      "position": [
+        520,
+        0
+      ],
       "id": "Converter conversas",
       "name": "Converter conversas"
     },
@@ -65,7 +104,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [100, -140],
+      "position": [
+        740,
+        -140
+      ],
       "id": "Agrupar conversas",
       "name": "Agrupar conversas"
     },
@@ -82,7 +124,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [320, -140],
+      "position": [
+        960,
+        -140
+      ],
       "id": "Gravar conversas no LiveOps",
       "name": "Gravar conversas no LiveOps",
       "onError": "continueRegularOutput"
@@ -93,7 +138,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [100, 140],
+      "position": [
+        740,
+        140
+      ],
       "id": "So quem quer mensagens",
       "name": "So quem quer mensagens"
     },
@@ -103,11 +151,21 @@
         "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
-        "options": {}
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [320, 140],
+      "position": [
+        960,
+        140
+      ],
       "id": "Listar mensagens",
       "name": "Listar mensagens",
       "onError": "continueRegularOutput"
@@ -118,7 +176,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [540, 140],
+      "position": [
+        1180,
+        140
+      ],
       "id": "Converter mensagens",
       "name": "Converter mensagens"
     },
@@ -135,40 +196,169 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [760, 140],
+      "position": [
+        1400,
+        140
+      ],
       "id": "Gravar mensagens no LiveOps",
       "name": "Gravar mensagens no LiveOps",
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
-        "jsCode": "// O placar da varredura, para saber onde parou e o que ainda falta.\nlet conversas = 0, mensagens = 0, falhas = 0;\ntry {\n  $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); });\n} catch (e) {}\ntry {\n  $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); });\n} catch (e) {}\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.ok === false || j.erro) falhas++;\n}\nreturn [{ json: {\n  conversas, mensagens, falhas,\n  recado: conversas\n    ? ('Varredura concluida: ' + conversas + ' conversa(s) e ' + mensagens + ' mensagem(ns). '\n       + 'Se veio o bloco cheio, rode de novo mudando PAGINA_INICIAL no primeiro no ate vir zero.')\n    : 'Nenhuma conversa nessa faixa de paginas — o historico acabou.',\n} }];"
+        "jsCode": "// O placar da varredura. Agora ele sabe o tamanho do alvo, entao da para\n// conferir de olho se veio tudo — e nao ficar adivinhando se falta pagina.\nlet conversas = 0, mensagens = 0, falhas = 0, total = 0, paginas = 0;\ntry {\n  const p = $('Paginas a varrer').all();\n  paginas = p.length;\n  total = Number(p[0].json.total || 0);\n} catch (e) {}\ntry { $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); }); } catch (e) {}\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.ok === false || j.erro) falhas++;\n}\n\nconst faltou = total && conversas < total - 5;   // margem: conversas criadas durante a varredura\nreturn [{ json: {\n  totalNoChatwoot: total,\n  paginasVarridas: paginas,\n  conversas,\n  mensagens,\n  falhas,\n  recado: !conversas\n    ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'\n    : (faltou\n      ? ('Vieram ' + conversas + ' de ' + total + ' conversas. Faltou gente: rode de novo, '\n         + 'ou quebre em blocos com PAGINA_INICIAL / PAGINAS_MAX no no \"Paginas a varrer\".')\n      : ('Varredura completa: ' + conversas + ' conversa(s) de ' + total + ' e '\n         + mensagens + ' mensagem(ns). Nao precisa rodar de novo.')),\n} }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [980, 0],
+      "position": [
+        1620,
+        0
+      ],
       "id": "Placar",
       "name": "Placar"
     }
   ],
   "connections": {
-    "Rodar agora": { "main": [[{ "node": "Listar caixas", "type": "main", "index": 0 }]] },
-    "Listar caixas": { "main": [[{ "node": "Paginas a varrer", "type": "main", "index": 0 }]] },
-    "Paginas a varrer": { "main": [[{ "node": "Listar conversas", "type": "main", "index": 0 }]] },
-    "Listar conversas": { "main": [[{ "node": "Converter conversas", "type": "main", "index": 0 }]] },
-    "Converter conversas": {
-      "main": [[
-        { "node": "Agrupar conversas", "type": "main", "index": 0 },
-        { "node": "So quem quer mensagens", "type": "main", "index": 0 }
-      ]]
+    "Rodar agora": {
+      "main": [
+        [
+          {
+            "node": "Listar caixas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
-    "Agrupar conversas": { "main": [[{ "node": "Gravar conversas no LiveOps", "type": "main", "index": 0 }]] },
-    "So quem quer mensagens": { "main": [[{ "node": "Listar mensagens", "type": "main", "index": 0 }]] },
-    "Listar mensagens": { "main": [[{ "node": "Converter mensagens", "type": "main", "index": 0 }]] },
-    "Converter mensagens": { "main": [[{ "node": "Gravar mensagens no LiveOps", "type": "main", "index": 0 }]] },
-    "Gravar mensagens no LiveOps": { "main": [[{ "node": "Placar", "type": "main", "index": 0 }]] },
-    "Gravar conversas no LiveOps": { "main": [[{ "node": "Placar", "type": "main", "index": 0 }]] }
+    "Listar caixas": {
+      "main": [
+        [
+          {
+            "node": "Contar conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paginas a varrer": {
+      "main": [
+        [
+          {
+            "node": "Listar conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar conversas": {
+      "main": [
+        [
+          {
+            "node": "Converter conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter conversas": {
+      "main": [
+        [
+          {
+            "node": "Agrupar conversas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "So quem quer mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar conversas": {
+      "main": [
+        [
+          {
+            "node": "Gravar conversas no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "So quem quer mensagens": {
+      "main": [
+        [
+          {
+            "node": "Listar mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar mensagens": {
+      "main": [
+        [
+          {
+            "node": "Converter mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter mensagens": {
+      "main": [
+        [
+          {
+            "node": "Gravar mensagens no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar mensagens no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Placar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar conversas no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Placar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contar conversas": {
+      "main": [
+        [
+          {
+            "node": "Paginas a varrer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "pinData": {},
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }
