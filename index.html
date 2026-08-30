@@ -7180,6 +7180,19 @@ function imgGuardarOriginal(chave,dataUrl){
     .catch(err=>{ console.warn('[img] falha ao guardar',chave,err.message); return ''; });
 }
 
+// As chaves das imagens guardadas no R2 — o equivalente a listar o ramo
+// de imagens que o Firebase devolvia de uma vez
+function cfListarImagens(){
+  if(!_cfImgAtivo()) return Promise.resolve([]);
+  return _cfToken().then(tk=>{
+    if(!tk) throw new Error('sem-login');
+    return fetch(CF_IMG_URL+'/lista',{headers:{'Authorization':'Bearer '+tk}});
+  }).then(r=>{
+    if(!r.ok) throw new Error('http-'+r.status);
+    return r.json();
+  });
+}
+
 // Busca a imagem original (com cache em memória por sessão).
 // Ordem: R2 da Cloudflare primeiro (download grátis, alivia a cota do
 // Firebase) e, se ele não tiver ou falhar, o Firebase como sempre.
@@ -7457,7 +7470,8 @@ function carregarArquivo(){
   if(!alvo) return;
   if(!(db && fbConnected)){ alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão com a nuvem.</div>'; return; }
   alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Carregando…</div>';
-  db.ref(FB_ARQUIVO).once('value').then(snap=>{
+  (_cfLeituraAtiva ? cfLerRamoDeDoisNiveis('arquivo/').then(_snapshotDe)
+                   : db.ref(FB_ARQUIVO).once('value')).then(snap=>{
     const dados=snap.val()||{};
     _arqCache=[];
     Object.entries(dados).forEach(([area,itens])=>{
@@ -7545,7 +7559,7 @@ function verificarBackupAutomatico(){
   if(!currentUser || !currentUser.master) return;
   if(!(db && fbConnected)) return;
   const hoje=_hojeISO();
-  db.ref(FB_BACKUPS_IDX+'/'+hoje).once('value').then(snap=>{
+  _lerRegistroSnapshot('backupsIndex', hoje).then(snap=>{
     if(snap.exists()) return;            // já existe a cópia de hoje
     return _gravarBackupAutomatico(hoje);
   }).then(()=>_limparBackupsAntigos()).catch(err=>console.warn('[backup]',err.message));
@@ -7569,6 +7583,15 @@ function _gravarBackupAutomatico(dia){
     estado:copia
   };
   const resumo={ts:payload.ts, porQuem:payload.porQuem, tamanho:payload.tamanho, contagem:payload.contagem};
+  /* A cópia do dia é a rede de segurança: ela precisa existir nos dois
+     lados enquanto os dois existirem. */
+  try{
+    _cfEspelharLinhas([
+      {colecao:'backups/'+dia, chave:'estado', dados:payload},
+      {colecao:'backupsIndex', chave:dia, dados:resumo}
+    ]);
+  }catch(e){}
+  if(!(db && fbConnected)) return Promise.resolve();
   return db.ref().update({
     [FB_BACKUPS+'/'+dia]:payload,
     [FB_BACKUPS_IDX+'/'+dia]:resumo
@@ -7576,14 +7599,21 @@ function _gravarBackupAutomatico(dia){
 }
 
 function _limparBackupsAntigos(){
-  return db.ref(FB_BACKUPS_IDX).once('value').then(snap=>{
+  return _lerRamoSnapshot(FB_BACKUPS_IDX).then(snap=>{
     const idx=snap.val()||{};
     const limite=new Date(); limite.setDate(limite.getDate()-BACKUP_MANTER_DIAS);
     const corte=limite.toISOString().slice(0,10);
     const apagar=Object.keys(idx).filter(d=>d<corte);
     if(!apagar.length) return;
     const updates={};
-    apagar.forEach(d=>{ updates[FB_BACKUPS+'/'+d]=null; updates[FB_BACKUPS_IDX+'/'+d]=null; });
+    const linhas=[];
+    apagar.forEach(d=>{
+      updates[FB_BACKUPS+'/'+d]=null; updates[FB_BACKUPS_IDX+'/'+d]=null;
+      linhas.push({colecao:'backups/'+d, chave:'estado', dados:null});
+      linhas.push({colecao:'backupsIndex', chave:d, dados:null});
+    });
+    try{ _cfEspelharLinhas(linhas); }catch(e){}
+    if(!(db && fbConnected)) return Promise.resolve();
     return db.ref().update(updates);
   });
 }
@@ -7592,10 +7622,10 @@ let _backupsCache=null;
 function carregarBackups(){
   const alvo=document.getElementById('bkp-lista');
   if(!alvo) return;
-  if(!(db && fbConnected)){ alvo.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão.</div>'; return; }
+  if(!_cfLeituraAtiva && !(db && fbConnected)){ alvo.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão.</div>'; return; }
   alvo.innerHTML='<div style="padding:14px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Carregando…</div>';
   // Lê apenas o índice — os estados salvos só são baixados ao restaurar
-  db.ref(FB_BACKUPS_IDX).once('value').then(snap=>{
+  _lerRamoSnapshot(FB_BACKUPS_IDX).then(snap=>{
     const dados=snap.val()||{};
     _backupsCache=Object.entries(dados).map(([dia,v])=>({
       dia, ts:(v&&v.ts)||0, porQuem:(v&&v.porQuem)||'—',
@@ -7637,7 +7667,7 @@ function restaurarBackup(dia){
     `As imagens não são afetadas. Recomendo baixar o backup .zip antes.`
   )) return;
   showToast('Restaurando…','warn');
-  db.ref(FB_BACKUPS+'/'+dia+'/estado').once('value').then(snap=>{
+  _lerRegistroSnapshot('backups/'+dia, 'estado').then(snap=>{
     const est=snap.val();
     if(!est){ showToast('Cópia não encontrada','error'); return; }
     // Preserva usuários e acessos atuais — restaurar dados não pode
@@ -7696,8 +7726,9 @@ function recuperarBaseConhecimento(){
     const achados=new Map();
     const varrer=(i)=>{
       if(i>=dias.length) return Promise.resolve();
-      return db.ref(FB_BACKUPS+'/'+dias[i]+'/estado/baseInfo').once('value').then(s2=>{
-        const lista=s2.val();
+      return _lerRegistroSnapshot('backups/'+dias[i], 'estado').then(s2=>{
+        const est=s2.val();
+        const lista=est && est.baseInfo;
         if(Array.isArray(lista)) lista.forEach(x=>{
           if(x && x.id && !achados.has(String(x.id))) achados.set(String(x.id), x);
         });
@@ -7816,7 +7847,7 @@ function _conclusoesNoHistorico(){
   const abertas=(appState.atividades||[]).filter(a=>a && a.status!=='concluida' && a.status!=='finalizada');
   if(!abertas.length) return Promise.resolve([]);
   return Promise.all(abertas.map(a=>
-    db.ref(FB_LOGS_PATH+'/tarefa/'+_regChave(a.id)).limitToLast(60).once('value')
+    _lerRamoSnapshot(FB_LOGS_PATH+'/tarefa/'+_regChave(a.id), 60)
       .then(snap=>{
         const val=snap.val();
         if(!val) return null;
@@ -7848,8 +7879,9 @@ function _conclusoesNoHistorico(){
    O histórico continua lá, com id e tudo. Estes dois reconstroem o card a
    partir dele — o id da rotina diz o dia, a plataforma, a loja e a etapa. */
 function _rotinasApagadasNoHistorico(){
-  if(!(db && fbConnected)) return Promise.resolve([]);
-  return db.ref(FB_LOGS_PATH+'/tarefa').once('value').then(snap=>{
+  if(!_cfLeituraAtiva && !(db && fbConnected)) return Promise.resolve([]);
+  return (_cfLeituraAtiva ? cfLerRamoDeDoisNiveis('logs/tarefa/').then(_snapshotDe)
+                          : db.ref(FB_LOGS_PATH+'/tarefa').once('value')).then(snap=>{
     const todos=snap.val()||{};
     const existentes=new Set((appState.atividades||[]).map(a=>a&&a.id));
     const itens=_mktRotinaItens();
@@ -8113,9 +8145,17 @@ function _aplicarExclusaoSemResponsavel(achados){
 // para o "Reparar tudo" poder encadear os passos na ordem certa.
 function _recuperarImagensPerdidas(silencioso){
   const btn = silencioso ? null : document.getElementById('btn-recuperar-img');
-  return db.ref(FB_IMG_PATH).once('value').then(snap=>new Promise(resolve=>{
-    const guardadas=snap.val()||{};
-    const chaves=Object.keys(guardadas);
+  /* No R2 as imagens não vêm todas de uma vez: a lista traz as chaves e
+     cada original é buscada só quando o registro dela é reconstruído —
+     que é o que o passo abaixo já fazia com o cache. */
+  const origem=_cfLeituraAtiva
+    ? Promise.resolve({})
+    : db.ref(FB_IMG_PATH).once('value').then(s=>s.val()||{});
+  const listaChaves=_cfLeituraAtiva
+    ? cfListarImagens()
+    : origem.then(o=>Object.keys(o));
+  return Promise.all([origem.catch(()=>({})), listaChaves.catch(()=>[])])
+    .then(([guardadas,chaves])=>new Promise(resolve=>{
     if(!chaves.length){ resolve({recuperadas:0,jaOk:0,semDono:0,vazio:true}); return; }
     let recuperadas=0, jaOk=0, semDono=0, feitos=0;
     const proximo=()=>{
@@ -8143,7 +8183,10 @@ function _recuperarImagensPerdidas(silencioso){
       }
 
       const v=guardadas[chave];
-      const original=(v && (v.d||v))||'';
+      const daNuvem=(v && (v.d||v))||'';
+      // No R2 a original vem uma a uma, sob demanda
+      const buscar = daNuvem ? Promise.resolve(daNuvem) : imgCarregarOriginal(chave);
+      buscar.then(original=>{
       if(!original || typeof original!=='string'){ semDono++; setTimeout(proximo,0); return; }
       _imgCache[chave]=original;
       imgGerarThumb(original, thumb=>{
@@ -8160,6 +8203,7 @@ function _recuperarImagensPerdidas(silencioso){
         recuperadas++;
         setTimeout(proximo,0);
       });
+      }).catch(()=>{ semDono++; setTimeout(proximo,0); });
     };
     proximo();
   })).then(res=> silencioso ? res.recuperadas : res);
@@ -8521,7 +8565,7 @@ function renderVisaoGeral(){
 
   // 6. Pedidos de acesso — vem da nuvem, então entra depois, sem travar a tela
   if(currentUser && currentUser.master && db){
-    db.ref(FB_SOLICITACOES).once('value').then(s=>{
+    _lerRamoSnapshot(FB_SOLICITACOES).then(s=>{
       const n=Object.keys(s.val()||{}).length;
       if(!n || document.getElementById('visao-cards')!==alvo) return;
       alvo.insertAdjacentHTML('afterbegin',
@@ -8582,8 +8626,8 @@ function renderSeguranca(){
   // Fila de pedidos e lista de aprovados (só para o master)
   if(currentUser && currentUser.master && db){
     Promise.all([
-      db.ref(FB_SOLICITACOES).once('value').then(s2=>s2.val()||{}).catch(()=>({})),
-      db.ref(FB_AUTORIZADOS).once('value').then(s2=>s2.val()||{}).catch(()=>({}))
+      _lerRamoSnapshot(FB_SOLICITACOES).then(s2=>s2.val()||{}).catch(()=>({})),
+      _lerRamoSnapshot(FB_AUTORIZADOS).then(s2=>s2.val()||{}).catch(()=>({}))
     ]).then(([pedidos,aprovados])=>{
       const box=document.getElementById('seg-acessos'); if(!box) return;
       const linhas=[];
@@ -10206,6 +10250,59 @@ function cfLerComoObjeto(colecao,opcoes){
     return o;
   });
 }
+/* Uma leitura sob demanda com a cara do snapshot do Firebase (.val(),
+   .exists(), .forEach()). Assim cada tela que consulta o banco troca só a
+   ORIGEM, sem reescrever o que faz com o resultado. */
+function _snapshotDe(o){
+  const v=(o && Object.keys(o).length)?o:null;
+  return {
+    val:()=>v,
+    exists:()=>!!v,
+    forEach:cb=>{ Object.entries(v||{}).forEach(([k,val])=>cb({key:k, val:()=>val})); }
+  };
+}
+function _lerRamoSnapshot(caminho,ultimos){
+  const colecao=String(caminho).replace(/^suplelive\//,'');
+  if(_cfLeituraAtiva){
+    return cfLerComoObjeto(colecao, ultimos?{ultimos:true,limite:ultimos}:undefined)
+      .then(_snapshotDe);
+  }
+  if(!db) return Promise.resolve(_snapshotDe(null));
+  const ref=ultimos ? db.ref(caminho).limitToLast(ultimos) : db.ref(caminho);
+  return ref.once('value');
+}
+
+/* Quais coleções existem sob um prefixo — o espelho é plano, então um ramo
+   de dois níveis (arquivo/<área>, logs/tarefa/<registro>) vira várias
+   coleções, e é preciso descobrir quais antes de lê-las. */
+/* Ramo de dois níveis (arquivo/<área>, logs/tarefa/<registro>). O espelho
+   é plano, então o ramo virou várias coleções: aqui elas são descobertas e
+   remontadas na forma aninhada que as telas já esperam. */
+function cfLerRamoDeDoisNiveis(prefixo){
+  return cfListarColecoes(prefixo).then(colecoes=>
+    Promise.all(colecoes.map(c=>
+      cfLerComoObjeto(c).then(o=>[c.slice(prefixo.length), o]).catch(()=>null)
+    )).then(pares=>{
+      const fora={};
+      pares.filter(Boolean).forEach(([nome,o])=>{ if(nome) fora[nome]=o; });
+      return fora;
+    })
+  );
+}
+
+function _lerRegistroSnapshot(colecao,chave){
+  if(_cfLeituraAtiva){
+    return cfLerRegistro(colecao,chave).then(d=>({val:()=>d, exists:()=>d!=null}));
+  }
+  if(!db) return Promise.resolve({val:()=>null, exists:()=>false});
+  return db.ref('suplelive/'+colecao+'/'+chave).once('value');
+}
+
+function cfListarColecoes(prefixo){
+  return _cfDadosReq('resumo').then(r=>r.json()).then(r=>
+    (r.colecoes||[]).map(c=>c.colecao).filter(c=>c.indexOf(prefixo)===0));
+}
+
 // Um registro só; devolve null quando não existe
 function cfLerRegistro(colecao,chave){
   return _cfDadosReq('registro?colecao='+encodeURIComponent(colecao)+'&chave='+encodeURIComponent(chave))
@@ -11773,8 +11870,9 @@ function doLogin(){
     initApp();
   }
 
-  if(db && fbConnected){
-    db.ref(FB_PATH+'/users').once('value').then(snap=>{
+  if(_cfLeituraAtiva || (db && fbConnected)){
+    (_cfLeituraAtiva ? cfLerPacote().then(p=>({val:()=>(p&&p.users)||null}))
+                     : db.ref(FB_PATH+'/users').once('value')).then(snap=>{
       const cloudUsers=snap.val();
       if(cloudUsers){
         const locais=appState.users;
@@ -11876,8 +11974,9 @@ function initNotas(){
   ta.value = (localStorage.getItem(localKey)||'').slice(0,1500);
   _notasUpdateCount(ta);
   // Sincronizar com Firebase (caminho privado: /notas/{userKey})
-  if(db && fbConnected){
-    db.ref(FB_PATH+'/notas/'+userKey).once('value').then(snap=>{
+  if(_cfLeituraAtiva || (db && fbConnected)){
+    (_cfLeituraAtiva ? cfLerPacote().then(p=>({val:()=>((p&&p.notas)||{})[userKey]||null}))
+                     : db.ref(FB_PATH+'/notas/'+userKey).once('value')).then(snap=>{
       const val = snap.val();
       if(val && typeof val === 'string'){
         ta.value = val.slice(0,1500);
@@ -11904,9 +12003,17 @@ function onNotasInput(ta){
     // Salvar localmente
     localStorage.setItem(localKey, ta.value);
     // Salvar no Firebase no caminho privado do usuário
+    /* A nota é privada e vive dentro do pacote. Gravá-la direto no
+       Firebase não passava pelo espelho — daí ela ir também pelo caminho
+       normal de gravação do estado. */
     if(db && fbConnected){
       db.ref(FB_PATH+'/notas/'+userKey).set(ta.value).catch(()=>{});
     }
+    try{
+      appState.notas=appState.notas||{};
+      appState.notas[userKey]=ta.value;
+      saveState(appState);
+    }catch(e){}
     // Feedback visual
     const lbl = document.getElementById('notas-saved-label');
     if(lbl){ lbl.style.opacity='1'; setTimeout(()=>lbl.style.opacity='0', 1800); }
@@ -11923,7 +12030,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29n';
+const APP_VERSAO='2026.08.29q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -27269,7 +27376,7 @@ function carregarLogRegistro(prefixo,entidade,id){
   if(!db||!fbConnected||!id){ wrap.style.display='none'; return; }
   wrap.style.display='block';
   body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Carregando…</div>';
-  db.ref(FB_LOGS_PATH+'/'+entidade+'/'+id).limitToLast(80).once('value').then(snap=>{
+  _lerRamoSnapshot(FB_LOGS_PATH+'/'+entidade+'/'+id, 80).then(snap=>{
     const val=snap.val();
     const lista=val?Object.values(val).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
     renderLogHistorico(prefixo,lista);
@@ -27327,7 +27434,7 @@ function carregarAuditoriaGeral(){
     return;
   }
   alvo.innerHTML='<div style="padding:14px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Carregando…</div>';
-  db.ref(FB_LOGS_PATH+'/_geral').limitToLast(400).once('value').then(snap=>{
+  _lerRamoSnapshot(FB_LOGS_PATH+'/_geral', 400).then(snap=>{
     const val=snap.val();
     _auditEntradas=val?Object.values(val).sort((a,b)=>(b.ts||0)-(a.ts||0)):[];
     _auditPopularAutores();
