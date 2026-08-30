@@ -4756,10 +4756,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div class="admin-title" style="margin-bottom:0;">🔒 Segurança do Acesso</div>
           <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
         </div>
-        <div id="seg-status" style="margin-bottom:14px;"></div>
         <!-- O banco novo: worker, leitura e o cofre de senhas da Cloudflare.
              É aqui que se responde "já dá para desligar o Firebase?". -->
         <div id="seg-cf" style="margin-bottom:14px;"></div>
+        <!-- O Firebase saiu da vista a pedido do master (30/08): a tela é da
+             Cloudflare. As ferramentas do banco antigo seguem aqui dentro
+             enquanto a convivência durar — é por elas que se aprova navegador
+             novo até o desligamento; com pedido na fila, a dobra abre sozinha. -->
+        <details class="adm-dobra" id="seg-fb-dobra">
+          <summary>Firebase — banco antigo<span class="hint" id="seg-fb-hint">ferramentas da convivência</span></summary>
+          <div class="adm-dobra-corpo">
+        <div id="seg-status" style="margin-bottom:14px;"></div>
         <!-- Derruba a equipe inteira: fica marcado como tal, e não solto no
              meio da tela ao lado de um botão de conferência. -->
         <div class="adm-zona-risco" style="margin-bottom:14px;margin-top:0;">
@@ -4861,6 +4868,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           do projeto → Contas de serviço), ele deixa de depender disso e você pode fechar esses caminhos.
           Nada a fazer agora.
         </div>
+          </div>
+        </details>
           </div>
         </details>
       </div>
@@ -9114,6 +9123,14 @@ function renderSeguranca(){
       box.innerHTML = linhas.length
         ? `<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin:14px 0 4px;">Acessos</div>`+linhas.join('')
         : '';
+      /* O Firebase vive numa dobra fechada — mas pedido de acesso na fila
+         não pode esperar ninguém lembrar de abrir: o rótulo avisa e a
+         dobra se abre sozinha. */
+      const nPed=Object.keys(pedidos).length;
+      const hint=document.getElementById('seg-fb-hint');
+      if(hint) hint.textContent=nPed?('⏳ '+nPed+' pedido(s) de acesso aguardando'):'ferramentas da convivência';
+      const dobra=document.getElementById('seg-fb-dobra');
+      if(dobra && nPed) dobra.open=true;
     });
   }
 }
@@ -12621,7 +12638,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30m';
+const APP_VERSAO='2026.08.30n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
