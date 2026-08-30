@@ -52,7 +52,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v12';
+const VERSAO_WORKER = 'v13';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -297,13 +297,13 @@ function _segredoSessao(env) {
 }
 
 /* Quantas voltas de PBKDF2 cabem NESTE worker nao da para saber daqui: o
-   limite muda com o plano e com o que o runtime aceita, e 150 mil — o
-   numero que a v11 usava — nao passou. Entao a resposta e MEDIDA, uma vez,
+   limite muda com o plano e com o que o runtime aceita. Entao a resposta
+   e MEDIDA, uma vez,
    descendo a escada ate uma volta que o runtime aceite; e o numero que
    venceu fica gravado junto com a senha, porque conferir depois exige
    refazer exatamente a mesma conta. Subir o numero um dia nao invalida
    nada: cada linha lembra o seu. */
-const PBKDF2_ESCADA = [100000, 60000, 30000, 15000, 8000];
+const PBKDF2_ESCADA = [150000, 100000, 60000, 30000, 15000, 8000];
 let _voltasBoas = 0;
 
 // PBKDF2: transformar a senha em algo de onde ela não volta
@@ -385,22 +385,36 @@ async function _conferirTokenProprio(env, bruto) {
   }
 }
 
+/* A v11 acrescentou colunas a uma tabela que ja existia, por ALTER TABLE,
+   com o erro engolido por um catch — "a coluna ja estava la" era o caso
+   esperado. Quando o ALTER nao pegou, o catch apagou o motivo e o SELECT
+   seguinte estourava como "falha-no-worker", sem dizer nada.
+
+   Nao ha remendo para isso que valha a pena: a tabela nasce COMPLETA,
+   com outro nome, e a antiga vai embora. Sem ALTER, sem forma herdada,
+   sem caminho onde a diferenca entre "ja estava la" e "nao deu" fique
+   invisivel. Custa a cada pessoa entrar mais uma vez — e so. */
+const TABELA_SENHAS = 'senhas';
 let _tabelaUsuariosOk = false;
 async function garantirTabelaUsuarios(env) {
   if (_tabelaUsuariosOk) return;
   await env.DADOS.prepare(
-    'CREATE TABLE IF NOT EXISTS usuarios (' +
+    'CREATE TABLE IF NOT EXISTS ' + TABELA_SENHAS + ' (' +
     ' chave TEXT PRIMARY KEY, sal TEXT NOT NULL, hash TEXT NOT NULL,' +
     ' uid TEXT, iter INTEGER, ts INTEGER NOT NULL)'
   ).run();
-  /* Banco criado pela v10 nao tem a coluna `uid`. Acrescenta-la aqui e o
-     que evita rodar SQL a mao: o erro de "ja existe" e o caso normal
-     depois da primeira vez, nao um defeito. */
-  for (const col of ['uid TEXT', 'iter INTEGER']) {
-    try {
-      await env.DADOS.prepare('ALTER TABLE usuarios ADD COLUMN ' + col).run();
-    } catch (e) { /* a coluna ja estava la */ }
-  }
+
+  /* Conferir em vez de supor. Se um dia faltar coluna, a mensagem diz
+     QUAL — em vez de sair um "falha-no-worker" no primeiro SELECT. */
+  const info = await env.DADOS.prepare('PRAGMA table_info(' + TABELA_SENHAS + ')').all();
+  const tem = {};
+  (info.results || []).forEach(c => { tem[c.name] = true; });
+  const faltam = ['chave', 'sal', 'hash', 'uid', 'iter', 'ts'].filter(c => !tem[c]);
+  if (faltam.length) throw new Error('tabela ' + TABELA_SENHAS + ' sem as colunas: ' + faltam.join(', '));
+
+  /* A tabela da v10 guardava hash de senha e nao serve mais para nada.
+     Deixa-la parada seria guardar segredo sem dono. */
+  try { await env.DADOS.prepare('DROP TABLE IF EXISTS usuarios').run(); } catch (e) { /* nao atrapalha */ }
   _tabelaUsuariosOk = true;
 }
 
@@ -447,7 +461,7 @@ async function atenderAuth(req, env, url) {
       return respostaJson(401, { erro: 'chave-invalida' });
     }
     if (url.pathname === '/auth/semeados') {
-      const r = await env.DADOS.prepare('SELECT chave, ts FROM usuarios ORDER BY chave').all();
+      const r = await env.DADOS.prepare('SELECT chave, ts FROM ' + TABELA_SENHAS + ' ORDER BY chave').all();
       const lista = (r.results || []).map(x => ({
         chave: x.chave, desde: new Date(x.ts).toISOString(),
       }));
@@ -459,7 +473,7 @@ async function atenderAuth(req, env, url) {
     if (req.method !== 'POST') return respostaJson(405, { erro: 'metodo-nao-suportado' });
     const alvo = String(url.searchParams.get('chave') || '').trim().toLowerCase();
     if (!alvo) return respostaJson(400, { erro: 'falta-chave' });
-    await env.DADOS.prepare('DELETE FROM usuarios WHERE chave = ?1').bind(alvo).run();
+    await env.DADOS.prepare('DELETE FROM ' + TABELA_SENHAS + ' WHERE chave = ?1').bind(alvo).run();
     return respostaJson(200, { ok: true, soltou: alvo });
   }
 
@@ -480,7 +494,7 @@ async function atenderAuth(req, env, url) {
     const quem = await conferirToken(req, env);
     if (!quem) return respostaJson(401, { erro: 'sem-login' });
     const jaTem = await env.DADOS.prepare(
-      'SELECT uid FROM usuarios WHERE chave = ?1'
+      'SELECT uid FROM ' + TABELA_SENHAS + ' WHERE chave = ?1'
     ).bind(chave).first();
 
     /* De QUEM e o cracha apresentado? Sem esta pergunta, estar logado
@@ -510,7 +524,7 @@ async function atenderAuth(req, env, url) {
     const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer);
     const feito = await _hashSenhaNoMaximo(senha, sal);
     await env.DADOS.prepare(
-      'INSERT INTO usuarios (chave, sal, hash, uid, iter, ts) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ' +
+      'INSERT INTO ' + TABELA_SENHAS + ' (chave, sal, hash, uid, iter, ts) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ' +
       // NULLIF/COALESCE: cracha proprio nao traz uid, e um vazio nao pode
       // apagar o dono ja registrado
       'ON CONFLICT(chave) DO UPDATE SET sal = ?2, hash = ?3, ' +
@@ -521,7 +535,7 @@ async function atenderAuth(req, env, url) {
 
   if (url.pathname === '/auth/entrar') {
     const linha = await env.DADOS.prepare(
-      'SELECT sal, hash, iter FROM usuarios WHERE chave = ?1'
+      'SELECT sal, hash, iter FROM ' + TABELA_SENHAS + ' WHERE chave = ?1'
     ).bind(chave).first();
     /* "Ainda não cadastrada" é resposta própria: o sistema sabe que deve
        tentar pelo Firebase e semear em seguida. */

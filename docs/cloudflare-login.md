@@ -78,7 +78,7 @@ entrar como ele no dia em que o Firebase saísse.
 
 ## Parte 1 — na Cloudflare
 
-### 1. Colar o worker `v12`
+### 1. Colar o worker `v13`
 
 Worker `liveops-imagens` → **Edit code** → apagar tudo → colar
 `cloudflare/worker-imagens/worker.js` → **Deploy**.
@@ -89,7 +89,7 @@ Conferir, e conferir de verdade — abrir no navegador:
 https://liveops-imagens.carlosmagnoav94.workers.dev/saude
 ```
 
-Precisa responder **`ok v12`**. Se responder outra coisa, o que está no ar
+Precisa responder **`ok v13`**. Se responder outra coisa, o que está no ar
 é uma cópia antiga: a colagem não pegou, e vale repetir antes de seguir.
 
 ### 2. Criar o segredo `SEGREDO_SESSAO` (recomendado)
@@ -111,7 +111,15 @@ porque a `CHAVE_ROBO` circula pelo n8n e um dia será trocada.
 ### 3. A tabela nasce sozinha
 
 Nada de SQL. Na primeira vez que alguém entrar, o worker cria a tabela
-`usuarios` no banco `liveops-dados`.
+`senhas` no banco `liveops-dados` — já completa, com todas as colunas.
+
+Ela nasce completa de propósito. A `v11` acrescentava colunas a uma
+tabela que já existia, por `ALTER TABLE`, com o erro engolido por um
+`catch` — "a coluna já estava lá" era o caso esperado. Quando o `ALTER`
+não pegou, o `catch` apagou o motivo e a semeadura passou a estourar como
+`falha-no-worker`, sem dizer nada. Uma tabela nova, com outro nome, não
+tem esse caminho; e a antiga (`usuarios`), que guardava hash de senha e
+não serve mais, é apagada — segredo parado sem dono não fica.
 
 ---
 
