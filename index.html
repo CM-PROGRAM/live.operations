@@ -721,7 +721,7 @@ html{overflow-x:hidden;}
 .wa-etq-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
 .wa-etq-vazio{padding:8px 8px 14px;font-size:12px;color:var(--text-muted);line-height:1.7;}
 /* ── Agenda de contatos ── */
-#wa-vista-contatos{display:flex;flex-direction:column;height:100%;}
+#wa-vista-contatos,#wa-vista-cli-antigo,#wa-vista-cli-oficial{display:flex;flex-direction:column;height:100%;}
 .wa-ct-busca{padding:0 12px 8px;}
 .wa-ct-busca input{width:100%;font-size:12.5px;}
 .wa-ct-lista{flex:1;overflow-y:auto;padding:0 8px;}
@@ -4201,6 +4201,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             onclick="waPainelLateral('contatos')" title="Contatos salvos">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H7.4A3.4 3.4 0 0 0 4 18.4V20"/><circle cx="10.5" cy="8" r="3.4"/><path d="M19 8.5v5M21.5 11h-5"/></svg>
           </button>
+          <button type="button" class="wa-rail-btn" id="wa-rail-cli-antigo"
+            onclick="waPainelLateral('cli-antigo')" title="Cliente Antigo — quem falou com a gente no número antigo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H5.4A3.4 3.4 0 0 0 2 18.4V20"/><circle cx="7.5" cy="8" r="3.4"/><circle cx="17.5" cy="15.5" r="4.3"/><path d="M17.5 13.6v1.9l1.4 1"/></svg>
+          </button>
+          <button type="button" class="wa-rail-btn" id="wa-rail-cli-oficial"
+            onclick="waPainelLateral('cli-oficial')" title="Cliente Oficial — quem fala com a gente no número atual">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H5.4A3.4 3.4 0 0 0 2 18.4V20"/><circle cx="7.5" cy="8" r="3.4"/><circle cx="17.5" cy="15.5" r="4.3"/><path d="m15.6 15.5 1.3 1.3 2.4-2.5"/></svg>
+          </button>
         </div>
         <div class="wa-lista">
           <!-- Painel 1: as conversas -->
@@ -4220,6 +4228,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <div id="wa-vista-etiquetas" style="display:none;"></div>
           <!-- Painel 3: a agenda de quem atende — contatos salvos aqui -->
           <div id="wa-vista-contatos" style="display:none;"></div>
+          <!-- Painéis 4 e 5: o cadastro de clientes por número — o antigo,
+               vindo da varredura, e o oficial, que cresce em tempo real -->
+          <div id="wa-vista-cli-antigo" style="display:none;"></div>
+          <div id="wa-vista-cli-oficial" style="display:none;"></div>
         </div>
         <div class="wa-chat">
           <div class="wa-chat-cab" id="wa-chat-cab" style="display:none;"></div>
@@ -13077,7 +13089,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31e';
+const APP_VERSAO='2026.08.31f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14589,14 +14601,65 @@ function waPainelLateral(qual){
   _waPainel=qual||'conversas';
   [['conversas','wa-vista-conversas','wa-rail-conversas'],
    ['etiquetas','wa-vista-etiquetas','wa-rail-etiquetas'],
-   ['contatos','wa-vista-contatos','wa-rail-contatos']].forEach(([nome,vista,botao])=>{
+   ['contatos','wa-vista-contatos','wa-rail-contatos'],
+   ['cli-antigo','wa-vista-cli-antigo','wa-rail-cli-antigo'],
+   ['cli-oficial','wa-vista-cli-oficial','wa-rail-cli-oficial']].forEach(([nome,vista,botao])=>{
     const v=document.getElementById(vista), b=document.getElementById(botao);
     if(v) v.style.display=_waPainel===nome?'':'none';
     if(b) b.classList.toggle('ativa',_waPainel===nome);
   });
   if(_waPainel==='etiquetas') _waPintarPainelEtiquetas();
   else if(_waPainel==='contatos') _waPintarPainelContatos();
+  else if(_waPainel==='cli-antigo') _waPintarPainelClientes('antigo');
+  else if(_waPainel==='cli-oficial') _waPintarPainelClientes('oficial');
   else inboxRender();
+}
+
+/* ── Cliente Antigo e Cliente Oficial ────────────────────────────────
+   O cadastro separado por número, como pedido: quem falou com a gente no
+   número antigo numa vista, quem fala no atual noutra. Ninguém é
+   cadastrado aqui — a vista só filtra a agenda pela caixa de origem, que
+   a varredura e o fluxo ao vivo gravam em cada contato. O mesmo cliente
+   nos dois números aparece nas duas vistas, e é um registro só. */
+const WA_CLI_VISTAS={
+  antigo:{vista:'wa-vista-cli-antigo', titulo:'Cliente Antigo', re:/antigo/i,
+    nota:'Quem falou com a gente no número antigo (caixa 2. Antigo).',
+    vazio:'Ainda vazio. Rode a varredura da caixa <b>2. Antigo</b> no n8n — cada conversa vira um cadastro aqui.'},
+  oficial:{vista:'wa-vista-cli-oficial', titulo:'Cliente Oficial', re:/oficial/i,
+    nota:'Quem fala com a gente no número atual (caixa 1. Oficial). Atendimento novo entra aqui sozinho.',
+    vazio:'Ainda vazio. Rode a varredura da caixa <b>1. Oficial</b> no n8n — e daí em diante cada atendimento novo se cadastra sozinho.'}
+};
+function _waPintarPainelClientes(tipo){
+  const cfg=WA_CLI_VISTAS[tipo]; if(!cfg) return;
+  const box=document.getElementById(cfg.vista); if(!box) return;
+  const idBusca='wa-cl-busca-'+tipo;
+  const q=_biNorm((document.getElementById(idBusca)||{}).value||'').trim();
+  const todos=_waContatos().filter(c=>cfg.re.test(String(c.caixa||'')));
+  const comCpf=todos.filter(c=>c.cpf).length;
+  const lista=todos
+    .filter(c=>!q || _biNorm([c.nome,c.sobrenome,c.telefone,c.cpf].join(' ')).includes(q))
+    .sort((a,b)=>_waNomeCompleto(a).localeCompare(_waNomeCompleto(b)));
+  const linhas=lista.length ? lista.map(c=>`
+    <div class="wa-ct-linha">
+      <span class="wa-av">${_iniEsc(_waIni(_waNomeCompleto(c)))}</span>
+      <div class="wa-ct-meio" onclick="waContatoConversar('${c.id}')">
+        <div class="wa-ct-nome">${_iniEsc(nomeProprio(_waNomeCompleto(c)))}</div>
+        <div class="wa-ct-tel">${_iniEsc(c.telefone||'')}${c.cpf?' · CPF '+_iniEsc(_cliFmtCpf(_cliSoDigitos(c.cpf))):' · <i>sem CPF</i>'}</div>
+      </div>
+    </div>`).join('')
+    : `<div class="wa-ct-vazio">${todos.length?'Nenhum cliente para essa busca.':cfg.vazio}</div>`;
+  box.innerHTML=`
+    <div class="wa-etq-cab">${cfg.titulo} · ${todos.length}</div>
+    <div style="padding:0 14px 8px;font-size:11px;line-height:1.5;color:var(--text-muted);">
+      ${cfg.nota} <b>${comCpf}</b> de <b>${todos.length}</b> com CPF.</div>
+    <div class="wa-ct-busca">
+      <input id="${idBusca}" type="text" placeholder="Buscar por nome, telefone ou CPF..."
+        value="${_iniEsc(q?((document.getElementById(idBusca)||{}).value||''):'')}"
+        oninput="_waPintarPainelClientes('${tipo}')" autocomplete="off">
+    </div>
+    <div class="wa-ct-lista">${linhas}</div>`;
+  const b=document.getElementById(idBusca);
+  if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
 }
 
 /* ── Contatos salvos ─────────────────────────────────────────────────
@@ -14616,6 +14679,20 @@ function _waContatoMelhor(a,b){
   if(pa!==pb) return pa>pb?a:b;
   return (a.criadoEm||0)<=(b.criadoEm||0)?a:b;
 }
+/* Não basta escolher o vencedor: cada mão sabe uma coisa. O salvo na tela
+   tem o CPF; o da varredura sabe de QUAL caixa o cliente veio. Escolher um
+   jogaria fora o que só o outro sabia — e o cliente sumiria da vista
+   "Cliente Antigo/Oficial" ou perderia o CPF. Mescla-se. */
+function _waContatoMesclar(a,b){
+  const v=_waContatoMelhor(a,b), p=(v===a)?b:a;
+  const m={...v};
+  if(!m.cpf && p.cpf) m.cpf=p.cpf;
+  if(!m.caixa && p.caixa) m.caixa=p.caixa;
+  if(!m.sobrenome && p.sobrenome) m.sobrenome=p.sobrenome;
+  if((!m.nome||m.nome==='Contato') && p.nome && p.nome!=='Contato') m.nome=p.nome;
+  if((p.visto||0)>(m.visto||0)) m.visto=p.visto;
+  return m;
+}
 function _waContatos(){
   const brutos=(appState.waContatos||[]).filter(Boolean);
   const porFim={}, ordem=[];
@@ -14623,7 +14700,7 @@ function _waContatos(){
     const d=_waDigitos(c.telefone);
     const chave=d.length>=8?d.slice(-8):('id:'+c.id);
     if(porFim[chave]===undefined){ porFim[chave]=c; ordem.push(chave); }
-    else porFim[chave]=_waContatoMelhor(porFim[chave],c);
+    else porFim[chave]=_waContatoMesclar(porFim[chave],c);
   });
   return ordem.map(k=>porFim[k]);
 }
