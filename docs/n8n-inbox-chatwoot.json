@@ -389,6 +389,40 @@
       ],
       "id": "Aguardar canal abrir",
       "name": "Aguardar canal abrir"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A agenda tambem se alimenta ao vivo: contato novo que fala com a gente\n// entra sozinho, sem esperar a proxima varredura do historico.\n//\n// O id sai do telefone — wct_5527999987802 — o mesmo que a varredura usa.\n// Assim a pessoa que ja veio do historico nao vira um segundo registro: e\n// o mesmo, atualizado.\nconst j = $json || {};\nconst c = j.conv || {};\nconst digitos = String(c.telefone || '').replace(/\\D/g, '');\nif (digitos.length < 10) return [];        // sem telefone nao ha agenda\n\nconst partes = String(c.nome || 'Contato').trim().split(/\\s+/);\nconst nome = (partes.shift() || 'Contato').slice(0, 40);\n\n// De proposito NAO vai cpf, nem criadoEm, nem criadoPor: como isto e um\n// PATCH no registro, campo que nao viaja fica como estava. Mandar cpf\n// vazio aqui apagaria o CPF que alguem digitou na tela.\nreturn [{ json: {\n  contatoId: 'wct_' + digitos,\n  contato: {\n    id: 'wct_' + digitos,\n    nome,\n    sobrenome: partes.join(' ').slice(0, 40),\n    telefone: c.telefone,\n    caixa: c.caixa || '',\n    visto: c.ts || Date.now(),\n  },\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        -140
+      ],
+      "id": "Contato para a agenda",
+      "name": "Contato para a agenda"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/reg/waContatos/{{ $json.contatoId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.contato) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        -140
+      ],
+      "id": "Gravar contato na agenda",
+      "name": "Gravar contato na agenda",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -413,6 +447,11 @@
           },
           {
             "node": "Gravar mensagem",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Contato para a agenda",
             "type": "main",
             "index": 0
           }
@@ -609,6 +648,17 @@
         [
           {
             "node": "Montar primeira mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contato para a agenda": {
+      "main": [
+        [
+          {
+            "node": "Gravar contato na agenda",
             "type": "main",
             "index": 0
           }

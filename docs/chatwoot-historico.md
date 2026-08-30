@@ -109,6 +109,26 @@ const PAGINAS_MAX = 20;       // 20 páginas = 500 conversas por rodada
 Rode, avance o `PAGINA_INICIAL` de 20 em 20, e repita até o Placar avisar
 que passou da última página. Para 132 páginas são 7 rodadas.
 
+## A caixa Oficial: histórico + tempo real
+
+O histórico da `1. Oficial` sai do mesmo fluxo, trocando o `CAIXA`. Mas ela
+não pode parar aí — precisa continuar entrando sozinha.
+
+Quem faz isso é o fluxo ao vivo `n8n-inbox-chatwoot`, que já recebia cada
+mensagem nova e agora também alimenta a agenda: o ramo
+**`Contato para a agenda` → `Gravar contato na agenda`**.
+
+O id do contato é o mesmo dos dois lados — `wct_<dígitos do telefone>` — então
+quem já veio do histórico **não vira um segundo registro**: é o mesmo, atualizado.
+
+A gravação ao vivo é um `PATCH` no registro, e de propósito **não** manda
+`cpf`, `criadoEm` nem `criadoPor`. Campo que não viaja fica como estava —
+se mandasse `cpf: ''`, cada mensagem nova apagaria o CPF que alguém digitou
+na tela. Ela manda `visto`, o carimbo da última interação.
+
+Resultado: o histórico é uma varredura de uma vez; daí em diante, contato
+novo que fala com a gente entra sozinho.
+
 ## O que esse fluxo NÃO traz
 
 **Todas as mensagens de cada conversa.** O endpoint de mensagens do
