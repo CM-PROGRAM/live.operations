@@ -7138,13 +7138,19 @@ function _cfSemear(chave,senha){
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
       body:JSON.stringify({chave,senha})
-    }).then(r=>r.ok ? true : r.json().then(j=>({erro:(j&&j.erro)||('http-'+r.status)})).catch(()=>({erro:'http-'+r.status})));
+    }).then(r=>r.json().then(j=>({ok:r.ok,j:j||{}})).catch(()=>({ok:r.ok,j:{erro:'http-'+r.status}})));
   }).then(r=>{
-    if(r===true){ console.log('[auth] senha registrada também na Cloudflare'); return true; }
+    if(r===false) return false;
+    if(r.ok){
+      console.log('[auth] senha registrada também na Cloudflare'
+        +(r.j.voltas?(' ('+r.j.voltas.toLocaleString('pt-BR')+' voltas de PBKDF2)'):''));
+      return true;
+    }
     /* Falhar aqui não impede ninguém de entrar hoje — mas impede de
-       entrar no dia em que o Firebase sair. Por isso o motivo aparece:
-       é a diferença entre descobrir agora e descobrir tarde demais. */
-    if(r && r.erro) console.warn('[auth][cf] a senha NÃO foi registrada na Cloudflare:',r.erro);
+       entrar no dia em que o Firebase sair. Por isso o motivo aparece
+       INTEIRO: "falha-no-worker" sozinho não é notícia, é enigma. */
+    console.warn('[auth][cf] a senha NÃO foi registrada na Cloudflare:',
+      r.j.erro||'?', r.j.detalhe||'', r.j.onde||'');
     return false;
   }).catch(err=>{ console.warn('[auth][cf] semear:',err.message); return false; });
 }
@@ -12177,7 +12183,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30a';
+const APP_VERSAO='2026.08.30b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

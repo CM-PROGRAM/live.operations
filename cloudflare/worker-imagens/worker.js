@@ -52,7 +52,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v11';
+const VERSAO_WORKER = 'v12';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -296,16 +296,44 @@ function _segredoSessao(env) {
   return env.SEGREDO_SESSAO || env.CHAVE_ROBO || '';
 }
 
+/* Quantas voltas de PBKDF2 cabem NESTE worker nao da para saber daqui: o
+   limite muda com o plano e com o que o runtime aceita, e 150 mil — o
+   numero que a v11 usava — nao passou. Entao a resposta e MEDIDA, uma vez,
+   descendo a escada ate uma volta que o runtime aceite; e o numero que
+   venceu fica gravado junto com a senha, porque conferir depois exige
+   refazer exatamente a mesma conta. Subir o numero um dia nao invalida
+   nada: cada linha lembra o seu. */
+const PBKDF2_ESCADA = [100000, 60000, 30000, 15000, 8000];
+let _voltasBoas = 0;
+
 // PBKDF2: transformar a senha em algo de onde ela não volta
-async function _hashSenha(senha, sal) {
+async function _hashSenha(senha, sal, voltas) {
   const bytesSal = b64urlBytes(sal);
   const base = await crypto.subtle.importKey(
     'raw', new TextEncoder().encode(String(senha)), { name: 'PBKDF2' }, false, ['deriveBits']
   );
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt: bytesSal, iterations: 150000, hash: 'SHA-256' }, base, 256
+    { name: 'PBKDF2', salt: bytesSal, iterations: voltas, hash: 'SHA-256' }, base, 256
   );
   return b64urlDeBytes(bits);
+}
+
+/* Devolve { voltas, hash } usando a volta mais alta que este runtime
+   aceitar. O motivo de cada recusa volta junto na excecao final: falhar
+   sem dizer por que foi exatamente o que custou esta manha. */
+async function _hashSenhaNoMaximo(senha, sal) {
+  if (_voltasBoas) return { voltas: _voltasBoas, hash: await _hashSenha(senha, sal, _voltasBoas) };
+  const recusas = [];
+  for (const v of PBKDF2_ESCADA) {
+    try {
+      const hash = await _hashSenha(senha, sal, v);
+      _voltasBoas = v;
+      return { voltas: v, hash };
+    } catch (e) {
+      recusas.push(v + ': ' + ((e && (e.name || '')) + ' ' + ((e && e.message) || '')).trim());
+    }
+  }
+  throw new Error('nenhuma volta de PBKDF2 passou — ' + recusas.join(' | '));
 }
 
 /* Comparação que leva o mesmo tempo com qualquer entrada — comparar com
@@ -363,14 +391,16 @@ async function garantirTabelaUsuarios(env) {
   await env.DADOS.prepare(
     'CREATE TABLE IF NOT EXISTS usuarios (' +
     ' chave TEXT PRIMARY KEY, sal TEXT NOT NULL, hash TEXT NOT NULL,' +
-    ' uid TEXT, ts INTEGER NOT NULL)'
+    ' uid TEXT, iter INTEGER, ts INTEGER NOT NULL)'
   ).run();
   /* Banco criado pela v10 nao tem a coluna `uid`. Acrescenta-la aqui e o
      que evita rodar SQL a mao: o erro de "ja existe" e o caso normal
      depois da primeira vez, nao um defeito. */
-  try {
-    await env.DADOS.prepare('ALTER TABLE usuarios ADD COLUMN uid TEXT').run();
-  } catch (e) { /* a coluna ja estava la */ }
+  for (const col of ['uid TEXT', 'iter INTEGER']) {
+    try {
+      await env.DADOS.prepare('ALTER TABLE usuarios ADD COLUMN ' + col).run();
+    } catch (e) { /* a coluna ja estava la */ }
+  }
   _tabelaUsuariosOk = true;
 }
 
@@ -478,25 +508,27 @@ async function atenderAuth(req, env, url) {
     }
 
     const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer);
-    const hash = await _hashSenha(senha, sal);
+    const feito = await _hashSenhaNoMaximo(senha, sal);
     await env.DADOS.prepare(
-      'INSERT INTO usuarios (chave, sal, hash, uid, ts) VALUES (?1, ?2, ?3, ?4, ?5) ' +
+      'INSERT INTO usuarios (chave, sal, hash, uid, iter, ts) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ' +
       // NULLIF/COALESCE: cracha proprio nao traz uid, e um vazio nao pode
       // apagar o dono ja registrado
       'ON CONFLICT(chave) DO UPDATE SET sal = ?2, hash = ?3, ' +
-      ' uid = COALESCE(NULLIF(?4, \'\'), uid), ts = ?5'
-    ).bind(chave, sal, hash, uid, Date.now()).run();
-    return respostaJson(200, { ok: true });
+      ' uid = COALESCE(NULLIF(?4, \'\'), uid), iter = ?5, ts = ?6'
+    ).bind(chave, sal, feito.hash, uid, feito.voltas, Date.now()).run();
+    return respostaJson(200, { ok: true, voltas: feito.voltas });
   }
 
   if (url.pathname === '/auth/entrar') {
     const linha = await env.DADOS.prepare(
-      'SELECT sal, hash FROM usuarios WHERE chave = ?1'
+      'SELECT sal, hash, iter FROM usuarios WHERE chave = ?1'
     ).bind(chave).first();
     /* "Ainda não cadastrada" é resposta própria: o sistema sabe que deve
        tentar pelo Firebase e semear em seguida. */
     if (!linha) return respostaJson(404, { erro: 'sem-cadastro' });
-    const hash = await _hashSenha(senha, linha.sal);
+    // Cada linha lembra com quantas voltas foi feita: conferir é refazer
+    // a MESMA conta, não a conta que este worker faria hoje.
+    const hash = await _hashSenha(senha, linha.sal, linha.iter || PBKDF2_ESCADA[0]);
     if (!_iguaisNoTempo(hash, linha.hash)) return respostaJson(401, { erro: 'senha-incorreta' });
     const t = await _emitirToken(env, chave);
     return respostaJson(200, { ok: true, token: t.token, exp: t.exp, chave });
@@ -788,9 +820,14 @@ export default {
        só que "o serviço não conseguiu processar", sem dizer o quê. O
        motivo volta escrito, na execução do fluxo, onde alguém vai ler. */
     if (url.pathname.indexOf('/auth/') === 0) {
-      return atenderAuth(req, env, url).catch(e =>
-        respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
-      );
+      /* O nome da exceção e a primeira linha da pilha vêm junto de
+         propósito: sem elas, "falha-no-worker" é só a notícia de que algo
+         quebrou — e uma manhã inteira se vai adivinhando o quê. */
+      return atenderAuth(req, env, url).catch(e => respostaJson(500, {
+        erro: 'falha-no-worker',
+        detalhe: [e && e.name, e && e.message].filter(Boolean).join(': ') || String(e),
+        onde: String((e && e.stack) || '').split('\n')[1] || '',
+      }));
     }
 
     if (url.pathname.indexOf('/robo/') === 0) {
