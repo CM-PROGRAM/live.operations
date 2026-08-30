@@ -52,7 +52,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v9';
+const VERSAO_WORKER = 'v10';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -112,11 +112,18 @@ async function chavesGoogle(forcar) {
 
 // Confere o token do Firebase Auth. Devolve o payload (com .sub = uid)
 // ou null. Qualquer defeito cai no null: não existe "meio autenticado".
-async function conferirToken(req) {
+async function conferirToken(req, env) {
   const bruto = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
-  return conferirTokenBruto(bruto);
+  return conferirTokenBruto(bruto, env);
 }
-async function conferirTokenBruto(bruto) {
+async function conferirTokenBruto(bruto, env) {
+  /* Dois crachás valem nesta porta: o do Firebase (enquanto ele existir)
+     e o que este worker emite. É essa convivência que permite desligar o
+     Firebase sem que ninguém fique do lado de fora. */
+  if (env) {
+    const meu = await _conferirTokenProprio(env, bruto);
+    if (meu) return meu;
+  }
   try {
     const partes = String(bruto || '').split('.');
     if (partes.length !== 3) return null;
@@ -256,6 +263,151 @@ async function repassarAoFirebase(env, caminho, metodo, corpo) {
   } catch (e) {
     return { status: 'erro-' + (e.message || 'desconhecido') };
   }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ETAPA 5 — O LOGIN PRÓPRIO
+   ══════════════════════════════════════════════════════════════════
+   Até aqui quem dizia "esta pessoa é quem diz ser" era o Firebase Auth,
+   e é por isso que ele não podia ser desligado: sem ele, o worker
+   recusaria todo mundo — inclusive as fotos e o espelho.
+
+   Agora o worker sabe fazer isso sozinho:
+
+     POST /auth/semear   (com token do Firebase)  → guarda a senha desta
+       pessoa aqui, com hash. É a ponte: no primeiro login de cada um,
+       feito pelo Firebase como sempre, a senha passa a existir também
+       deste lado. Ninguém precisa redefinir nada.
+     POST /auth/entrar   {chave, senha}           → confere e devolve um
+       token próprio, válido por 12 horas.
+
+   A senha nunca é guardada: fica só o resultado de 150 mil rodadas de
+   PBKDF2 sobre ela, com um sal por pessoa. Conferir é refazer a conta e
+   comparar — de quem tem o banco na mão, não se tira a senha de volta.
+
+   Durante a transição o worker aceita OS DOIS tokens: o do Firebase e o
+   dele. Quando todo mundo tiver entrado uma vez, o do Firebase pode
+   deixar de ser aceito — e aí o Firebase inteiro se desliga. */
+const SESSAO_HORAS = 12;
+
+function _segredoSessao(env) {
+  return env.SEGREDO_SESSAO || env.CHAVE_ROBO || '';
+}
+
+// PBKDF2: transformar a senha em algo de onde ela não volta
+async function _hashSenha(senha, sal) {
+  const bytesSal = b64urlBytes(sal);
+  const base = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(String(senha)), { name: 'PBKDF2' }, false, ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: bytesSal, iterations: 150000, hash: 'SHA-256' }, base, 256
+  );
+  return b64urlDeBytes(bits);
+}
+
+/* Comparação que leva o mesmo tempo com qualquer entrada — comparar com
+   === vazaria, pelo relógio, quantos caracteres iniciais estavam certos. */
+function _iguaisNoTempo(a, b) {
+  const x = String(a || ''), y = String(b || '');
+  if (x.length !== y.length) return false;
+  let dif = 0;
+  for (let i = 0; i < x.length; i++) dif |= x.charCodeAt(i) ^ y.charCodeAt(i);
+  return dif === 0;
+}
+
+async function _assinarHmac(env, texto) {
+  const chave = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(_segredoSessao(env)),
+    { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+  );
+  const bits = await crypto.subtle.sign('HMAC', chave, new TextEncoder().encode(texto));
+  return b64urlDeBytes(bits);
+}
+
+async function _emitirToken(env, chaveUsuario) {
+  const agora = Math.floor(Date.now() / 1000);
+  const cab = b64urlDeTexto(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const corpo = b64urlDeTexto(JSON.stringify({
+    iss: 'liveops', sub: 'lo_' + chaveUsuario, chave: chaveUsuario,
+    iat: agora, exp: agora + SESSAO_HORAS * 3600,
+  }));
+  const assinatura = await _assinarHmac(env, cab + '.' + corpo);
+  return { token: cab + '.' + corpo + '.' + assinatura, exp: (agora + SESSAO_HORAS * 3600) * 1000 };
+}
+
+// Confere um token emitido por este worker. Devolve o payload ou null.
+async function _conferirTokenProprio(env, bruto) {
+  try {
+    const partes = String(bruto || '').split('.');
+    if (partes.length !== 3) return null;
+    const cab = JSON.parse(new TextDecoder().decode(b64urlBytes(partes[0])));
+    if (cab.alg !== 'HS256') return null;
+    if (!_segredoSessao(env)) return null;
+    const esperada = await _assinarHmac(env, partes[0] + '.' + partes[1]);
+    if (!_iguaisNoTempo(esperada, partes[2])) return null;
+    const corpo = JSON.parse(new TextDecoder().decode(b64urlBytes(partes[1])));
+    if (corpo.iss !== 'liveops' || !corpo.sub) return null;
+    if ((corpo.exp || 0) <= Math.floor(Date.now() / 1000)) return null;
+    return corpo;
+  } catch (e) {
+    return null;
+  }
+}
+
+let _tabelaUsuariosOk = false;
+async function garantirTabelaUsuarios(env) {
+  if (_tabelaUsuariosOk) return;
+  await env.DADOS.prepare(
+    'CREATE TABLE IF NOT EXISTS usuarios (' +
+    ' chave TEXT PRIMARY KEY, sal TEXT NOT NULL, hash TEXT NOT NULL, ts INTEGER NOT NULL)'
+  ).run();
+  _tabelaUsuariosOk = true;
+}
+
+async function atenderAuth(req, env, url) {
+  if (!env.DADOS) return respostaJson(500, { erro: 'binding-DADOS-ausente' });
+  if (!_segredoSessao(env)) return respostaJson(500, { erro: 'sem-segredo-de-sessao' });
+  if (req.method !== 'POST') return respostaJson(405, { erro: 'metodo-nao-suportado' });
+  await garantirTabelaUsuarios(env);
+
+  const corpo = await req.json().catch(() => null);
+  const chave = String((corpo && corpo.chave) || '').trim().toLowerCase();
+  const senha = String((corpo && corpo.senha) || '');
+  if (!/^[a-z0-9_.-]{1,60}$/.test(chave) || senha.length < 4) {
+    return respostaJson(400, { erro: 'dados-invalidos' });
+  }
+
+  /* Semear é o que faz a senha existir deste lado sem ninguém redefinir
+     nada — e por isso exige que a pessoa JÁ tenha provado quem é nesta
+     mesma requisição. Sem essa prova, qualquer um escolheria a senha de
+     qualquer um. */
+  if (url.pathname === '/auth/semear') {
+    const quem = await conferirToken(req, env);
+    if (!quem) return respostaJson(401, { erro: 'sem-login' });
+    const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer);
+    const hash = await _hashSenha(senha, sal);
+    await env.DADOS.prepare(
+      'INSERT INTO usuarios (chave, sal, hash, ts) VALUES (?1, ?2, ?3, ?4) ' +
+      'ON CONFLICT(chave) DO UPDATE SET sal = ?2, hash = ?3, ts = ?4'
+    ).bind(chave, sal, hash, Date.now()).run();
+    return respostaJson(200, { ok: true });
+  }
+
+  if (url.pathname === '/auth/entrar') {
+    const linha = await env.DADOS.prepare(
+      'SELECT sal, hash FROM usuarios WHERE chave = ?1'
+    ).bind(chave).first();
+    /* "Ainda não cadastrada" é resposta própria: o sistema sabe que deve
+       tentar pelo Firebase e semear em seguida. */
+    if (!linha) return respostaJson(404, { erro: 'sem-cadastro' });
+    const hash = await _hashSenha(senha, linha.sal);
+    if (!_iguaisNoTempo(hash, linha.hash)) return respostaJson(401, { erro: 'senha-incorreta' });
+    const t = await _emitirToken(env, chave);
+    return respostaJson(200, { ok: true, token: t.token, exp: t.exp, chave });
+  }
+
+  return respostaJson(404, { erro: 'rota-desconhecida' });
 }
 
 // A tabela nasce sozinha no primeiro uso — ninguém precisa rodar SQL à mão
@@ -540,6 +692,12 @@ export default {
        Um erro aqui não pode virar "exceção não tratada": o n8n mostraria
        só que "o serviço não conseguiu processar", sem dizer o quê. O
        motivo volta escrito, na execução do fluxo, onde alguém vai ler. */
+    if (url.pathname.indexOf('/auth/') === 0) {
+      return atenderAuth(req, env, url).catch(e =>
+        respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
+      );
+    }
+
     if (url.pathname.indexOf('/robo/') === 0) {
       return atenderRobo(req, env, ctx, url).catch(e =>
         respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
@@ -556,7 +714,7 @@ export default {
       if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') {
         return respostaJson(400, { erro: 'esperava-websocket' });
       }
-      const quemRt = await conferirTokenBruto(url.searchParams.get('token') || '');
+      const quemRt = await conferirTokenBruto(url.searchParams.get('token') || '', env);
       if (!quemRt) return respostaJson(401, { erro: 'sem-login' });
       const cab = new Headers(req.headers);
       cab.set('X-Uid', quemRt.sub);
@@ -564,7 +722,7 @@ export default {
       return env.SALA.get(id).fetch(new Request('https://sala/ws', { method: 'GET', headers: cab }));
     }
 
-    const quem = await conferirToken(req);
+    const quem = await conferirToken(req, env);
     if (!quem) return respostaJson(401, { erro: 'sem-login' });
 
     // ── DADOS (etapa 2) ──────────────────────────────────────────
