@@ -13077,7 +13077,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31d';
+const APP_VERSAO='2026.08.31e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14603,8 +14603,30 @@ function waPainelLateral(qual){
    A agenda de quem atende: o telefone que se quer à mão para puxar
    conversa sem procurar. Separada dos leads da aba Clientes de
    propósito — aquela é da prospecção e alimenta outros fluxos. */
-function _waContatos(){ return (appState.waContatos||[]).filter(Boolean); }
 function _waDigitos(t){ return String(t||'').replace(/\D/g,''); }
+/* A agenda vem de duas mãos: quem salva na tela e a varredura do Chatwoot,
+   que traz milhares de uma vez. O mesmo telefone pode chegar pelas duas —
+   e a varredura usa id derivado do número (wct_5527...), enquanto o
+   cadastro na tela usa carimbo de hora. Então a lista é desduplicada aqui,
+   pelos 8 últimos dígitos, e fica o registro mais completo: quem tem CPF
+   ganha, depois quem tem nome de verdade, depois o mais antigo. */
+function _waContatoMelhor(a,b){
+  const pontos=c=>(c.cpf?4:0)+((c.nome&&c.nome!=='Contato')?2:0)+(c.sobrenome?1:0);
+  const pa=pontos(a), pb=pontos(b);
+  if(pa!==pb) return pa>pb?a:b;
+  return (a.criadoEm||0)<=(b.criadoEm||0)?a:b;
+}
+function _waContatos(){
+  const brutos=(appState.waContatos||[]).filter(Boolean);
+  const porFim={}, ordem=[];
+  brutos.forEach(c=>{
+    const d=_waDigitos(c.telefone);
+    const chave=d.length>=8?d.slice(-8):('id:'+c.id);
+    if(porFim[chave]===undefined){ porFim[chave]=c; ordem.push(chave); }
+    else porFim[chave]=_waContatoMelhor(porFim[chave],c);
+  });
+  return ordem.map(k=>porFim[k]);
+}
 function _waContatoSalvo(tel){
   const d=_waDigitos(tel); if(d.length<10) return null;
   const fim=d.slice(-8);
@@ -14696,7 +14718,15 @@ function waSalvarContatoDaConversa(id){
 function waContatoExcluir(id){
   const c=_waContatos().find(x=>x.id===id); if(!c) return;
   if(!confirmar(()=>waContatoExcluir(id), `Tirar "${nomeProprio(_waNomeCompleto(c))}" da agenda?`)) return;
-  appState.waContatos=_waContatos().filter(x=>x.id!==id);
+  /* Tira da lista CRUA, não da desduplicada: se o mesmo telefone entrou
+     pela tela e pela varredura, some com os dois — senão o gêmeo
+     escondido reaparece no lugar do que acabou de ser removido. */
+  const fim=_waDigitos(c.telefone).slice(-8);
+  appState.waContatos=(appState.waContatos||[]).filter(x=>{
+    if(!x) return false;
+    if(x.id===id) return false;
+    return !(fim.length===8 && _waDigitos(x.telefone).endsWith(fim));
+  });
   saveState(appState);
   _waPintarPainelContatos();
   try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}

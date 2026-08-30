@@ -14,7 +14,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ── O QUE AJUSTAR AQUI ───────────────────────────────────────────\n// Nada, no caso normal. O no anterior perguntou ao Chatwoot QUANTAS\n// conversas existem no total, e daqui saem todas as paginas ate cobrir\n// esse numero — janeiro incluido. Foi o erro da primeira versao: ela\n// varria 20 paginas fixas (500 conversas) e, como o Chatwoot devolve da\n// mais recente para a mais antiga, so trazia os ultimos dez dias.\n//\n// COMO RODAR (duas passadas, e de proposito):\n//\n//   1a) Assim como esta. So a lista de conversas: 132 chamadas para 3.286\n//       conversas, um minuto, e o WhatsLive ja mostra todo mundo desde\n//       janeiro com a ultima fala de cada um.\n//\n//   2a) Depois, para trazer as mensagens: TRAZER_MENSAGENS = true e\n//       PAGINAS_MAX = 20, rodando com PAGINA_INICIAL 1, 21, 41... ate o\n//       Placar dizer que a ultima pagina passou. Aqui e UMA chamada por\n//       conversa — 3.286 delas de uma vez estoura o tempo da execucao.\nconst TRAZER_MENSAGENS = false;\nconst PAGINA_INICIAL = 1;\nconst PAGINAS_MAX = 0;\n\nconst POR_PAGINA = 25;   // o Chatwoot nao deixa passar disso\nconst TETO = 600;        // trava de seguranca: 15.000 conversas\n\nconst r = $json || {};\nconst meta = (r.data && r.data.meta) || r.meta || {};\nconst total = Number(meta.all_count || 0);\nif (!total) {\n  throw new Error('O Chatwoot nao informou o total de conversas (meta.all_count). '\n    + 'Confira a credencial e se a conta e mesmo a de id 1.');\n}\n\nconst ultimaPagina = Math.min(Math.ceil(total / POR_PAGINA), TETO);\nconst fim = PAGINAS_MAX > 0\n  ? Math.min(PAGINA_INICIAL + PAGINAS_MAX - 1, ultimaPagina)\n  : ultimaPagina;\n\nconst paginas = [];\nfor (let p = PAGINA_INICIAL; p <= fim; p++) {\n  paginas.push({ json: { pagina: p, trazerMensagens: TRAZER_MENSAGENS, total, ultimaPagina } });\n}\nif (!paginas.length) {\n  throw new Error('PAGINA_INICIAL (' + PAGINA_INICIAL + ') passou da ultima pagina (' + ultimaPagina + ').');\n}\nreturn paginas;\n"
+        "jsCode": "// Quantas paginas existem: o proprio Chatwoot responde, no meta.all_count\n// da primeira chamada. Era aqui que estava o furo — a versao anterior\n// varria 20 paginas fixas e, como o Chatwoot devolve da mais recente para\n// a mais antiga, o historico parava dez dias atras.\nconst cfg = $('Resolver caixa').first().json;\nconst r = $json || {};\nconst meta = (r.data && r.data.meta) || r.meta || {};\nconst lista = (r.data && r.data.payload) || r.payload || [];\n\nconst total = Number(meta.all_count || 0);\nif (!total) {\n  throw new Error('O Chatwoot nao informou o total de conversas da caixa \"'\n    + cfg.caixaNome + '\". Confira a credencial e o id da conta.');\n}\n// O tamanho da pagina vem observado, nao chutado: se um dia o Chatwoot\n// mudar de 25 para outro numero, a conta continua certa.\nconst porPagina = lista.length || 25;\nconst TETO = 600;\n\nconst ultimaPagina = Math.min(Math.ceil(total / porPagina), TETO);\nconst fim = cfg.paginasMax > 0\n  ? Math.min(cfg.paginaInicial + cfg.paginasMax - 1, ultimaPagina)\n  : ultimaPagina;\n\nconst paginas = [];\nfor (let p = cfg.paginaInicial; p <= fim; p++) {\n  paginas.push({ json: {\n    pagina: p,\n    url: cfg.urlBase + '&page=' + p,\n    trazerMensagens: cfg.trazerMensagens,\n    corte: cfg.corte,\n    mapaCaixas: cfg.mapaCaixas,\n    total, ultimaPagina, caixaNome: cfg.caixaNome,\n  } });\n}\nif (!paginas.length) {\n  throw new Error('PAGINA_INICIAL (' + cfg.paginaInicial + ') passou da ultima pagina ('\n    + ultimaPagina + ') da caixa \"' + cfg.caixaNome + '\".');\n}\nreturn paginas;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -27,7 +27,20 @@
     },
     {
       "parameters": {
-        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/conversations?status=all&assignee_type=all&page=1",
+        "jsCode": "// ── O QUE AJUSTAR AQUI — e so aqui ───────────────────────────────\n//\n// CAIXA: qual caixa de entrada varrer. '' (vazio) = todas.\n//   Vale o nome como aparece no Chatwoot ('2. Antigo', '1. Oficial') ou\n//   so um pedaco dele ('antigo'). Comece pela Antigo, que e a que tem os\n//   contatos que ainda nao estao no nosso banco.\n//\n// CRIADO_ANTES: 'AAAA-MM-DD' traz so as conversas criadas antes dessa\n//   data; '' traz todas. E o mesmo filtro \"Criado em / e menos que\" da\n//   tela do Chatwoot.\n//\n// TRAZER_MENSAGENS: false = so a lista de conversas e a agenda de\n//   contatos (rapido). true = traz tambem as mensagens, e ai e UMA\n//   chamada por conversa: use com PAGINAS_MAX para ir em blocos.\n//\n// PAGINA_INICIAL / PAGINAS_MAX: 1 e 0 varrem tudo. Para ir em blocos,\n//   PAGINAS_MAX = 20 e va avancando PAGINA_INICIAL: 1, 21, 41...\nconst CAIXA = '2. Antigo';\nconst CRIADO_ANTES = '';\nconst TRAZER_MENSAGENS = false;\nconst PAGINA_INICIAL = 1;\nconst PAGINAS_MAX = 0;\n\nconst BASE = 'https://chat.suplelive.com.br/api/v1/accounts/1/conversations'\n           + '?status=all&assignee_type=all';\n\nconst r = $json || {};\nconst caixas = r.payload || r.data || [];\nconst nomes = caixas.map(i => i.name || '').filter(Boolean);\n\nlet caixaId = '', caixaNome = 'todas as caixas';\nif (String(CAIXA).trim()) {\n  const alvo = String(CAIXA).trim().toLowerCase();\n  const achada = caixas.find(i => String(i.name || '').toLowerCase() === alvo)\n              || caixas.find(i => String(i.name || '').toLowerCase().indexOf(alvo) >= 0);\n  if (!achada) {\n    throw new Error('Nao achei a caixa \"' + CAIXA + '\". As que existem: ' + (nomes.join(' | ') || 'nenhuma'));\n  }\n  caixaId = String(achada.id);\n  caixaNome = achada.name;\n}\n\n// O corte por data e feito depois, ao converter: o endpoint de listagem\n// do Chatwoot nao aceita filtro de data — so a tela dele aceita.\nlet corte = 0;\nif (String(CRIADO_ANTES).trim()) {\n  corte = Date.parse(String(CRIADO_ANTES).trim() + 'T00:00:00Z');\n  if (!corte) throw new Error('CRIADO_ANTES precisa ser AAAA-MM-DD (ex.: 2026-08-30).');\n}\n\nconst url = BASE + (caixaId ? ('&inbox_id=' + caixaId) : '');\n// Os nomes das caixas viajam junto para o Converter nao ter que pedi-los\n// de novo — sao os mesmos para a varredura inteira.\nconst mapaCaixas = {};\ncaixas.forEach(i => { mapaCaixas[i.id] = i.name || ''; });\n\nreturn [{ json: {\n  caixaId, caixaNome, mapaCaixas, corte,\n  trazerMensagens: TRAZER_MENSAGENS,\n  paginaInicial: PAGINA_INICIAL,\n  paginasMax: PAGINAS_MAX,\n  urlBase: url,\n  urlContagem: url + '&page=1',\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ],
+      "id": "Resolver caixa",
+      "name": "Resolver caixa"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.urlContagem }}",
         "method": "GET",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
@@ -63,7 +76,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations?status=all&assignee_type=all&page={{ $json.pagina }}",
+        "url": "={{ $json.url }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {
@@ -87,7 +100,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Cada conversa do Chatwoot vira um registro no formato que o Inbox ja\n// desenha — o MESMO de sempre, para historico e mensagem nova ficarem\n// indistinguiveis na tela.\n//\n// Nao filtra por caixa de proposito: assim o numero novo e o antigo\n// entram na mesma varredura, que e o que se quer ao trazer o historico.\nconst caixas = {};\ntry {\n  const lc = $('Listar caixas').first().json;\n  (lc.payload || lc.data || []).forEach(i => { caixas[i.id] = i.name || ''; });\n} catch (e) { /* sem os nomes, o Inbox so nao mostra o selo da caixa */ }\n\nconst saida = [];\nfor (const item of $input.all()) {\n  const r = item.json || {};\n  const lista = (r.data && r.data.payload) || r.payload || [];\n  for (const c of lista) {\n    const num = c.id;                    // display_id da conversa\n    if (!num) continue;\n    const contato = (c.meta && c.meta.sender) || {};\n    const ultima = c.last_non_activity_message || {};\n    const mtU = ultima.message_type;\n    const deU = ultima.private === true ? 'nota'\n              : (mtU === 1 || mtU === 3 || mtU === 'outgoing' || mtU === 'template') ? 'agente'\n              : 'cliente';\n    let ts = (c.timestamp || c.last_activity_at || ultima.created_at || 0);\n    if (ts && ts < 1e12) ts = ts * 1000;\n    let texto = String(ultima.content || '').trim();\n    if (!texto && Array.isArray(ultima.attachments) && ultima.attachments.length) {\n      const tipos = { image: 'imagem', audio: 'audio', video: 'video', file: 'arquivo' };\n      texto = '[' + (tipos[ultima.attachments[0].file_type] || 'anexo') + ']';\n    }\n    saida.push({ json: {\n      convId: 'cw_' + num,\n      convNum: num,\n      trazerMensagens: item.json.trazerMensagens !== false,\n      conv: {\n        id: 'cw_' + num,\n        nome: contato.name || 'Contato',\n        telefone: String(contato.phone_number || '').trim(),\n        caixa: caixas[c.inbox_id] || '',\n        ultima: texto.slice(0, 120),\n        deUltima: deU,\n        ts: ts || Date.now(),\n      },\n    } });\n  }\n}\nreturn saida;"
+        "jsCode": "// Cada conversa do Chatwoot vira DUAS coisas: o registro que o WhatsLive\n// desenha na caixa e o contato que vai para a agenda. O formato e o mesmo\n// do fluxo ao vivo, para historico e mensagem nova ficarem indistinguiveis.\nconst saida = [];\nfor (const item of $input.all()) {\n  const cfg = item.json || {};\n  const caixas = cfg.mapaCaixas || {};\n  const corte = Number(cfg.corte || 0);\n  const r = cfg;\n  const lista = (r.data && r.data.payload) || r.payload || [];\n\n  for (const c of lista) {\n    const num = c.id;                    // display_id da conversa\n    if (!num) continue;\n\n    let criada = Number(c.created_at || 0);\n    if (criada && criada < 1e12) criada = criada * 1000;\n    // O mesmo \"Criado em / e menos que\" da tela do Chatwoot, feito aqui\n    // porque o endpoint de listagem nao aceita filtro de data.\n    if (corte && criada && criada >= corte) continue;\n\n    const contato = (c.meta && c.meta.sender) || {};\n    const ultima = c.last_non_activity_message || {};\n    const mtU = ultima.message_type;\n    const deU = ultima.private === true ? 'nota'\n              : (mtU === 1 || mtU === 3 || mtU === 'outgoing' || mtU === 'template') ? 'agente'\n              : 'cliente';\n    let ts = (c.timestamp || c.last_activity_at || ultima.created_at || 0);\n    if (ts && ts < 1e12) ts = ts * 1000;\n    let texto = String(ultima.content || '').trim();\n    if (!texto && Array.isArray(ultima.attachments) && ultima.attachments.length) {\n      const tipos = { image: 'imagem', audio: 'audio', video: 'video', file: 'arquivo' };\n      texto = '[' + (tipos[ultima.attachments[0].file_type] || 'anexo') + ']';\n    }\n\n    const tel = String(contato.phone_number || '').trim();\n    const digitos = tel.replace(/\\D/g, '');\n    const cpf = String((contato.custom_attributes && contato.custom_attributes.cpf) || '')\n      .replace(/\\D/g, '');\n    const caixa = caixas[c.inbox_id] || '';\n\n    saida.push({ json: {\n      convId: 'cw_' + num,\n      convNum: num,\n      trazerMensagens: cfg.trazerMensagens !== false,\n      conv: {\n        id: 'cw_' + num,\n        nome: contato.name || 'Contato',\n        telefone: tel,\n        caixa,\n        ultima: texto.slice(0, 120),\n        deUltima: deU,\n        ts: ts || Date.now(),\n      },\n      contato: {\n        nome: contato.name || 'Contato',\n        telefone: tel,\n        digitos,\n        cpf: cpf.length === 11 ? cpf : '',\n        criadoEm: criada || ts || Date.now(),\n        caixa,\n      },\n    } });\n  }\n}\nreturn saida;\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -206,7 +219,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// O placar da varredura. Agora ele sabe o tamanho do alvo, entao da para\n// conferir de olho se veio tudo — e nao ficar adivinhando se falta pagina.\nlet conversas = 0, mensagens = 0, falhas = 0, total = 0, paginas = 0;\ntry {\n  const p = $('Paginas a varrer').all();\n  paginas = p.length;\n  total = Number(p[0].json.total || 0);\n} catch (e) {}\ntry { $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); }); } catch (e) {}\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.ok === false || j.erro) falhas++;\n}\n\nconst faltou = total && conversas < total - 5;   // margem: conversas criadas durante a varredura\nreturn [{ json: {\n  totalNoChatwoot: total,\n  paginasVarridas: paginas,\n  conversas,\n  mensagens,\n  falhas,\n  recado: !conversas\n    ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'\n    : (faltou\n      ? ('Vieram ' + conversas + ' de ' + total + ' conversas. Faltou gente: rode de novo, '\n         + 'ou quebre em blocos com PAGINA_INICIAL / PAGINAS_MAX no no \"Paginas a varrer\".')\n      : ('Varredura completa: ' + conversas + ' conversa(s) de ' + total + ' e '\n         + mensagens + ' mensagem(ns). Nao precisa rodar de novo.')),\n} }];\n"
+        "jsCode": "// O placar da varredura. Agora ele sabe o tamanho do alvo, entao da para\n// conferir de olho se veio tudo — e nao ficar adivinhando se falta pagina.\nlet conversas = 0, mensagens = 0, falhas = 0, total = 0, paginas = 0;\ntry {\n  const p = $('Paginas a varrer').all();\n  paginas = p.length;\n  total = Number(p[0].json.total || 0);\n} catch (e) {}\ntry { $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); }); } catch (e) {}\nlet contatos = 0, caixa = '';\ntry { $('Montar agenda').all().forEach(i => { contatos += (i.json.quantas || 0); }); } catch (e) {}\ntry { caixa = $('Paginas a varrer').first().json.caixaNome || ''; } catch (e) {}\nfor (const item of $input.all()) {\n  const j = item.json || {};\n  if (j.ok === false || j.erro) falhas++;\n}\n\n// Com corte por data, vir menos que o total e o esperado — nao e falha.\nlet cortou = false, bloco = false;\ntry {\n  const cfg = $('Resolver caixa').first().json;\n  cortou = !!cfg.corte;\n  bloco = cfg.paginasMax > 0 || cfg.paginaInicial > 1;\n} catch (e) {}\nconst faltou = total && !cortou && !bloco && conversas < total - 5;\nreturn [{ json: {\n  caixa,\n  totalNoChatwoot: total,\n  paginasVarridas: paginas,\n  conversas,\n  contatos,\n  mensagens,\n  falhas,\n  recado: !conversas\n    ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'\n    : (faltou\n      ? ('Vieram ' + conversas + ' de ' + total + ' conversas. Faltou gente: rode de novo, '\n         + 'ou quebre em blocos com PAGINA_INICIAL / PAGINAS_MAX no no \"Resolver caixa\".')\n      : ((bloco ? 'Bloco concluido' : 'Varredura completa') + ' da caixa \"' + caixa + '\": ' + conversas + ' conversa(s) de '\n         + total + ', ' + contatos + ' contato(s) na agenda e ' + mensagens\n         + ' mensagem(ns). Nao precisa rodar de novo.')),\n} }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -216,6 +229,40 @@
       ],
       "id": "Placar",
       "name": "Placar"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A agenda: cada conversa varrida carrega um contato, e e ele que o\n// pedido \"alimentar nosso novo banco de dados\" quer guardar.\n//\n// O id sai do telefone, nao do relogio: 'wct_5527999987802'. Assim rodar\n// a varredura duas vezes reescreve o MESMO registro em vez de encher a\n// agenda de gente repetida — e o mesmo contato visto na caixa Antigo e na\n// Oficial vira um so.\nconst BLOCO = 200;\nconst quem = 'varredura do Chatwoot';\n\nconst porTelefone = {};\nfor (const item of $input.all()) {\n  const c = (item.json || {}).contato;\n  if (!c || !c.digitos || c.digitos.length < 10) continue;\n  const id = 'wct_' + c.digitos;\n  const ja = porTelefone[id];\n  // Entre duas visitas ao mesmo numero, fica a mais completa: nome de\n  // verdade ganha de \"Contato\", e quem tem CPF ganha de quem nao tem.\n  if (ja) {\n    const melhorNome = (!ja.nome || ja.nome === 'Contato') && c.nome && c.nome !== 'Contato';\n    const ganhouCpf = !ja.cpf && c.cpf;\n    if (!melhorNome && !ganhouCpf) continue;\n  }\n  const partes = String(c.nome || 'Contato').trim().split(/\\s+/);\n  const nome = (partes.shift() || 'Contato').slice(0, 40);\n  porTelefone[id] = {\n    id,\n    nome,\n    sobrenome: partes.join(' ').slice(0, 40),\n    telefone: c.telefone,\n    cpf: c.cpf || '',\n    criadoEm: c.criadoEm || Date.now(),\n    criadoPor: quem,\n    caixa: c.caixa || '',\n  };\n}\n\nconst ids = Object.keys(porTelefone);\nconst saida = [];\nfor (let i = 0; i < ids.length; i += BLOCO) {\n  const mapa = {};\n  ids.slice(i, i + BLOCO).forEach(k => { mapa[k] = porTelefone[k]; });\n  saida.push({ json: { corpo: mapa, quantas: Object.keys(mapa).length } });\n}\nreturn saida.length ? saida : [{ json: { corpo: {}, quantas: 0 } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        -320
+      ],
+      "id": "Montar agenda",
+      "name": "Montar agenda"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/reg/waContatos.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -320
+      ],
+      "id": "Gravar contatos no LiveOps",
+      "name": "Gravar contatos no LiveOps",
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -234,7 +281,7 @@
       "main": [
         [
           {
-            "node": "Contar conversas",
+            "node": "Resolver caixa",
             "type": "main",
             "index": 0
           }
@@ -268,6 +315,11 @@
         [
           {
             "node": "Agrupar conversas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Montar agenda",
             "type": "main",
             "index": 0
           },
@@ -350,6 +402,39 @@
         [
           {
             "node": "Paginas a varrer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver caixa": {
+      "main": [
+        [
+          {
+            "node": "Contar conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar agenda": {
+      "main": [
+        [
+          {
+            "node": "Gravar contatos no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar contatos no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Placar",
             "type": "main",
             "index": 0
           }

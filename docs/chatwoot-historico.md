@@ -14,6 +14,44 @@ Agora o fluxo pergunta ao Chatwoot quantas conversas existem
 (`meta.all_count`) e monta sozinho todas as páginas até cobrir esse número.
 Para 3.286 conversas, são 132 páginas.
 
+## Varrer uma caixa por vez, e alimentar a agenda
+
+Toda a configuração fica num nó só: **Resolver caixa**.
+
+```js
+const CAIXA = '2. Antigo';   // '' = todas. Aceita pedaço do nome ('antigo')
+const CRIADO_ANTES = '';     // 'AAAA-MM-DD' = o "Criado em / é menos que" da tela
+const TRAZER_MENSAGENS = false;
+const PAGINA_INICIAL = 1;
+const PAGINAS_MAX = 0;       // 0 = tudo
+```
+
+Se o nome da caixa não existir, o fluxo para e diz quais existem — em vez
+de varrer a caixa errada em silêncio.
+
+Cada conversa varrida alimenta **duas** coisas: a caixa do WhatsLive e a
+**agenda de contatos** (`Nome`, `Sobrenome`, `Telefone`, `CPF`).
+
+O id do contato sai do telefone — `wct_5527999987802` — e não do relógio.
+Consequências, todas boas:
+
+- rodar a varredura duas vezes **reescreve** o mesmo registro, não duplica;
+- o mesmo cliente visto na `2. Antigo` e na `1. Oficial` vira **um** contato;
+- quem já estava salvo à mão não vira gêmeo: a agenda junta pelos 8 últimos
+  dígitos e mostra o registro mais completo (quem tem CPF ganha).
+
+O **CPF** vem de `custom_attributes.cpf` no Chatwoot — o mesmo campo que o
+LiveOps preenche ao cadastrar um contato. Quem não tiver o atributo
+preenchido lá entra na agenda sem CPF, para você completar depois.
+
+## A ordem sugerida
+
+1. `CAIXA = '2. Antigo'`, como vem — traz as conversas antigas e joga todos
+   aqueles contatos na agenda.
+2. `CAIXA = '1. Oficial'` — a trajetória de quem está ativo hoje.
+3. Só então `TRAZER_MENSAGENS = true`, com `PAGINAS_MAX = 20`, caixa por
+   caixa, avançando o `PAGINA_INICIAL` de 20 em 20.
+
 ## Como rodar
 
 ### 1ª passada — as conversas (rápida)
@@ -40,6 +78,8 @@ const TRAZER_MENSAGENS = true;
 const PAGINA_INICIAL = 1;     // depois 21, 41, 61...
 const PAGINAS_MAX = 20;       // 20 páginas = 500 conversas por rodada
 ```
+
+(no nó **Resolver caixa**, não no `Paginas a varrer` — esse agora só faz a conta)
 
 Rode, avance o `PAGINA_INICIAL` de 20 em 20, e repita até o Placar avisar
 que passou da última página. Para 132 páginas são 7 rodadas.
