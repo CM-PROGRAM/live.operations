@@ -7311,7 +7311,11 @@ function migrarDadosParaCloudflare(){
     {nome:'backups', niveis:2},
     {nome:'reg', niveis:2},
     {nome:'arquivo', niveis:2},
-    {nome:'inbox', niveis:2},
+    /* conv e msg entram separados de propósito: o robô grava cada mensagem
+       como registro próprio (inbox/msg/<conversa> → <mensagem>), e a cópia
+       precisa produzir exatamente essa forma para as duas se encontrarem. */
+    {nome:'inbox/conv', niveis:1},
+    {nome:'inbox/msg', niveis:2},
     /* logs: o histórico por registro tem um nível a mais que o índice
        geral — por isso o _geral entra como ramo próprio e sai do outro */
     {nome:'logs/_geral', niveis:1},
@@ -9259,7 +9263,7 @@ function diagnosticarBloqueio(){
       titulo+'. '+como+' Enquanto isso, o que você faz fica salvo só neste navegador.','');
     return Promise.resolve();
   }
-  return db.ref(FB_AUTORIZADOS+'/'+uid).once('value')
+  return _lerAutorizado(uid)
     .then(snap=>{
       if(snap.exists()){
         // Autenticado e aprovado: o problema é outro (regra ou caminho)
@@ -9366,7 +9370,7 @@ function reverificarAcesso(){
   showToast('Verificando o acesso...','info');
   const uid=_uidAtual();
   if(!uid){ return diagnosticarBloqueio(); }
-  return db.ref(FB_AUTORIZADOS+'/'+uid).once('value')
+  return _lerAutorizado(uid)
     .then(snap=>{
       if(!snap.exists()) return diagnosticarBloqueio();
       _souAutorizado=true;
@@ -9719,7 +9723,12 @@ function _gravarPacotePorPartes(payload){
 // "reivindicar" cada item antes de importar — evita duplicidade se houver
 // mais de uma sessão master aberta ao mesmo tempo.
 function startExternalTasksListener(){
-  if(!db || !fbConnected || !currentUser || !currentUser.master) return;
+  if(!currentUser || !currentUser.master) return;
+  /* Pela Cloudflare a fila chega pela sala; a reivindicação atômica do
+     Firebase não existe aqui, mas só o master processa e ele tem uma
+     sessão por vez — a marca _imported no próprio registro basta. */
+  if(_cfLeituraAtiva){ _cfFilaExternasCarregar(); return; }
+  if(!db || !fbConnected) return;
   db.ref(FB_EXT_TASKS_PATH).on('child_added', snap => {
     const key = snap.key;
     const item = snap.val();
@@ -9740,6 +9749,31 @@ function stopExternalTasksListener(){
   if(db) db.ref(FB_EXT_TASKS_PATH).off('child_added');
 }
 
+/* Tira o item da fila dos dois lados. Deixar só no Firebase faria a
+   tarefa ser importada de novo a cada abertura de quem lê pela Cloudflare. */
+function _filaExternaRemover(key){
+  _espelharCaminho(FB_EXT_TASKS_PATH+'/'+key, null);
+  try{ if(db && fbConnected) db.ref(FB_EXT_TASKS_PATH+'/'+key).remove(); }catch(e){}
+}
+
+/* A fila de tarefas que o n8n cria, lida pelo espelho. Só o master passa
+   por aqui, e a sala avisa quando um item novo entra. */
+let _cfFilaExtTimer=null;
+function _cfFilaExternasCarregar(){
+  if(!currentUser || !currentUser.master) return;
+  clearTimeout(_cfFilaExtTimer);
+  _cfFilaExtTimer=setTimeout(()=>{
+    cfLerComoObjeto('atividadesExternas')
+      .then(fila=>{
+        Object.entries(fila).forEach(([key,item])=>{
+          if(!item || item._imported) return;
+          try{ importExternalTask(key, item); }catch(e){ console.warn('[n8n][cf]',key,e.message); }
+        });
+      })
+      .catch(err=>console.warn('[cf] fila de tarefas externas:',err.message));
+  },400);
+}
+
 function importExternalTask(key, item){
   try{
     if(!Array.isArray(appState.atividades)) appState.atividades=[];
@@ -9747,7 +9781,7 @@ function importExternalTask(key, item){
     const responsavelKey = item.responsavel && appState.users[item.responsavel] ? item.responsavel : null;
     if(!responsavelKey){
       console.warn('[n8n] tarefa externa com responsável inválido, ignorada:', key, item.responsavel);
-      db.ref(FB_EXT_TASKS_PATH+'/'+key).remove();
+      _filaExternaRemover(key);
       return;
     }
     const prioridade = ['urgente','alta','normal'].includes(item.prioridade) ? item.prioridade : 'normal';
@@ -9780,11 +9814,11 @@ function importExternalTask(key, item){
     try{ renderAtividades(); }catch(e){}
 
     // Remove da fila depois de importado com sucesso
-    db.ref(FB_EXT_TASKS_PATH+'/'+key).remove();
+    _filaExternaRemover(key);
   }catch(e){
     console.error('[n8n] erro ao importar tarefa externa:', e.message);
     // Libera o item para nova tentativa
-    db.ref(FB_EXT_TASKS_PATH+'/'+key+'/_processing').set(false);
+    try{ if(db && fbConnected) db.ref(FB_EXT_TASKS_PATH+'/'+key+'/_processing').set(false); }catch(e2){}
   }
 }
 
@@ -10162,6 +10196,23 @@ function cfLerColecao(nome,opcoes){
   return pagina('');
 }
 
+/* Um ramo inteiro do espelho no formato {chave: dados} — a mesma cara que
+   o Firebase devolvia. As telas sob demanda (segurança, backups, logs)
+   continuam lendo do mesmo jeito, só que de outra fonte. */
+function cfLerComoObjeto(colecao,opcoes){
+  return cfLerColecao(colecao,opcoes).then(linhas=>{
+    const o={};
+    linhas.forEach(l=>{ if(l.dados!=null) o[l.chave]=l.dados; });
+    return o;
+  });
+}
+// Um registro só; devolve null quando não existe
+function cfLerRegistro(colecao,chave){
+  return _cfDadosReq('registro?colecao='+encodeURIComponent(colecao)+'&chave='+encodeURIComponent(chave))
+    .then(r=>r.json()).then(r=>(r&&r.dados!==undefined)?r.dados:null)
+    .catch(()=>null);
+}
+
 // Todas as listas da operação, em {nome: [linhas]}. Uma que falhe volta
 // como null — quem chama decide o que fazer, sem derrubar o resto.
 function cfLerRegistros(){
@@ -10250,6 +10301,8 @@ function cfSalaConectar(){
     ws.onopen=()=>{
       _cfSalaTentativas=0;
       console.log('[cf][sala] conectada');
+      // Lendo pela Cloudflare, a sala é o fio: de pé, o sistema está online
+      if(_cfLeituraAtiva){ try{ updateConnectionUI(true); }catch(e){} }
       try{ ws.send(JSON.stringify({t:'ola',
         nome:(currentUser&&currentUser.name)||'',
         chave:(currentUser&&currentUser.key)||'',
@@ -10260,7 +10313,11 @@ function cfSalaConectar(){
       _cfSalaPing=setInterval(()=>{ try{ ws.send('{"t":"ping"}'); }catch(e){} }, 45000);
     };
     ws.onmessage=ev=>{ try{ _cfSalaMensagem(JSON.parse(ev.data)); }catch(e){} };
-    ws.onclose=()=>{ clearInterval(_cfSalaPing); _cfSalaReagendar(); };
+    ws.onclose=()=>{
+      clearInterval(_cfSalaPing);
+      if(_cfLeituraAtiva){ try{ updateConnectionUI(false); }catch(e){} }
+      _cfSalaReagendar();
+    };
     ws.onerror=()=>{};   // o onclose vem logo atrás e é lá que se reage
   }).catch(err=>{
     console.warn('[cf][sala] não conectou:',err.message);
@@ -10407,6 +10464,9 @@ function _cfAplicarLinhaDaSala(l){
     if(p[0]==='permissoes'){ _cfRecarregarPermissoes(); return; }
     if(p[0]==='activity'){ _cfRecarregarFeed(); return; }
     if(p[0]==='notificacoes' && currentUser && p[1]===currentUser.key){ _cfRecarregarAvisos(); return; }
+    if(p[0]==='atividadesExternas'){ _cfFilaExternasCarregar(); return; }
+    if(p[0]==='inbox' && p[1]==='conv'){ if(_waIniciado||_waNotifRef) _cfInboxCarregarConversas(); return; }
+    if(p[0]==='inbox' && p[1]==='msg' && p[2] && p[2]===_waAberta){ _cfInboxCarregarMensagens(p[2]); return; }
     if(p[0]==='forceLogout' && currentUser && p[1]===currentUser.key && !l.apagada){
       _cfDadosReq('registro?colecao='+encodeURIComponent(l.colecao)+'&chave='+encodeURIComponent(l.chave))
         .then(r=>r.json())
@@ -10539,8 +10599,9 @@ function startFirebaseSync(){
     return;
   }
 
-  // Monitor online/offline
-  db.ref('.info/connected').on('value', snap => {
+  // Monitor online/offline. Pela Cloudflare quem diz se há conexão é a
+  // sala: enquanto ela estiver de pé, o tempo real está de pé.
+  if(!_cfLeituraAtiva) db.ref('.info/connected').on('value', snap => {
     const online = snap.val() === true;
     updateConnectionUI(online);
     if(!online) showToast('Conexão perdida — reconectando...','warn');
@@ -11140,6 +11201,19 @@ const FB_AUTORIZADOS='suplelive/autorizados';
 const FB_SOLICITACOES='suplelive/solicitacoesAcesso';
 let _meuUid='', _souAutorizado=null;
 
+/* Este acesso está na lista de aprovados? Consulta a mesma resposta —
+   um objeto com .exists() e .val() — venha ela do Firebase ou do espelho,
+   para os três pontos que perguntam isso não mudarem de forma. */
+function _lerAutorizado(uid){
+  if(!uid) return Promise.resolve({exists:()=>false, val:()=>null});
+  if(_cfLeituraAtiva){
+    return cfLerRegistro('autorizados',uid)
+      .then(d=>({exists:()=>!!d, val:()=>d}));
+  }
+  if(!db) return Promise.resolve({exists:()=>false, val:()=>null});
+  return db.ref(FB_AUTORIZADOS+'/'+uid).once('value');
+}
+
 function _uidAtual(){
   try{ const u=firebase.auth().currentUser; return u?u.uid:''; }catch(e){ return ''; }
 }
@@ -11148,7 +11222,7 @@ function _uidAtual(){
 function verificarAutorizacao(){
   _meuUid=_uidAtual();
   if(!_meuUid || !db){ _souAutorizado=null; return Promise.resolve(null); }
-  return db.ref(FB_AUTORIZADOS+'/'+_meuUid).once('value')
+  return _lerAutorizado(_meuUid)
     .then(snap=>{
       _souAutorizado=snap.exists();
       if(!_souAutorizado) return _pedirAcesso();
@@ -11160,9 +11234,10 @@ function verificarAutorizacao(){
 function _pedirAcesso(){
   if(!_meuUid || !db || !currentUser) return Promise.resolve();
   const email=(currentUser.email)||_emailDoUsuario(currentUser.key);
-  return db.ref(FB_SOLICITACOES+'/'+_meuUid)
-    .set({email, nome:currentUser.name||currentUser.key, chave:currentUser.key, ts:Date.now()})
-    .catch(()=>{});
+  const pedido={email, nome:currentUser.name||currentUser.key, chave:currentUser.key, ts:Date.now()};
+  _espelharCaminho(FB_SOLICITACOES+'/'+_meuUid, pedido);
+  if(!db) return Promise.resolve();
+  return db.ref(FB_SOLICITACOES+'/'+_meuUid).set(pedido).catch(()=>{});
 }
 
 // Master aprova um pedido — a partir daí aquele acesso passa a ler/gravar
@@ -11848,7 +11923,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29l';
+const APP_VERSAO='2026.08.29n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -12993,7 +13068,10 @@ let _waIniciado=false;
 let _waRenderTimer=null;
 
 function inboxIniciar(){
-  if(_waIniciado || !db || !fbConnected) return;
+  if(_waIniciado) return;
+  // Pela Cloudflare as conversas vêm do espelho e as novas chegam pela sala
+  if(_cfLeituraAtiva){ _waIniciado=true; _cfInboxCarregarConversas(); return; }
+  if(!db || !fbConnected) return;
   _waIniciado=true;
   // As 300 conversas mais recentes; as antigas continuam no Chatwoot
   const ref=db.ref(FB_INBOX+'/conv').orderByChild('ts').limitToLast(300);
@@ -13004,7 +13082,7 @@ function inboxIniciar(){
 }
 function inboxParar(){
   try{ if(db) db.ref(FB_INBOX+'/conv').off(); }catch(e){}
-  try{ if(_waMsgConvRef) _waMsgConvRef.off(); }catch(e){}
+  try{ if(_waMsgConvRef && _waMsgConvRef.off) _waMsgConvRef.off(); }catch(e){}
   _waMsgConvRef=null; _waIniciado=false; _waAberta=null; _waConvs={}; _waMsgs={};
   inboxNotifParar();
 }
@@ -13058,33 +13136,77 @@ function _waBadgeAtualizar(){
 }
 
 let _waNotifRef=null, _waNotifDesde=0;
+
+/* O Inbox pela Cloudflare. As conversas são poucas dezenas, então vêm
+   inteiras e são ordenadas aqui — o espelho ordena por chave, e a chave
+   da conversa não diz nada sobre quando ela falou pela última vez. */
+let _cfInboxTimer=null;
+function _cfInboxCarregarConversas(){
+  clearTimeout(_cfInboxTimer);
+  _cfInboxTimer=setTimeout(()=>{
+    cfLerColecao('inbox/conv')
+      .then(linhas=>{
+        linhas.forEach(l=>{
+          if(!l.dados) return;
+          _waConvs[l.chave]=l.dados;
+          try{ _inboxAvisarDaConversa(l.chave, l.dados); }catch(e){}
+        });
+        _inboxAgendarRender();
+      })
+      .catch(err=>console.warn('[cf] inbox conversas:',err.message));
+  },250);
+}
+
+let _cfInboxMsgTimer=null;
+function _cfInboxCarregarMensagens(id){
+  if(!id) return;
+  clearTimeout(_cfInboxMsgTimer);
+  _cfInboxMsgTimer=setTimeout(()=>{
+    // As últimas 120 desta conversa, como o Firebase entregava
+    cfLerColecao('inbox/msg/'+id,{ultimos:true,limite:120})
+      .then(linhas=>{
+        if(_waAberta!==id) return;            // a pessoa já trocou de conversa
+        linhas.forEach(l=>{ if(l.dados) _waMsgs[l.chave]=l.dados; });
+        _waPintarMsgsAgendado();
+      })
+      .catch(err=>console.warn('[cf] inbox mensagens:',err.message));
+  },150);
+}
 function inboxNotifIniciar(){
-  if(_waNotifRef || !db || !fbConnected || !currentUser) return;
+  if(_waNotifRef || !currentUser) return;
   _waNotifDesde=Date.now();
+  if(_cfLeituraAtiva){ _waNotifRef='cloudflare'; _cfInboxCarregarConversas(); return; }
+  if(!db || !fbConnected) return;
   _waNotifRef=db.ref(FB_INBOX+'/conv').orderByChild('ts').limitToLast(40);
-  const trata=s=>{
-    const c=s.val()||{};
-    _waBadgeConvs[s.key]={ts:c.ts,deUltima:c.deUltima};
+  const trata=s=>_inboxAvisarDaConversa(s.key, s.val()||{});
+  _waNotifRef.on('child_added',trata);
+  _waNotifRef.on('child_changed',trata);
+}
+
+/* Uma conversa mudou: acerta a bolinha e, se for mensagem de cliente que
+   ninguém está lendo, vira aviso no sino. Vale igual venha do Firebase ou
+   da Cloudflare. */
+function _inboxAvisarDaConversa(chave,c){
+    if(!currentUser || !chave) return;
+    c=c||{};
+    _waBadgeConvs[chave]={ts:c.ts,deUltima:c.deUltima};
     try{ _waBadgeAtualizar(); }catch(e){}
     if(c.deUltima!=='cliente') return;
     if(!c.ts || c.ts<=_waNotifDesde) return;
     const painel=document.getElementById('tab-inbox');
-    const lendo=painel && painel.classList.contains('active') && _waAberta===s.key && !document.hidden;
-    if(lendo){ _waMarcarLida(s.key,c.ts); return; }
-    const id='nwa_'+String(s.key).replace(/[^a-zA-Z0-9_]/g,'');
+    const lendo=painel && painel.classList.contains('active') && _waAberta===chave && !document.hidden;
+    if(lendo){ _waMarcarLida(chave,c.ts); return; }
+    const id='nwa_'+String(chave).replace(/[^a-zA-Z0-9_]/g,'');
     const nome=nomeProprio(c.nome||'Contato');
     try{
       _refNotificacoes('suplelive/notificacoes/'+currentUser.key+'/'+id).set({
         msg:'📱 WhatsApp de '+nome+': "'+String(c.ultima||'').slice(0,90)+'"',
-        ts:c.ts, lida:false, tipo:'inbox', de:nome, alvoTipo:'inbox', alvoId:s.key
+        ts:c.ts, lida:false, tipo:'inbox', de:nome, alvoTipo:'inbox', alvoId:chave
       });
     }catch(e){}
-  };
-  _waNotifRef.on('child_added',trata);
-  _waNotifRef.on('child_changed',trata);
 }
 function inboxNotifParar(){
-  try{ if(_waNotifRef) _waNotifRef.off(); }catch(e){}
+  try{ if(_waNotifRef && _waNotifRef.off) _waNotifRef.off(); }catch(e){}
   _waNotifRef=null;
 }
 function _inboxAgendarRender(){
@@ -13276,7 +13398,9 @@ function inboxAbrir(id){
   try{ if(_waMsgConvRef) _waMsgConvRef.off(); }catch(e){}
   _waMsgs={};
   _waPintarMsgs();
-  if(db && fbConnected){
+  if(_cfLeituraAtiva){
+    _cfInboxCarregarMensagens(id);
+  } else if(db && fbConnected){
     _waMsgConvRef=db.ref(FB_INBOX+'/msg/'+id).orderByChild('ts').limitToLast(120);
     const trata=s=>{ const v=s.val(); if(v){ _waMsgs[s.key]=v; _waPintarMsgsAgendado(); } };
     _waMsgConvRef.on('child_added',trata);
