@@ -845,6 +845,20 @@ html{overflow-x:hidden;}
 .wa-msg.nota{align-self:flex-end;background:#fff3c4;border:1px solid #f0d488;
   border-top-right-radius:2px;}
 .wa-msg.nota .autor{color:#92700e;}
+/* ── Mídia dentro do balão ── */
+.wa-msg.com-midia{max-width:min(340px,72%);}
+.wa-midia{margin:2px 0 4px;display:flex;flex-direction:column;gap:4px;}
+.wa-midia img,.wa-midia video{max-width:100%;max-height:280px;border-radius:7px;display:block;
+  cursor:pointer;background:rgba(0,0,0,.05);}
+.wa-midia audio{width:100%;min-width:230px;height:38px;}
+.wa-audio{gap:2px;}
+.wa-baixar{align-self:flex-start;font-size:11px;font-family:var(--font-mono);color:#2563eb;
+  text-decoration:none;padding:2px 0;}
+.wa-baixar:hover{text-decoration:underline;}
+.wa-anexo{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#2563eb;
+  text-decoration:none;word-break:break-all;padding:4px 0;}
+.wa-anexo:hover{text-decoration:underline;}
+:root:not([data-theme="light"]) .wa-baixar,:root:not([data-theme="light"]) .wa-anexo{color:#60a5fa;}
 :root:not([data-theme="light"]) .wa-msg.nota{background:#4a3f1c;border-color:#6b5a24;color:#f3e6c0;}
 :root:not([data-theme="light"]) .wa-msg.nota .autor{color:#e3c96a;}
 :root:not([data-theme="light"]) .wa-msg{color:#e9edef;box-shadow:0 1px .5px rgba(0,0,0,.3);}
@@ -4213,6 +4227,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div class="wa-emoji-panel" id="wa-emoji-panel" style="display:none;"></div>
             <button type="button" class="wa-tpl-btn wa-emoji-btn" onclick="waEmojiAbrir()" title="Emojis">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.2"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg>
+            </button>
+            <input type="file" id="wa-arquivo" style="display:none;"
+              accept="image/*,video/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip"
+              onchange="waAnexoEscolhido(event)">
+            <button type="button" class="wa-tpl-btn" onclick="document.getElementById('wa-arquivo').click()" title="Anexar imagem ou arquivo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.05 12.25 20.2a5.5 5.5 0 0 1-7.78-7.78l9.19-9.19a3.67 3.67 0 0 1 5.19 5.19l-9.2 9.19a1.83 1.83 0 0 1-2.59-2.6l8.49-8.48"/></svg>
             </button>
             <button type="button" class="wa-tpl-btn" onclick="waTplAbrir()" title="Templates — ou digite / na mensagem">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
@@ -13046,7 +13066,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30y';
+const APP_VERSAO='2026.08.30z';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15043,6 +15063,34 @@ function inboxAbrir(id){
   inboxRender();
 }
 
+/* ── Mídia na conversa ───────────────────────────────────────────────
+   Áudio do cliente toca aqui, imagem aparece e baixa, arquivo vira link.
+   Cada um traz o botão de baixar com o nome certo.
+
+   O `onerror` não é enfeite: a URL vem do Chatwoot e, se um dia ela pedir
+   login ou o arquivo sair do ar, a imagem quebrada viraria um quadrado
+   cinza sem explicação. Assim vira um link que ao menos leva ao arquivo. */
+function _waMidiaHtml(a){
+  const url=String(a.url||''), tipo=String(a.tipo||'file').toLowerCase();
+  if(!/^https?:\/\//i.test(url)) return '';
+  const nome=String(a.nome||'').trim() || (tipo==='image'?'imagem.jpg':tipo==='audio'?'audio.ogg':tipo==='video'?'video.mp4':'arquivo');
+  const esc=_iniEsc(url), escNome=_iniEsc(nome);
+  const baixar=`<a class="wa-baixar" href="${esc}" download="${escNome}" target="_blank" rel="noopener" title="Baixar">⤓ Baixar</a>`;
+  if(tipo==='image'){
+    return `<div class="wa-midia">
+      <img src="${esc}" alt="${escNome}" loading="lazy" onclick="window.open('${esc}','_blank','noopener')"
+        onerror="this.parentNode.innerHTML='<a class=\\'wa-anexo\\' href=&quot;${esc}&quot; target=_blank rel=noopener>🖼 ${escNome} — abrir</a>'">
+      ${baixar}</div>`;
+  }
+  if(tipo==='audio'){
+    return `<div class="wa-midia wa-audio"><audio controls preload="none" src="${esc}"></audio>${baixar}</div>`;
+  }
+  if(tipo==='video'){
+    return `<div class="wa-midia"><video controls preload="metadata" src="${esc}"></video>${baixar}</div>`;
+  }
+  return `<div class="wa-midia"><a class="wa-anexo" href="${esc}" download="${escNome}" target="_blank" rel="noopener">📎 ${escNome}</a></div>`;
+}
+
 let _waPintarTimer=null;
 function _waPintarMsgsAgendado(){ clearTimeout(_waPintarTimer); _waPintarTimer=setTimeout(_waPintarMsgs,120); }
 function _waPintarMsgs(){
@@ -15077,9 +15125,16 @@ function _waPintarMsgs(){
              : (saida&&!nota?'<span class="tick azul">✓✓</span>':'');
     /* Tudo numa linha só: o balão usa white-space:pre-wrap, então qualquer
        quebra de linha do template viraria espaço em branco dentro dele. */
-    html+=`<div class="wa-msg ${saida?'out':'in'}${nota?' nota':''}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')" title="Não enviada — toque para reenviar"`:''}>`
+    /* O anexo abre dentro da conversa: áudio toca, imagem aparece e baixa,
+       arquivo vira link. Quando o texto é só o rótulo que o robô inventou
+       ("[imagem]"), ele some — a mídia já se explica. */
+    const anexos=Array.isArray(m.anexos)?m.anexos.filter(a=>a&&a.url):[];
+    const soRotulo=anexos.length && /^\[(imagem|audio|áudio|video|vídeo|arquivo|anexo)\]$/i.test(String(m.texto||'').trim());
+    const midia=anexos.map(a=>_waMidiaHtml(a)).join('');
+    html+=`<div class="wa-msg ${saida?'out':'in'}${nota?' nota':''}${anexos.length?' com-midia':''}${m._pend==='falhou'?' falhou':''}"${m._pend==='falhou'?` onclick="inboxReenviar('${_iniEsc(m._pid)}')" title="Não enviada — toque para reenviar"`:''}>`
         +`${nota?'<div class="autor">🔒 Nota interna'+(m.autor?' · '+_iniEsc(m.autor):'')+'</div>':(saida&&m.autor?`<div class="autor">${_iniEsc(m.autor)}</div>`:'')}`
-        +`${_iniEsc(m.texto||'')}<span class="meta">${hora}${tick?' '+tick:''}</span></div>`;
+        +midia
+        +`${soRotulo?'':_iniEsc(m.texto||'')}<span class="meta">${hora}${tick?' '+tick:''}</span></div>`;
   });
   box.innerHTML=html;
   box.scrollTop=box.scrollHeight;
@@ -15091,6 +15146,11 @@ function _waPintarMsgs(){
    "enviando" e vira ✓✓ quando o webhook confirma a mensagem de volta. */
 const WA_URL_ENVIA='https://webhookn8n.suplelive.com.br/webhook/chatwoot-envia';
 const WA_URL_ENVIA_NOVO='https://webhookn8n.suplelive.com.br/webhook/chatwoot-envia-novo';
+/* Anexo vai por uma porta propria: o corpo carrega o arquivo em base64,
+   e misturar isso no envio de texto tornaria o caminho mais comum do
+   Inbox refem de um payload grande. */
+const WA_URL_ANEXO='https://webhookn8n.suplelive.com.br/webhook/chatwoot-anexo';
+const WA_ANEXO_MAX = 12 * 1024 * 1024;   // o WhatsApp recusa acima disso
 let _waPendentes={};   // convId -> [{_pid, texto, de:'agente', autor, ts, _pend}]
 
 /* ── Comandos de template na conversa ──
@@ -15176,6 +15236,69 @@ function waInputTecla(e){
   return true;
 }
 
+/* ── Mandar imagem, print ou arquivo ─────────────────────────────────
+   O arquivo vai em base64 para o n8n, que o entrega ao Chatwoot como
+   anexo de verdade (multipart) — é assim que o cliente recebe no
+   WhatsApp. O que estiver escrito no campo vai junto, como legenda.
+
+   O balão aparece na hora, marcado como enviando, e se o caminho falhar
+   ele fica vermelho para reenviar — o mesmo comportamento do texto, para
+   não existirem duas regras de "deu certo?" no mesmo lugar. */
+function waAnexoEscolhido(ev){
+  const inputEl=ev&&ev.target;
+  const arq=inputEl&&inputEl.files&&inputEl.files[0];
+  if(inputEl) inputEl.value='';                 // permite reenviar o mesmo arquivo
+  if(!arq) return;
+  if(!_waAberta){ showToast('Abra uma conversa antes de anexar','warn'); return; }
+  if(String(_waAberta).indexOf('novo:')===0){
+    showToast('Mande uma mensagem de texto primeiro — o anexo precisa da conversa criada','warn'); return;
+  }
+  if(arq.size>WA_ANEXO_MAX){
+    showToast('Arquivo de '+(arq.size/1048576).toFixed(1)+' MB — o limite do WhatsApp é 12 MB','warn'); return;
+  }
+  const leitor=new FileReader();
+  leitor.onerror=()=>showToast('Não consegui ler o arquivo','error');
+  leitor.onload=()=>{
+    const dataUrl=String(leitor.result||'');
+    const base64=dataUrl.slice(dataUrl.indexOf(',')+1);
+    if(!base64){ showToast('Arquivo vazio','warn'); return; }
+    const inp=document.getElementById('wa-input');
+    const legenda=inp?inp.value.trim():'';
+    if(inp) inp.value='';
+    const quem=((currentUser&&currentUser.name)||'').trim().split(/\s+/)[0]||'?';
+    const tipo=arq.type.indexOf('image/')===0?'image'
+             : arq.type.indexOf('audio/')===0?'audio'
+             : arq.type.indexOf('video/')===0?'video':'file';
+    const p={_pid:'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+      texto:legenda, de:'agente', autor:'Manoel ('+quem+')', _quem:quem, ts:Date.now(), _pend:'enviando',
+      // aparece no balão antes mesmo de subir: quem mandou vê o que mandou
+      anexos:[{tipo, url:dataUrl, nome:arq.name}],
+      _anexo:{nome:arq.name, mime:arq.type||'application/octet-stream', base64, tipo}};
+    (_waPendentes[_waAberta]=_waPendentes[_waAberta]||[]).push(p);
+    _waPintarMsgs();
+    _waDispararAnexo(p,_waAberta);
+  };
+  leitor.readAsDataURL(arq);
+}
+function _waDispararAnexo(p,conv){
+  fetch(WA_URL_ANEXO,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({conv, texto:p.texto||'', autor:p._quem,
+      arquivo:p._anexo.base64, nomeArquivo:p._anexo.nome, mime:p._anexo.mime, tipo:p._anexo.tipo})})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r; })
+    .then(()=>{
+      /* Some quando o eco do Chatwoot trouxer a mensagem de verdade; até
+         lá o balão local fica, só sem o relógio. */
+      delete p._pend; delete p._anexo;
+      _waPintarMsgs();
+    })
+    .catch(err=>{
+      p._pend='falhou';
+      console.warn('[inbox] anexo não subiu:',err.message);
+      _waPintarMsgs();
+      showToast('Anexo não enviado — toque no balão para tentar de novo','error');
+    });
+}
+
 function inboxEnviar(){
   const inp=document.getElementById('wa-input');
   if(!inp || !_waAberta) return;
@@ -15221,6 +15344,11 @@ function inboxReenviar(pid){
   if(!p) return;
   p._pend='enviando'; p.ts=Date.now();
   _waPintarMsgs();
+  // Anexo volta pela porta do anexo; sem o arquivo em mãos, não há o que reenviar
+  if(p.anexos && p.anexos.length){
+    if(!p._anexo){ showToast('O arquivo não está mais na memória — anexe de novo','warn'); p._pend='falhou'; _waPintarMsgs(); return; }
+    _waDispararAnexo(p,_waAberta); return;
+  }
   _waDisparar(p,_waAberta);
 }
 

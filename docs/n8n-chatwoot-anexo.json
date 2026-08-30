@@ -1,0 +1,126 @@
+{
+  "name": "LiveOps → Chatwoot · Enviar anexo",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-anexo",
+        "responseMode": "onReceived",
+        "options": {
+          "allowedOrigins": "*",
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-560, 0],
+      "id": "Webhook LiveOps (anexo)",
+      "name": "Webhook LiveOps (anexo)",
+      "webhookId": "chatwoot-anexo"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vem do Inbox: {conv:'cw_123', texto, autor, arquivo(base64), nomeArquivo, mime, tipo}\n// O arquivo sai daqui como BINARIO — e assim que o Chatwoot o aceita\n// (multipart), e e assim que ele chega ao cliente no WhatsApp.\nconst b = $json.body || $json;\nconst conv = String(b.conv || '');\nconst num = conv.replace(/^cw_/, '');\nconst base64 = String(b.arquivo || '');\nif (!/^\\d+$/.test(num) || !base64) return [];\n\nconst nome = String(b.nomeArquivo || 'arquivo').slice(0, 120);\nconst mime = String(b.mime || 'application/octet-stream');\nconst quem = String(b.autor || '').trim() || '?';\nconst texto = String(b.texto || '').trim().slice(0, 4000);\nconst ts = Date.now();\n\n// O cliente ve a persona da empresa; o registro interno guarda quem mandou\nconst legenda = texto ? ('*Manoel - Suplelive:*\\n' + texto) : '';\nconst rotulos = { image: 'imagem', audio: 'audio', video: 'video' };\nconst rotulo = '[' + (rotulos[String(b.tipo || '')] || 'arquivo') + ']';\n\nreturn [{\n  json: {\n    convNum: num,\n    convId: conv,\n    msgId: 'la' + ts,\n    legenda,\n    conv: { id: conv, ultima: (texto || rotulo).slice(0, 120), deUltima: 'agente', ts },\n    msg:  { texto: texto || rotulo, de: 'agente', autor: 'Manoel (' + quem + ')', ts },\n  },\n  binary: {\n    arquivo: { data: base64, mimeType: mime, fileName: nome },\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-340, 0],
+      "id": "Preparar anexo",
+      "name": "Preparar anexo"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "attachments[]",
+              "inputDataFieldName": "arquivo"
+            },
+            {
+              "name": "content",
+              "value": "={{ $json.legenda }}"
+            },
+            {
+              "name": "message_type",
+              "value": "outgoing"
+            },
+            {
+              "name": "private",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-120, 0],
+      "id": "Enviar anexo ao Chatwoot",
+      "name": "Enviar anexo ao Chatwoot"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A resposta do Chatwoot traz a mensagem criada, com a URL do anexo ja\n// hospedada la. E ela que o LiveOps guarda: assim o balao de quem enviou\n// mostra a mesma imagem que o cliente recebeu, e nao uma copia local.\nconst prep = $('Preparar anexo').first().json;\nconst r = $json || {};\nconst brutos = Array.isArray(r.attachments) ? r.attachments : [];\nconst anexos = brutos.map(a => ({\n  tipo: String(a.file_type || 'file'),\n  url: String(a.data_url || a.file_url || ''),\n  mini: String(a.thumb_url || ''),\n  nome: String(a.file_name || ''),\n})).filter(a => a.url);\n\nconst msgId = r.id ? ('m' + r.id) : prep.msgId;\nreturn [{ json: {\n  convId: prep.convId,\n  msgId,\n  conv: prep.conv,\n  msg: Object.assign({}, prep.msg, anexos.length ? { anexos } : {}),\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [100, 0],
+      "id": "Montar registro",
+      "name": "Montar registro"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/conv/{{ $json.convId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.conv) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, -110],
+      "id": "Gravar conversa",
+      "name": "Gravar conversa"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/msg/{{ $json.convId }}/{{ $json.msgId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.msg) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [320, 110],
+      "id": "Gravar mensagem",
+      "name": "Gravar mensagem"
+    }
+  ],
+  "connections": {
+    "Webhook LiveOps (anexo)": { "main": [[{ "node": "Preparar anexo", "type": "main", "index": 0 }]] },
+    "Preparar anexo": { "main": [[{ "node": "Enviar anexo ao Chatwoot", "type": "main", "index": 0 }]] },
+    "Enviar anexo ao Chatwoot": { "main": [[{ "node": "Montar registro", "type": "main", "index": 0 }]] },
+    "Montar registro": {
+      "main": [[
+        { "node": "Gravar conversa", "type": "main", "index": 0 },
+        { "node": "Gravar mensagem", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}
