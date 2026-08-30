@@ -752,8 +752,6 @@ html{overflow-x:hidden;}
 .wa-tag-ponto{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
 .wa-tag-nome{flex:1;font-size:12px;color:var(--text-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .wa-tag-ok{color:#22c55e;font-weight:800;font-size:12px;}
-.wa-tag-x{color:var(--text-muted);font-size:15px;line-height:1;padding:0 3px;border-radius:4px;}
-.wa-tag-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
 .wa-tag-vazio{padding:10px 9px;font-size:11.5px;color:var(--text-muted);line-height:1.6;}
 
 /* ── Seletor de emojis ──
@@ -13009,7 +13007,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30u';
+const APP_VERSAO='2026.08.30v';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14662,9 +14660,8 @@ function _waTagPainelPintar(){
         <span class="wa-tag-ponto" style="background:${t.cor||'#2563eb'};"></span>
         <span class="wa-tag-nome">${_iniEsc(t.nome)}</span>
         ${marcadas.indexOf(t.id)>=0?'<span class="wa-tag-ok">✓</span>':''}
-        ${currentUser&&currentUser.master?`<span class="wa-tag-x" title="Excluir etiqueta" onclick="event.stopPropagation();waTagExcluir('${t.id}')">×</span>`:''}
       </div>`).join('')
-    : '<div class="wa-tag-vazio">Nenhuma etiqueta ainda. Crie no <b>+</b> da barra acima da lista de conversas.</div>';
+    : '<div class="wa-tag-vazio">Nenhuma etiqueta ainda. Crie no painel <b>Etiquetas</b>, no ícone ao lado da lista de conversas.</div>';
 }
 function waTagTecla(ev){
   if(ev.key==='Enter'){ ev.preventDefault(); waTagCriar(); }
