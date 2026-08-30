@@ -129,6 +129,23 @@ na tela. Ela manda `visto`, o carimbo da última interação.
 Resultado: o histórico é uma varredura de uma vez; daí em diante, contato
 novo que fala com a gente entra sozinho.
 
+## Conferir se entrou tudo
+
+Os nós de gravação estão em `continueRegularOutput`: uma falha não mata a
+varredura, o item segue com um campo de erro. Isso é bom — mas significa
+que **verde no canvas não quer dizer que tudo entrou**.
+
+Quem conta é o Placar, nos campos `falhas`, `falhasConversas`,
+`falhasMensagens` e `falhasContatos`. Se der diferente de zero, o `recado`
+avisa e a saída é simples: **rodar de novo**. Regravar sobrescreve o mesmo
+registro (a chave é o número da conversa, ou o telefone do contato), então
+não duplica nada.
+
+O que mais aparece numa varredura longa é `ETIMEDOUT` para a Cloudflare —
+timeout de rede no meio de milhares de gravações seguidas. Os três nós de
+gravação agora tentam **3 vezes**, com 2 segundos de intervalo, antes de
+desistir.
+
 ## O que esse fluxo NÃO traz
 
 **Todas as mensagens de cada conversa.** O endpoint de mensagens do
