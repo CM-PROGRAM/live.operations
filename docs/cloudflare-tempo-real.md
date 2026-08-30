@@ -130,8 +130,9 @@ ele ser desligado.
 | 4 · parte 1 | Sala + rotas de leitura no worker | ✅ publicada |
 | 4 · parte 2 | Sistema lendo pela Cloudflare (este documento) | ✅ no código, desligada por padrão |
 | 4 · parte 3 | Ligar `preferir` para todo mundo, por publicação | depois da conferência limpa em uso real |
-| 3 | Robôs do n8n gravando na Cloudflare | depois |
-| 5 | Login próprio e **desligar o Firebase** | última |
+| 3 | Robôs do n8n gravando na Cloudflare | ✅ em produção |
+| 5 | Login próprio (`cloudflare-login.md`) | ✅ no código |
+| 6 | **Desligar o Firebase** | os 7 passos em `cloudflare-login.md` |
 
 ## Custos
 

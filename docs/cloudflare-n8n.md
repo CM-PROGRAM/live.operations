@@ -196,8 +196,9 @@ que já foi gravado está nos dois lugares.
 | 1 | Imagens no R2 | ✅ em produção |
 | 2 | Espelho de todos os dados | ✅ em produção |
 | 4 | Sala de tempo real + leitura pela Cloudflare | ✅ no ar, ligada por navegador |
-| 3 | Robôs do n8n (este documento) | ✅ worker pronto — falta a troca nos fluxos |
-| 5 | Login próprio e **desligar o Firebase** | a última |
+| 3 | Robôs do n8n (este documento) | ✅ em produção |
+| 5 | Login próprio (`cloudflare-login.md`) | ✅ no código |
+| 6 | **Desligar o Firebase** | os 7 passos em `cloudflare-login.md` |
 
 Com a etapa 3 concluída e a equipe no modo `preferir`, **nada mais lê do
 Firebase**: ele passa a ser só um destino de cópia, e desligá-lo vira o
