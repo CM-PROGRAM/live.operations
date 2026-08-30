@@ -141,10 +141,24 @@ avisa e a saída é simples: **rodar de novo**. Regravar sobrescreve o mesmo
 registro (a chave é o número da conversa, ou o telefone do contato), então
 não duplica nada.
 
-O que mais aparece numa varredura longa é `ETIMEDOUT` para a Cloudflare —
-timeout de rede no meio de milhares de gravações seguidas. Os três nós de
-gravação agora tentam **3 vezes**, com 2 segundos de intervalo, antes de
-desistir.
+### O ETIMEDOUT em massa, e por que ele acontecia
+
+Na primeira varredura da `2. Antigo`, **2.507 das 3.141** gravações de
+mensagem falharam com `connect ETIMEDOUT`. Oitenta por cento. Não era
+oscilação de rede: era assimetria de ritmo.
+
+As **leituras** iam a 5 por segundo e passaram inteiras — 126 de 126
+páginas, 3.142 de 3.142 conversas. As **gravações** iam sem ritmo nenhum:
+3.141 PATCHes disparados o mais rápido que o n8n conseguisse. Como cada um
+deles faz o worker falar com a Firebase antes de responder, a fila empilha
+até a conexão nem chegar a abrir — daí o timeout ser no `connect`, e não na
+resposta.
+
+Retry não resolvia: a tentativa seguinte caía na mesma fila entupida.
+
+Agora os três nós de gravação têm o mesmo ritmo das leituras (5 por
+segundo) e 3 tentativas com 3 segundos de intervalo. A varredura fica mais
+longa — some uns 10 minutos — e é o preço de ela terminar de verdade.
 
 ## O que esse fluxo NÃO traz
 
