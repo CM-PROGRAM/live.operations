@@ -22,28 +22,74 @@ quem estiver com o LiveOps aberto vê a mudança na hora.
 1. **Colar o worker v14**: worker `liveops-imagens` → **Edit code** →
    apagar tudo → colar `cloudflare/worker-imagens/worker.js` → **Deploy**.
    Conferir no navegador: `/saude` precisa responder **`ok v14`**.
-2. **Criar a chave da API**: worker → **Settings** → **Variables and
-   Secrets** → **Add** → tipo **Secret**:
+2. **Deixar o worker reconhecer o master** (para administrar chaves pelo
+   painel do LiveOps): worker → **Settings** → **Variables and Secrets** →
+   **Add** → variável **`MASTER_CHAVE`** com o usuário do master
+   (`cmandrade`). Sem isso, o painel pede a chave do robô — que fica
+   guardada só no navegador do master.
 
-   | Nome | Valor |
-   |---|---|
-   | `CHAVE_API` | uma senha longa inventada por você (30+ caracteres) |
+Nada mais precisa ser criado: a tabela de chaves nasce sozinha no
+primeiro uso, e cada parceiro ganha a sua chave pelo painel.
 
-   É de propósito uma chave **separada** da `CHAVE_ROBO`: dá para trocar
-   ou revogar a chave de um integrador sem parar os fluxos do n8n. (Sem
-   `CHAVE_API` definida, a `CHAVE_ROBO` vale como reserva.)
+## Cada parceiro, uma chave
 
-A chave é um segredo: vive só no painel da Cloudflare e na ferramenta que
-for usar a API. **Nunca em arquivo do repositório, print ou chat.**
+No LiveOps: **Administrador → Segurança → 🔌 Parceiros & API**.
+
+Em "Novo parceiro" você dá um nome, marca **quais recursos** aquele
+parceiro enxerga e decide se ele **pode escrever**. A chave aparece
+**uma única vez** — o worker guarda apenas o SHA-256 dela, então nem
+você nem ninguém a recupera depois; perdida, revoga-se e cria-se outra.
+
+Por que uma chave por parceiro, e não uma só para todos:
+
+- **Revogar um não derruba os outros.** Parceiro que sai, ou chave que
+  vazou, morre sozinha com um clique.
+- **Escopo.** A transportadora vê `rastreios` e mais nada; o contador lê
+  `pedidos` e `vendas` sem poder escrever em lugar nenhum.
+- **Rastro.** Todo registro gravado pela API carrega `_apiPor` com o nome
+  do parceiro e `_apiEm` com a hora — "de onde veio isto?" tem resposta.
+- **Uso à vista.** O painel mostra último uso e número de chamadas de
+  cada chave.
+
+O parceiro manda a chave no cabeçalho `X-LiveOps-Chave` de cada chamada.
+Um teto de **600 chamadas por minuto** por chave segura laço desgovernado
+(responde `429` acima disso).
+
+### Mandar a chave ao parceiro
+
+Canal seguro, nunca e-mail aberto nem grupo de mensagem. Combine também
+o básico com ele: qual escopo tem, que a chave é dele e intransferível, e
+que qualquer suspeita de vazamento é motivo de revogar na hora — a
+substituição leva um minuto.
+
+### Administração por linha de comando (alternativa ao painel)
+
+```bash
+ROBO='SUA_CHAVE_ROBO'
+API='https://liveops-imagens.carlosmagnoav94.workers.dev/api/v1'
+
+# Criar
+curl -s -X POST "$API/chaves" -H "X-LiveOps-Chave: $ROBO" \
+  -H 'Content-Type: application/json' \
+  -d '{"nome":"Transportadora XYZ","recursos":["rastreios"],"escrever":true}'
+
+# Listar (nunca devolve os segredos)
+curl -s "$API/chaves" -H "X-LiveOps-Chave: $ROBO"
+
+# Revogar
+curl -s -X DELETE "$API/chaves/k7x2m9" -H "X-LiveOps-Chave: $ROBO"
+```
 
 ## Autenticação
 
 | Operação | Quem pode |
 |---|---|
-| Ler (`GET`) | chave de API **ou** o login de uma pessoa do sistema (token Bearer) |
-| Escrever (`POST/PATCH/PUT/DELETE`) | **só** chave de API |
+| Ler (`GET`) | chave de parceiro (dentro do escopo dela) **ou** o login de uma pessoa do sistema |
+| Escrever (`POST/PATCH/PUT/DELETE`) | **só** chave de parceiro com escrita liberada |
+| Administrar chaves | só o master (`MASTER_CHAVE`/`MASTER_UID` ou a `CHAVE_ROBO`) |
 
-A chave vai no cabeçalho `X-LiveOps-Chave` de cada chamada.
+O segredo `CHAVE_API`, se existir no worker, continua valendo como chave
+mestra de acesso total — útil para uma integração sua, não para parceiro.
 
 ## Recursos
 
@@ -100,7 +146,7 @@ Formato de resposta da lista:
 ## Exemplos (curl)
 
 ```bash
-CHAVE='SUA_CHAVE_API'
+CHAVE='CHAVE_DO_PARCEIRO'   # lo_xxxxxx_...
 BASE='https://liveops-imagens.carlosmagnoav94.workers.dev/api/v1'
 
 # Os pedidos mais recentes
@@ -131,8 +177,11 @@ curl -s -X PATCH "$BASE/tarefas/atv_abc123" -H "X-LiveOps-Chave: $CHAVE" \
 - O campo `firebase` nas respostas de escrita conta como foi o repasse
   (`ok`, `sem-credencial`, `http-4xx`…). Depois do desligamento do
   Firebase ele deixa de importar.
+- Todo registro gravado pela API leva `_apiPor` (nome do parceiro) e
+  `_apiEm` (quando) — o rastro de quem escreveu o quê.
 - Erros voltam sempre como `{"erro":"motivo"}` com o status HTTP certo:
-  `401` sem chave/login, `404` não achado, `413` grande demais,
+  `401` sem chave/login, `403` fora do escopo ou chave só-leitura,
+  `404` não achado, `413` grande demais, `429` ritmo excedido,
   `400` pedido malformado.
 
 ## O que a API não faz (de propósito)

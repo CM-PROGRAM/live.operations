@@ -4874,6 +4874,22 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </details>
       </div>
 
+      <!-- PARCEIROS & API — as chaves que abrem a API REST para fora.
+           Cada parceiro tem a sua, com escopo próprio: revogar um não
+           derruba os outros. -->
+      <div class="admin-panel adm-sec" data-sec="seguranca" style="display:none;" id="api-panel">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="admin-title" style="margin-bottom:0;">🔌 Parceiros &amp; API</div>
+          <button class="btn btn-sm" onclick="renderParceirosApi(true)" style="width:auto;">↻ Atualizar</button>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
+          Cada parceiro que consome a API tem uma chave própria, com escopo próprio: só os recursos
+          que você marcar, e só leitura se você não liberar a escrita. Revogar uma chave não afeta
+          as outras. O segredo aparece uma única vez, na criação.
+        </div>
+        <div id="api-corpo"></div>
+      </div>
+
       <!-- BACKUP — cópias automáticas diárias -->
       <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="backup-panel">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
@@ -8832,7 +8848,7 @@ function admAbrirSecao(sec){
     inicio:()=>{ try{renderAdmHub();}catch(e){} try{renderVisaoGeral();}catch(e){} },
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{carregarAuditoriaGeral();}catch(e){} },
     equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
-    seguranca:()=>{ try{renderSeguranca();}catch(e){} },
+    seguranca:()=>{ try{renderSeguranca();}catch(e){} try{renderParceirosApi();}catch(e){} },
     dados:()=>{ try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
                 try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){}
                 try{diagnosticarReparos();}catch(e){} }
@@ -8982,6 +8998,164 @@ function renderVisaoGeral(){
    de pé? esta sessão lê pela Cloudflare? e — a pergunta que decide o
    desligamento do Firebase — quem já tem senha no cofre novo. É o mesmo
    dado do conferirSenhasNaNuvem() do console, agora à vista do master. */
+/* ── Parceiros & API ─────────────────────────────────────────────────
+   As chaves que abrem a API REST para fora do sistema. Cada parceiro tem
+   a sua, com escopo próprio — quais recursos e se pode escrever. O
+   segredo aparece uma vez só: o worker guarda apenas o hash dele.
+
+   Para administrar, o worker precisa saber que quem pede é o master:
+   pelo próprio login (quando MASTER_CHAVE/MASTER_UID estão configurados
+   no worker) ou pela chave do robô, que fica só neste navegador. */
+/* Escape próprio deste bloco: o sistema tem vários esc() locais, e
+   nenhum global — nome de parceiro vem de fora e vai para o HTML. */
+function _apiEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+const API_RECURSOS_ROTULO={
+  pedidos:'Pedidos da Base', tarefas:'Tarefas', produtos:'Produtos (catálogo)',
+  vendas:'Vendas WhatsApp', rastreios:'Rastreios', devolucoes:'Devoluções',
+  atendimentos:'Atendimentos', acompanhamentos:'Acompanhamentos', leads:'Leads',
+  templates:'Templates', entradas:'Entradas', 'entradas-estoque':'Entradas de estoque',
+  canceladas:'Canceladas', 'canceladas-nf':'Canceladas com NF', projetos:'Projetos'
+};
+function _apiChaveRobo(){ try{ return localStorage.getItem('liveops_chave_robo')||''; }catch(e){ return ''; } }
+function apiGuardarChaveRobo(){
+  const el=document.getElementById('api-robo');
+  const v=String((el&&el.value)||'').trim();
+  try{ if(v) localStorage.setItem('liveops_chave_robo',v); else localStorage.removeItem('liveops_chave_robo'); }catch(e){}
+  showToast(v?'Chave guardada neste navegador':'Chave removida deste navegador', v?'success':'warn');
+  renderParceirosApi();
+}
+// Toda conversa com a administração de chaves passa por aqui
+function _apiFetch(caminho,opcoes){
+  const o=Object.assign({headers:{}},opcoes||{});
+  const robo=_apiChaveRobo();
+  if(robo) o.headers['X-LiveOps-Chave']=robo;
+  const pronto=robo ? Promise.resolve('') : _cfToken();
+  return pronto.then(tk=>{
+    if(tk) o.headers['Authorization']='Bearer '+tk;
+    if(o.body) o.headers['Content-Type']='application/json';
+    return fetch(CF_IMG_URL+'/api/v1'+caminho,o);
+  }).then(r=>r.json().then(j=>({status:r.status,j})).catch(()=>({status:r.status,j:null})));
+}
+/* A chave recém-criada fica aqui até o master sair da tela ou mandar
+   atualizar: ela existe só neste instante, e sumir por causa de um
+   redesenho da lista seria perdê-la para sempre. */
+let _apiChaveNova=null;
+function renderParceirosApi(esquecerChave){
+  if(esquecerChave) _apiChaveNova=null;
+  const box=document.getElementById('api-corpo');
+  if(!box) return;
+  if(!currentUser || !currentUser.master){ box.innerHTML='<div style="font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);">Só o master administra as chaves de parceiro.</div>'; return; }
+  if(typeof CF_IMG_URL==='undefined' || !CF_IMG_URL){ box.innerHTML=''; return; }
+  box.innerHTML='<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Consultando o worker…</div>';
+  _apiFetch('/chaves').then(({status,j})=>{
+    if(document.getElementById('api-corpo')!==box) return;
+    if(status===403 || status===401){
+      /* O worker não reconheceu o master. Em vez de um erro seco, o
+         caminho de saída: a chave do robô, que só o master tem, guardada
+         apenas neste navegador. */
+      box.innerHTML=`
+        <div style="border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.07);border-radius:var(--radius);padding:12px 14px;">
+          <div style="font-size:12px;font-weight:700;color:#f59e0b;font-family:var(--font-mono);margin-bottom:6px;">O worker ainda não reconhece você como master</div>
+          <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.7;margin-bottom:10px;">
+            Duas saídas: criar no worker a variável <b>MASTER_CHAVE</b> com <b>${_apiEsc((currentUser&&currentUser.key)||'')}</b>
+            (Settings → Variables), ou colar aqui a <b>chave do robô</b> — ela fica só neste navegador, nunca no sistema.
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="password" id="api-robo" placeholder="Chave do robô (X-LiveOps-Chave)" style="flex:1;min-width:240px;font-family:var(--font-mono);font-size:11.5px;">
+            <button class="btn btn-sm" style="width:auto;" onclick="apiGuardarChaveRobo()">Guardar</button>
+          </div>
+        </div>`;
+      return;
+    }
+    if(status!==200 || !j || !j.ok){
+      box.innerHTML='<div style="font-size:11.5px;color:var(--tom-vermelho);font-family:var(--font-mono);">Não deu para listar as chaves: '+_apiEsc((j&&j.erro)||('HTTP '+status))+'. O worker precisa estar na versão v14.</div>';
+      return;
+    }
+    const chaves=j.chaves||[];
+    const linhas=chaves.length ? chaves.map(c=>{
+      const escopo = (c.recursos||[]).indexOf('*')>=0 ? 'todos os recursos'
+        : (c.recursos||[]).map(r=>API_RECURSOS_ROTULO[r]||r).join(', ');
+      const uso = c.ultimoUso ? ('último uso '+new Date(c.ultimoUso).toLocaleString('pt-BR')) : 'nunca usada';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border-light);">
+        <div style="min-width:0;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">${_apiEsc(c.nome)}
+            <span style="font-family:var(--font-mono);font-size:10px;color:var(--text-muted);font-weight:400;">· ${_apiEsc(c.id)}</span>
+            <span style="font-size:9.5px;font-weight:700;font-family:var(--font-mono);border-radius:999px;padding:1px 8px;margin-left:4px;
+              color:${c.escrever?'#f59e0b':'#22c55e'};border:1px solid ${c.escrever?'rgba(245,158,11,.45)':'rgba(34,197,94,.45)'};">${c.escrever?'LÊ E ESCREVE':'SÓ LEITURA'}</span></div>
+          <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${_apiEsc(escopo)} · ${_apiEsc(uso)} · ${c.chamadas||0} chamada(s)</div>
+        </div>
+        <button class="btn-link btn-sm" style="flex-shrink:0;color:var(--tom-vermelho);" onclick="apiRevogarChave('${_apiEsc(c.id)}','${_apiEsc(String(c.nome).replace(/'/g,''))}')">Revogar</button>
+      </div>`;
+    }).join('') : '<div style="padding:10px;font-size:11.5px;color:var(--text-muted);font-family:var(--font-mono);">Nenhum parceiro com chave ainda.</div>';
+
+    const marcas=Object.keys(API_RECURSOS_ROTULO).map(r=>`
+      <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);cursor:pointer;">
+        <input type="checkbox" class="api-rec" value="${r}" style="width:auto;margin:0;"> ${_apiEsc(API_RECURSOS_ROTULO[r])}</label>`).join('');
+
+    box.innerHTML=`
+      <div id="api-nova-chave"></div>
+      <div style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;">${linhas}</div>
+      <details class="adm-dobra">
+        <summary>Novo parceiro<span class="hint">gera uma chave com escopo próprio</span></summary>
+        <div class="adm-dobra-corpo">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+            <input type="text" id="api-nome" placeholder="Nome do parceiro (ex.: Transportadora XYZ)" style="flex:1;min-width:240px;font-size:11.5px;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
+              <input type="checkbox" id="api-escrever" style="width:auto;margin:0;"> pode escrever</label>
+            <button class="btn btn-sm" style="width:auto;" onclick="apiCriarChave()">Gerar chave</button>
+          </div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">Recursos liberados <span style="font-weight:400;text-transform:none;letter-spacing:0;">(nenhum marcado = todos)</span></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:5px 12px;">${marcas}</div>
+        </div>
+      </details>`;
+    if(_apiChaveNova) _apiMostrarChaveNova();
+  }).catch(err=>{
+    box.innerHTML='<div style="font-size:11.5px;color:var(--tom-vermelho);font-family:var(--font-mono);">Worker não respondeu: '+_apiEsc(err.message||'')+'</div>';
+  });
+}
+/* A chave inteira existe só neste instante — o worker guarda o hash.
+   Por isso ela aparece grande, com aviso, e não numa notificação que
+   some em três segundos. */
+function _apiMostrarChaveNova(){
+  const alvo=document.getElementById('api-nova-chave');
+  if(!alvo || !_apiChaveNova) return;
+  alvo.innerHTML=`
+    <div style="border:1.5px solid #2563eb;background:rgba(37,99,235,.06);border-radius:var(--radius);padding:12px 14px;margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;color:#1d4ed8;font-family:var(--font-mono);margin-bottom:6px;">Chave de ${_apiEsc(_apiChaveNova.nome)} — copie agora</div>
+      <div style="font-family:var(--font-mono);font-size:12px;color:var(--text-primary);word-break:break-all;user-select:all;background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:8px;">${_apiEsc(_apiChaveNova.chave)}</div>
+      <button class="btn btn-sm" style="width:auto;" onclick="navigator.clipboard&&navigator.clipboard.writeText('${_apiEsc(_apiChaveNova.chave)}').then(()=>showToast('Chave copiada','success'))">📋 Copiar</button>
+      <button class="btn-link btn-sm" style="margin-left:8px;" onclick="renderParceirosApi(true)">Já copiei, pode esconder</button>
+      <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
+        Ela não aparece de novo: o worker guarda só a impressão digital dela. Perdida, revogue e gere outra.
+        Mande ao parceiro por canal seguro — nunca por e-mail aberto ou grupo de mensagem.
+      </div>
+    </div>`;
+}
+function apiCriarChave(){
+  const nome=String((document.getElementById('api-nome')||{}).value||'').trim();
+  if(!nome){ showToast('Dê um nome ao parceiro','warn'); return; }
+  const recursos=[...document.querySelectorAll('.api-rec:checked')].map(x=>x.value);
+  const escrever=!!(document.getElementById('api-escrever')||{}).checked;
+  const corpo={nome, escrever};
+  if(recursos.length) corpo.recursos=recursos;
+  _apiFetch('/chaves',{method:'POST',body:JSON.stringify(corpo)}).then(({status,j})=>{
+    if(status!==201 || !j || !j.chave){ showToast('Não deu para criar: '+((j&&j.erro)||('HTTP '+status)),'error'); return; }
+    _apiChaveNova={nome:j.nome, chave:j.chave};
+    showToast('✔ Chave criada para '+j.nome,'success');
+    // A lista se refaz com o parceiro novo já nela; a chave continua à vista
+    renderParceirosApi();
+  });
+}
+function apiRevogarChave(id,nome){
+  if(!confirmar(()=>apiRevogarChave(id,nome), `Revogar a chave de "${nome}"?\n\nO parceiro perde o acesso na hora. As outras chaves continuam funcionando.`)) return;
+  _apiFetch('/chaves/'+encodeURIComponent(id),{method:'DELETE'}).then(({status,j})=>{
+    if(status!==200){ showToast('Não deu para revogar: '+((j&&j.erro)||('HTTP '+status)),'error'); return; }
+    showToast('Chave de '+nome+' revogada','success');
+    renderParceirosApi();
+  });
+}
+
 function renderSegurancaCf(){
   const box=document.getElementById('seg-cf');
   if(!box) return;
@@ -12684,7 +12858,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30p';
+const APP_VERSAO='2026.08.30q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

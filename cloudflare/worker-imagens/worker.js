@@ -856,11 +856,27 @@ async function atenderRobo(req, env, ctx, url) {
      PUT    /api/v1/<recurso>/<id>        → substitui o registro
      DELETE /api/v1/<recurso>/<id>        → remove
 
-   Quem pode: ler, qualquer chave de API ou login do sistema; escrever,
-   só chave de API. A chave vai no cabeçalho X-LiveOps-Chave e é o
-   segredo CHAVE_API do worker — separado da CHAVE_ROBO de propósito,
-   para revogar um integrador sem parar o n8n (sem CHAVE_API definida,
-   a CHAVE_ROBO vale como reserva). */
+   Quem pode: cada PARCEIRO tem a sua própria chave, com escopo próprio —
+   quais recursos enxerga e se pode escrever. A chave vai no cabeçalho
+   X-LiveOps-Chave. Uma pessoa logada no sistema também lê pela API (com
+   o crachá de sessão), mas escrever é sempre por chave.
+
+   As chaves dos parceiros nascem e morrem por aqui:
+
+     GET    /api/v1/chaves          → lista (sem os segredos, que não voltam)
+     POST   /api/v1/chaves          → cria {nome, recursos:[…], escrever}
+                                      e devolve a chave UMA vez
+     DELETE /api/v1/chaves/<id>     → revoga na hora
+
+   Quem administra chaves: o master — pelo cabeçalho X-LiveOps-Chave com
+   a CHAVE_ROBO, ou pelo próprio login (env MASTER_CHAVE = o usuário do
+   master; MASTER_UID = o uid dele no Firebase, durante a convivência).
+
+   A chave guardada é só o SHA-256 dela: de quem tiver o banco na mão não
+   se tira a chave de volta — some junto com o parceiro se ele a perder,
+   e aí se cria outra. O segredo CHAVE_API continua valendo como chave
+   mestra de acesso total (compatibilidade); para parceiro, use uma chave
+   nomeada, que se revoga sozinha sem derrubar os outros. */
 const API_RECURSOS = {
   pedidos:           'reg/pedidosBase',
   tarefas:           'reg/atividades',
@@ -879,11 +895,139 @@ const API_RECURSOS = {
   projetos:          'reg/projetos',
 };
 
-function _chaveApiOk(req, env) {
-  const chave = req.headers.get('X-LiveOps-Chave') || '';
-  if (!chave) return false;
-  if (env.CHAVE_API) return chave === env.CHAVE_API;
-  return !!env.CHAVE_ROBO && chave === env.CHAVE_ROBO;
+let _tabelaChavesOk = false;
+async function garantirTabelaChaves(env) {
+  if (_tabelaChavesOk) return;
+  await env.DADOS.prepare(
+    'CREATE TABLE IF NOT EXISTS chaves_api (' +
+    ' id TEXT PRIMARY KEY, nome TEXT NOT NULL, hash TEXT NOT NULL,' +
+    ' recursos TEXT NOT NULL, escrever INTEGER NOT NULL, ativa INTEGER NOT NULL,' +
+    ' criada INTEGER NOT NULL, ultimo_uso INTEGER, chamadas INTEGER NOT NULL DEFAULT 0)'
+  ).run();
+  _tabelaChavesOk = true;
+}
+
+async function _sha256(texto) {
+  const bits = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(texto)));
+  return b64urlDeBytes(bits);
+}
+
+/* Um teto por chave, contado na memória deste isolate. Não é uma cota
+   exata — cada isolate tem a sua conta — mas é o que impede um laço
+   desgovernado de um parceiro consumir o plano inteiro numa madrugada. */
+const API_TETO_MINUTO = 600;
+const _apiRitmo = new Map();
+function _passouDoRitmo(id) {
+  const agora = Date.now(), janela = Math.floor(agora / 60000);
+  const r = _apiRitmo.get(id);
+  if (!r || r.janela !== janela) { _apiRitmo.set(id, { janela, n: 1 }); return false; }
+  r.n++;
+  return r.n > API_TETO_MINUTO;
+}
+
+/* Quem está batendo na porta: uma chave de parceiro, a chave mestra, ou
+   uma pessoa logada no sistema. Devolve o portador com o que ele pode —
+   ou null. Um só lugar decide isso; as rotas só perguntam. */
+async function _portadorDaApi(req, env) {
+  const chave = (req.headers.get('X-LiveOps-Chave') || '').trim();
+  if (chave) {
+    // Chave mestra (segredo do worker): acesso total, sem escopo
+    if ((env.CHAVE_API && chave === env.CHAVE_API) ||
+        (!env.CHAVE_API && env.CHAVE_ROBO && chave === env.CHAVE_ROBO)) {
+      return { tipo: 'mestra', nome: 'chave mestra', recursos: ['*'], escrever: true, mestre: true };
+    }
+    // Chave de parceiro: lo_<id>_<segredo>
+    const m = /^lo_([A-Za-z0-9]{6})_([A-Za-z0-9_-]{20,})$/.exec(chave);
+    if (m) {
+      await garantirTabelaChaves(env);
+      const l = await env.DADOS.prepare(
+        'SELECT id, nome, hash, recursos, escrever, ativa FROM chaves_api WHERE id = ?1'
+      ).bind(m[1]).first();
+      if (!l || !l.ativa) return null;
+      if (!_iguaisNoTempo(await _sha256(chave), l.hash)) return null;
+      let recursos = ['*'];
+      try { const p = JSON.parse(l.recursos); if (Array.isArray(p) && p.length) recursos = p; } catch (e) {}
+      return { tipo: 'parceiro', id: l.id, nome: l.nome, recursos, escrever: !!l.escrever };
+    }
+    /* A CHAVE_ROBO abre a administração de chaves mesmo quando existe uma
+       CHAVE_API: é o crachá do master, e é por ele que se cria a primeira. */
+    if (env.CHAVE_ROBO && chave === env.CHAVE_ROBO) {
+      return { tipo: 'robo', nome: 'chave do robô', recursos: ['*'], escrever: true, mestre: true };
+    }
+    return null;
+  }
+  // Pessoa logada: lê, não escreve — e é master se o worker souber quem é
+  const quem = await conferirToken(req, env);
+  if (!quem) return null;
+  const mestre = !!((env.MASTER_CHAVE && quem.iss === 'liveops' && String(quem.chave || '') === env.MASTER_CHAVE) ||
+                    (env.MASTER_UID && String(quem.sub || '') === env.MASTER_UID));
+  return { tipo: 'pessoa', nome: String(quem.chave || quem.sub || 'pessoa'), recursos: ['*'], escrever: false, mestre };
+}
+
+function _podeNoRecurso(portador, recurso) {
+  return portador.recursos.indexOf('*') >= 0 || portador.recursos.indexOf(recurso) >= 0;
+}
+
+/* Marcar o uso é útil (o master vê no painel quem está ativo) e nunca
+   pode atrasar a resposta nem derrubá-la se falhar. */
+function _marcarUso(env, ctx, portador) {
+  if (portador.tipo !== 'parceiro') return;
+  ctx.waitUntil(env.DADOS.prepare(
+    'UPDATE chaves_api SET ultimo_uso = ?1, chamadas = chamadas + 1 WHERE id = ?2'
+  ).bind(Date.now(), portador.id).run().catch(() => {}));
+}
+
+/* ── Administração das chaves (só o master) ───────────────────────── */
+async function atenderChavesApi(req, env, url, portador, id) {
+  if (!portador || !portador.mestre) return respostaJson(403, { erro: 'so-o-master-administra-chaves' });
+  await garantirTabelaChaves(env);
+
+  if (req.method === 'GET') {
+    const rs = await env.DADOS.prepare(
+      'SELECT id, nome, recursos, escrever, ativa, criada, ultimo_uso, chamadas FROM chaves_api ORDER BY criada DESC'
+    ).all();
+    return respostaJson(200, {
+      ok: true,
+      chaves: (rs.results || []).map(l => ({
+        id: l.id, nome: l.nome,
+        recursos: (() => { try { return JSON.parse(l.recursos); } catch (e) { return ['*']; } })(),
+        escrever: !!l.escrever, ativa: !!l.ativa,
+        criada: l.criada, ultimoUso: l.ultimo_uso || null, chamadas: l.chamadas || 0,
+      })),
+    });
+  }
+
+  if (req.method === 'POST') {
+    const corpo = await req.json().catch(() => null);
+    const nome = String((corpo && corpo.nome) || '').trim().slice(0, 60);
+    if (!nome) return respostaJson(400, { erro: 'falta-o-nome-do-parceiro' });
+    let recursos = ['*'];
+    if (corpo && Array.isArray(corpo.recursos) && corpo.recursos.length) {
+      recursos = corpo.recursos.filter(r => r === '*' || API_RECURSOS[r]);
+      if (!recursos.length) return respostaJson(400, { erro: 'recursos-desconhecidos', recursos: Object.keys(API_RECURSOS) });
+    }
+    const escrever = !!(corpo && corpo.escrever);
+    // id curto e visível (identifica a chave sem revelá-la) + segredo longo
+    const alfa = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const sorteio = crypto.getRandomValues(new Uint8Array(6));
+    const idNovo = Array.from(sorteio).map(b => alfa[b % alfa.length]).join('');
+    const segredo = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(24)).buffer);
+    const chaveInteira = 'lo_' + idNovo + '_' + segredo;
+    await env.DADOS.prepare(
+      'INSERT INTO chaves_api (id, nome, hash, recursos, escrever, ativa, criada, chamadas) ' +
+      'VALUES (?1, ?2, ?3, ?4, ?5, 1, ?6, 0)'
+    ).bind(idNovo, nome, await _sha256(chaveInteira), JSON.stringify(recursos), escrever ? 1 : 0, Date.now()).run();
+    /* A chave inteira aparece AQUI e nunca mais: o banco guarda só o
+       hash. Perdida, cria-se outra — que é o certo, e não descobri-la. */
+    return respostaJson(201, { ok: true, id: idNovo, nome, chave: chaveInteira, recursos, escrever });
+  }
+
+  if (req.method === 'DELETE') {
+    if (!id) return respostaJson(400, { erro: 'falta-o-id-da-chave' });
+    await env.DADOS.prepare('DELETE FROM chaves_api WHERE id = ?1').bind(id).run();
+    return respostaJson(200, { ok: true, revogada: id });
+  }
+  return respostaJson(405, { erro: 'metodo-nao-suportado' });
 }
 
 async function atenderApi(req, env, ctx, url) {
@@ -891,22 +1035,40 @@ async function atenderApi(req, env, ctx, url) {
   await garantirTabelas(env);
 
   const partes = url.pathname.replace(/^\/api\/v1\/?/, '').split('/').filter(Boolean);
+  const portador = await _portadorDaApi(req, env);
+
   if (!partes.length) {
-    return respostaJson(200, { ok: true, versao: VERSAO_WORKER, recursos: Object.keys(API_RECURSOS) });
+    if (!portador) return respostaJson(401, { erro: 'sem-autorizacao' });
+    return respostaJson(200, {
+      ok: true, versao: VERSAO_WORKER, quem: portador.nome,
+      escrever: portador.escrever,
+      recursos: portador.recursos.indexOf('*') >= 0 ? Object.keys(API_RECURSOS) : portador.recursos,
+    });
   }
+
+  // A administração das chaves dos parceiros mora aqui, antes dos recursos
+  if (partes[0] === 'chaves') {
+    if (partes.length > 2) return respostaJson(400, { erro: 'caminho-invalido' });
+    return atenderChavesApi(req, env, url, portador, partes[1] || '');
+  }
+
   const recurso = partes[0];
   const colecao = API_RECURSOS[recurso];
   if (!colecao) return respostaJson(404, { erro: 'recurso-desconhecido', recursos: Object.keys(API_RECURSOS) });
   const id = partes[1] || '';
   if (partes.length > 2 || (id && !CHAVE_OK.test(id))) return respostaJson(400, { erro: 'caminho-invalido' });
 
-  // Ler: chave de API ou o login de uma pessoa. Escrever: só chave.
-  const comChave = _chaveApiOk(req, env);
-  if (req.method === 'GET') {
-    if (!comChave && !(await conferirToken(req, env))) return respostaJson(401, { erro: 'sem-autorizacao' });
-  } else if (!comChave) {
-    return respostaJson(401, { erro: 'escrita-so-com-chave-de-api' });
+  if (!portador) return respostaJson(401, { erro: 'sem-autorizacao' });
+  if (portador.id && _passouDoRitmo(portador.id)) {
+    return respostaJson(429, { erro: 'ritmo-excedido', limite: API_TETO_MINUTO + '/min' });
   }
+  if (!_podeNoRecurso(portador, recurso)) {
+    return respostaJson(403, { erro: 'recurso-fora-do-escopo-desta-chave', liberados: portador.recursos });
+  }
+  if (req.method !== 'GET' && !portador.escrever) {
+    return respostaJson(403, { erro: 'esta-chave-so-le' });
+  }
+  _marcarUso(env, ctx, portador);
 
   if (req.method === 'GET') {
     if (id) {
@@ -955,6 +1117,10 @@ async function atenderApi(req, env, ctx, url) {
     }
   }
   const agora = Date.now();
+  /* Quem gravou fica no próprio registro. Sem isso, dado entrando por
+     três parceiros diferentes vira um só borrão quando alguém pergunta
+     "de onde veio isto?". */
+  const marca = { _apiPor: portador.nome, _apiEm: agora };
   const insere = env.DADOS.prepare(
     'INSERT INTO registros (colecao, chave, dados, ts) VALUES (?1, ?2, ?3, ?4) ' +
     'ON CONFLICT(colecao, chave) DO UPDATE SET dados = ?3, ts = ?4'
@@ -967,7 +1133,7 @@ async function atenderApi(req, env, ctx, url) {
     const r = await repassarAoFirebase(env, colecao, 'POST', texto);
     const novo = (r.dados && r.dados.name) ? r.dados.name : ('api' + Date.now().toString(36) + '-' + crypto.randomUUID().slice(0, 8));
     if (!CHAVE_OK.test(novo)) return respostaJson(500, { erro: 'chave-gerada-invalida' });
-    const json = JSON.stringify({ ...corpo, id: corpo.id || novo });
+    const json = JSON.stringify({ ...corpo, id: corpo.id || novo, ...marca });
     await insere.bind(colecao, novo, json, agora).run();
     ctx.waitUntil(avisarSala(env, { linhas: [{ colecao, chave: novo }] }));
     return respostaJson(201, { ok: true, id: novo, firebase: r.status });
@@ -987,8 +1153,8 @@ async function atenderApi(req, env, ctx, url) {
   ).bind(colecao, id).first();
   if (req.method === 'PATCH' && !atual) return respostaJson(404, { erro: 'nao-achado' });
   const json = req.method === 'PATCH'
-    ? _juntarCampos(atual && atual.dados, corpo)
-    : JSON.stringify({ ...(corpo || {}), id: (corpo && corpo.id) || id });
+    ? _juntarCampos(atual && atual.dados, { ...corpo, ...marca })
+    : JSON.stringify({ ...(corpo || {}), id: (corpo && corpo.id) || id, ...marca });
   if (json.length > LINHA_MAX) return respostaJson(413, { erro: 'registro-grande-demais' });
   await insere.bind(colecao, id, json, agora).run();
   ctx.waitUntil(avisarSala(env, { linhas: [{ colecao, chave: id }] }));
