@@ -4901,7 +4901,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="carregarArquivo()" style="width:auto;">↻ Atualizar</button>
         </div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
-          Nada é apagado de verdade: ao excluir, o registro inteiro vem para cá com quem excluiu e quando.
+          Ao excluir, o registro inteiro vem para cá com quem excluiu e quando — e fica por 7 dias, tempo de desfazer.
+          Depois disso sai sozinho; o que é mais antigo continua nos backups diários e no .zip.
           Fica fora do pacote do dia a dia, então não pesa no sistema — e pode ser restaurado.
         </div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
@@ -7665,12 +7666,14 @@ function _semearEmails(s){
   }catch(e){}
 }
 
-// ── ARQUIVO PERMANENTE ───────────────────────────────────────
-// Nada é apagado de verdade: antes de sair do sistema, o registro inteiro
-// é copiado para suplelive/arquivo/<área>/<id>. Fica fora do pacote que
-// trafega a cada alteração (não pesa no dia a dia) e nunca é removido —
-// dá para consultar e restaurar quando precisar.
+// ── ARQUIVO DE EXCLUSÕES ─────────────────────────────────────
+// Antes de sair do sistema, o registro inteiro é copiado para
+// suplelive/arquivo/<área>/<id>, fora do pacote que trafega a cada
+// alteração. Fica aqui por 7 dias — tempo de sobra para desfazer uma
+// exclusão — e depois sai sozinho (regra do master, 30/08): o que é mais
+// antigo continua nos backups diários e no .zip.
 const FB_ARQUIVO='suplelive/arquivo';
+const ARQ_MANTER_DIAS=7;
 const ARQ_AREAS={
   tarefa:'Tarefas', devolucao:'Devoluções', atendimento:'Atendimentos',
   integracao:'Integração', excluirintbase:'Exclusão Integração',
@@ -7739,6 +7742,19 @@ function carregarArquivo(){
     Object.entries(dados).forEach(([area,itens])=>{
       Object.entries(itens||{}).forEach(([k,v])=>{ if(v) _arqCache.push({...v, area:v.area||area, _k:k}); });
     });
+    /* Limpeza dos 7 dias: o master que abre o painel apaga o que venceu —
+       no Firebase e no espelho Cloudflare. Quem não é master só deixa de
+       ver; a remoção fica para a próxima visita do master. */
+    const corte=Date.now()-ARQ_MANTER_DIAS*86400000;
+    const vencidos=_arqCache.filter(i=>(i.ts||0)>0 && i.ts<corte);
+    if(vencidos.length && currentUser && currentUser.master && db && fbConnected){
+      vencidos.forEach(i=>{
+        db.ref(FB_ARQUIVO+'/'+i.area+'/'+i._k).remove().catch(err=>console.warn('[arquivo] limpeza:',err.message));
+        try{ _cfEspelharLinhas([{colecao:'arquivo/'+i.area, chave:i._k, dados:null}]); }catch(e){}
+      });
+      console.log('[arquivo] limpeza: '+vencidos.length+' registro(s) com mais de '+ARQ_MANTER_DIAS+' dias removido(s)');
+    }
+    _arqCache=_arqCache.filter(i=>!((i.ts||0)>0 && i.ts<corte));
     _arqCache.sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderArquivo();
   }).catch(err=>{
@@ -12479,7 +12495,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30j';
+const APP_VERSAO='2026.08.30k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
