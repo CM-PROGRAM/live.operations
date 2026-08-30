@@ -971,6 +971,11 @@ textarea.tpl-texto{width:100%;min-height:180px;font-family:var(--font-mono);font
 #gup-saldo.gup-chip.neutro{color:var(--text-muted);}
 .gup-topo .acoes{margin-left:auto;display:flex;gap:8px;align-items:center;}
 .gup-sub{font-size:12.5px;color:var(--text-muted);margin:0 0 14px;}
+.gup-placar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 12px;padding:9px 14px;
+  border:1px solid var(--glass-border);border-radius:11px;background:var(--veu-medio);
+  font-size:12.5px;color:var(--text-secondary);}
+.gup-placar b{color:var(--text-primary);font-family:var(--font-mono);}
+.gup-placar .sep{color:var(--text-muted);opacity:.6;}
 .gup-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;}
 .gup-card{background:var(--bg-card);border:1px solid var(--glass-border);border-radius:13px;padding:14px 15px;}
 .gup-card .nome{font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--text-primary);
@@ -1017,6 +1022,12 @@ textarea.tpl-texto{width:100%;min-height:180px;font-family:var(--font-mono);font
 .wa-tpl-item .tx{font-size:11.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;}
 .wa-tpl-nada{padding:14px;text-align:center;font-size:12px;color:var(--text-muted);}
+/* Comando do canal: dispara na hora, então se distingue do template. */
+.wa-cmd-item{position:relative;border-left:3px solid #f0b429;}
+.wa-cmd-item .cmd{color:#b8860b;}
+.wa-cmd-go{position:absolute;right:12px;top:9px;font-size:10px;font-weight:800;
+  letter-spacing:.4px;text-transform:uppercase;color:#f0b429;opacity:0;transition:opacity .12s;}
+.wa-cmd-item:hover .wa-cmd-go,.wa-cmd-item.foco .wa-cmd-go{opacity:1;}
 /* Bolinha azul de não lidas no item Inbox da barra lateral */
 .tab-btn{position:relative;}
 .wa-tab-badge{position:absolute;right:9px;top:50%;transform:translateY(-50%);min-width:19px;height:19px;
@@ -13066,7 +13077,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31b';
+const APP_VERSAO='2026.08.31c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15188,19 +15199,33 @@ function _waContatoPrimeiroNome(){
 function _waTplRender(filtro){
   const panel=document.getElementById('wa-tpl-panel'); if(!panel) return;
   let lista=[];
-  try{ lista=_tplItens().lista; }catch(e){}
+  try{ lista=_tplTemplates().lista; }catch(e){}
   const f=String(filtro||'').toLowerCase().replace(/^\/+/,'');
   const itens=lista.filter(t=>{
     if(!f) return true;
     return _tplComandoDe(t).slice(1).indexOf(f)===0
       || String(t.nome||'').toLowerCase().indexOf(f)>=0;
   });
-  panel.innerHTML='<div class="wa-tpl-titulo">Templates cadastrados</div>'+
-    (itens.length?itens.map(t=>
-      `<button type="button" class="wa-tpl-item" onclick="waTplEscolher('${_iniEsc(t.id)}')">`+
-      `<span class="cmd">${_iniEsc(_tplComandoDe(t))}</span><span class="nm">${_iniEsc(t.nome||'')}</span>`+
-      `<div class="tx">${_iniEsc(String(t.texto||'').replace(/\s+/g,' ').slice(0,110))}</div></button>`
-    ).join(''):'<div class="wa-tpl-nada">Nenhum template com esse comando. Cadastre na aba Templates.</div>');
+  /* Dois grupos, porque são duas coisas diferentes: o comando do canal
+     DISPARA na hora; o template ESCREVE no campo para você revisar. */
+  const cmds=_tplComandosCanal().filter(c=>{
+    if(!f) return true;
+    return _tplComandoDe(c).slice(1).indexOf(f)===0 || String(c.nome||'').toLowerCase().indexOf(f)>=0;
+  });
+  const linhaCmd=c=>
+    `<button type="button" class="wa-tpl-item wa-cmd-item" onclick="waComandoDisparar('${_iniEsc(c.id)}')">`+
+    `<span class="cmd">${_iniEsc(_tplComandoDe(c))}</span><span class="nm">${_iniEsc(c.nome||'')}</span>`+
+    `<span class="wa-cmd-go">⚡ disparar</span>`+
+    `<div class="tx">${_iniEsc(String(c.desc||'').slice(0,110))}</div></button>`;
+  const linhaTpl=t=>
+    `<button type="button" class="wa-tpl-item" onclick="waTplEscolher('${_iniEsc(t.id)}')">`+
+    `<span class="cmd">${_iniEsc(_tplComandoDe(t))}</span><span class="nm">${_iniEsc(t.nome||'')}</span>`+
+    `<div class="tx">${_iniEsc(String(t.texto||'').replace(/\s+/g,' ').slice(0,110))}</div></button>`;
+  panel.innerHTML=
+    (cmds.length?'<div class="wa-tpl-titulo">Comandos do canal — dispara na hora</div>'+cmds.map(linhaCmd).join(''):'')
+    +'<div class="wa-tpl-titulo">Templates — escreve no campo</div>'
+    +(itens.length?itens.map(linhaTpl).join('')
+      :'<div class="wa-tpl-nada">Nenhum template com esse comando. Cadastre na aba Templates.</div>');
   panel.style.display='block';
 }
 function waTplAbrir(){
@@ -15851,6 +15876,66 @@ function _tplItens(){
   if(l.length) return {lista:l.slice().sort((a,b)=>(a.ordem||9e15)-(b.ordem||9e15)), virtual:false};
   return {lista:_tplPadroes(), virtual:true};
 }
+/* ── Comandos do canal ───────────────────────────────────────────────
+   Não são templates: são as palavras que o próprio canal do WhatsApp
+   entende, digitadas hoje à mão dentro do Chatwoot (/iniciar_atendimento,
+   /pix). Aqui elas viram botão — e saem CRUAS, sem a assinatura da
+   persona, senão o canal não as reconhece.
+
+   Vivem na mesma lista dos templates, marcadas com canal:true, para não
+   nascer uma terceira lista compartilhada — já aprendemos o preço disso. */
+function _tplCanalPadroes(){
+  return [
+    {id:'cmd_iniciar', ordem:9001, canal:true, nome:'Iniciar atendimento',
+     comando:'/iniciar_atendimento', desc:'Abre a janela de atendimento no canal',
+     texto:'/iniciar_atendimento'},
+    {id:'cmd_pix', ordem:9002, canal:true, nome:'PIX',
+     comando:'/pix', desc:'Dispara a cobrança PIX do canal',
+     texto:'/pix'},
+  ];
+}
+function _tplComandosCanal(){
+  const l=_tplLista().filter(t=>t&&t.canal);
+  return l.length?l.slice().sort((a,b)=>(a.ordem||9e15)-(b.ordem||9e15)):_tplCanalPadroes();
+}
+function _tplTemplates(){
+  const {lista,virtual}=_tplItens();
+  return {lista:lista.filter(t=>t&&!t.canal), virtual};
+}
+/* Materializa os padrões antes de mexer, como o resto da aba faz */
+function _tplGarantirLista(){
+  const l=_tplLista();
+  if(!l.length){
+    _tplPadroes().forEach(t=>l.push({...t,hist:[]}));
+    _tplCanalPadroes().forEach(t=>l.push({...t,hist:[]}));
+  } else if(!l.some(t=>t&&t.canal)){
+    _tplCanalPadroes().forEach(t=>l.push({...t,hist:[]}));
+  }
+  return l;
+}
+/* Disparar é diferente de escrever: o comando vai na hora, sem passar pelo
+   campo de texto. Aqui não se cria balão nenhum — quem registra é o fluxo,
+   como nota interna ("⚡ /pix — disparado no canal"), e ela chega pela
+   sincronia normal. Se pintássemos um balão otimista aqui, ele ficaria
+   pendurado, porque o eco do Chatwoot é descartado de propósito. */
+function waComandoDisparar(id){
+  const cmd=_tplComandosCanal().find(x=>x&&x.id===id);
+  if(!cmd) return;
+  if(!_waAberta){ showToast('Abra uma conversa primeiro','warn'); return; }
+  if(String(_waAberta).indexOf('novo:')===0){
+    showToast('O comando precisa de uma conversa já criada — mande uma mensagem antes','warn'); return;
+  }
+  waTplFechar();
+  const quem=((currentUser&&currentUser.name)||'').trim().split(/\s+/)[0]||'?';
+  fetch(WA_URL_ENVIA,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({conv:_waAberta, texto:String(cmd.texto||cmd.comando||''), autor:quem, cru:true})})
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status);
+    showToast('⚡ '+(cmd.comando||cmd.nome)+' disparado no canal','success'); })
+  .catch(err=>{
+    console.warn('[canal] comando não saiu:',err.message);
+    showToast('O comando não saiu — confira o fluxo do envio no n8n','error');
+  });
+}
 /* Todo template tem um comando de disparo (/boasvindas). Quem não tiver um
    digitado ganha um derivado do nome — sem acento, minúsculo, sem espaço. */
 function _tplNormComando(v){
@@ -15872,7 +15957,7 @@ function _tplIcone(id){
 
 function renderTemplates(){
   const raiz=document.getElementById('tpl-raiz'); if(!raiz) return;
-  const {lista}=_tplItens();
+  const {lista}=_tplTemplates();   // comandos do canal têm seção própria, mais abaixo
   const master=!!(currentUser&&currentUser.master);
   if(!lista.length){
     raiz.innerHTML='<div class="gup-vazio">Nenhum template cadastrado.'+
@@ -15973,6 +16058,17 @@ function renderTemplates(){
     </div>
     <div class="gup-secao">
       <div class="gup-topo">
+        <span class="tit">Comandos do canal</span>
+        <span class="selo" style="background:#b8860b;border-color:#b8860b;">DISPARO DIRETO</span>
+        <div class="acoes">
+          ${master?`<button class="btn-sec" onclick="cmdNovo()">+ Novo comando</button>`:''}
+        </div>
+      </div>
+      <p class="gup-sub">São as palavras que o próprio canal do WhatsApp entende — as mesmas que hoje se digita à mão dentro do Chatwoot. No WhatsLive elas aparecem ao digitar <b style="font-family:var(--font-mono);">/</b> e saem <b>cruas</b>, sem a assinatura da persona: é assim que o canal as reconhece. Não passam por aprovação da Meta.</p>
+      <div id="cmd-lista"></div>
+    </div>
+    <div class="gup-secao">
+      <div class="gup-topo">
         <span class="tit">Espelho do Gupshup</span>
         <span class="selo">APROVAÇÃO META</span>
         <span class="gup-chip neutro" id="gup-saldo" style="display:none;font-size:11px;padding:4px 11px;"></span>
@@ -15986,7 +16082,73 @@ function renderTemplates(){
       <div id="gup-lista"></div>
     </div>`;
   _tplPreviewAtualizar();
+  _cmdRender();
   _gupRender();
+}
+
+/* ── Comandos do canal, na aba Templates ─────────────────────────────
+   Lista curta e editável: nome, o que sai no canal e a explicação. Sem
+   preview nem variáveis — o texto vai literal, é essa a graça dele. */
+function _cmdRender(){
+  const box=document.getElementById('cmd-lista'); if(!box) return;
+  const master=!!(currentUser&&currentUser.master);
+  const cmds=_tplComandosCanal();
+  if(!cmds.length){
+    box.innerHTML='<div class="gup-vazio">Nenhum comando de canal cadastrado.</div>'; return;
+  }
+  box.innerHTML='<div class="gup-grade">'+cmds.map(c=>`
+    <div class="gup-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <span class="nome">${_iniEsc(c.nome||'—')}</span>
+        <span class="gup-chip neutro" style="font-family:var(--font-mono);">${_iniEsc(_tplComandoDe(c))}</span>
+      </div>
+      <div class="meta">${_iniEsc(c.desc||'sem descrição')}</div>
+      <div class="corpo">sai no canal como: <b style="font-family:var(--font-mono);">${_iniEsc(c.texto||c.comando||'')}</b></div>
+      ${master?`<div style="display:flex;gap:8px;margin-top:10px;">
+        <button class="btn-sec" style="width:auto;font-size:11.5px;padding:4px 12px;" onclick="cmdEditar('${_iniEsc(c.id)}')">Editar</button>
+        <button class="btn-sec" style="width:auto;font-size:11.5px;padding:4px 12px;color:#ef4444;border-color:rgba(239,68,68,.45);" onclick="cmdExcluir('${_iniEsc(c.id)}')">Excluir</button>
+      </div>`:''}
+    </div>`).join('')+'</div>';
+}
+function cmdNovo(){
+  if(!currentUser||!currentUser.master){ showToast('Apenas o master cria comandos','warn'); return; }
+  const nome=prompt('Nome do comando (ex.: Iniciar atendimento)'); if(!nome) return;
+  const bruto=prompt('O que sai no canal (ex.: /iniciar_atendimento)','/'); if(!bruto) return;
+  const l=_tplGarantirLista();
+  l.push({id:'cmd'+Date.now().toString(36), ordem:Date.now(), canal:true,
+    nome:String(nome).trim().slice(0,60), comando:_tplNormComando(bruto)||_tplNormComando(nome),
+    desc:'', texto:String(bruto).trim().slice(0,200),
+    hist:[{q:(currentUser&&currentUser.name)||'',ts:Date.now(),acao:'comando de canal criado'}]});
+  try{ saveState(appState); }catch(e){}
+  renderTemplates();
+  showToast('✓ Comando cadastrado','success');
+}
+function cmdEditar(id){
+  if(!currentUser||!currentUser.master){ showToast('Apenas o master edita comandos','warn'); return; }
+  const l=_tplGarantirLista();
+  const c=l.find(x=>x&&x.id===id); if(!c) return;
+  const nome=prompt('Nome do comando', c.nome||''); if(nome===null) return;
+  const bruto=prompt('O que sai no canal', c.texto||c.comando||''); if(bruto===null) return;
+  const desc=prompt('Descrição curta (aparece no /)', c.desc||''); if(desc===null) return;
+  c.nome=String(nome).trim().slice(0,60)||c.nome;
+  c.texto=String(bruto).trim().slice(0,200);
+  c.comando=_tplNormComando(bruto)||c.comando;
+  c.desc=String(desc).trim().slice(0,140);
+  (c.hist=c.hist||[]).push({q:(currentUser&&currentUser.name)||'',ts:Date.now(),acao:'comando de canal editado'});
+  try{ saveState(appState); }catch(e){}
+  renderTemplates();
+  showToast('✓ Comando atualizado','success');
+}
+function cmdExcluir(id){
+  if(!currentUser||!currentUser.master){ showToast('Apenas o master exclui comandos','warn'); return; }
+  const l=_tplGarantirLista();
+  const c=l.find(x=>x&&x.id===id); if(!c) return;
+  if(!confirmar(()=>cmdExcluir(id),'Excluir o comando "'+(c.nome||'')+'"? Ele some do / no WhatsLive.')) return;
+  const i=l.findIndex(x=>x&&x.id===id);
+  if(i>=0) l.splice(i,1);
+  try{ saveState(appState); }catch(e){}
+  renderTemplates();
+  showToast('Comando excluído','success');
 }
 
 /* A sincronização chama isto quando outra sessão altera um template: só
@@ -16162,7 +16324,19 @@ function _gupRender(){
   }
   if(!_gupLista){ box.innerHTML='<div class="gup-vazio">Clique em Atualizar para carregar os templates.</div>'; return; }
   if(!_gupLista.length){ box.innerHTML='<div class="gup-vazio">Nenhum template encontrado no Gupshup.</div>'; return; }
-  box.innerHTML='<div class="gup-grade">'+_gupLista.map((t,i)=>`
+  /* "Cadê os comandos?" — a resposta fica em cima da lista: quantos
+     aprovados existem e quantos já viraram comando aqui dentro. */
+  const aprov=_gupLista.filter(t=>String(t.status||'').toUpperCase()==='APPROVED');
+  const faltam=aprov.filter(t=>!_gupJaCadastrado(t));
+  const placar=`<div class="gup-placar">
+    <span><b>${aprov.length}</b> aprovado${aprov.length===1?'':'s'} pela Meta</span>
+    <span class="sep">·</span>
+    <span><b>${aprov.length-faltam.length}</b> já com comando no LiveOps</span>
+    ${faltam.length?`<span class="sep">·</span><span style="color:#f0b429;font-weight:700;">${faltam.length} sem comando</span>
+      <button class="btn-sec" style="width:auto;margin-left:auto;font-size:11.5px;padding:5px 13px;color:#10b981;border-color:rgba(16,185,129,.5);" onclick="gupCadastrarTodos()">+ Cadastrar os ${faltam.length} que faltam</button>`
+      :'<span class="sep">·</span><span style="color:#10b981;font-weight:700;">todos já viraram comando ✓</span>'}
+  </div>`;
+  box.innerHTML=placar+'<div class="gup-grade">'+_gupLista.map((t,i)=>`
     <div class="gup-card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
         <span class="nome">${_iniEsc(t.nome||'—')}</span>${_gupChip(t.status)}
@@ -16338,23 +16512,38 @@ function _gupAcaoHtml(t,i){
   if(ja) return `<span class="gup-ja">✓ cadastrado como ${_iniEsc(_tplComandoDe(ja))}</span>`;
   return `<br><button class="gup-cadastrar" onclick="gupCadastrar(${i})">+ Cadastrar comando ${_iniEsc(_tplNormComando(t.nome))}</button>`;
 }
-function gupCadastrar(i){
-  const t=(_gupLista||[])[i]; if(!t) return;
-  if(_gupJaCadastrado(t)){ showToast('Este template já está cadastrado','warn'); return; }
-  const l=_tplLista();
-  if(!l.length) _tplPadroes().forEach(p=>l.push({...p,hist:[]}));  // preserva os padrões de fábrica
+function _gupCadastrarUm(t){
+  const l=_tplGarantirLista();
   const quem=(currentUser&&currentUser.name)||'';
   const nomeBonito=String(t.nome||'').replace(/[_-]+/g,' ').trim()
     .replace(/\b\w/g,c=>c.toUpperCase())||'Template';
-  l.push({id:'tpl'+Date.now().toString(36), ordem:Date.now(),
-    nome:nomeBonito, comando:_tplNormComando(t.nome), gupNome:t.nome||'',
+  const novo={id:'tpl'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), ordem:Date.now(),
+    nome:nomeBonito, comando:_tplNormComando(t.nome), gupNome:t.nome||'', gupId:t.id||'',
     desc:'Template oficial aprovado pela Meta ('+(t.categoria||'')+')',
     texto:t.texto||'', envioAtivo:false, quando:'imediato', fPrimeira:false, fHorario:false,
-    hist:[{q:quem,ts:Date.now(),acao:'cadastrado a partir do Gupshup'}]});
+    hist:[{q:quem,ts:Date.now(),acao:'cadastrado a partir do Gupshup'}]};
+  l.push(novo);
+  return novo;
+}
+function gupCadastrar(i){
+  const t=(_gupLista||[])[i]; if(!t) return;
+  if(_gupJaCadastrado(t)){ showToast('Este template já está cadastrado','warn'); return; }
+  const novo=_gupCadastrarUm(t);
   try{ saveState(appState); }catch(e){}
-  _tplSel=l[l.length-1].id;
+  _tplSel=novo.id;
   renderTemplates();
-  showToast('✓ Comando '+_tplNormComando(t.nome)+' cadastrado','success');
+  showToast('✓ Comando '+_tplComandoDe(novo)+' cadastrado','success');
+}
+/* Aprovou vinte de uma vez? Cadastrar um por um é trabalho de escrivão. */
+function gupCadastrarTodos(){
+  const faltam=(_gupLista||[]).filter(t=>String(t.status||'').toUpperCase()==='APPROVED' && !_gupJaCadastrado(t));
+  if(!faltam.length){ showToast('Todos os aprovados já têm comando','warn'); return; }
+  let ultimo=null;
+  faltam.forEach(t=>{ ultimo=_gupCadastrarUm(t); });
+  try{ saveState(appState); }catch(e){}
+  if(ultimo) _tplSel=ultimo.id;
+  renderTemplates();
+  showToast('✓ '+faltam.length+' comando'+(faltam.length===1?'':'s')+' cadastrado'+(faltam.length===1?'':'s'),'success');
 }
 
 function switchTab(id, panelId){
