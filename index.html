@@ -4929,8 +4929,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="renderSaudeDados()" style="width:auto;">↻ Verificar</button>
         </div>
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
-          Os prints anexados são enviados junto com os dados a cada alteração. Se o total ficar muito alto,
-          a nuvem passa a recusar as gravações e aparece o aviso "Conexão perdida".
+          O que pesa numa gravação é o pacote — configurações e o que viaja junto a cada alteração.
+          Tarefas, registros e as fotos deles sobem registro a registro, só quando o próprio item muda.
+          Se o pacote passar do limite, a nuvem recusa a gravação e aparece o aviso "Conexão perdida".
         </div>
         <div id="saude-resumo" style="margin-bottom:12px;"></div>
         <div id="saude-detalhe" style="margin-bottom:14px;"></div>
@@ -4945,7 +4946,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
 
         <details class="adm-dobra">
-          <summary>Rotina de compactação<span class="hint">quando o peso passar de 5 MB</span></summary>
+          <summary>Rotina de compactação<span class="hint">quando o pacote passar de 5 MB</span></summary>
           <div class="adm-dobra-corpo">
             <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;line-height:1.6;">
               Os três passos, nesta ordem. Desconectar vem primeiro porque sessão aberta ainda tem os
@@ -7011,8 +7012,8 @@ function lerImagemComprimidaAsync(arquivo){
 }
 
 // ── ARMAZENAMENTO DE IMAGENS FORA DO PACOTE PRINCIPAL ────────
-// O estado inteiro é reenviado a cada alteração, então imagens grandes
-// dentro dele derrubam a gravação. Aqui a imagem é dividida em duas:
+// Imagem grande embutida num registro pesa em toda gravação daquele
+// registro (e derruba a conexão no pior caso). Aqui ela é dividida em duas:
 //   · miniatura  — fica no próprio registro, aparece na hora nos cards
 //   · original   — vai para suplelive/imagens/<chave>, buscada só ao ampliar
 // O campo original (ex.: provaConclusao) passa a guardar a miniatura, de
@@ -8404,13 +8405,27 @@ function _temReferencia(dono,campo,indice){
 function diagnosticarEstado(){
   const s=appState;
   const total=JSON.stringify(s).length;
-  const porGrupo={};
+  /* O que sobe junto a cada alteração é o PACOTE — o estado sem as listas
+     registro a registro. Medir o estado inteiro assustava à toa: as fotos de
+     atendimentos, devoluções e tarefas só viajam quando o próprio registro
+     muda, e cada registro é pequeno. */
+  const pacote=_estadoSemColecoes(s);
+  const pacoteBytes=JSON.stringify(pacote).length;
+  let maiorParte={nome:'—',bytes:0};
+  Object.entries(pacote).forEach(([k,v])=>{
+    let b=0; try{ b=JSON.stringify(v).length; }catch(e){}
+    if(b>maiorParte.bytes) maiorParte={nome:k,bytes:b};
+  });
+  const rotulosPacote={};
+  _percorrerImagensDoEstado(pacote,(o,c,rotulo)=>{ rotulosPacote[rotulo]=true; });
+  const porGrupo={}, grupoPacote={};
   let totalImagens=0, qtd=0;
   let bytesMini=0, qtdMini=0, bytesOrig=0, qtdOrig=0;
   const maiores=[];
   _percorrerImagensDoEstado(s,(obj,chave,rotulo,dono,campo,indice)=>{
     const tam=String(obj[chave]).length;
     porGrupo[rotulo]=(porGrupo[rotulo]||0)+tam;
+    grupoPacote[rotulo]=!!rotulosPacote[rotulo];
     totalImagens+=tam; qtd++;
     if(_temReferencia(dono,campo,indice)){ bytesMini+=tam; qtdMini++; }
     else { bytesOrig+=tam; qtdOrig++; }
@@ -8420,21 +8435,25 @@ function diagnosticarEstado(){
   const mb=n=>(n/1048576).toFixed(2)+' MB';
   const kb=n=>Math.round(n/1024)+' KB';
   console.log('%c[DIAGNÓSTICO DO ESTADO]','font-weight:bold');
-  console.log('Tamanho total enviado ao Firebase a cada alteração:', mb(total));
+  console.log('Pacote (sobe junto a cada alteração):', mb(pacoteBytes),
+              '· maior parte:', maiorParte.nome, mb(maiorParte.bytes));
+  console.log('Guardado na nuvem (tudo, inclusive registro a registro):', mb(total));
   console.log('Imagens embutidas:', qtd, '·', mb(totalImagens),
               '(' + (total?Math.round(totalImagens/total*100):0) + '% do total)');
   console.log('  · já migradas (só a miniatura viaja):', qtdMini, '·', mb(bytesMini),
               qtdMini?('· média '+kb(bytesMini/qtdMini)+' cada'):'');
-  console.log('  · ORIGINAIS ainda no pacote:', qtdOrig, '·', mb(bytesOrig),
+  console.log('  · ORIGINAIS ainda embutidas:', qtdOrig, '·', mb(bytesOrig),
               qtdOrig?('· média '+kb(bytesOrig/qtdOrig)+' cada'):'');
   console.log(qtdOrig
     ? '  → dá para tirar '+mb(bytesOrig)+' com "📤 Tirar imagens do pacote" (Administrador)'
     : '  → nada a migrar: o peso são as miniaturas, e só encolhe encolhendo elas');
   console.log('Fora das imagens:', mb(total-totalImagens));
-  Object.entries(porGrupo).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log('  ',k,mb(v)));
+  Object.entries(porGrupo).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>
+    console.log('  ',k,mb(v),grupoPacote[k]?'(no pacote)':'(registro a registro)'));
   console.log('As 10 maiores:');
   console.table(maiores.sort((a,b)=>b.kb-a.kb).slice(0,10));
-  return {totalBytes:total, imagensBytes:totalImagens, qtdImagens:qtd, porGrupo,
+  return {totalBytes:total, pacoteBytes, maiorParte,
+    imagensBytes:totalImagens, qtdImagens:qtd, porGrupo, grupoPacote,
     miniaturas:{qtd:qtdMini, bytes:bytesMini}, originais:{qtd:qtdOrig, bytes:bytesOrig}};
 }
 
@@ -8697,12 +8716,13 @@ function renderVisaoGeral(){
                            add(AMBAR,'Backup .zip','Há '+dias+' dias','Vale baixar uma cópia nova.','dados');
   else                     add(VERDE,'Backup .zip',dias===0?'Hoje':'Há '+dias+' dia(s)','Cópia recente guardada.','dados');
 
-  // 3. Peso por gravação — passar de 16 MB faz a nuvem recusar tudo
+  // 3. Peso por gravação — o que conta é o PACOTE, que sobe junto a cada
+  // alteração; as listas registro a registro viajam por conta própria
   try{
-    const mb=diagnosticarEstado().totalBytes/1048576;
+    const mb=diagnosticarEstado().pacoteBytes/1048576;
     if(mb>=16)      add(VERMELHO,'Peso por gravação',mb.toFixed(2)+' MB','No limite: a nuvem já recusa gravações.','dados');
-    else if(mb>=5)  add(AMBAR,'Peso por gravação',mb.toFixed(2)+' MB','Perto do limite de 16 MB — compacte as imagens.','dados');
-    else            add(VERDE,'Peso por gravação',mb.toFixed(2)+' MB','Folgado: o limite é 16 MB.','dados');
+    else if(mb>=5)  add(AMBAR,'Peso por gravação',mb.toFixed(2)+' MB','Pacote pesado — rode a rotina de compactação.','dados');
+    else            add(VERDE,'Peso por gravação',mb.toFixed(2)+' MB','Folgado: o pacote sobe leve, limite de 16 MB.','dados');
   }catch(e){}
 
   // 4. Reparos pendentes
@@ -8831,28 +8851,39 @@ function renderSaudeDados(){
   if(!resumo) return;
   let d;
   try{ d=diagnosticarEstado(); }catch(e){ resumo.innerHTML='<span style="color:var(--red);">Não foi possível medir.</span>'; return; }
-  const mb=d.totalBytes/1048576;
-  const limite=16; // limite de gravação do Firebase Realtime Database
+  const mb=d.pacoteBytes/1048576;
+  const limite=16; // limite de uma gravação no Firebase Realtime Database
   const pct=Math.min(100,Math.round(mb/limite*100));
   const estado = mb>=limite ? {cor:'#ef4444',txt:'CRÍTICO — a nuvem já está recusando gravações'}
-               : mb>=5      ? {cor:'#f59e0b',txt:'ATENÇÃO — perto do limite'}
-                            : {cor:'#22c55e',txt:'OK'};
+               : mb>=5      ? {cor:'#f59e0b',txt:'ATENÇÃO — pacote pesado, rode a rotina de compactação'}
+                            : {cor:'#22c55e',txt:'OK — gravações leves'};
   resumo.innerHTML=`
     <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <span style="font-size:26px;font-weight:800;color:${estado.cor};font-family:var(--font-mono);">${mb.toFixed(2)} MB</span>
-      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">por gravação · limite ${limite} MB</span>
+      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">no pacote por gravação · limite ${limite} MB</span>
     </div>
     <div style="height:8px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:8px;">
       <div style="height:100%;width:${pct}%;background:${estado.cor};transition:width .3s;"></div>
     </div>
-    <div style="font-size:11px;font-weight:700;color:${estado.cor};font-family:var(--font-mono);">${estado.txt}</div>`;
-  const linhas=Object.entries(d.porGrupo).sort((a,b)=>b[1]-a[1])
-    .map(([k,v])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border-light);">
+    <div style="font-size:11px;font-weight:700;color:${estado.cor};font-family:var(--font-mono);margin-bottom:6px;">${estado.txt}</div>
+    <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;">
+      Guardado na nuvem (tudo): ${(d.totalBytes/1048576).toFixed(2)} MB · maior parte do pacote: ${d.maiorParte.nome} (${(d.maiorParte.bytes/1048576).toFixed(2)} MB)
+    </div>`;
+  const linha=([k,v])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border-light);">
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">${k}</span>
-        <span style="font-size:11px;color:var(--text-primary);font-family:var(--font-mono);">${(v/1048576).toFixed(2)} MB</span></div>`).join('');
+        <span style="font-size:11px;color:var(--text-primary);font-family:var(--font-mono);">${(v/1048576).toFixed(2)} MB</span></div>`;
+  const grupos=Object.entries(d.porGrupo).sort((a,b)=>b[1]-a[1]);
+  const noPacote=grupos.filter(([k])=>d.grupoPacote[k]);
+  const emRegistro=grupos.filter(([k])=>!d.grupoPacote[k]);
+  const titSec=t=>`<div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin:10px 0 3px;">${t}</div>`;
   detalhe.innerHTML = d.qtdImagens
-    ? `<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:6px;">
-         ${d.qtdImagens} imagem(ns) · ${(d.imagensBytes/1048576).toFixed(2)} MB (${d.totalBytes?Math.round(d.imagensBytes/d.totalBytes*100):0}% do total)</div>${linhas}`
+    ? `<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:2px;">
+         ${d.qtdImagens} imagem(ns) · ${(d.imagensBytes/1048576).toFixed(2)} MB no total
+         · ${d.miniaturas.qtd} miniatura(s) (${(d.miniaturas.bytes/1048576).toFixed(2)} MB)
+         · ${d.originais.qtd} original(is) embutida(s) (${(d.originais.bytes/1048576).toFixed(2)} MB)</div>`
+      + titSec('Viajam a cada alteração (pacote)')
+      + (noPacote.length?noPacote.map(linha).join(''):'<div style="font-size:11px;color:var(--tom-verde);font-family:var(--font-mono);padding:3px 0;">Nenhuma — ótimo, o pacote está limpo de imagens.</div>')
+      + (emRegistro.length?(titSec('Registro a registro — sobem só quando o item muda')+emRegistro.map(linha).join('')):'')
     : '<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma imagem embutida.</div>';
 }
 
@@ -8891,14 +8922,14 @@ function migrarImagensParaFora(){
     alvos.push({obj,chave,dono,campo,indice});
   });
   if(!alvos.length){ showToast('Nenhuma imagem para migrar','success'); return; }
-  const antes=JSON.stringify(appState).length;
-  if(!confirmar(()=>migrarImagensParaFora(), `Migrar ${alvos.length} imagem(ns) para fora do pacote?\n\nHoje o sistema envia ${(antes/1048576).toFixed(2)} MB a cada alteração. As imagens continuam disponíveis — apenas deixam de viajar junto o tempo todo.`)) return;
+  const antes=JSON.stringify(_estadoSemColecoes(appState)).length;
+  if(!confirmar(()=>migrarImagensParaFora(), `Migrar ${alvos.length} imagem(ns) para fora do pacote?\n\nHoje o pacote sobe com ${(antes/1048576).toFixed(2)} MB a cada alteração. As imagens continuam disponíveis — apenas deixam de viajar junto o tempo todo.`)) return;
 
   const btn=document.getElementById('btn-migrar');
   let feito=0, falhas=0;
   const proximo=()=>{
     if(feito>=alvos.length){
-      const depois=JSON.stringify(appState).length;
+      const depois=JSON.stringify(_estadoSemColecoes(appState)).length;
       saveState(appState);
       const msg=falhas
         ? `Migrado com ${falhas} pendência(s): ${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`
@@ -8937,7 +8968,7 @@ function compactarImagensDoEstado(){
   _percorrerImagensDoEstado(appState,(obj,chave)=>alvos.push({obj,chave}));
   if(!alvos.length){ showToast('Nenhuma imagem para compactar','success'); return; }
   const antes=JSON.stringify(appState).length;
-  if(!confirmar(()=>compactarImagensDoEstado(), `Compactar ${alvos.length} imagem(ns) já gravada(s)?\n\nO estado hoje ocupa ${(antes/1048576).toFixed(2)} MB e é reenviado inteiro a cada alteração.`)) return;
+  if(!confirmar(()=>compactarImagensDoEstado(), `Compactar ${alvos.length} imagem(ns) já gravada(s)?\n\nOs dados hoje ocupam ${(antes/1048576).toFixed(2)} MB na nuvem — compactar reduz o peso guardado e o que viaja quando cada registro muda.`)) return;
   showToast('Compactando imagens… aguarde','warn');
   let feitos=0;
   const proximo=()=>{
@@ -9821,8 +9852,8 @@ function saveState(s){
     }
     payload._version = _localVersion;
     payload._savedBy = _sessionId;
-    // O estado inteiro sobe a cada alteração: se crescer demais (imagens
-    // embutidas), a gravação passa a derrubar a conexão. Avisa antes disso.
+    // O pacote (estado sem as listas registro a registro) sobe a cada
+    // alteração: se crescer demais, a gravação derruba a conexão. Avisa antes.
     try{
       const bytes=JSON.stringify(payload).length;
       if(bytes>_FB_ALERTA_BYTES && Date.now()-_fbAvisoPesoTs>300000){
