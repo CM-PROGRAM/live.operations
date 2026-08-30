@@ -7057,11 +7057,113 @@ function imgGerarThumb(dataUrl,cb){
 // O token é o mesmo do login: o worker confere a assinatura do Firebase
 // Auth, então só quem está logado no sistema lê ou grava por lá.
 function _cfImgAtivo(){ return !!CF_IMG_URL; }
+/* A sessão emitida pelo próprio worker. Guardada aqui e no navegador,
+   porque depois que o Firebase Auth sair não haverá mais quem reemita um
+   crachá sozinho ao recarregar a página. */
+let _cfSessao=null;
+function _cfSessaoCarregar(){
+  if(_cfSessao) return _cfSessao;
+  try{
+    const bruto=localStorage.getItem('lo-sessao');
+    if(bruto){
+      const o=JSON.parse(bruto);
+      if(o && o.token && o.exp>Date.now()+60000) _cfSessao=o;
+    }
+  }catch(e){}
+  return _cfSessao;
+}
+function _cfSessaoGuardar(o){
+  _cfSessao=o||null;
+  try{
+    if(o) localStorage.setItem('lo-sessao', JSON.stringify(o));
+    else localStorage.removeItem('lo-sessao');
+  }catch(e){}
+}
+
+/* O crachá que vai em toda conversa com o worker. Enquanto os dois
+   existirem, o do worker tem preferência: é ele que continua valendo no
+   dia em que o Firebase for desligado. */
 function _cfToken(){
+  const s=_cfSessaoCarregar();
+  if(s && s.exp>Date.now()+60000) return Promise.resolve(s.token);
   try{
     const u=(typeof firebase!=='undefined' && firebase.auth) ? firebase.auth().currentUser : null;
     return u ? u.getIdToken() : Promise.resolve('');
   }catch(e){ return Promise.resolve(''); }
+}
+
+// ── Entrar pelo worker ──────────────────────────────────────────
+// Devolve true se entrou, false se a senha não bate, e 'sem-cadastro'
+// quando esta pessoa ainda não tem senha guardada deste lado.
+function _cfEntrar(chave,senha){
+  if(!_cfImgAtivo()) return Promise.resolve('sem-cadastro');
+  return fetch(CF_IMG_URL+'/auth/entrar',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chave,senha})
+  }).then(r=>r.json().then(j=>({status:r.status,j}))).then(({status,j})=>{
+    if(status===200 && j && j.token){
+      _cfSessaoGuardar({token:j.token, exp:j.exp, chave:j.chave});
+      return true;
+    }
+    if(status===404) return 'sem-cadastro';
+    return false;
+  }).catch(err=>{
+    console.warn('[auth][cf] entrar:',err.message);
+    return 'sem-cadastro';   // indisponível: o Firebase decide
+  });
+}
+
+/* Semeia a senha no worker logo depois de o Firebase confirmar que ela
+   está certa. É esta função que faz a migração acontecer sozinha: a
+   pessoa entra como sempre e, sem perceber, passa a existir do lado
+   novo. Falhar aqui não impede ninguém de entrar. */
+function _cfSemear(chave,senha){
+  if(!_cfImgAtivo()) return Promise.resolve(false);
+  return _cfToken().then(tk=>{
+    if(!tk) return false;
+    return fetch(CF_IMG_URL+'/auth/semear',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
+      body:JSON.stringify({chave,senha})
+    }).then(r=>r.ok);
+  }).then(ok=>{
+    if(ok) console.log('[auth] senha registrada também na Cloudflare');
+    return ok;
+  }).catch(err=>{ console.warn('[auth][cf] semear:',err.message); return false; });
+}
+
+/* O login de verdade: tenta o cofre próprio primeiro; se esta pessoa
+   ainda não estiver lá, usa o Firebase como sempre e aproveita para
+   semear. Quando todos tiverem entrado uma vez, o Firebase deixa de ser
+   necessário sem ninguém redefinir nada. */
+function _autenticarNaNuvem(chave,senha){
+  /* O Firebase vem PRIMEIRO enquanto existir, por dois motivos que só
+     aparecem quando se inverte a ordem:
+       · a gravação dupla ainda passa por ele, e ela exige a sessão dele
+         autenticada — entrar só pelo cofre novo deixaria o sistema
+         gravando pela metade, sem ninguém perceber;
+       · senha trocada no Firebase precisa prevalecer. Aceitar primeiro o
+         cofre novo deixaria a senha ANTIGA valendo até alguém semear de
+         novo — exatamente o buraco que a troca de senha existe para fechar.
+     O cofre próprio entra quando o Firebase não consegue responder: hoje,
+     por queda; amanhã, por estar desligado. */
+  return _autenticarNoFirebase(chave,senha).then(ok=>{
+    if(ok){ _cfSemear(chave,senha); return true; }
+    const erro=String(_ultimoErroAuth||'');
+    // Recusa por credencial é palavra final: a senha está errada mesmo
+    if(/wrong-password|invalid-login-credentials|invalid-credential|user-not-found|email-already-in-use/.test(erro)){
+      return false;
+    }
+    return Promise.resolve(_cfEntrar(chave,senha)).then(r=>{
+      if(r===true){
+        _ultimoErroAuth='';
+        console.log('[auth] entrou pelo cofre da Cloudflare (Firebase indisponível)');
+        return true;
+      }
+      if(r===false) _ultimoErroAuth='auth/wrong-password';
+      return false;
+    });
+  });
 }
 function _cfImgReq(metodo,chave,corpo){
   if(!_cfImgAtivo()) return Promise.reject(new Error('cf-desativado'));
@@ -11513,7 +11615,7 @@ function testarAutenticacao(){
     const u=appState.users[currentUser.key]||{};
     const confere = u.passHash ? (u.passHash===h) : (u.pass===senha);
     if(!confere){ showToast('Senha incorreta','error'); return; }
-    _autenticarNoFirebase(currentUser.key,senha).then(ok=>{
+    _autenticarNaNuvem(currentUser.key,senha).then(ok=>{
       renderSeguranca();
       if(ok){ showToast('✓ Sessão autenticada na nuvem','success'); verificarAutorizacao(); }
       else { const [t]=_explicarErroAuth(_ultimoErroAuth); showToast(t,'warn'); }
@@ -11781,7 +11883,7 @@ function doLogin(){
     let nuvemAceitou=false;
     const temNuvem = (typeof firebase!=='undefined' && firebase.auth && navigator.onLine!==false);
     if(temNuvem){
-      const entrou=await _autenticarNoFirebase(chave,p);
+      const entrou=await _autenticarNaNuvem(chave,p);
       nuvemAceitou=entrou;
       if(entrou){
         liberado=true;
@@ -11911,6 +12013,7 @@ function doLogout(){
   // Sai da sala da Cloudflare junto: sessão encerrada não fica na lista
   // de presentes nem recebe mudança que não vai usar.
   try{ cfSalaFechar(); }catch(e){}
+  try{ _cfSessaoGuardar(null); }catch(e){}
   _cfLeituraAtiva=false; _cfBootTentado=false;
   if(db){ try{ db.ref(FB_PERMS).off(); }catch(e){} }
   _permsOuvindo=false;
@@ -12030,7 +12133,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.29q';
+const APP_VERSAO='2026.08.29r';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
