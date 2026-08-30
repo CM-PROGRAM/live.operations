@@ -12236,7 +12236,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30f';
+const APP_VERSAO='2026.08.30g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19815,12 +19815,22 @@ function acpVerFotos(id){
     + '</div><div style="margin-top:10px;font-size:11px;color:var(--text-muted);">Clique numa foto para abrir em tamanho cheio.</div>';
   ov.classList.add('open');
 }
+/* A foto original está guardada desde sempre, fora do pacote, e o
+   registro traz a referência dela em `fotosRef`. Abrir a miniatura numa
+   janela nova, esticada até a largura da tela, era mostrar 240 pixels
+   onde havia a foto inteira — e deixava a impressão de que a qualidade
+   tinha se perdido na migração. Não tinha: faltava vir buscar.
+
+   O visualizador comum do sistema já sabe fazer isso (mostra a miniatura
+   na hora, avisa que está buscando, troca pela original quando chega) e
+   ainda traz o botão de baixar e o Esc para fechar. */
 function acpAmpliar(i,id){
   let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
   if(!a && String(id).indexOf('dev_antigo_')===0) a=_acpDevolucoesAntigas().find(x=>x.id===id);
   const f=a&&Array.isArray(a.fotos)?a.fotos[i]:null; if(!f) return;
-  const w=window.open('');
-  if(w) w.document.write('<title>Foto da devolução</title><img src="'+f+'" style="max-width:100%;">');
+  const ref=(Array.isArray(a.fotosRef)?a.fotosRef[i]:'')||'';
+  const nome='foto-'+String(a.nped||a.cliente||a.id||'devolucao').replace(/[^\w-]+/g,'-')+'-'+(i+1);
+  atvVerProva(f,nome,ref);
 }
 
 /* Conferir a devolução: o que se faz quando a caixa chega.
@@ -19891,10 +19901,12 @@ function acpDesenharFotosEm(idBox){
       <button title="Remover" onclick="acpRemFoto(${i})">&#10005;</button>
     </div>`).join('');
 }
+// Foto ainda não salva: já está inteira na memória, então não há original
+// a buscar — mas o visualizador é o mesmo, para a experiência não mudar
+// conforme a foto esteja salva ou não.
 function acpVerFotoTmp(i){
   const f=_acpFotos[i]; if(!f) return;
-  const w=window.open('');
-  if(w) w.document.write('<title>Foto da devolução</title><img src="'+f+'" style="max-width:100%;">');
+  atvVerProva(f,'foto-devolucao-'+(i+1),'');
 }
 
 function acpConferir(id){
