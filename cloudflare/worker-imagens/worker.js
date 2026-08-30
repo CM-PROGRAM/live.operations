@@ -566,6 +566,16 @@ async function garantirTabelas(env) {
     ' ts      INTEGER NOT NULL,' +
     ' PRIMARY KEY (colecao, chave))'
   ).run();
+  /* Ordenar por ts sem indice varreria a colecao inteira a cada leitura de
+     "ultimos". Falhar aqui nao quebra nada — so fica mais lento —, mas o
+     motivo aparece, que e a licao do ALTER TABLE engolido em silencio. */
+  try {
+    await env.DADOS.prepare(
+      'CREATE INDEX IF NOT EXISTS idx_registros_colecao_ts ON registros (colecao, ts)'
+    ).run();
+  } catch (e) {
+    console.warn('[dados] indice colecao/ts nao criado:', (e && e.message) || e);
+  }
   _tabelasOk = true;
 }
 
@@ -914,7 +924,8 @@ async function atenderApi(req, env, ctx, url) {
     const doFim = url.searchParams.get('ultimos') === '1';
     const rs = doFim
       ? await env.DADOS.prepare(
-          'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND ts > ?2 ORDER BY chave DESC LIMIT ?3'
+          // Mesmo motivo do /dados/colecao: chave nem sempre e cronologica
+          'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND ts > ?2 ORDER BY ts DESC, rowid DESC LIMIT ?3'
         ).bind(colecao, desde, limite).all()
       : await env.DADOS.prepare(
           'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND chave > ?2 AND ts > ?3 ORDER BY chave LIMIT ?4'
@@ -1096,12 +1107,22 @@ export default {
         /* ?ultimos=1 devolve o FIM da lista, não o começo. Feed de atividade
            e avisos só querem as últimas dezenas de um ramo com milhares —
            ler tudo para jogar fora quase tudo é o desperdício que esta
-           migração existe para acabar. As chaves são cronológicas, então a
-           ordem inversa basta; a resposta volta na ordem de sempre. */
+           migração existe para acabar.
+
+           Ordenava por chave, apostando que chave é cronológica. Vale para
+           as chaves do Firebase (-N...), NÃO vale para as mensagens do
+           inbox: o id do Chatwoot é número, e como TEXTO '9' vem depois de
+           '1000'. As "últimas 120" de uma conversa voltavam sendo as que
+           começam com 9, depois com 8 — um pedaço torto do histórico. O
+           Firebase pedia orderByChild('ts') e nunca teve esse problema.
+
+           Agora ordena por ts, que é o que "último" quer dizer. O rowid
+           desempata: no histórico que veio da migração em bloco todos os
+           ts são iguais, e a ordem de inserção preserva a cronologia. */
         const doFim = url.searchParams.get('ultimos') === '1';
         const rs = doFim
           ? await env.DADOS.prepare(
-              'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 ORDER BY chave DESC LIMIT ?2'
+              'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 ORDER BY ts DESC, rowid DESC LIMIT ?2'
             ).bind(nome, limite).all()
           : await env.DADOS.prepare(
               'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND chave > ?2 ORDER BY chave LIMIT ?3'
