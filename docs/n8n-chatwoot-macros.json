@@ -1,0 +1,188 @@
+{
+  "name": "Chatwoot → LiveOps · Macros e Respostas Prontas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-macros",
+        "responseMode": "lastNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-620, 0],
+      "id": "Webhook LiveOps (macros)",
+      "name": "Webhook LiveOps (macros)",
+      "webhookId": "chatwoot-macros"
+    },
+    {
+      "parameters": {
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/macros",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-400, 0],
+      "id": "Listar macros",
+      "name": "Listar macros"
+    },
+    {
+      "parameters": {
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/canned_responses",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 0],
+      "id": "Listar respostas prontas",
+      "name": "Listar respostas prontas",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// O espelho: o que existe HOJE dentro do Chatwoot, para o LiveOps\n// desenhar. Nada e criado aqui — macro e resposta pronta nascem no\n// Chatwoot (Configuracoes > Macros / Respostas Prontas). Aqui so se le.\n\n// A macro EXECUTA acoes no Chatwoot (mandar mensagem, etiquetar, resolver).\n// E o que o botao PIX da barra lateral faz. Precisa do id para disparar.\nlet macrosBrutas = [];\ntry {\n  const r = $('Listar macros').first().json;\n  macrosBrutas = Array.isArray(r) ? r : (r.payload || r.data || []);\n} catch (e) {}\n\n// A resposta pronta e so TEXTO: o \"/\" do Chatwoot escreve no campo.\n// Nao executa nada sozinha — por isso no LiveOps ela entra no grupo de\n// escrever, junto dos templates.\nlet prontasBrutas = [];\ntry {\n  const r = $('Listar respostas prontas').first().json;\n  prontasBrutas = Array.isArray(r) ? r : (r.payload || r.data || []);\n} catch (e) {}\n\nconst macros = macrosBrutas.filter(m => m && m.id).map(m => ({\n  id: String(m.id),\n  nome: String(m.name || 'Macro ' + m.id),\n  visibilidade: String(m.visibility || ''),\n  passos: Array.isArray(m.actions) ? m.actions.length : 0,\n}));\n\nconst prontas = prontasBrutas.filter(c => c && c.short_code).map(c => ({\n  id: String(c.id || ''),\n  atalho: String(c.short_code || ''),\n  texto: String(c.content || '').slice(0, 4000),\n}));\n\nreturn [{ json: { macros, prontas, em: Date.now() } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 0],
+      "id": "Montar espelho",
+      "name": "Montar espelho"
+    },
+
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "chatwoot-macro-exec",
+        "responseMode": "onReceived",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-620, 300],
+      "id": "Webhook LiveOps (executar macro)",
+      "name": "Webhook LiveOps (executar macro)",
+      "webhookId": "chatwoot-macro-exec"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Vem do WhatsLive: {conv:'cw_3383', macroId:'7', macroNome:'PIX', autor:'CM'}\nconst b = $json.body || $json;\nconst conv = String(b.conv || '');\nconst num = conv.replace(/^cw_/, '');\nconst macroId = String(b.macroId || '');\nif (!/^\\d+$/.test(num) || !/^\\d+$/.test(macroId)) return [];\nreturn [{ json: {\n  convNum: num,\n  convId: conv,\n  macroId,\n  macroNome: String(b.macroNome || 'macro').slice(0, 80),\n  autor: String(b.autor || '').trim() || '?',\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-400, 300],
+      "id": "Preparar disparo",
+      "name": "Preparar disparo"
+    },
+    {
+      "parameters": {
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [-180, 300],
+      "id": "Achar a conversa",
+      "name": "Achar a conversa"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pegadinha do Chatwoot: a URL da conversa usa o display_id (3383), mas\n// executar macro pede o id INTERNO. O GET acima devolve os dois — aqui se\n// escolhe o certo, senao a macro roda na conversa de outra pessoa.\nconst p = $('Preparar disparo').first().json;\nconst c = $json || {};\nconst interno = c.id || (c.payload && c.payload.id);\nif (!interno) throw new Error('Chatwoot nao devolveu o id interno da conversa ' + p.convNum);\nreturn [{ json: Object.assign({}, p, { convInterno: String(interno) }) }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [40, 300],
+      "id": "Id interno da conversa",
+      "name": "Id interno da conversa"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/macros/{{ $json.macroId }}/execute",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ conversation_ids: [Number($json.convInterno)] }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 300],
+      "id": "Executar a macro",
+      "name": "Executar a macro"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A macro age dentro do Chatwoot: o que ela mandar ao cliente volta pelo\n// webhook de sempre e vira balao normal. Aqui so fica o RASTRO de quem\n// apertou o botao — nota interna, o cliente nao ve.\nconst p = $('Id interno da conversa').first().json;\nconst ts = Date.now();\nreturn [{ json: {\n  convId: p.convId,\n  msgId: 'lm' + ts,\n  conv: { id: p.convId, ultima: '⚡ ' + p.macroNome, deUltima: 'agente', ts },\n  msg:  { texto: '⚡ Macro \"' + p.macroNome + '\" executada no Chatwoot', de: 'nota', autor: p.autor, ts },\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "id": "Montar a nota",
+      "name": "Montar a nota"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/conv/{{ $json.convId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.conv) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 190],
+      "id": "Gravar conversa",
+      "name": "Gravar conversa"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/msg/{{ $json.convId }}/{{ $json.msgId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.msg) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 410],
+      "id": "Gravar mensagem",
+      "name": "Gravar mensagem"
+    }
+  ],
+  "connections": {
+    "Webhook LiveOps (macros)": { "main": [[{ "node": "Listar macros", "type": "main", "index": 0 }]] },
+    "Listar macros": { "main": [[{ "node": "Listar respostas prontas", "type": "main", "index": 0 }]] },
+    "Listar respostas prontas": { "main": [[{ "node": "Montar espelho", "type": "main", "index": 0 }]] },
+
+    "Webhook LiveOps (executar macro)": { "main": [[{ "node": "Preparar disparo", "type": "main", "index": 0 }]] },
+    "Preparar disparo": { "main": [[{ "node": "Achar a conversa", "type": "main", "index": 0 }]] },
+    "Achar a conversa": { "main": [[{ "node": "Id interno da conversa", "type": "main", "index": 0 }]] },
+    "Id interno da conversa": { "main": [[{ "node": "Executar a macro", "type": "main", "index": 0 }]] },
+    "Executar a macro": { "main": [[{ "node": "Montar a nota", "type": "main", "index": 0 }]] },
+    "Montar a nota": {
+      "main": [[
+        { "node": "Gravar conversa", "type": "main", "index": 0 },
+        { "node": "Gravar mensagem", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "pinData": {},
+  "settings": { "executionOrder": "v1" }
+}

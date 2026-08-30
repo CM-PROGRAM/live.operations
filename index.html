@@ -13077,7 +13077,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31c';
+const APP_VERSAO='2026.08.31d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15180,6 +15180,65 @@ const WA_URL_ENVIA_NOVO='https://webhookn8n.suplelive.com.br/webhook/chatwoot-en
    Inbox refem de um payload grande. */
 const WA_URL_ANEXO='https://webhookn8n.suplelive.com.br/webhook/chatwoot-anexo';
 const WA_ANEXO_MAX = 12 * 1024 * 1024;   // o WhatsApp recusa acima disso
+
+/* ── Macros e respostas prontas do Chatwoot ──────────────────────────
+   Lição paga com uma mensagem torta no WhatsApp de um cliente: "/pix"
+   NÃO é comando de canal. É uma MACRO do Chatwoot — um botão que roda
+   ações lá dentro. Mandar o texto "/pix" na conversa só entrega a
+   palavra "/pix" ao cliente, que não entende nada.
+
+   Então aqui não se inventa comando: espelha-se o que existe no Chatwoot
+   (Configurações → Macros e → Respostas Prontas) e chama-se a API certa
+   para cada um. Macro executa; resposta pronta é só texto. */
+const WA_URL_MACROS='https://webhookn8n.suplelive.com.br/webhook/chatwoot-macros';
+const WA_URL_MACRO_EXEC='https://webhookn8n.suplelive.com.br/webhook/chatwoot-macro-exec';
+let _cwMacros=null, _cwProntas=null, _cwErro='', _cwCarregando=false, _cwTs=0;
+function cwCarregar(force){
+  if(_cwCarregando) return Promise.resolve();
+  if(!force && _cwMacros && (Date.now()-_cwTs)<10*60*1000) return Promise.resolve();
+  _cwCarregando=true; _cwErro='';
+  try{ _cwPintar(); }catch(e){}
+  return fetch(WA_URL_MACROS,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})
+    .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(d=>{
+      _cwMacros=Array.isArray(d&&d.macros)?d.macros:[];
+      _cwProntas=Array.isArray(d&&d.prontas)?d.prontas:[];
+      _cwTs=Date.now();
+    })
+    .catch(err=>{ _cwErro=err.message||'falhou'; })
+    .then(()=>{ _cwCarregando=false; try{ _cwPintar(); }catch(e){} });
+}
+/* Atalho da resposta pronta vem como "pix" ou "/pix" — normaliza para um só */
+function _cwAtalho(p){ return '/'+String((p&&p.atalho)||'').replace(/^\/+/,''); }
+function waMacroDisparar(id){
+  const m=(_cwMacros||[]).find(x=>x&&String(x.id)===String(id));
+  if(!m) return;
+  if(!_waAberta){ showToast('Abra uma conversa primeiro','warn'); return; }
+  if(String(_waAberta).indexOf('novo:')===0){
+    showToast('A macro precisa de uma conversa já criada — mande uma mensagem antes','warn'); return;
+  }
+  waTplFechar();
+  const quem=((currentUser&&currentUser.name)||'').trim().split(/\s+/)[0]||'?';
+  fetch(WA_URL_MACRO_EXEC,{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({conv:_waAberta, macroId:String(m.id), macroNome:m.nome||'', autor:quem})})
+  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status);
+    showToast('⚡ Macro "'+(m.nome||'')+'" executada no Chatwoot','success'); })
+  .catch(err=>{
+    console.warn('[macro] não rodou:',err.message);
+    showToast('A macro não rodou — confira o fluxo de macros no n8n','error');
+  });
+}
+function waProntaEscolher(id){
+  const p=(_cwProntas||[]).find(x=>x&&String(x.id)===String(id)); if(!p) return;
+  const inp=document.getElementById('wa-input'); if(!inp) return;
+  let txt=String(p.texto||'');
+  const nome=_waContatoPrimeiroNome();
+  if(nome) txt=txt.replace(/\{\{\s*client_name\s*\}\}/gi,nome);
+  inp.value=txt;
+  waTplFechar();
+  inp.focus();
+  inp.selectionStart=inp.selectionEnd=inp.value.length;
+}
 let _waPendentes={};   // convId -> [{_pid, texto, de:'agente', autor, ts, _pend}]
 
 /* ── Comandos de template na conversa ──
@@ -15206,32 +15265,58 @@ function _waTplRender(filtro){
     return _tplComandoDe(t).slice(1).indexOf(f)===0
       || String(t.nome||'').toLowerCase().indexOf(f)>=0;
   });
-  /* Dois grupos, porque são duas coisas diferentes: o comando do canal
-     DISPARA na hora; o template ESCREVE no campo para você revisar. */
-  const cmds=_tplComandosCanal().filter(c=>{
+  /* Três grupos, porque são três coisas de naturezas diferentes:
+     a MACRO roda no Chatwoot na hora; a resposta pronta e o template só
+     escrevem no campo, para você revisar antes de mandar. */
+  const macros=(_cwMacros||[]).filter(m=>{
     if(!f) return true;
-    return _tplComandoDe(c).slice(1).indexOf(f)===0 || String(c.nome||'').toLowerCase().indexOf(f)>=0;
+    return String(m.nome||'').toLowerCase().indexOf(f)>=0;
   });
-  const linhaCmd=c=>
-    `<button type="button" class="wa-tpl-item wa-cmd-item" onclick="waComandoDisparar('${_iniEsc(c.id)}')">`+
-    `<span class="cmd">${_iniEsc(_tplComandoDe(c))}</span><span class="nm">${_iniEsc(c.nome||'')}</span>`+
-    `<span class="wa-cmd-go">⚡ disparar</span>`+
-    `<div class="tx">${_iniEsc(String(c.desc||'').slice(0,110))}</div></button>`;
+  const prontas=(_cwProntas||[]).filter(p=>{
+    if(!f) return true;
+    return _cwAtalho(p).slice(1).indexOf(f)===0 || String(p.texto||'').toLowerCase().indexOf(f)>=0;
+  });
+  const linhaMacro=m=>
+    `<button type="button" class="wa-tpl-item wa-cmd-item" onclick="waMacroDisparar('${_iniEsc(String(m.id))}')">`+
+    `<span class="nm" style="margin-left:0;">${_iniEsc(m.nome||'')}</span>`+
+    `<span class="wa-cmd-go">⚡ executar</span>`+
+    `<div class="tx">${m.passos?_iniEsc(m.passos+(m.passos===1?' ação':' ações')+' no Chatwoot'):'macro do Chatwoot'}</div></button>`;
+  const linhaPronta=p=>
+    `<button type="button" class="wa-tpl-item" onclick="waProntaEscolher('${_iniEsc(String(p.id))}')">`+
+    `<span class="cmd">${_iniEsc(_cwAtalho(p))}</span><span class="nm">resposta pronta</span>`+
+    `<div class="tx">${_iniEsc(String(p.texto||'').replace(/\s+/g,' ').slice(0,110))}</div></button>`;
   const linhaTpl=t=>
     `<button type="button" class="wa-tpl-item" onclick="waTplEscolher('${_iniEsc(t.id)}')">`+
     `<span class="cmd">${_iniEsc(_tplComandoDe(t))}</span><span class="nm">${_iniEsc(t.nome||'')}</span>`+
     `<div class="tx">${_iniEsc(String(t.texto||'').replace(/\s+/g,' ').slice(0,110))}</div></button>`;
-  panel.innerHTML=
-    (cmds.length?'<div class="wa-tpl-titulo">Comandos do canal — dispara na hora</div>'+cmds.map(linhaCmd).join(''):'')
-    +'<div class="wa-tpl-titulo">Templates — escreve no campo</div>'
+  let topo='';
+  if(_cwCarregando && !_cwMacros) topo='<div class="wa-tpl-nada">Buscando as macros do Chatwoot…</div>';
+  else if(_cwErro && !_cwMacros) topo='<div class="wa-tpl-nada">Não consegui ler as macros do Chatwoot.<br>Confira o fluxo <b>chatwoot-macros</b> no n8n.</div>';
+  panel.innerHTML=topo
+    +(macros.length?'<div class="wa-tpl-titulo">Macros do Chatwoot — roda na hora</div>'+macros.map(linhaMacro).join(''):'')
+    +(prontas.length?'<div class="wa-tpl-titulo">Respostas prontas do Chatwoot — escreve no campo</div>'+prontas.map(linhaPronta).join(''):'')
+    +'<div class="wa-tpl-titulo">Templates do LiveOps — escreve no campo</div>'
     +(itens.length?itens.map(linhaTpl).join('')
       :'<div class="wa-tpl-nada">Nenhum template com esse comando. Cadastre na aba Templates.</div>');
   panel.style.display='block';
+}
+/* O painel do "/" e o espelho da aba Templates leem a mesma lista; quando
+   ela chega do Chatwoot, quem estiver aberto se redesenha. */
+function _cwPintar(){
+  const panel=document.getElementById('wa-tpl-panel');
+  if(panel && panel.style.display!=='none'){
+    const inp=document.getElementById('wa-input');
+    const v=inp?String(inp.value||''):'';
+    _waTplRender(v.trim().indexOf('/')===0?v.trim():'');
+  }
+  const box=document.getElementById('cmd-lista');
+  if(box) _cmdRender();
 }
 function waTplAbrir(){
   const panel=document.getElementById('wa-tpl-panel'); if(!panel) return;
   if(panel.style.display!=='none'){ waTplFechar(); return; }
   _waTplAuto=false;
+  cwCarregar();          // as macros vêm do Chatwoot, não daqui
   _waTplRender('');
 }
 function waTplFechar(){
@@ -15244,6 +15329,7 @@ function waTplDigitou(){
   const v=inp.value;
   if(v.trim().indexOf('/')===0 && v.trim().length<=30 && v.indexOf('\n')<0){
     _waTplAuto=true;
+    cwCarregar();
     _waTplRender(v.trim());
   } else if(_waTplAuto){
     waTplFechar();
@@ -15876,65 +15962,22 @@ function _tplItens(){
   if(l.length) return {lista:l.slice().sort((a,b)=>(a.ordem||9e15)-(b.ordem||9e15)), virtual:false};
   return {lista:_tplPadroes(), virtual:true};
 }
-/* ── Comandos do canal ───────────────────────────────────────────────
-   Não são templates: são as palavras que o próprio canal do WhatsApp
-   entende, digitadas hoje à mão dentro do Chatwoot (/iniciar_atendimento,
-   /pix). Aqui elas viram botão — e saem CRUAS, sem a assinatura da
-   persona, senão o canal não as reconhece.
-
-   Vivem na mesma lista dos templates, marcadas com canal:true, para não
-   nascer uma terceira lista compartilhada — já aprendemos o preço disso. */
-function _tplCanalPadroes(){
-  return [
-    {id:'cmd_iniciar', ordem:9001, canal:true, nome:'Iniciar atendimento',
-     comando:'/iniciar_atendimento', desc:'Abre a janela de atendimento no canal',
-     texto:'/iniciar_atendimento'},
-    {id:'cmd_pix', ordem:9002, canal:true, nome:'PIX',
-     comando:'/pix', desc:'Dispara a cobrança PIX do canal',
-     texto:'/pix'},
-  ];
-}
-function _tplComandosCanal(){
-  const l=_tplLista().filter(t=>t&&t.canal);
-  return l.length?l.slice().sort((a,b)=>(a.ordem||9e15)-(b.ordem||9e15)):_tplCanalPadroes();
-}
+/* Os comandos do canal que existiram aqui por uma versão foram um erro:
+   "/pix" não é palavra que o WhatsApp entende, é uma MACRO do Chatwoot.
+   Quem espelha e dispara isso agora é o bloco de macros do WhatsLive.
+   Sobrou daquela tentativa o filtro abaixo, que limpa da lista qualquer
+   resquício marcado com canal:true. */
 function _tplTemplates(){
   const {lista,virtual}=_tplItens();
   return {lista:lista.filter(t=>t&&!t.canal), virtual};
 }
-/* Materializa os padrões antes de mexer, como o resto da aba faz */
+/* Materializa os padrões antes de mexer, como o resto da aba faz, e
+   aproveita para varrer os comandos falsos que a versão 31c criou. */
 function _tplGarantirLista(){
   const l=_tplLista();
-  if(!l.length){
-    _tplPadroes().forEach(t=>l.push({...t,hist:[]}));
-    _tplCanalPadroes().forEach(t=>l.push({...t,hist:[]}));
-  } else if(!l.some(t=>t&&t.canal)){
-    _tplCanalPadroes().forEach(t=>l.push({...t,hist:[]}));
-  }
+  if(!l.length) _tplPadroes().forEach(t=>l.push({...t,hist:[]}));
+  for(let i=l.length-1;i>=0;i--){ if(l[i]&&l[i].canal) l.splice(i,1); }
   return l;
-}
-/* Disparar é diferente de escrever: o comando vai na hora, sem passar pelo
-   campo de texto. Aqui não se cria balão nenhum — quem registra é o fluxo,
-   como nota interna ("⚡ /pix — disparado no canal"), e ela chega pela
-   sincronia normal. Se pintássemos um balão otimista aqui, ele ficaria
-   pendurado, porque o eco do Chatwoot é descartado de propósito. */
-function waComandoDisparar(id){
-  const cmd=_tplComandosCanal().find(x=>x&&x.id===id);
-  if(!cmd) return;
-  if(!_waAberta){ showToast('Abra uma conversa primeiro','warn'); return; }
-  if(String(_waAberta).indexOf('novo:')===0){
-    showToast('O comando precisa de uma conversa já criada — mande uma mensagem antes','warn'); return;
-  }
-  waTplFechar();
-  const quem=((currentUser&&currentUser.name)||'').trim().split(/\s+/)[0]||'?';
-  fetch(WA_URL_ENVIA,{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({conv:_waAberta, texto:String(cmd.texto||cmd.comando||''), autor:quem, cru:true})})
-  .then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status);
-    showToast('⚡ '+(cmd.comando||cmd.nome)+' disparado no canal','success'); })
-  .catch(err=>{
-    console.warn('[canal] comando não saiu:',err.message);
-    showToast('O comando não saiu — confira o fluxo do envio no n8n','error');
-  });
 }
 /* Todo template tem um comando de disparo (/boasvindas). Quem não tiver um
    digitado ganha um derivado do nome — sem acento, minúsculo, sem espaço. */
@@ -16058,13 +16101,14 @@ function renderTemplates(){
     </div>
     <div class="gup-secao">
       <div class="gup-topo">
-        <span class="tit">Comandos do canal</span>
-        <span class="selo" style="background:#b8860b;border-color:#b8860b;">DISPARO DIRETO</span>
+        <span class="tit">Espelho do Chatwoot</span>
+        <span class="selo" style="background:#b8860b;border-color:#b8860b;">MACROS E RESPOSTAS PRONTAS</span>
         <div class="acoes">
-          ${master?`<button class="btn-sec" onclick="cmdNovo()">+ Novo comando</button>`:''}
+          <button class="btn-sec" onclick="cwCarregar(true)">Atualizar</button>
+          <a class="btn-sec" style="text-decoration:none;display:inline-flex;align-items:center;" href="https://chat.suplelive.com.br/app/accounts/1/settings/macros" target="_blank" rel="noopener">Abrir Macros no Chatwoot ↗</a>
         </div>
       </div>
-      <p class="gup-sub">São as palavras que o próprio canal do WhatsApp entende — as mesmas que hoje se digita à mão dentro do Chatwoot. No WhatsLive elas aparecem ao digitar <b style="font-family:var(--font-mono);">/</b> e saem <b>cruas</b>, sem a assinatura da persona: é assim que o canal as reconhece. Não passam por aprovação da Meta.</p>
+      <p class="gup-sub">O <b>PIX</b> e os outros botões da barra lateral do Chatwoot são <b>macros</b>: rodam ações lá dentro (mandar mensagem, etiquetar, resolver). Não são texto — mandar “/pix” escrito na conversa só entrega a palavra “/pix” ao cliente. As <b>respostas prontas</b> são o contrário: só texto, o “/” do Chatwoot escreve no campo. Os dois nascem no Chatwoot, em Configurações; aqui só se espelha e se dispara.</p>
       <div id="cmd-lista"></div>
     </div>
     <div class="gup-secao">
@@ -16086,69 +16130,52 @@ function renderTemplates(){
   _gupRender();
 }
 
-/* ── Comandos do canal, na aba Templates ─────────────────────────────
-   Lista curta e editável: nome, o que sai no canal e a explicação. Sem
-   preview nem variáveis — o texto vai literal, é essa a graça dele. */
+/* ── Espelho do Chatwoot, na aba Templates ───────────────────────────
+   Só leitura. Macro e resposta pronta nascem no Chatwoot; inventá-las
+   aqui foi exatamente o erro que mandou um "/pix" escrito para o
+   WhatsApp de um cliente. O que existe lá é o que aparece aqui. */
 function _cmdRender(){
   const box=document.getElementById('cmd-lista'); if(!box) return;
-  const master=!!(currentUser&&currentUser.master);
-  const cmds=_tplComandosCanal();
-  if(!cmds.length){
-    box.innerHTML='<div class="gup-vazio">Nenhum comando de canal cadastrado.</div>'; return;
+  if(_cwCarregando && !_cwMacros){
+    box.innerHTML='<div class="gup-vazio">Consultando o Chatwoot…</div>'; return;
   }
-  box.innerHTML='<div class="gup-grade">'+cmds.map(c=>`
+  if(_cwErro && !_cwMacros){
+    box.innerHTML='<div class="gup-vazio">Não consegui falar com o Chatwoot ('+_iniEsc(_cwErro)+').<br>'+
+      'Confira se o fluxo <b>chatwoot-macros</b> está ativo no n8n.<br>'+
+      '<button class="btn-sec" style="margin-top:10px;" onclick="cwCarregar(true)">Tentar de novo</button></div>';
+    return;
+  }
+  if(!_cwMacros){
+    box.innerHTML='<div class="gup-vazio">Clique em Atualizar para carregar as macros e respostas prontas.</div>'; return;
+  }
+  const macros=_cwMacros||[], prontas=_cwProntas||[];
+  if(!macros.length && !prontas.length){
+    box.innerHTML='<div class="gup-vazio">O Chatwoot não devolveu nenhuma macro nem resposta pronta.</div>'; return;
+  }
+  const placar='<div class="gup-placar">'+
+    '<span><b>'+macros.length+'</b> macro'+(macros.length===1?'':'s')+' — roda na hora</span>'+
+    '<span class="sep">·</span>'+
+    '<span><b>'+prontas.length+'</b> resposta'+(prontas.length===1?'':'s')+' pronta'+(prontas.length===1?'':'s')+' — escreve no campo</span>'+
+    '<span class="sep">·</span><span style="color:var(--text-muted);">criadas no Chatwoot, em Configurações</span></div>';
+  const cardMacro=m=>`
     <div class="gup-card">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
-        <span class="nome">${_iniEsc(c.nome||'—')}</span>
-        <span class="gup-chip neutro" style="font-family:var(--font-mono);">${_iniEsc(_tplComandoDe(c))}</span>
+        <span class="nome">${_iniEsc(m.nome||'—')}</span>
+        <span class="gup-chip ok">MACRO</span>
       </div>
-      <div class="meta">${_iniEsc(c.desc||'sem descrição')}</div>
-      <div class="corpo">sai no canal como: <b style="font-family:var(--font-mono);">${_iniEsc(c.texto||c.comando||'')}</b></div>
-      ${master?`<div style="display:flex;gap:8px;margin-top:10px;">
-        <button class="btn-sec" style="width:auto;font-size:11.5px;padding:4px 12px;" onclick="cmdEditar('${_iniEsc(c.id)}')">Editar</button>
-        <button class="btn-sec" style="width:auto;font-size:11.5px;padding:4px 12px;color:#ef4444;border-color:rgba(239,68,68,.45);" onclick="cmdExcluir('${_iniEsc(c.id)}')">Excluir</button>
-      </div>`:''}
-    </div>`).join('')+'</div>';
-}
-function cmdNovo(){
-  if(!currentUser||!currentUser.master){ showToast('Apenas o master cria comandos','warn'); return; }
-  const nome=prompt('Nome do comando (ex.: Iniciar atendimento)'); if(!nome) return;
-  const bruto=prompt('O que sai no canal (ex.: /iniciar_atendimento)','/'); if(!bruto) return;
-  const l=_tplGarantirLista();
-  l.push({id:'cmd'+Date.now().toString(36), ordem:Date.now(), canal:true,
-    nome:String(nome).trim().slice(0,60), comando:_tplNormComando(bruto)||_tplNormComando(nome),
-    desc:'', texto:String(bruto).trim().slice(0,200),
-    hist:[{q:(currentUser&&currentUser.name)||'',ts:Date.now(),acao:'comando de canal criado'}]});
-  try{ saveState(appState); }catch(e){}
-  renderTemplates();
-  showToast('✓ Comando cadastrado','success');
-}
-function cmdEditar(id){
-  if(!currentUser||!currentUser.master){ showToast('Apenas o master edita comandos','warn'); return; }
-  const l=_tplGarantirLista();
-  const c=l.find(x=>x&&x.id===id); if(!c) return;
-  const nome=prompt('Nome do comando', c.nome||''); if(nome===null) return;
-  const bruto=prompt('O que sai no canal', c.texto||c.comando||''); if(bruto===null) return;
-  const desc=prompt('Descrição curta (aparece no /)', c.desc||''); if(desc===null) return;
-  c.nome=String(nome).trim().slice(0,60)||c.nome;
-  c.texto=String(bruto).trim().slice(0,200);
-  c.comando=_tplNormComando(bruto)||c.comando;
-  c.desc=String(desc).trim().slice(0,140);
-  (c.hist=c.hist||[]).push({q:(currentUser&&currentUser.name)||'',ts:Date.now(),acao:'comando de canal editado'});
-  try{ saveState(appState); }catch(e){}
-  renderTemplates();
-  showToast('✓ Comando atualizado','success');
-}
-function cmdExcluir(id){
-  if(!currentUser||!currentUser.master){ showToast('Apenas o master exclui comandos','warn'); return; }
-  const l=_tplGarantirLista();
-  const c=l.find(x=>x&&x.id===id); if(!c) return;
-  if(!confirmar(()=>cmdExcluir(id),'Excluir o comando "'+(c.nome||'')+'"? Ele some do / no WhatsLive.')) return;
-  const i=l.findIndex(x=>x&&x.id===id);
-  if(i>=0) l.splice(i,1);
-  try{ saveState(appState); }catch(e){}
-  renderTemplates();
-  showToast('Comando excluído','success');
+      <div class="meta">${m.passos?_iniEsc(m.passos+(m.passos===1?' ação':' ações')):'sem ações'}${m.visibilidade?' · '+_iniEsc(m.visibilidade):''}</div>
+      <div class="corpo">Aparece no <b style="font-family:var(--font-mono);">/</b> do WhatsLive com <b>⚡ executar</b>.</div>
+    </div>`;
+  const cardPronta=p=>`
+    <div class="gup-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+        <span class="nome" style="font-family:var(--font-mono);">${_iniEsc(_cwAtalho(p))}</span>
+        <span class="gup-chip neutro">RESPOSTA PRONTA</span>
+      </div>
+      <div class="corpo">${_iniEsc(String(p.texto||'').slice(0,220))}</div>
+    </div>`;
+  box.innerHTML=placar+'<div class="gup-grade">'+
+    macros.map(cardMacro).join('')+prontas.map(cardPronta).join('')+'</div>';
 }
 
 /* A sincronização chama isto quando outra sessão altera um template: só
