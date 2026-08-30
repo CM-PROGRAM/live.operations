@@ -58,16 +58,19 @@ Deve aparecer `[sala] conectado!` e, em seguida, uma mensagem de
 
 # Parte 2 — o sistema lendo pela Cloudflare
 
-Esta parte já está no código. Ela **não muda nada para a equipe**: vem
-desligada e é ligada **por navegador**, não por publicação — assim o
-master testa sozinho, na máquina dele, enquanto todo mundo continua no
-Firebase de sempre.
+**Desde 30/08/2026 o padrão é `preferir` para toda a equipe.** Até essa
+data ele veio `off` por publicação e foi ligado só no navegador do
+master, que rodou em `conferir` e depois em `preferir` por dias — a
+virada é a conclusão desse teste, não o começo dele.
+
+Continua reversível **por navegador**, sem esperar publicação: quem
+precisar volta com `cfLeitura('off')` e um F5.
 
 ## Os três modos
 
 | Modo | O que faz |
 |---|---|
-| `off` | O sistema de sempre (padrão de todos os navegadores) |
+| `off` | O sistema de sempre — lendo do Firebase |
 | `conferir` | O Firebase continua mandando. A Cloudflare é lida em paralelo e **comparada** com o que está na tela, só relatando no console; a sala fica conectada o dia inteiro para provar que aguenta |
 | `preferir` | **A virada**: o sistema abre pela Cloudflare e recebe as mudanças pela sala; os listeners do Firebase nem são ligados — é aí que o download deixa de ser gasto |
 
@@ -129,7 +132,7 @@ ele ser desligado.
 |---|---|---|
 | 4 · parte 1 | Sala + rotas de leitura no worker | ✅ publicada |
 | 4 · parte 2 | Sistema lendo pela Cloudflare (este documento) | ✅ no código, desligada por padrão |
-| 4 · parte 3 | Ligar `preferir` para todo mundo, por publicação | depois da conferência limpa em uso real |
+| 4 · parte 3 | Ligar `preferir` para todo mundo, por publicação | ✅ 30/08/2026 |
 | 3 | Robôs do n8n gravando na Cloudflare | ✅ em produção |
 | 5 | Login próprio (`cloudflare-login.md`) | ✅ no código |
 | 6 | **Desligar o Firebase** | os 7 passos em `cloudflare-login.md` |
