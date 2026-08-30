@@ -4949,9 +4949,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <summary>Rotina de compactação<span class="hint">quando o pacote passar de 5 MB</span></summary>
           <div class="adm-dobra-corpo">
             <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;line-height:1.6;">
-              Os três passos, nesta ordem. Desconectar vem primeiro porque sessão aberta ainda tem os
+              Os quatro passos, nesta ordem. Desconectar vem primeiro porque sessão aberta ainda tem os
               dados antigos em memória e regrava por cima do que você acabou de compactar. Você
               continua conectado; os demais entram de novo em seguida.
+              O passo 4 encolhe as miniaturas que sobraram: o que se vê na tela passa a vir do médio
+              guardado na Cloudflare, então elas não precisam mais ser grandes. Ele só mexe no que já
+              tem cópia guardada — por isso vem depois do 3, nunca antes.
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
@@ -4962,6 +4965,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               </button>
               <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
                 📤 3. Tirar imagens do pacote
+              </button>
+              <button class="btn" id="btn-encolher" onclick="encolherMiniaturas()" style="width:auto;">
+                🪶 4. Encolher miniaturas
               </button>
             </div>
           </div>
@@ -7019,8 +7025,31 @@ function lerImagemComprimidaAsync(arquivo){
 // O campo original (ex.: provaConclusao) passa a guardar a miniatura, de
 // modo que todo o código que já exibia imagem continua funcionando.
 const FB_IMG_PATH='suplelive/imagens';
-const IMG_THUMB_LADO=240;
+/* A miniatura deixou de precisar ser olhável — quem se olha agora é o
+   médio, que vem do R2. Ela virou o borrão de meio segundo até o médio
+   chegar, e por isso encolheu: 240px pesavam 4 KB cada, e 1555 delas
+   somavam 6,5 MB — mais do que cabe no cache do navegador, que é por
+   isso que o `saveLocal` falhava toda sessão. */
+const IMG_THUMB_LADO=128;
 const IMG_THUMB_QUALIDADE=0.5;
+
+/* ── O DEGRAU DO MEIO ──────────────────────────────────────────────
+   Havia dois tamanhos e eles brigavam. A miniatura precisava ser grande
+   o bastante para se olhar, e por isso pesava no estado; a original, boa
+   de olhar, só vinha ao ampliar. Querer ver melhor era querer pesar mais.
+
+   O médio desfaz a briga porque mora em outro lugar: no R2, onde baixar
+   é de graça. Gerado uma vez a partir da original, serve tudo o que
+   aparece na tela — e liberta a miniatura de ter que ser bonita.
+   Vê-se melhor ocupando menos. */
+const IMG_MEDIO_LADO=900;
+const IMG_MEDIO_QUALIDADE=0.72;
+const IMG_MEDIO_SUFIXO='__m';
+const IMG_MEDIA_MAX=250;          // quantos médios ficam na memória
+const _imgMediaUrl={};            // chave -> endereço já pronto
+const _imgMediaCarregando={};
+const _imgMediaOrdem=[];
+function imgChaveMedia(chave){ return chave ? (chave+IMG_MEDIO_SUFIXO) : ''; }
 const _imgCache={};       // chave -> dataUrl original já baixado
 const _imgCarregando={};  // chave -> Promise em andamento
 
@@ -7030,28 +7059,36 @@ function imgChave(registroId,campo,indice){
     + (indice==null?'':('__'+indice));
 }
 
-// Gera a miniatura que fica embutida no registro
-function imgGerarThumb(dataUrl,cb){
-  if(!dataUrl || !dataUrl.startsWith('data:image')){ cb(dataUrl||''); return; }
+/* Reduz um dataURL a um lado máximo. Era a conta da miniatura; agora
+   serve também ao médio, com outros números. Se o resultado não ficar
+   menor que a entrada, devolve a entrada: encolher que engorda não é
+   encolher. */
+function _imgRedimensionar(dataUrl,lado,qualidade,cb){
+  if(!dataUrl || !String(dataUrl).startsWith('data:image')){ cb(dataUrl||''); return; }
   try{
     const img=new Image();
     img.onload=()=>{
       try{
         let w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
         if(!w||!h){ cb(dataUrl); return; }
-        const escala=Math.min(1, IMG_THUMB_LADO/Math.max(w,h));
+        const escala=Math.min(1, lado/Math.max(w,h));
         w=Math.max(1,Math.round(w*escala)); h=Math.max(1,Math.round(h*escala));
         const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
         const ctx=cv.getContext('2d');
         ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,w,h);
         ctx.drawImage(img,0,0,w,h);
-        const out=cv.toDataURL('image/jpeg',IMG_THUMB_QUALIDADE);
+        const out=cv.toDataURL('image/jpeg',qualidade);
         cb(out && out.length<dataUrl.length ? out : dataUrl);
       }catch(e){ cb(dataUrl); }
     };
     img.onerror=()=>cb(dataUrl);
     img.src=dataUrl;
   }catch(e){ cb(dataUrl); }
+}
+
+// Gera a miniatura que fica embutida no registro
+function imgGerarThumb(dataUrl,cb){
+  _imgRedimensionar(dataUrl,IMG_THUMB_LADO,IMG_THUMB_QUALIDADE,cb);
 }
 
 // ── Ponte com o worker de imagens na Cloudflare (R2) ─────────
@@ -7299,12 +7336,111 @@ function imgGuardarOriginal(chave,dataUrl){
   if(_cfImgAtivo()){
     _cfImgReq('PUT',chave,dataUrl)
       .catch(err=>console.warn('[img][r2] falha ao guardar',chave,err.message));
+    /* O médio nasce junto: a foto tirada agora já abre nítida da primeira
+       vez, sem esperar a conversão preguiçosa. Falhar aqui não custa
+       nada — quem precisar dele depois o cria na hora. */
+    _imgRedimensionar(dataUrl,IMG_MEDIO_LADO,IMG_MEDIO_QUALIDADE,medio=>{
+      if(!medio) return;
+      _cfImgReq('PUT',imgChaveMedia(chave),medio)
+        .catch(err=>console.warn('[img][médio] não subiu',chave,err.message));
+    });
   }
   if(!(db && fbConnected)) return Promise.resolve('');
   return db.ref(FB_IMG_PATH+'/'+chave).set({d:dataUrl, ts:Date.now()})
     .then(()=>{ _imgCache[chave]=dataUrl; return chave; })
     .catch(err=>{ console.warn('[img] falha ao guardar',chave,err.message); return ''; });
 }
+
+/* Busca o médio no R2. Se ele ainda não existir — o caso de toda foto
+   anterior a hoje — pega a original, gera o médio aqui e sobe. A coleção
+   se converte sozinha, na medida em que as fotos são olhadas: sem
+   migração em massa, que é o tipo de coisa que dá errado de madrugada e
+   ninguém vê. */
+function imgCarregarMedia(chave){
+  if(!chave || !_cfImgAtivo()) return Promise.resolve('');
+  if(_imgMediaUrl[chave]) return Promise.resolve(_imgMediaUrl[chave]);
+  if(_imgMediaCarregando[chave]) return _imgMediaCarregando[chave];
+
+  // Guardar sem fim encheria a memória numa lista longa; o mais antigo sai
+  const guardar=url=>{
+    if(!url) return '';
+    _imgMediaUrl[chave]=url;
+    _imgMediaOrdem.push(chave);
+    while(_imgMediaOrdem.length>IMG_MEDIA_MAX){
+      const velha=_imgMediaOrdem.shift();
+      if(velha===chave || !_imgMediaUrl[velha]) continue;
+      if(String(_imgMediaUrl[velha]).startsWith('blob:')){
+        try{ URL.revokeObjectURL(_imgMediaUrl[velha]); }catch(e){}
+      }
+      delete _imgMediaUrl[velha];
+    }
+    return url;
+  };
+
+  const criarDoOriginal=()=>imgCarregarOriginal(chave).then(full=>{
+    if(!full) return '';
+    return new Promise(resolve=>{
+      _imgRedimensionar(full,IMG_MEDIO_LADO,IMG_MEDIO_QUALIDADE,medio=>{
+        if(!medio){ resolve(''); return; }
+        _cfImgReq('PUT',imgChaveMedia(chave),medio)
+          .catch(err=>console.warn('[img][médio] não subiu',chave,err.message));
+        resolve(guardar(medio));
+      });
+    });
+  });
+
+  _imgMediaCarregando[chave]=_cfImgReq('GET',imgChaveMedia(chave))
+    .then(res=>res.blob())
+    .then(bl=>guardar(URL.createObjectURL(bl)))
+    .catch(criarDoOriginal)
+    .catch(()=>'')
+    .then(url=>{ delete _imgMediaCarregando[chave]; return url||''; });
+  return _imgMediaCarregando[chave];
+}
+
+/* Quem troca a miniatura pelo médio na tela. Em vez de mexer em cada
+   lugar que desenha foto — e esquecer um —, um observador cuida de
+   todos: toda <img> que trouxer `data-ref` entra na fila, e o médio só é
+   buscado quando ela chega perto da tela. Abrir uma lista de 300 fotos
+   não puxa 300 imagens. */
+let _imgObsVer=null, _imgMediaTimer=null;
+function _imgMediaObservar(){
+  if(!('IntersectionObserver' in window)) return;
+  if(!_imgObsVer){
+    _imgObsVer=new IntersectionObserver(entradas=>{
+      entradas.forEach(e=>{
+        const el=e.target;
+        /* Toda lista que se redesenha joga fora as <img> antigas, e o
+           observador continuaria segurando cada uma delas — numa sessão
+           de um dia inteiro isso vira memória que nunca volta. Sair da
+           tela também é sinal de que a imagem foi embora. */
+        if(!el.isConnected){ _imgObsVer.unobserve(el); return; }
+        if(!e.isIntersecting) return;
+        _imgObsVer.unobserve(el);
+        const ref=el.getAttribute('data-ref');
+        if(!ref) return;
+        imgCarregarMedia(ref).then(url=>{
+          if(url && el.isConnected) el.src=url;
+        });
+      });
+    },{rootMargin:'200px'});
+  }
+  document.querySelectorAll('img[data-ref]:not([data-med])').forEach(el=>{
+    el.setAttribute('data-med','1');
+    _imgObsVer.observe(el);
+  });
+}
+function _imgMediaAgendar(){
+  clearTimeout(_imgMediaTimer);
+  _imgMediaTimer=setTimeout(_imgMediaObservar,150);
+}
+/* Ligado no documento inteiro porque as fotos aparecem em telas que se
+   redesenham o tempo todo. O custo é um setTimeout adiado: a varredura
+   só roda 150ms depois da última mexida no DOM. */
+try{
+  new MutationObserver(_imgMediaAgendar)
+    .observe(document.documentElement,{childList:true,subtree:true});
+}catch(e){}
 
 // As chaves das imagens guardadas no R2 — o equivalente a listar o ramo
 // de imagens que o Firebase devolvia de uma vez
@@ -8977,6 +9113,59 @@ function migrarImagensParaFora(){
           alvo.dono[alvo.campo+'Ref'][alvo.indice]=chave;
         }
       } else { falhas++; } // sem conexão: mantém como está, nada se perde
+      setTimeout(proximo,0);
+    });
+  };
+  proximo();
+}
+
+/* Encolhe as miniaturas que já não precisam ser olháveis, agora que o
+   médio assumiu esse papel. Roda inteiramente aqui, sem baixar nada: a
+   miniatura já está na mão, e reduzi-la de novo é conta local.
+
+   Só toca no que TEM referência. Imagem sem referência é a única cópia
+   que existe — encolher essa seria perder qualidade para sempre, e é
+   justamente o que "Tirar imagens do pacote" resolve antes. */
+function encolherMiniaturas(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode encolher as miniaturas','warn'); return; }
+  const alvos=[]; let semRef=0;
+  _percorrerImagensDoEstado(appState,(obj,chave,rotulo,dono,campo,indice)=>{
+    if(!_temReferencia(dono,campo,indice)){ semRef++; return; }
+    alvos.push({obj,chave});
+  });
+  if(!alvos.length){
+    showToast(semRef
+      ? ('Nada a encolher — '+semRef+' imagem(ns) ainda são a única cópia')
+      : 'Nenhuma miniatura a encolher','warn');
+    return;
+  }
+  const antes=JSON.stringify(appState).length;
+  const aviso=semRef
+    ? ('\n\n'+semRef+' imagem(ns) ficam de fora: são a única cópia que existe. Use "Tirar imagens do pacote" nelas antes.')
+    : '';
+  if(!confirmar(()=>encolherMiniaturas(),
+      `Encolher ${alvos.length} miniatura(s) para ${IMG_THUMB_LADO}px?\n\n`
+      +`O que aparece na tela passa a vir do médio, guardado na Cloudflare — a miniatura fica só como borrão até ele chegar. `
+      +`O estado hoje ocupa ${(antes/1048576).toFixed(2)} MB.`+aviso)) return;
+
+  showToast('Encolhendo miniaturas… aguarde','warn');
+  const btn=document.getElementById('btn-encolher');
+  let feitos=0, trocadas=0;
+  const proximo=()=>{
+    if(feitos>=alvos.length){
+      const depois=JSON.stringify(appState).length;
+      saveState(appState);
+      const msg=`✓ ${trocadas} miniatura(s) encolhida(s): ${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`;
+      console.log('[miniaturas] '+msg); showToast(msg,'success');
+      try{ renderSaudeDados(); }catch(e){}
+      if(btn){ btn.disabled=false; btn.textContent='🪶 4. Encolher miniaturas'; }
+      return;
+    }
+    const {obj,chave}=alvos[feitos++];
+    if(btn){ btn.disabled=true; btn.textContent=`Encolhendo ${feitos}/${alvos.length}…`; }
+    const antesDesta=String(obj[chave]).length;
+    _imgRedimensionar(obj[chave],IMG_THUMB_LADO,IMG_THUMB_QUALIDADE,out=>{
+      if(out && out.length<antesDesta){ obj[chave]=out; trocadas++; }
       setTimeout(proximo,0);
     });
   };
@@ -12290,7 +12479,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30i';
+const APP_VERSAO='2026.08.30j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -18289,7 +18478,7 @@ function _acpVerRender(){
       </div>
       ${(Array.isArray(a.fotos)&&a.fotos.length)
         ? `<div class="dv-sec">Fotos</div><div class="acp-fotos">`
-          + a.fotos.map((f,i)=>`<div class="fo"><img src="${f}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
+          + a.fotos.map((f,i)=>`<div class="fo"><img src="${f}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
           + '</div>'
         : ''}`;
   }
@@ -19656,7 +19845,7 @@ function _estornoRender(){
   if(fotos.length){
     fw.style.display='';
     document.getElementById('estorno-fotos').innerHTML=fotos.map((f,i)=>
-      `<div class="fo"><img src="${f}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('');
+      `<div class="fo"><img src="${f}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('');
   } else fw.style.display='none';
 
   // Comentários
@@ -19865,7 +20054,7 @@ function acpVerFotos(id){
   document.getElementById('acp-ver-titulo').textContent='Fotos · '+(a.cliente||a.loja||'devolução');
   document.getElementById('acp-ver-corpo').innerHTML=
     '<div class="acp-fotos" style="gap:10px;">'
-    + fotos.map((f,i)=>`<div class="fo" style="width:150px;height:150px;"><img src="${f}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
+    + fotos.map((f,i)=>`<div class="fo" style="width:150px;height:150px;"><img src="${f}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
     + '</div><div style="margin-top:10px;font-size:11px;color:var(--text-muted);">Clique numa foto para abrir em tamanho cheio.</div>';
   ov.classList.add('open');
 }
@@ -19878,6 +20067,14 @@ function acpVerFotos(id){
    O visualizador comum do sistema já sabe fazer isso (mostra a miniatura
    na hora, avisa que está buscando, troca pela original quando chega) e
    ainda traz o botão de baixar e o Esc para fechar. */
+/* A referência da original, escapada para caber num atributo. É ela que
+   diz ao observador qual médio buscar; vazia, a <img> fica com a
+   miniatura, como antes — nada quebra por falta de referência. */
+function _acpRefFoto(a,i){
+  const r=(a && Array.isArray(a.fotosRef)) ? a.fotosRef[i] : '';
+  return String(r||'').replace(/"/g,'&quot;');
+}
+
 function acpAmpliar(i,id){
   let a=(appState.acompanhamentos||[]).find(x=>x&&x.id===id);
   if(!a && String(id).indexOf('dev_antigo_')===0) a=_acpDevolucoesAntigas().find(x=>x.id===id);
@@ -27808,7 +28005,7 @@ function renderAteComentarioHistorico(lista){
   wrap.innerHTML=lista.map(c=>{
     const fotosHtml=(c.fotos||[]).map((src,fi)=>{
       const ref=String((c.fotosRef||[])[fi]||'').replace(/'/g,"\\'");
-      return `<img src="${src}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${src.replace(/'/g,"\\'")}','print-atendimento','${ref}')">`;
+      return `<img src="${src}" data-ref="${ref}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${src.replace(/'/g,"\\'")}','print-atendimento','${ref}')">`;
     }).join('');
     return `<div>
       <div style="font-size:13px;color:var(--text-primary);line-height:1.5;white-space:pre-wrap;">${String(c.texto||'').replace(/</g,'&lt;')}</div>
@@ -33202,7 +33399,7 @@ function _atvRenderComentarios(a){
   wrap.innerHTML=lista.map(c=>{
     const fotos=(c.fotos||[]).map((src,fi)=>{
       const ref=String((c.fotosRef||[])[fi]||'').replace(/'/g,"\\'");
-      return `<img src="${src}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${String(src).replace(/'/g,"\\'")}','print-comentario','${ref}')">`;
+      return `<img src="${src}" data-ref="${ref}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${String(src).replace(/'/g,"\\'")}','print-comentario','${ref}')">`;
     }).join('');
     return `<div>
       <div style="font-size:12px;color:var(--text-primary);line-height:1.45;white-space:pre-wrap;">${String(c.texto||'').replace(/</g,'&lt;')}</div>
