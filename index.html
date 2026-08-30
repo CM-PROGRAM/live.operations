@@ -1819,9 +1819,11 @@ details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-mu
 #atv-inicio .bi-quadro .ini-tit{color:#1d4ed8;}
 :root:not([data-theme="light"]) #atv-inicio .bi-quadro .ini-tit{color:#60a5fa;}
 /* Três cards por fileira na Central (dois em tela média, um no celular) */
-#atv-inicio .bi-grade{grid-template-columns:repeat(3,minmax(0,1fr));}
-@media(max-width:1150px){#atv-inicio .bi-grade{grid-template-columns:repeat(2,minmax(0,1fr));}}
-@media(max-width:720px){#atv-inicio .bi-grade{grid-template-columns:1fr;}}
+#atv-inicio .bi-grade,#adm-hub .bi-grade{grid-template-columns:repeat(3,minmax(0,1fr));}
+@media(max-width:1150px){#atv-inicio .bi-grade,#adm-hub .bi-grade{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:720px){#atv-inicio .bi-grade,#adm-hub .bi-grade{grid-template-columns:1fr;}}
+#adm-hub .bi-quadro .ini-tit{color:#1d4ed8;}
+:root:not([data-theme="light"]) #adm-hub .bi-quadro .ini-tit{color:#60a5fa;}
 :root:not([data-theme="light"]) #tab-tarefas .section-title,
 :root:not([data-theme="light"]) #tab-atendimentos .section-title,
 :root:not([data-theme="light"]) #tab-atribuir .section-title,
@@ -4729,28 +4731,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            onde ela responde à única pergunta que se faz ao abrir esta tela.
            As quatro seções continuam carregando só quando abertas. -->
       <div id="adm-inicio" class="ini-wrap" style="padding:6px 0 10px;">
-        <div class="ini-quadros duas-colunas">
-          <div class="ini-quadro" onclick="admAbrirSecao('desempenho')">
-            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
-            <div class="ini-tit">Desempenho</div>
-            <div class="ini-sub">Quanto cada um entregou e o histórico do que foi criado, editado e apagado no sistema.</div>
-          </div>
-          <div class="ini-quadro" onclick="admAbrirSecao('equipe')">
-            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/></svg></div>
-            <div class="ini-tit">Equipe</div>
-            <div class="ini-sub">Quem entra no sistema e quais abas cada um enxerga. É a permissão que monta o menu da pessoa.</div>
-          </div>
-          <div class="ini-quadro" onclick="admAbrirSecao('seguranca')">
-            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg></div>
-            <div class="ini-tit">Segurança</div>
-            <div class="ini-sub">Estado do acesso à nuvem e os pedidos de liberação de navegador novo, esperando aprovação.</div>
-          </div>
-          <div class="ini-quadro" onclick="admAbrirSecao('dados')">
-            <div class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg></div>
-            <div class="ini-tit">Dados &amp; Backup</div>
-            <div class="ini-sub">A cópia .zip, o arquivo do que foi excluído e os reparos do que ficou fora do lugar.</div>
-          </div>
-        </div>
+        <!-- Cartões no mesmo modelo da Central de Tarefas (pedido do master,
+             30/08): ícone, nome azul, descrição e o selo de estado. O HTML
+             vive no renderAdmHub porque o selo depende dos dados. -->
+        <div id="adm-hub"></div>
 
         <!-- A situação do sistema, que antes era a aba "Visão geral" -->
       <div class="admin-panel" id="visao-panel" style="margin-top:18px;">
@@ -8833,7 +8817,7 @@ function admAbrirSecao(sec){
   });
   // Carrega o conteúdo apenas da seção aberta
   const carregar={
-    inicio:()=>{ try{renderVisaoGeral();}catch(e){} },
+    inicio:()=>{ try{renderAdmHub();}catch(e){} try{renderVisaoGeral();}catch(e){} },
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{carregarAuditoriaGeral();}catch(e){} },
     equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} },
@@ -8842,6 +8826,78 @@ function admAbrirSecao(sec){
                 try{diagnosticarReparos();}catch(e){} }
   }[_admSecao];
   if(carregar) carregar();
+}
+
+/* Os quatro cartões de entrada do Administrador, no mesmo desenho da
+   Central de Tarefas: ícone, nome azul, descrição e um selo que resume o
+   estado da seção — verde quando não há nada a fazer lá dentro. */
+function renderAdmHub(){
+  const box=document.getElementById('adm-hub');
+  if(!box) return;
+  const selo=(txt,tom)=>{
+    const cor = tom==='ruim' ? '#ef4444' : tom==='atencao' ? '#f59e0b' : '';
+    return `<div class="atv-area-cnt"${cor?` style="color:${cor};border-color:${cor}66;"`:''}>${txt}</div>`;
+  };
+
+  // Desempenho: quanto a equipe entregou hoje
+  const hoje0=new Date(); hoje0.setHours(0,0,0,0);
+  const feitasHoje=(appState.atividades||[]).filter(a=>a &&
+    (a.status==='concluida'||a.status==='finalizada') && (a.concluidoTs||0)>=hoje0.getTime()).length;
+
+  // Equipe: todo mundo com e-mail de login?
+  const users=Object.entries(appState.users||{});
+  const semEmail=users.filter(([,u])=>!(u&&_emailValido(u.email))).length;
+
+  // Segurança: conexão, autenticação e lista de autorizados
+  const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
+  const seg = !fbConnected            ? {txt:'sem conexão',tom:'ruim'}
+            : !autenticado            ? {txt:'sem autenticar',tom:'atencao'}
+            : _souAutorizado===false  ? {txt:'fora da lista',tom:'ruim'}
+                                      : {txt:'acesso em ordem'};
+
+  // Dados & Backup: junta backup .zip, peso do pacote e reparos
+  let avisosDados=0, graveDados=false;
+  try{
+    let dias=null; try{ dias=_diasDesdeUltimoZip(); }catch(e){}
+    if(dias===null){ avisosDados++; graveDados=true; }
+    else if(dias>=(typeof BACKUP_LEMBRETE_DIAS!=='undefined'?BACKUP_LEMBRETE_DIAS:7)) avisosDados++;
+    const mb=JSON.stringify(_estadoSemColecoes(appState)).length/1048576;
+    if(mb>=16){ avisosDados++; graveDados=true; } else if(mb>=5) avisosDados++;
+    const rep=_conclusoesPerdidas().length+_solicitacoesSemResponsavel().length;
+    if(rep) avisosDados++;
+  }catch(e){}
+  const dados = avisosDados ? {txt:avisosDados+' atenção(ões)',tom:graveDados?'ruim':'atencao'} : {txt:'tudo em ordem'};
+
+  const cards=[
+    {sec:'desempenho', tit:'Desempenho',
+     ic:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+     sub:'Quanto cada um entregou e o histórico do que foi criado, editado e apagado no sistema.',
+     selo:selo(feitasHoje?(feitasHoje+' concluída(s) hoje'):'nada concluído hoje')},
+    {sec:'equipe', tit:'Equipe',
+     ic:'<path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/>',
+     sub:'Quem entra no sistema e quais abas cada um enxerga. É a permissão que monta o menu da pessoa.',
+     selo:semEmail?selo(semEmail+' sem e-mail','atencao'):selo(users.length+' pessoa(s)')},
+    {sec:'seguranca', tit:'Segurança',
+     ic:'<rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+     sub:'Estado do acesso à nuvem e os pedidos de liberação de navegador novo, esperando aprovação.',
+     selo:selo(seg.txt,seg.tom)},
+    {sec:'dados', tit:'Dados & Backup',
+     ic:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+     sub:'A cópia .zip, o arquivo do que foi excluído e os reparos do que ficou fora do lugar.',
+     selo:selo(dados.txt,dados.tom)}
+  ];
+  box.innerHTML=`
+    <p style="font-size:14.5px;color:var(--text-secondary);margin:0 0 20px;line-height:1.65;">
+      Escolha a área para abrir o painel dela.</p>
+    <div class="bi-grade">${cards.map(c=>`
+      <div class="ini-quadro bi-quadro atv-area" onclick="admAbrirSecao('${c.sec}')">
+        <div class="bi-cab">
+          <span class="ini-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round">${c.ic}</svg></span>
+          <span class="ini-tit">${c.tit}</span>
+        </div>
+        <div class="ini-sub" style="margin:9px 2px 12px;">${c.sub}</div>
+        ${c.selo}
+      </div>`).join('')}</div>`;
 }
 
 /* Visão geral: os sinais que o master precisa ver ao abrir a tela, cada um
@@ -12495,7 +12551,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30k';
+const APP_VERSAO='2026.08.30l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
