@@ -158,3 +158,39 @@ etapa estar provada:
 Com os números de hoje (79 MB de dados, fatura projetada de ~US$ 5/mês
 no Blaze), as etapas 4 e 5 não se pagam — estão aqui como mapa, não como
 recomendação.
+
+---
+
+## Os três tamanhos (desde 30/08/2026)
+
+Antes havia dois, e eles brigavam: a miniatura que fica dentro do
+registro precisava ser grande o bastante para se olhar — e por isso
+pesava —, enquanto a original, boa de olhar, só vinha ao ampliar. Querer
+ver melhor era querer pesar mais.
+
+| Tamanho | Onde mora | Para quê |
+|---|---|---|
+| **miniatura** · 128px | dentro do registro | o borrão de meio segundo até o médio chegar |
+| **médio** · 900px | R2 (`<chave>__m`) | tudo o que aparece na tela |
+| **original** | R2 (`<chave>`) + Firebase | ao ampliar, e para baixar |
+
+O médio desfaz a briga porque mora onde baixar é de graça. Ele nasce
+junto com a foto nova; nas fotos antigas, nasce na primeira vez que
+alguém as olha — a coleção se converte sozinha, sem migração em massa.
+
+Quem troca a miniatura pelo médio na tela é um observador único: toda
+`<img>` com `data-ref` entra na fila e só busca o médio quando chega
+perto da tela. Abrir uma lista de 300 fotos não puxa 300 imagens.
+
+### O passo 4 do painel
+
+Com o médio assumindo o que se vê, as 1555 miniaturas antigas (240px,
+4 KB cada, 6,5 MB somadas — mais do que cabe no cache do navegador, que
+é por que o `saveLocal` falhava toda sessão) não precisam mais ser
+grandes.
+
+**Administrador → 🪶 4. Encolher miniaturas** refaz todas a 128px, sem
+baixar nada: a miniatura já está na máquina e reduzi-la é conta local.
+Ele só mexe no que **tem cópia guardada** — imagem sem referência é a
+única que existe, e essa sai antes pelo passo 3.
+
