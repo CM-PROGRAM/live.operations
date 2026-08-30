@@ -7712,10 +7712,10 @@ function recuperarBaseConhecimento(){
   const msg=document.getElementById('bkp-rec-msg');
   const diz=(t,cor)=>{ if(msg){ msg.textContent=t; msg.style.color=cor||'var(--text-secondary)'; } };
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
-  if(!(db && fbConnected)){ diz('Sem conexão com a nuvem.','var(--tom-vermelho)'); return; }
+  if(!_cfLeituraAtiva && !(db && fbConnected)){ diz('Sem conexão com a nuvem.','var(--tom-vermelho)'); return; }
   diz('Procurando nas cópias…');
 
-  db.ref(FB_BACKUPS_IDX).once('value').then(snap=>{
+  _lerRamoSnapshot(FB_BACKUPS_IDX).then(snap=>{
     const dias=Object.keys(snap.val()||{}).sort().reverse();
     if(!dias.length){ diz('Nenhuma cópia de segurança encontrada.','var(--tom-vermelho)'); return; }
 
