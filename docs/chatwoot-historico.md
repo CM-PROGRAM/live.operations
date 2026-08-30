@@ -44,6 +44,31 @@ O **CPF** vem de `custom_attributes.cpf` no Chatwoot — o mesmo campo que o
 LiveOps preenche ao cadastrar um contato. Quem não tiver o atributo
 preenchido lá entra na agenda sem CPF, para você completar depois.
 
+## As duas caixas não são iguais
+
+| | `1. Oficial` | `2. Antigo` |
+|---|---|---|
+| canal | API oficial (Gupshup) | **Evolution** |
+| webhook da caixa | `webhookn8n…/chatwoot-saida` | `evolution.suplelive.com.br/chatwoot/webhook/SL1` |
+| serve para | atender hoje | ler o histórico |
+
+Duas consequências práticas:
+
+- **Enviar** para uma conversa da `2. Antigo` sai pelo Evolution, não pelo
+  Gupshup. Se aquela instância não estiver mais conectada ao WhatsApp
+  antigo, a mensagem some sem erro visível. Trate a caixa Antigo como
+  leitura, não como canal de atendimento.
+- Contato criado pelo Evolution às vezes vem **sem `phone_number`**, com o
+  número escondido no `identifier` (`5527…@s.whatsapp.net`). A conversão
+  cai nesse campo quando o telefone vem vazio — sem essa rede, boa parte da
+  agenda do número antigo entraria sem telefone, que é a chave de tudo.
+
+O `chatwoot-inbox` que alimenta o WhatsLive ao vivo **não** é o webhook da
+caixa: ele está registrado no nível da conta (Configurações → Integrações →
+Webhooks). Por isso a `2. Antigo` apontar para o Evolution não atrapalha a
+leitura — mas também significa que mensagem nova chegando no número antigo
+só entra no LiveOps se aquele webhook de conta estiver ligado.
+
 ## A ordem sugerida
 
 1. `CAIXA = '2. Antigo'`, como vem — traz as conversas antigas e joga todos
