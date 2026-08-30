@@ -8452,7 +8452,11 @@ function diagnosticarEstado(){
     console.log('  ',k,mb(v),grupoPacote[k]?'(no pacote)':'(registro a registro)'));
   console.log('As 10 maiores:');
   console.table(maiores.sort((a,b)=>b.kb-a.kb).slice(0,10));
-  return {totalBytes:total, pacoteBytes, maiorParte,
+  let regItens=0;
+  Object.values(COLECOES_REG).forEach(acc=>{
+    try{ const l=acc.get(s); if(Array.isArray(l)) regItens+=l.length; }catch(e){}
+  });
+  return {totalBytes:total, pacoteBytes, maiorParte, regItens,
     imagensBytes:totalImagens, qtdImagens:qtd, porGrupo, grupoPacote,
     miniaturas:{qtd:qtdMini, bytes:bytesMini}, originais:{qtd:qtdOrig, bytes:bytesOrig}};
 }
@@ -8867,8 +8871,27 @@ function renderSaudeDados(){
     </div>
     <div style="font-size:11px;font-weight:700;color:${estado.cor};font-family:var(--font-mono);margin-bottom:6px;">${estado.txt}</div>
     <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;">
-      Guardado na nuvem (tudo): ${(d.totalBytes/1048576).toFixed(2)} MB · maior parte do pacote: ${d.maiorParte.nome} (${(d.maiorParte.bytes/1048576).toFixed(2)} MB)
-    </div>`;
+      Os ${limite} MB são o teto de <b>uma</b> gravação (regra do Firebase) — não do espaço total.
+    </div>
+    ${(()=>{ /* Armazenamento: quanto já ocupa e quanto cabe, em cada nuvem */
+      const armMb=d.totalBytes/1048576, tetoFb=1024;
+      const pctArm=Math.min(100,Math.max(armMb/tetoFb*100, armMb>0?0.5:0));
+      const aviso=(d.regItens===0 && typeof fbConnected!=='undefined' && fbConnected)
+        ? `<div style="font-size:11px;color:#f59e0b;font-family:var(--font-mono);margin-top:6px;">As listas registro a registro ainda não chegaram nesta sessão — o total abaixo está incompleto. Clique em ↻ Verificar de novo em instantes.</div>`:'';
+      return `${aviso}
+    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light);">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
+        <span style="font-size:15px;font-weight:800;color:var(--text-primary);font-family:var(--font-mono);">${armMb.toFixed(2)} MB</span>
+        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">guardados · espaço no Firebase: 1 GB (${(armMb/tetoFb*100).toFixed(1)}% usado)</span>
+      </div>
+      <div style="height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:6px;">
+        <div style="height:100%;width:${pctArm}%;background:#2563eb;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;">
+        Cópia na Cloudflare: dados no D1 (até 5 GB grátis) e imagens no R2 (até 10 GB grátis)
+        · maior parte do pacote: ${d.maiorParte.nome} (${(d.maiorParte.bytes/1048576).toFixed(2)} MB)
+      </div>
+    </div>`; })()}`;
   const linha=([k,v])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border-light);">
         <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">${k}</span>
         <span style="font-size:11px;color:var(--text-primary);font-family:var(--font-mono);">${(v/1048576).toFixed(2)} MB</span></div>`;
@@ -12267,7 +12290,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30h';
+const APP_VERSAO='2026.08.30i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
