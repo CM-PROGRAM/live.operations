@@ -18,9 +18,22 @@ nada muda**. Cada pessoa entra com o usuário e a senha de sempre. No
 primeiro login depois desta publicação, a senha dela passa a existir
 também na Cloudflare — sozinha, sem aviso, sem redefinição, sem e-mail.
 
-A senha em si não é guardada. Fica só o resultado de 150 mil rodadas de
-PBKDF2 sobre ela, com um sal sorteado por pessoa. De quem tivesse o banco
-na mão, não se tira a senha de volta.
+A senha em si não é guardada. Fica só o resultado de milhares de rodadas
+de PBKDF2 sobre ela, com um sal sorteado por pessoa. De quem tivesse o
+banco na mão, não se tira a senha de volta.
+
+Quantas rodadas? A conta é cara de propósito — é isso que torna inviável
+tentar senha por senha — mas o worker tem um teto de trabalho por
+requisição, e ele muda com o plano. Em vez de eu chutar um número, o
+worker **mede**: na primeira semeadura ele desce uma escada
+(100.000 → 60.000 → 30.000 → 15.000 → 8.000) e fica com a primeira que o
+runtime aceitar. O número que venceu é gravado **junto com cada senha**,
+porque conferir depois é refazer exatamente a mesma conta. Sobe no
+console, no login: `(60.000 voltas de PBKDF2)`.
+
+Isso também deixa a porta aberta para subir o número depois — trocando de
+plano, por exemplo — sem invalidar nenhuma senha já guardada: cada linha
+lembra a sua.
 
 ## Como o login funciona agora
 
@@ -65,7 +78,7 @@ entrar como ele no dia em que o Firebase saísse.
 
 ## Parte 1 — na Cloudflare
 
-### 1. Colar o worker `v11`
+### 1. Colar o worker `v12`
 
 Worker `liveops-imagens` → **Edit code** → apagar tudo → colar
 `cloudflare/worker-imagens/worker.js` → **Deploy**.
@@ -76,7 +89,7 @@ Conferir, e conferir de verdade — abrir no navegador:
 https://liveops-imagens.carlosmagnoav94.workers.dev/saude
 ```
 
-Precisa responder **`ok v11`**. Se responder outra coisa, o que está no ar
+Precisa responder **`ok v12`**. Se responder outra coisa, o que está no ar
 é uma cópia antiga: a colagem não pegou, e vale repetir antes de seguir.
 
 ### 2. Criar o segredo `SEGREDO_SESSAO` (recomendado)
@@ -118,6 +131,7 @@ Cloudflare:` seguido de um motivo, vale ler agora e não depois:
 | `chave-de-outra-pessoa` | aquele nome de usuário já é de outra conta do Firebase | conta refeita: `soltar` o nome (abaixo) e entrar de novo |
 | `sem-segredo-de-sessao` | falta `SEGREDO_SESSAO` **e** `CHAVE_ROBO` no worker | criar o segredo da Parte 1 |
 | `sem-login` | o crachá venceu no meio do caminho | recarregar e entrar de novo |
+| `falha-no-worker` | quebrou dentro do worker | a mensagem vem com o `detalhe` e a linha onde quebrou — mandar as três coisas |
 
 ---
 
