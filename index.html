@@ -9783,6 +9783,24 @@ function _mensagemDeErroDaNuvem(err){
    defeito e não sai daqui. Excluir tarefas de uma em uma pela tela continua
    funcionando normalmente. */
 const LIMITE_APAGAR_DE_UMA_VEZ=4;
+
+/* Orçamento de apagamento, compartilhado por rodada de gravação.
+   Duas faxinas rodam na MESMA rodada — as tarefas duplicadas de canceladas
+   e os cards vencidos da rotina de marketplace — e cada uma respeitava o
+   limite por conta própria. Somadas, passavam dele: a trava disparava, os
+   apagamentos eram desfeitos, a nuvem devolvia tudo, e no minuto seguinte
+   as duas tentavam de novo. Nenhuma convergia. Eram as mesmas 17 tarefas
+   voltando sessão após sessão, e o `[reg] BLOQUEADO` no console todo dia.
+
+   Com um orçamento só, gasto por quem chegar primeiro, cada rodada apaga
+   até 4 e deixa o resto para a próxima. Dezessete somem em cinco rodadas
+   — e somem de verdade, porque a trava nunca chega a disparar. */
+let _orcamentoApagar=LIMITE_APAGAR_DE_UMA_VEZ;
+function _gastarApagar(){
+  if(_orcamentoApagar<=0) return false;
+  _orcamentoApagar--;
+  return true;
+}
 let _avisoApagamentoTs=0;
 function _avisarApagamentoBloqueado(){
   if(Date.now()-_avisoApagamentoTs<60000) return;
@@ -9837,6 +9855,10 @@ function _gravarRegistrosAlterados(s){
     removidos=0;
     _avisarApagamentoBloqueado();
   }
+  /* A rodada acabou de ser contada; a próxima começa com o orçamento
+     cheio. Renovar aqui, e não nas faxinas, é o que garante que o teto
+     valha por GRAVAÇÃO — que é a unidade que a trava mede. */
+  _orcamentoApagar=LIMITE_APAGAR_DE_UMA_VEZ;
   if(!alterados && !removidos) return;
   // Espelho Cloudflare (etapa 2): as mesmas alterações, já filtradas
   // pela trava de apagamento em massa, seguem em cópia para o D1.
@@ -12662,7 +12684,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30o';
+const APP_VERSAO='2026.08.30p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -31814,8 +31836,12 @@ function _cancRemoverDuplicadas(){
     });
     lst.slice(1).forEach(dup=>{
       if(dup.status!=='aberta') return;
+      // Poucas por vez, no mesmo orçamento da outra faxina: apagar as 17 de
+      // uma vez fazia a trava disparar e desfazer TODAS, todo dia.
       const i=appState.atividades.indexOf(dup);
-      if(i>=0){ appState.atividades.splice(i,1); mudou=true; }
+      if(i<0) return;
+      if(!_gastarApagar()) return;   // fica para a próxima rodada
+      appState.atividades.splice(i,1); mudou=true;
     });
   });
   if(mudou) console.warn('[canceladas] tarefas duplicadas removidas');
@@ -32082,7 +32108,8 @@ function mktRotinaLimparAntigas(){
   // Poucos por vez, de propósito: a gravação bloqueia apagamento em massa, e
   // com razão. A limpeza roda a cada minuto, então a semana vencida se
   // resolve sozinha em alguns minutos sem parecer um estrago.
-  let orcamento=LIMITE_APAGAR_DE_UMA_VEZ;
+  // O orçamento é COMPARTILHADO com a faxina de duplicadas: as duas rodam
+  // na mesma rodada, e um teto cada somava o dobro do permitido.
   const antes=appState.atividades.length;
   appState.atividades=appState.atividades.filter(a=>{
     if(!a || !a.rotinaMkt) return true;
@@ -32091,8 +32118,7 @@ function mktRotinaLimparAntigas(){
     if(a.rotinaMkt===dia && doDia.has(a.id) && _ehDiaUtil(dia)) return true;
     if(!_atvRotinaVelhaEscondida(a)) return true;
     if(_diasEntreISO(a.rotinaMkt,dia) < ROTINA_DIAS_ATE_APAGAR) return true;
-    if(orcamento<=0) return true;   // fica para a próxima rodada
-    orcamento--;
+    if(!_gastarApagar()) return true;   // fica para a próxima rodada
     return false;
   });
   return antes-appState.atividades.length;
