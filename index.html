@@ -13007,7 +13007,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30v';
+const APP_VERSAO='2026.08.30w';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14163,7 +14163,8 @@ let _waRenderTimer=null;
    traz algo que o espelho não tem, o master é avisado com o conserto na
    mão. */
 let _waCfChaves=new Set();     // o que o espelho da Cloudflare trouxe
-let _waFbVistas={};            // chave -> quando o Firebase a mostrou
+let _waFbVistas={};            // chave -> {visto, msgTs} do que o Firebase mostrou
+let _waJaEspelhadas=new Set(); // conversas que esta sessão já copiou para o espelho
 function _waMesclarConv(chave,dados){
   if(!chave || !dados) return false;
   const atual=_waConvs[chave];
@@ -14175,7 +14176,16 @@ function _waMesclarConv(chave,dados){
 function _waDivergentes(){
   if(!_cfLeituraAtiva) return [];
   const agora=Date.now();
-  return Object.keys(_waFbVistas).filter(k=>!_waCfChaves.has(k) && agora-_waFbVistas[k]>30000);
+  /* Só conta o que está chegando AGORA pelo lugar errado. Conversa
+     antiga que ficou só no Firebase — resto de quando o fluxo estava
+     errado — não é notícia sobre o fluxo de hoje, e o aviso ficaria
+     aceso para sempre por causa dela. */
+  return Object.keys(_waFbVistas).filter(k=>{
+    if(_waCfChaves.has(k)) return false;                    // o espelho já tem
+    const v=_waFbVistas[k]||{};
+    if(agora-(v.visto||0)<=30000) return false;             // folga para a cópia chegar
+    return agora-(v.msgTs||0) < 15*60000;                   // movimento dos últimos 15 min
+  });
 }
 function _waOuvirFirebase(){
   if(!db || !fbConnected || _waFbRef) return;
@@ -14183,11 +14193,20 @@ function _waOuvirFirebase(){
   _waFbRef=db.ref(FB_INBOX+'/conv').orderByChild('ts').limitToLast(300);
   const trata=s=>{
     const v=s.val(); if(!v) return;
-    _waFbVistas[s.key]=Date.now();
+    _waFbVistas[s.key]={visto:Date.now(), msgTs:Number(v.ts)||0};
     if(_waMesclarConv(s.key,v)) _inboxAgendarRender();
     /* Chegou pelo Firebase e o espelho ainda não tinha: confere de novo
-       daqui a pouco, porque pode ser só a cópia a caminho. */
-    if(_cfLeituraAtiva && !_waCfChaves.has(s.key)) _cfInboxCarregarConversas();
+       daqui a pouco, porque pode ser só a cópia a caminho — e copia para
+       o espelho, senão essa conversa morre no dia em que o Firebase for
+       desligado. Uma vez por sessão, e o próprio espelho encerra o
+       assunto quando devolve a chave. */
+    if(_cfLeituraAtiva && !_waCfChaves.has(s.key)){
+      _cfInboxCarregarConversas();
+      if(!_waJaEspelhadas.has(s.key)){
+        _waJaEspelhadas.add(s.key);
+        try{ _cfEspelharLinhas([{colecao:'inbox/conv', chave:s.key, dados:v}]); }catch(e){}
+      }
+    }
   };
   _waFbRef.on('child_added',trata);
   _waFbRef.on('child_changed',trata);
@@ -14206,7 +14225,7 @@ function inboxParar(){
   try{ if(db) db.ref(FB_INBOX+'/conv').off(); }catch(e){}
   try{ if(_waMsgConvRef && _waMsgConvRef.off) _waMsgConvRef.off(); }catch(e){}
   _waMsgConvRef=null; _waFbRef=null; _waIniciado=false; _waAberta=null;
-  _waConvs={}; _waMsgs={}; _waCfChaves=new Set(); _waFbVistas={};
+  _waConvs={}; _waMsgs={}; _waCfChaves=new Set(); _waFbVistas={}; _waJaEspelhadas=new Set();
   inboxNotifParar();
 }
 
@@ -14305,8 +14324,9 @@ function inboxNotifIniciar(){
   if(!db || !fbConnected) return;
   const ref=db.ref(FB_INBOX+'/conv').orderByChild('ts').limitToLast(40);
   const trata=s=>{
-    _waFbVistas[s.key]=Date.now();
-    _inboxAvisarDaConversa(s.key, s.val()||{});
+    const v=s.val()||{};
+    _waFbVistas[s.key]={visto:Date.now(), msgTs:Number(v.ts)||0};
+    _inboxAvisarDaConversa(s.key, v);
   };
   ref.on('child_added',trata);
   ref.on('child_changed',trata);
@@ -14782,11 +14802,12 @@ function _waAvisoDivergencia(){
   const div=_waDivergentes();
   if(!div.length || !currentUser || !currentUser.master){ box.style.display='none'; box.innerHTML=''; return; }
   box.style.display='block';
-  box.innerHTML=`⚠ ${div.length} conversa(s) chegaram pelo Firebase e não estão no espelho da Cloudflare —
-    o fluxo do Inbox no n8n está gravando no banco antigo. Nos nós <b>Gravar conversa</b> e
-    <b>Gravar mensagem</b>, troque o começo da URL para
-    <span style="font-family:var(--font-mono);">…workers.dev/robo/</span> e a credencial para
-    <b>LiveOps (chave do robô)</b>. Enquanto isso, o Inbox segue lendo os dois.`;
+  box.innerHTML=`⚠ ${div.length} conversa(s) dos últimos 15 minutos entraram pelo Firebase, não pela
+    Cloudflare — o fluxo que está recebendo do Chatwoot ainda grava no banco antigo. Confira se não há
+    <b>duas cópias</b> do fluxo no n8n: nos nós <b>Gravar conversa</b> e <b>Gravar mensagem</b> do que
+    estiver ativo, a URL tem de começar com
+    <span style="font-family:var(--font-mono);">…workers.dev/robo/</span> e a credencial ser
+    <b>LiveOps (chave do robô)</b>. Nada se perde: o Inbox lê os dois e copia para o espelho.`;
 }
 
 /* Busca ao vivo na base de contatos do CHATWOOT, via n8n. Debounce de meio
