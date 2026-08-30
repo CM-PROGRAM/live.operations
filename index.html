@@ -4757,6 +4757,9 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <button class="btn btn-sm" onclick="renderSeguranca()" style="width:auto;">↻ Verificar</button>
         </div>
         <div id="seg-status" style="margin-bottom:14px;"></div>
+        <!-- O banco novo: worker, leitura e o cofre de senhas da Cloudflare.
+             É aqui que se responde "já dá para desligar o Firebase?". -->
+        <div id="seg-cf" style="margin-bottom:14px;"></div>
         <!-- Derruba a equipe inteira: fica marcado como tal, e não solto no
              meio da tela ao lado de um botão de conferência. -->
         <div class="adm-zona-risco" style="margin-bottom:14px;margin-top:0;">
@@ -4800,7 +4803,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
              tempos. Deixá-las abertas fazia 40 linhas de JSON dominarem a tela
              toda vez que alguém entrava aqui só para aprovar um acesso. -->
         <details class="adm-dobra">
-          <summary>Regras do Firebase<span class="hint">para colar em Realtime Database → Regras</span></summary>
+          <summary>Regras do Firebase<span class="hint">banco antigo — valem durante a convivência</span></summary>
           <div class="adm-dobra-corpo">
         <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;line-height:1.6;">
           Regras finais — liberam apenas quem está na <b>lista de aprovados</b>. Estar autenticado
@@ -8966,10 +8969,77 @@ function renderVisaoGeral(){
   }
 }
 
+/* A situação do banco novo, dentro do painel de Segurança: o worker está
+   de pé? esta sessão lê pela Cloudflare? e — a pergunta que decide o
+   desligamento do Firebase — quem já tem senha no cofre novo. É o mesmo
+   dado do conferirSenhasNaNuvem() do console, agora à vista do master. */
+function renderSegurancaCf(){
+  const box=document.getElementById('seg-cf');
+  if(!box) return;
+  if(typeof CF_IMG_URL==='undefined' || !CF_IMG_URL){ box.innerHTML=''; return; }
+  const linha=(tom,txt,detalhe)=>{
+    const cor = tom==='ok' ? '#22c55e' : tom==='ruim' ? '#ef4444' : '#f59e0b';
+    const ic  = tom==='ok' ? '✅' : tom==='ruim' ? '⛔' : '⚠️';
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;">
+      <span style="font-size:13px;line-height:1.3;">${ic}</span>
+      <div>
+        <div style="font-size:12px;color:${cor};font-weight:700;font-family:var(--font-mono);">${txt}</div>
+        ${detalhe?`<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">${detalhe}</div>`:''}
+      </div>
+    </div>`;
+  };
+  const tit=`<div style="font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin:14px 0 4px;">☁ Cloudflare — o banco novo</div>`;
+  box.innerHTML=tit+`<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);padding:6px 0;">Consultando o worker…</div>`;
+
+  // O que dá para dizer sem perguntar nada: como esta sessão está lendo
+  const modo=(typeof cfLeituraModo==='function')?cfLeituraModo():'off';
+  const salaOk=!!(typeof _cfSala!=='undefined' && _cfSala && _cfSala.readyState===1);
+  const leitura = (modo!=='off' && _cfLeituraAtiva)
+      ? linha('ok','Lendo pela Cloudflare', salaOk?'Sala de tempo real conectada.':'Sala de tempo real reconectando…')
+    : (modo!=='off')
+      ? linha('atencao','Cloudflare preferida, mas lendo pelo Firebase agora','A leitura volta sozinha; se persistir, recarregue a página.')
+      : linha('atencao','Leitura pela Cloudflare desligada nesta sessão','Ligue com cfLeitura(\'preferir\') no console (F12).');
+
+  const pSaude=fetch(CF_IMG_URL+'/saude').then(r=>r.text()).then(t=>String(t||'').trim()).catch(()=>null);
+  const pSenhas=_cfToken().then(tk=>tk
+      ? fetch(CF_IMG_URL+'/auth/semeados',{headers:{'Authorization':'Bearer '+tk}}).then(r=>r.json())
+      : null).catch(()=>null);
+
+  Promise.all([pSaude,pSenhas]).then(([saude,j])=>{
+    if(document.getElementById('seg-cf')!==box) return;
+    let html=tit;
+    html += saude
+      ? linha('ok','Worker no ar — '+saude,'Imagens, dados, tempo real e login respondem por ele.')
+      : linha('ruim','Worker não respondeu','Confira '+CF_IMG_URL.replace(/^https?:\/\//,'')+'/saude no navegador.');
+    html += leitura;
+    if(j && j.ok){
+      const semeados={}; (j.usuarios||[]).forEach(u=>{ semeados[u.chave]=u.desde; });
+      const pessoas=Object.entries(appState.users||{})
+        .filter(([k,u])=>u && u.active!==false)
+        .map(([k,u])=>({chave:k, nome:(u.name||k), desde:semeados[k]||null}));
+      const faltam=pessoas.filter(p=>!p.desde);
+      html += faltam.length
+        ? linha('atencao', faltam.length+' pessoa(s) ainda sem senha no cofre novo',
+            'Cada uma precisa entrar no sistema uma vez ANTES de o Firebase ser desligado.')
+        : linha('ok','Todo mundo com senha na Cloudflare','A pergunta que decide: o Firebase já pode ser desligado.');
+      html += pessoas.map(p=>`
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0 5px 26px;border-bottom:1px solid var(--border-light);">
+          <span style="font-size:11.5px;font-weight:700;font-family:var(--font-mono);color:${p.desde?'#22c55e':'#f59e0b'};">${p.desde?'✓':'⏳'} ${p.nome}</span>
+          <span style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">${p.desde?('senha desde '+new Date(p.desde).toLocaleString('pt-BR')):'ainda não entrou — senha só no Firebase'}</span>
+        </div>`).join('');
+    } else {
+      html += linha('atencao','Cofre de senhas não consultado',
+        (j&&j.erro)?('O worker respondeu: '+j.erro):'Entre no sistema (o crachá da sessão é que abre essa consulta) e clique em ↻ Verificar.');
+    }
+    box.innerHTML=html;
+  });
+}
+
 // Estado da proteção: senhas protegidas e quem já tem conta de acesso
 function renderSeguranca(){
   const alvo=document.getElementById('seg-status');
   if(!alvo) return;
+  try{ renderSegurancaCf(); }catch(e){ console.warn('[seg][cf]',e.message); }
   const users=Object.entries(appState.users||{});
   const legiveis=users.filter(([,u])=>u && u.pass!==undefined);
   const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
@@ -12551,7 +12621,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30l';
+const APP_VERSAO='2026.08.30m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
