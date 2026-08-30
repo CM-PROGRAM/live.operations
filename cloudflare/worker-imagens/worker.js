@@ -28,6 +28,9 @@
      GET    /rt?token=<token>       → WebSocket da sala de tempo real
                                       (o token vai na URL porque WebSocket de
                                       navegador não envia cabeçalhos)
+     /api/v1/…                      → API REST para integrações de fora
+                                      (documentada em docs/api-rest.md e no
+                                      bloco "API REST DO LIVEOPS" abaixo)
 
    A sala transmite para todos os conectados:
      {t:'mudanca', linhas:[{colecao,chave,apagada?}…]}  — registros que mudaram
@@ -52,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v13';
+const VERSAO_WORKER = 'v14';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -822,6 +825,167 @@ async function atenderRobo(req, env, ctx, url) {
   return respostaJson(200, { ok: true, gravadas: gravadasAgora, firebase: r.status });
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   API REST DO LIVEOPS (v1)
+   ══════════════════════════════════════════════════════════════════
+   A porta para o mundo de fora: planilha, script, parceiro, qualquer
+   ferramenta que precise ler ou gravar dados do LiveOps sem ser o
+   próprio sistema nem um fluxo do n8n. Nomes amigáveis, JSON limpo,
+   paginação — e a mesma disciplina de escrita do resto do worker:
+   grava no D1, repassa ao Firebase enquanto a convivência durar, e
+   avisa a sala para as telas abertas verem na hora.
+
+     GET    /api/v1                       → lista os recursos
+     GET    /api/v1/<recurso>             → página de registros
+              ?limite=100 (máx 1000) · ?depois=<id> (cursor)
+              ?desde=<ts> (só o que mudou depois desse timestamp)
+              ?ultimos=1 (o fim da lista, não o começo)
+     GET    /api/v1/<recurso>/<id>        → um registro
+     POST   /api/v1/<recurso>             → cria (corpo = campos)
+     PATCH  /api/v1/<recurso>/<id>        → altera só os campos enviados
+     PUT    /api/v1/<recurso>/<id>        → substitui o registro
+     DELETE /api/v1/<recurso>/<id>        → remove
+
+   Quem pode: ler, qualquer chave de API ou login do sistema; escrever,
+   só chave de API. A chave vai no cabeçalho X-LiveOps-Chave e é o
+   segredo CHAVE_API do worker — separado da CHAVE_ROBO de propósito,
+   para revogar um integrador sem parar o n8n (sem CHAVE_API definida,
+   a CHAVE_ROBO vale como reserva). */
+const API_RECURSOS = {
+  pedidos:           'reg/pedidosBase',
+  tarefas:           'reg/atividades',
+  produtos:          'reg/produtos',
+  vendas:            'reg/pedidosWpp',
+  rastreios:         'reg/rastreios',
+  devolucoes:        'reg/devolucoes',
+  atendimentos:      'reg/atendimentos',
+  acompanhamentos:   'reg/acompanhamentos',
+  leads:             'reg/leads',
+  templates:         'reg/tplMsgs',
+  entradas:          'reg/entradas',
+  'entradas-estoque':'reg/entradasEstoque',
+  canceladas:        'reg/canceladas',
+  'canceladas-nf':   'reg/canceladasNF',
+  projetos:          'reg/projetos',
+};
+
+function _chaveApiOk(req, env) {
+  const chave = req.headers.get('X-LiveOps-Chave') || '';
+  if (!chave) return false;
+  if (env.CHAVE_API) return chave === env.CHAVE_API;
+  return !!env.CHAVE_ROBO && chave === env.CHAVE_ROBO;
+}
+
+async function atenderApi(req, env, ctx, url) {
+  if (!env.DADOS) return respostaJson(500, { erro: 'binding-DADOS-ausente' });
+  await garantirTabelas(env);
+
+  const partes = url.pathname.replace(/^\/api\/v1\/?/, '').split('/').filter(Boolean);
+  if (!partes.length) {
+    return respostaJson(200, { ok: true, versao: VERSAO_WORKER, recursos: Object.keys(API_RECURSOS) });
+  }
+  const recurso = partes[0];
+  const colecao = API_RECURSOS[recurso];
+  if (!colecao) return respostaJson(404, { erro: 'recurso-desconhecido', recursos: Object.keys(API_RECURSOS) });
+  const id = partes[1] || '';
+  if (partes.length > 2 || (id && !CHAVE_OK.test(id))) return respostaJson(400, { erro: 'caminho-invalido' });
+
+  // Ler: chave de API ou o login de uma pessoa. Escrever: só chave.
+  const comChave = _chaveApiOk(req, env);
+  if (req.method === 'GET') {
+    if (!comChave && !(await conferirToken(req, env))) return respostaJson(401, { erro: 'sem-autorizacao' });
+  } else if (!comChave) {
+    return respostaJson(401, { erro: 'escrita-so-com-chave-de-api' });
+  }
+
+  if (req.method === 'GET') {
+    if (id) {
+      const l = await env.DADOS.prepare(
+        'SELECT dados, ts FROM registros WHERE colecao = ?1 AND chave = ?2'
+      ).bind(colecao, id).first();
+      if (!l) return respostaJson(404, { erro: 'nao-achado' });
+      return resposta(200, '{"ok":true,"id":' + JSON.stringify(id) + ',"ts":' + (l.ts || 0) + ',"dados":' + l.dados + '}',
+        { 'Content-Type': 'application/json' });
+    }
+    let limite = parseInt(url.searchParams.get('limite') || '100', 10);
+    if (!(limite > 0 && limite <= 1000)) limite = 100;
+    const depois = url.searchParams.get('depois') || '';
+    const desde = parseInt(url.searchParams.get('desde') || '0', 10) || 0;
+    const doFim = url.searchParams.get('ultimos') === '1';
+    const rs = doFim
+      ? await env.DADOS.prepare(
+          'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND ts > ?2 ORDER BY chave DESC LIMIT ?3'
+        ).bind(colecao, desde, limite).all()
+      : await env.DADOS.prepare(
+          'SELECT chave, dados, ts FROM registros WHERE colecao = ?1 AND chave > ?2 AND ts > ?3 ORDER BY chave LIMIT ?4'
+        ).bind(colecao, depois, desde, limite).all();
+    const linhas = rs.results || [];
+    if (doFim) linhas.reverse();
+    const corpo = '{"ok":true,"recurso":' + JSON.stringify(recurso) + ',"itens":[' +
+      linhas.map(l => '{"id":' + JSON.stringify(l.chave) + ',"ts":' + (l.ts || 0) + ',"dados":' + l.dados + '}').join(',') +
+      '],"proxima":' + ((!doFim && linhas.length === limite) ? JSON.stringify(linhas[linhas.length - 1].chave) : 'null') + '}';
+    return resposta(200, corpo, { 'Content-Type': 'application/json' });
+  }
+
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].indexOf(req.method) < 0) {
+    return respostaJson(405, { erro: 'metodo-nao-suportado' });
+  }
+  if (req.method === 'POST' ? !!id : !id) {
+    return respostaJson(400, { erro: req.method === 'POST' ? 'post-e-na-lista' : 'falta-o-id' });
+  }
+
+  const texto = req.method === 'DELETE' ? '' : await req.text();
+  let corpo = null;
+  if (texto) {
+    if (texto.length > LINHA_MAX) return respostaJson(413, { erro: 'registro-grande-demais' });
+    try { corpo = JSON.parse(texto); } catch (e) { return respostaJson(400, { erro: 'json-invalido' }); }
+    if (!corpo || typeof corpo !== 'object' || Array.isArray(corpo)) {
+      return respostaJson(400, { erro: 'esperava-um-objeto' });
+    }
+  }
+  const agora = Date.now();
+  const insere = env.DADOS.prepare(
+    'INSERT INTO registros (colecao, chave, dados, ts) VALUES (?1, ?2, ?3, ?4) ' +
+    'ON CONFLICT(colecao, chave) DO UPDATE SET dados = ?3, ts = ?4'
+  );
+
+  /* Criar: o Firebase inventa a chave primeiro (repasse ANTES), para os
+     dois bancos ficarem com o MESMO id — igual ao POST dos robôs. */
+  if (req.method === 'POST') {
+    if (!corpo) return respostaJson(400, { erro: 'corpo-vazio' });
+    const r = await repassarAoFirebase(env, colecao, 'POST', texto);
+    const novo = (r.dados && r.dados.name) ? r.dados.name : ('api' + Date.now().toString(36) + '-' + crypto.randomUUID().slice(0, 8));
+    if (!CHAVE_OK.test(novo)) return respostaJson(500, { erro: 'chave-gerada-invalida' });
+    const json = JSON.stringify({ ...corpo, id: corpo.id || novo });
+    await insere.bind(colecao, novo, json, agora).run();
+    ctx.waitUntil(avisarSala(env, { linhas: [{ colecao, chave: novo }] }));
+    return respostaJson(201, { ok: true, id: novo, firebase: r.status });
+  }
+
+  if (req.method === 'DELETE') {
+    await env.DADOS.prepare('DELETE FROM registros WHERE colecao = ?1 AND chave = ?2').bind(colecao, id).run();
+    ctx.waitUntil(avisarSala(env, { linhas: [{ colecao, chave: id, apagada: true }] }));
+    const r = await repassarAoFirebase(env, colecao + '/' + id, 'DELETE', undefined);
+    return respostaJson(200, { ok: true, id, firebase: r.status });
+  }
+
+  // PATCH junta com o que existe; PUT substitui. Registro novo por PUT
+  // também vale — é como um integrador grava com id próprio.
+  const atual = await env.DADOS.prepare(
+    'SELECT dados FROM registros WHERE colecao = ?1 AND chave = ?2'
+  ).bind(colecao, id).first();
+  if (req.method === 'PATCH' && !atual) return respostaJson(404, { erro: 'nao-achado' });
+  const json = req.method === 'PATCH'
+    ? _juntarCampos(atual && atual.dados, corpo)
+    : JSON.stringify({ ...(corpo || {}), id: (corpo && corpo.id) || id });
+  if (json.length > LINHA_MAX) return respostaJson(413, { erro: 'registro-grande-demais' });
+  await insere.bind(colecao, id, json, agora).run();
+  ctx.waitUntil(avisarSala(env, { linhas: [{ colecao, chave: id }] }));
+  const r = await repassarAoFirebase(env, colecao + '/' + id, req.method === 'PATCH' ? 'PATCH' : 'PUT',
+    req.method === 'PATCH' ? texto : json);
+  return respostaJson(200, { ok: true, id, firebase: r.status });
+}
+
 export default {
   async fetch(req, env, ctx) {
     const url = new URL(req.url);
@@ -846,6 +1010,13 @@ export default {
 
     if (url.pathname.indexOf('/robo/') === 0) {
       return atenderRobo(req, env, ctx, url).catch(e =>
+        respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
+      );
+    }
+
+    // A API REST (v1): a porta das integrações de fora
+    if (url.pathname === '/api/v1' || url.pathname.indexOf('/api/v1/') === 0) {
+      return atenderApi(req, env, ctx, url).catch(e =>
         respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
       );
     }
