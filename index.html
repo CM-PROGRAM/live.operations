@@ -9373,31 +9373,55 @@ function compactarImagensDoEstado(){
 // ficar no cache. Só as imagens ainda embutidas (formato antigo, acima do
 // limite) são retiradas, uma a uma.
 const _LIMITE_IMG_LOCAL = 40 * 1024; // acima disso não é miniatura
-function _stripHeavyForLocal(s){
+function _stripHeavyForLocal(s, semImagens){
   try{
     const copy = JSON.parse(JSON.stringify(s));
-    const enxugar=(obj,chave)=>{
+    _percorrerImagensDoEstado(copy,(obj,chave)=>{
       const v=obj[chave];
-      if(typeof v==='string' && v.length>_LIMITE_IMG_LOCAL) obj[chave]='';
-    };
-    _percorrerImagensDoEstado(copy,(obj,chave)=>enxugar(obj,chave));
+      if(typeof v==='string' && (semImagens || v.length>_LIMITE_IMG_LOCAL)) obj[chave]='';
+    });
     return copy;
   }catch(e){
     return s;
   }
 }
 
+/* Quanto cabe no cache do navegador ninguém sabe de fora: o teto muda com
+   o navegador, com o modo anônimo e com o que outras abas já ocuparam.
+   Então não se adivinha — tenta-se.
+
+   Antes, cota estourada apagava o cache inteiro, e o sistema reabria sem
+   nada guardado, sessão após sessão. Agora ele desce um degrau: grava sem
+   as miniaturas. Elas são a parte grande (3,24 MB de 5,30) e a mais
+   dispensável AQUI — desde que o médio existe, a miniatura no cache serve
+   só ao instante antes de a nuvem chegar. Sem elas o resto do estado cabe,
+   e abrir continua sendo instantâneo. */
+let _cacheLocalSemImagens=false;
+function _ehCotaEstourada(e){
+  return !!(e && (e.name==='QuotaExceededError' || e.code===22 || e.code===1014));
+}
 function saveLocal(s){
-  try{
-    localStorage.setItem(SK, JSON.stringify(_stripHeavyForLocal(s)));
-  }catch(e){
-    // Cota estourada (ou outro erro) — não é crítico: o Firebase já guarda
-    // os dados completos. Loga silenciosamente e tenta liberar espaço para
-    // a próxima gravação, sem incomodar o usuário com um toast.
-    console.warn('[saveLocal] Não foi possível salvar cache local:', e.message);
-    if(e && (e.name==='QuotaExceededError' || e.code===22 || e.code===1014)){
-      try{ localStorage.removeItem(SK); }catch(e2){}
+  const gravar=semImagens=>localStorage.setItem(SK, JSON.stringify(_stripHeavyForLocal(s,semImagens)));
+  if(!_cacheLocalSemImagens){
+    try{ gravar(false); return; }
+    catch(e){
+      if(!_ehCotaEstourada(e)){
+        console.warn('[saveLocal] Não foi possível salvar cache local:', e.message);
+        return;
+      }
+      _cacheLocalSemImagens=true;
+      console.warn('[saveLocal] o estado não cabe inteiro no cache — gravando sem as miniaturas');
     }
+  }
+  try{
+    // O que sobrou da tentativa anterior ocupa espaço e atrapalha esta
+    try{ localStorage.removeItem(SK); }catch(e0){}
+    gravar(true);
+  }catch(e2){
+    /* Nem sem as imagens coube. Aí o cache fica fora mesmo — não é crítico,
+       a nuvem tem tudo; o que não pode é ficar tentando em silêncio. */
+    console.warn('[saveLocal] cache local desligado nesta sessão:', e2.message);
+    try{ localStorage.removeItem(SK); }catch(e3){}
   }
 }
 
@@ -12638,7 +12662,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30n';
+const APP_VERSAO='2026.08.30o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
