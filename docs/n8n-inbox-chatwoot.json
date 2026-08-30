@@ -88,7 +88,9 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/inbox/conv/{{ $json.convId }}.json",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/conv/{{ $json.convId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.conv) }}",
@@ -106,7 +108,9 @@
     {
       "parameters": {
         "method": "PUT",
-        "url": "=https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/inbox/msg/{{ $json.convId }}/{{ $json.msgId }}.json",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/msg/{{ $json.convId }}/{{ $json.msgId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.msg) }}",
