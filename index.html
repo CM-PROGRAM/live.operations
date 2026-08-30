@@ -4166,7 +4166,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
     <div class="tab-panel" id="tab-inbox">
       <div class="pag-topo">
         <div>
-          <h2 class="pag-titulo">Inbox</h2>
+          <h2 class="pag-titulo">WhatsLive</h2>
           <p class="pag-sub">As conversas do WhatsApp, em tempo real via Chatwoot</p>
         </div>
       </div>
@@ -13066,7 +13066,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30z';
+const APP_VERSAO='2026.08.31b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13324,7 +13324,7 @@ function iconeMenu(chave){
 const MENU_ABAS=[
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
     {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:null},
-    {id:'inbox',  icon:'inbox',  label:'Inbox', perm:'inbox', permLegado:'whatsapp'},
+    {id:'inbox',  icon:'inbox',  label:'WhatsLive', perm:'inbox', permLegado:'whatsapp'},
     {id:'tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas'},
     {id:'whatsapp', icon:'vendas', label:'Vendas', perm:'whatsapp'},
     {id:'registrovendas', icon:'pedidos', label:'Pedidos', perm:'registrovendas', permLegado:'whatsapp'},
@@ -14161,9 +14161,9 @@ function renderDashboard(){
 
     <div class="dash-atalhos">
       <div class="dash-atalho" style="--dc:#2563eb;" onclick="dashAbrir('inbox')">
-        <div class="t">Inbox</div><div class="s">Gerencie suas conversas</div>
+        <div class="t">WhatsLive</div><div class="s">Gerencie suas conversas</div>
         <div class="n">${_dashInt((appState.pedidosWpp||[]).length)} conversas registradas</div>
-        <div class="ir"><span>Ir para Inbox</span><span>→</span></div>
+        <div class="ir"><span>Ir para WhatsLive</span><span>→</span></div>
       </div>
       <div class="dash-atalho" style="--dc:#9333ea;" onclick="dashIr('clientes','leads')">
         <div class="t">Kanban</div><div class="s">Visualize seu pipeline</div>
@@ -14604,14 +14604,14 @@ function _waPintarPainelContatos(){
   if(!box) return;
   const q=_biNorm((document.getElementById('wa-ct-busca')||{}).value||'').trim();
   const lista=_waContatos()
-    .filter(c=>!q || _biNorm([c.nome,c.telefone,c.obs].join(' ')).includes(q))
-    .sort((a,b)=>String(a.nome||'').localeCompare(String(b.nome||'')));
+    .filter(c=>!q || _biNorm([c.nome,c.sobrenome,c.telefone,c.cpf].join(' ')).includes(q))
+    .sort((a,b)=>_waNomeCompleto(a).localeCompare(_waNomeCompleto(b)));
   const linhas=lista.length ? lista.map(c=>`
     <div class="wa-ct-linha">
-      <span class="wa-av">${_iniEsc(_waIni(c.nome))}</span>
+      <span class="wa-av">${_iniEsc(_waIni(_waNomeCompleto(c)))}</span>
       <div class="wa-ct-meio" onclick="waContatoConversar('${c.id}')">
-        <div class="wa-ct-nome">${_iniEsc(nomeProprio(c.nome||'Contato'))}</div>
-        <div class="wa-ct-tel">${_iniEsc(c.telefone||'')}${c.obs?' · '+_iniEsc(c.obs):''}</div>
+        <div class="wa-ct-nome">${_iniEsc(nomeProprio(_waNomeCompleto(c)))}</div>
+        <div class="wa-ct-tel">${_iniEsc(c.telefone||'')}${c.cpf?' · CPF '+_iniEsc(_cliFmtCpf(_cliSoDigitos(c.cpf))):''}</div>
       </div>
       <span class="wa-ct-x" title="Remover da agenda" onclick="waContatoExcluir('${c.id}')">×</span>
     </div>`).join('')
@@ -14627,46 +14627,64 @@ function _waPintarPainelContatos(){
     <div class="wa-ct-lista">${linhas}</div>
     <div class="wa-etq-nova">
       <div class="wa-etq-nova-tit">Novo contato</div>
-      <input id="wa-ct-nome" type="text" placeholder="Nome" maxlength="60" onkeydown="waContatoTecla(event)" autocomplete="off">
+      <input id="wa-ct-nome" type="text" placeholder="Nome" maxlength="40" onkeydown="waContatoTecla(event)" autocomplete="off">
+      <input id="wa-ct-sobre" type="text" placeholder="Sobrenome" maxlength="40" onkeydown="waContatoTecla(event)" autocomplete="off">
       <input id="wa-ct-tel" type="text" placeholder="Telefone com DDD (ex.: 11 98888-7777)" maxlength="24" onkeydown="waContatoTecla(event)" autocomplete="off">
-      <input id="wa-ct-obs" type="text" placeholder="Observação (opcional)" maxlength="60" onkeydown="waContatoTecla(event)" autocomplete="off">
+      <input id="wa-ct-cpf" type="text" placeholder="CPF (opcional)" maxlength="14" onkeydown="waContatoTecla(event)" autocomplete="off">
       <button class="btn btn-sm" style="width:auto;" onclick="waContatoSalvar()">Salvar contato</button>
     </div>`;
   const b=document.getElementById('wa-ct-busca');
   if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
 }
 function waContatoTecla(ev){ if(ev.key==='Enter'){ ev.preventDefault(); waContatoSalvar(); } }
-function waContatoSalvar(nomeFixo,telFixo){
+function _waNomeCompleto(c){
+  return [String((c&&c.nome)||'').trim(), String((c&&c.sobrenome)||'').trim()]
+    .filter(Boolean).join(' ') || 'Contato';
+}
+function waContatoSalvar(nomeFixo,telFixo,sobreFixo){
   if(!currentUser){ showToast('Faça login para salvar contatos','warn'); return; }
-  const nome=String(nomeFixo!==undefined?nomeFixo:((document.getElementById('wa-ct-nome')||{}).value||'')).trim().slice(0,60);
-  const tel =String(telFixo !==undefined?telFixo :((document.getElementById('wa-ct-tel')||{}).value ||'')).trim();
-  const obs =String(nomeFixo!==undefined?'':((document.getElementById('wa-ct-obs')||{}).value||'')).trim().slice(0,60);
+  const daTela=nomeFixo===undefined;
+  const campo=id=>String((document.getElementById(id)||{}).value||'').trim();
+  const nome=String(daTela?campo('wa-ct-nome'):nomeFixo).trim().slice(0,40);
+  const sobrenome=String(daTela?campo('wa-ct-sobre'):(sobreFixo||'')).trim().slice(0,40);
+  const tel =String(daTela?campo('wa-ct-tel'):telFixo).trim();
+  const cpf =daTela?_cliSoDigitos(campo('wa-ct-cpf')):'';
   if(!nome){ showToast('Escreva o nome do contato','warn'); return; }
   if(_waDigitos(tel).length<10){ showToast('Telefone incompleto — precisa do DDD','warn'); return; }
+  if(cpf && cpf.length!==11){ showToast('CPF precisa ter 11 dígitos (ou deixe em branco)','warn'); return; }
   const ja=_waContatoSalvo(tel);
-  if(ja){ showToast('"'+nomeProprio(ja.nome)+'" já está na agenda com esse telefone','warn'); return; }
+  if(ja){ showToast('"'+nomeProprio(_waNomeCompleto(ja))+'" já está na agenda com esse telefone','warn'); return; }
   if(!Array.isArray(appState.waContatos)) appState.waContatos=[];
   appState.waContatos.push({
     id:'wct_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
-    nome, telefone:tel, obs,
+    nome, sobrenome, telefone:tel, cpf,
     criadoEm:Date.now(), criadoPor:currentUser.name});
   saveState(appState);
-  if(nomeFixo===undefined){
-    ['wa-ct-nome','wa-ct-tel','wa-ct-obs'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  if(daTela){
+    ['wa-ct-nome','wa-ct-sobre','wa-ct-tel','wa-ct-cpf'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   }
   _waPintarPainelContatos();
   try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
-  showToast('✔ '+nomeProprio(nome)+' salvo na agenda','success');
+  const completo=[nome,sobrenome].filter(Boolean).join(' ');
+  showToast('✔ '+nomeProprio(completo)+' salvo na agenda','success');
+  /* Salvar aqui também cadastra no Chatwoot: sem o contato lá, a "nova
+     conversa" do WhatsLive falha com "contato não existe" — que era
+     exatamente a armadilha de guardar o número só do nosso lado. */
+  try{ _cliCadastrarChatwoot(completo, tel, '', cpf); }catch(e){}
 }
 /* Salvar quem está na conversa aberta: um clique, sem redigitar nada */
 function waSalvarContatoDaConversa(id){
   const c=_waConvs[id]||{};
   if(!c.telefone){ showToast('Esta conversa não tem telefone para salvar','warn'); return; }
-  waContatoSalvar(c.nome||'Contato', c.telefone);
+  /* O Chatwoot guarda o nome inteiro num campo só; aqui o primeiro nome
+     vira Nome e o resto, Sobrenome. */
+  const partes=String(c.nome||'Contato').trim().split(/\s+/);
+  const nome=partes.shift()||'Contato';
+  waContatoSalvar(nome, c.telefone, partes.join(' '));
 }
 function waContatoExcluir(id){
   const c=_waContatos().find(x=>x.id===id); if(!c) return;
-  if(!confirmar(()=>waContatoExcluir(id), `Tirar "${nomeProprio(c.nome)}" da agenda?`)) return;
+  if(!confirmar(()=>waContatoExcluir(id), `Tirar "${nomeProprio(_waNomeCompleto(c))}" da agenda?`)) return;
   appState.waContatos=_waContatos().filter(x=>x.id!==id);
   saveState(appState);
   _waPintarPainelContatos();
@@ -14681,7 +14699,7 @@ function waContatoConversar(id){
   const achada=Object.entries(_waConvs).find(([,v])=>_waDigitos(v.telefone).endsWith(fim));
   waPainelLateral('conversas');
   if(achada) inboxAbrir(achada[0]);
-  else inboxNovaConversa(dig, c.nome||'Contato');
+  else inboxNovaConversa(dig, _waNomeCompleto(c));
 }
 function _waTagChip(t,extra){
   return `<span class="wa-tag" style="--tc:${t.cor||'#2563eb'};"${extra||''}>${_iniEsc(t.nome)}</span>`;
@@ -14963,7 +14981,7 @@ function _waAvisoDivergencia(){
     <b>duas cópias</b> do fluxo no n8n: nos nós <b>Gravar conversa</b> e <b>Gravar mensagem</b> do que
     estiver ativo, a URL tem de começar com
     <span style="font-family:var(--font-mono);">…workers.dev/robo/</span> e a credencial ser
-    <b>LiveOps (chave do robô)</b>. Nada se perde: o Inbox lê os dois e copia para o espelho.`;
+    <b>LiveOps (chave do robô)</b>. Nada se perde: o WhatsLive lê os dois e copia para o espelho.`;
 }
 
 /* Busca ao vivo na base de contatos do CHATWOOT, via n8n. Debounce de meio
@@ -15923,11 +15941,11 @@ function renderTemplates(){
         <div class="tpl-card">
           <div class="tpl-rotulo">Identificação</div>
           <div style="display:grid;grid-template-columns:.8fr 1fr 1.6fr;gap:10px;">
-            <input type="text" id="tpl-comando" value="${_iniEsc(_tplComandoDe(t))}" placeholder="/comando" onchange="tplCampo(true)" style="font-family:var(--font-mono);" title="Comando de disparo no Inbox — digite / na conversa para chamar">
+            <input type="text" id="tpl-comando" value="${_iniEsc(_tplComandoDe(t))}" placeholder="/comando" onchange="tplCampo(true)" style="font-family:var(--font-mono);" title="Comando de disparo no WhatsLive — digite / na conversa para chamar">
             <input type="text" id="tpl-nome" value="${_iniEsc(t.nome||'')}" placeholder="Nome" onchange="tplCampo(true)">
             <input type="text" id="tpl-desc" value="${_iniEsc(t.desc||'')}" placeholder="Descrição curta (aparece sob o título)" onchange="tplCampo(true)">
           </div>
-          <div style="font-size:11px;color:var(--text-muted);margin-top:7px;">O comando é o atalho no Inbox: digitando <b style="font-family:var(--font-mono);">/</b> na conversa, a lista de templates aparece para disparar.</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:7px;">O comando é o atalho no WhatsLive: digitando <b style="font-family:var(--font-mono);">/</b> na conversa, a lista de templates aparece para disparar.</div>
           <div class="tpl-acoes" style="margin-top:12px;">
             <span class="tpl-salvo" id="tpl-salvo">✓ Salvo</span>
             ${master&&lista.length>1?`<button class="btn-sec" style="margin-left:auto;color:#ef4444;border-color:rgba(239,68,68,.5);" onclick="tplExcluir('${_iniEsc(t.id)}')">Excluir template</button>`:''}
@@ -33270,7 +33288,7 @@ const INTEGRACOES=[
    acao:{txt:'Configurar n8n', url:'https://n8n.suplelive.com.br/home/workflows'}},
 
   {nome:'Chatwoot (WhatsApp)', ic:'chat', cor:'#22c55e',
-   desc:'Atendimento no WhatsApp: o Inbox do LiveOps recebe e responde as conversas em tempo real por ele.',
+   desc:'Atendimento no WhatsApp: o WhatsLive do LiveOps recebe e responde as conversas em tempo real por ele.',
    onde:'Token no n8n', uso:'em uso',
    acao:{txt:'Abrir Chatwoot', url:'https://chat.suplelive.com.br/'}},
 
