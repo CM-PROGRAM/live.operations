@@ -8387,23 +8387,55 @@ function _percorrerImagensDoEstado(s, visitar){
   });
 }
 
+/* "Imagem embutida" era uma conta só, e por isso não dizia o que fazer.
+   São dois casos com remédios opostos:
+     · MINIATURA — a original já está fora (o registro guarda a referência).
+       Migrar de novo não tira um byte; encolher só encolhendo a miniatura.
+     · ORIGINAL  — a foto inteira ainda viaja no pacote a cada alteração.
+       Essa, sim, sai com "📤 Tirar imagens do pacote".
+   Somar as duas dava um número grande que mandava para o lado errado. */
+function _temReferencia(dono,campo,indice){
+  if(!dono) return false;
+  if(indice==null) return !!dono[campo+'Ref'];
+  const r=dono[campo+'Ref'];
+  return Array.isArray(r) && !!r[indice];
+}
+
 function diagnosticarEstado(){
   const s=appState;
   const total=JSON.stringify(s).length;
   const porGrupo={};
   let totalImagens=0, qtd=0;
-  _percorrerImagensDoEstado(s,(obj,chave,rotulo)=>{
+  let bytesMini=0, qtdMini=0, bytesOrig=0, qtdOrig=0;
+  const maiores=[];
+  _percorrerImagensDoEstado(s,(obj,chave,rotulo,dono,campo,indice)=>{
     const tam=String(obj[chave]).length;
     porGrupo[rotulo]=(porGrupo[rotulo]||0)+tam;
     totalImagens+=tam; qtd++;
+    if(_temReferencia(dono,campo,indice)){ bytesMini+=tam; qtdMini++; }
+    else { bytesOrig+=tam; qtdOrig++; }
+    maiores.push({onde:rotulo, id:(dono&&dono.id)||'—', kb:Math.round(tam/1024),
+      tipo:_temReferencia(dono,campo,indice)?'miniatura':'ORIGINAL'});
   });
   const mb=n=>(n/1048576).toFixed(2)+' MB';
+  const kb=n=>Math.round(n/1024)+' KB';
   console.log('%c[DIAGNÓSTICO DO ESTADO]','font-weight:bold');
   console.log('Tamanho total enviado ao Firebase a cada alteração:', mb(total));
   console.log('Imagens embutidas:', qtd, '·', mb(totalImagens),
               '(' + (total?Math.round(totalImagens/total*100):0) + '% do total)');
+  console.log('  · já migradas (só a miniatura viaja):', qtdMini, '·', mb(bytesMini),
+              qtdMini?('· média '+kb(bytesMini/qtdMini)+' cada'):'');
+  console.log('  · ORIGINAIS ainda no pacote:', qtdOrig, '·', mb(bytesOrig),
+              qtdOrig?('· média '+kb(bytesOrig/qtdOrig)+' cada'):'');
+  console.log(qtdOrig
+    ? '  → dá para tirar '+mb(bytesOrig)+' com "📤 Tirar imagens do pacote" (Administrador)'
+    : '  → nada a migrar: o peso são as miniaturas, e só encolhe encolhendo elas');
+  console.log('Fora das imagens:', mb(total-totalImagens));
   Object.entries(porGrupo).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>console.log('  ',k,mb(v)));
-  return {totalBytes:total, imagensBytes:totalImagens, qtdImagens:qtd, porGrupo};
+  console.log('As 10 maiores:');
+  console.table(maiores.sort((a,b)=>b.kb-a.kb).slice(0,10));
+  return {totalBytes:total, imagensBytes:totalImagens, qtdImagens:qtd, porGrupo,
+    miniaturas:{qtd:qtdMini, bytes:bytesMini}, originais:{qtd:qtdOrig, bytes:bytesOrig}};
 }
 
 // ── BACKUP (.zip) ────────────────────────────────────────────
@@ -12204,7 +12236,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30e';
+const APP_VERSAO='2026.08.30f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
