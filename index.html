@@ -678,12 +678,18 @@ html{overflow-x:hidden;}
   color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);
   background:color-mix(in srgb,var(--tc) 10%,transparent);}
 .wa-conv-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;}
-.wa-filtro-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;align-items:center;}
-.wa-tag-filtro{cursor:pointer;transition:all .15s;}
-.wa-tag-filtro:hover{background:color-mix(in srgb,var(--tc) 18%,transparent);}
-.wa-tag-filtro.ativa{color:#fff;background:var(--tc);border-color:var(--tc);}
-.wa-tag-limpar{font-family:var(--font-mono);font-size:9.5px;color:var(--text-muted);cursor:pointer;
-  text-decoration:underline;padding:3px 4px;}
+/* A barra de filtros do WhatsApp: pílulas em linha, a ativa preenchida */
+.wa-filtro-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;align-items:center;}
+.wa-pil{--tc:var(--text-secondary);display:inline-flex;align-items:center;gap:5px;cursor:pointer;
+  font-size:12px;font-weight:600;line-height:1;padding:6px 12px;border-radius:999px;white-space:nowrap;
+  color:var(--text-secondary);background:var(--veu-suave);border:1px solid var(--linha-sutil);
+  transition:background .15s,color .15s,border-color .15s;}
+.wa-pil:hover{background:var(--veu-medio);}
+.wa-pil b{font-size:10.5px;font-weight:800;opacity:.8;}
+.wa-pil.ativa{color:#fff;background:var(--tc,#2563eb);border-color:var(--tc,#2563eb);}
+.wa-pil-mais{font-size:15px;font-weight:800;padding:5px 11px;color:var(--text-muted);}
+.wa-tag-criar{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.wa-tag-criar input{flex:1;min-width:0;font-size:12px;}
 .wa-tag-btn{white-space:nowrap;}
 /* O painel fica logo abaixo do cabeçalho da conversa, ancorado à direita */
 .wa-tag-panel{position:absolute;right:14px;top:62px;z-index:40;width:270px;max-height:340px;overflow-y:auto;
@@ -699,8 +705,26 @@ html{overflow-x:hidden;}
 .wa-tag-x{color:var(--text-muted);font-size:15px;line-height:1;padding:0 3px;border-radius:4px;}
 .wa-tag-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
 .wa-tag-vazio{padding:10px 9px;font-size:11.5px;color:var(--text-muted);line-height:1.6;}
-.wa-tag-nova{display:flex;gap:6px;margin-top:6px;padding-top:8px;border-top:1px solid var(--linha-sutil);}
-.wa-tag-nova input{flex:1;min-width:0;font-size:11.5px;}
+
+/* ── Seletor de emojis ──
+   Abre por cima do compositor, com as abas de categoria em cima e a
+   grade rolando embaixo — o desenho que todo mundo já conhece. */
+.wa-emoji-panel{position:absolute;left:10px;bottom:100%;margin-bottom:8px;z-index:45;
+  width:min(360px,calc(100% - 20px));background:var(--bg-card);border:1px solid var(--glass-border);
+  border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.24);overflow:hidden;}
+.wa-emoji-abas{display:flex;gap:2px;padding:6px;border-bottom:1px solid var(--linha-sutil);
+  overflow-x:auto;scrollbar-width:none;}
+.wa-emoji-abas::-webkit-scrollbar{display:none;}
+.wa-emoji-aba{flex:0 0 auto;width:32px;height:30px;font-size:16px;line-height:1;cursor:pointer;
+  background:transparent;border:0;border-radius:7px;padding:0;}
+.wa-emoji-aba:hover{background:var(--veu-suave);}
+.wa-emoji-aba.ativa{background:var(--veu-medio);box-shadow:inset 0 -2px 0 #2563eb;}
+.wa-emoji-grade{display:grid;grid-template-columns:repeat(8,1fr);gap:1px;padding:7px;
+  max-height:230px;overflow-y:auto;}
+.wa-emoji{font-size:21px;line-height:1;height:36px;cursor:pointer;background:transparent;border:0;
+  border-radius:7px;padding:0;}
+.wa-emoji:hover{background:var(--veu-medio);}
+.wa-emoji-vazio{grid-column:1/-1;padding:22px 10px;text-align:center;font-size:11.5px;color:var(--text-muted);}
 .wa-aviso-fluxo{margin:0 10px 10px;padding:9px 11px;border-radius:8px;font-size:11px;line-height:1.6;
   color:#b45309;background:rgba(245,158,11,.10);border:1px solid rgba(245,158,11,.4);}
 :root:not([data-theme="light"]) .wa-aviso-fluxo{color:#fbbf24;}
@@ -4064,8 +4088,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div class="wa-lista">
           <div class="wa-topo-lista">
             <input id="wa-q" type="text" placeholder="Pesquisar conversa..." oninput="inboxRender()" autocomplete="off">
-            <!-- Etiquetas como filtro: clicar mostra só as conversas dela -->
-            <div id="wa-filtro-tags" class="wa-filtro-tags" style="display:none;"></div>
+            <!-- A barra do WhatsApp: Tudo + as etiquetas + o "+" que cria.
+                 É aqui que a etiqueta nasce; o painel da conversa só escolhe. -->
+            <div id="wa-filtro-tags" class="wa-filtro-tags"></div>
+            <div id="wa-tag-criar" class="wa-tag-criar" style="display:none;">
+              <input id="wa-tag-nome" type="text" placeholder="Nome da etiqueta" maxlength="28"
+                onkeydown="waTagTecla(event)" autocomplete="off">
+              <button class="btn btn-sm" style="width:auto;" onclick="waTagCriar()">Criar</button>
+              <button class="btn-ghost btn-sm" style="width:auto;" onclick="waTagCancelarCriar()">Cancelar</button>
+            </div>
           </div>
           <div id="wa-aviso-fluxo" class="wa-aviso-fluxo" style="display:none;"></div>
           <div id="wa-convs" class="wa-convs">
@@ -4077,11 +4108,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <!-- Painel de etiquetas da conversa aberta: marca, desmarca e cria -->
           <div class="wa-tag-panel" id="wa-tag-panel" style="display:none;">
             <div class="wa-tag-lista"></div>
-            <div class="wa-tag-nova">
-              <input id="wa-tag-nome" type="text" placeholder="Nova etiqueta (ex.: Aguardando pagamento)"
-                maxlength="28" onkeydown="waTagTecla(event)" autocomplete="off">
-              <button class="btn btn-sm" style="width:auto;" onclick="waTagCriar()">Criar</button>
-            </div>
           </div>
           <div class="wa-msgs" id="wa-msgs">
             <div class="wa-vazio">
@@ -4091,6 +4117,10 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           </div>
           <div class="wa-compor" id="wa-compor" style="display:none;">
             <div class="wa-tpl-panel" id="wa-tpl-panel" style="display:none;"></div>
+            <div class="wa-emoji-panel" id="wa-emoji-panel" style="display:none;"></div>
+            <button type="button" class="wa-tpl-btn wa-emoji-btn" onclick="waEmojiAbrir()" title="Emojis">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9.2"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><line x1="9" y1="9.5" x2="9.01" y2="9.5"/><line x1="15" y1="9.5" x2="15.01" y2="9.5"/></svg>
+            </button>
             <button type="button" class="wa-tpl-btn" onclick="waTplAbrir()" title="Templates — ou digite / na mensagem">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
             </button>
@@ -12916,7 +12946,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30r';
+const APP_VERSAO='2026.08.30s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14289,6 +14319,77 @@ function _waContatosLocais(){
   return mapa;
 }
 
+/* ── Emojis ──────────────────────────────────────────────────────────
+   O teclado de emoji do sistema não existe em desktop, e escrever
+   atendimento sem emoji soa seco — o cliente do WhatsApp espera o tom.
+   A lista vem embutida (nada de CDN: o app é um arquivo só), por
+   categoria, na ordem em que o WhatsApp mostra. Os recentes ficam no
+   navegador de cada um. */
+const WA_EMOJIS=[
+  ['Rostos','😀 😁 😂 😃 😄 😅 😆 😇 😈 😉 😊 😋 😌 😍 😎 😏 😐 😑 😒 😓 😔 😕 😖 😗 😘 😙 😚 😛 😜 😝 😞 😟 😠 😡 😢 😣 😤 😥 😦 😧 😨 😩 😪 😫 😬 😭 😮 😯 😰 😱 😲 😳 😴 😵 😶 😷 😸 😹 😺 😻 😼 😽 😾 😿 🙀 🙁 🙂 🙃 🙄 🙅 🙆 🙇 🙈 🙉 🙊 🙋 🙌 🙍 🙎 🙏 🤐 🤑 🤒 🤓 🤔 🤕 🤖 🤗 🤘 🤙 🤚 🤛 🤜 🤝 🤞 🤟 🤠 🤡 🤢 🤣 🤤 🤥 🤦 🤧 🤨 🤩 🤪 🤫 🤬 🤭 🤮 🤯 🤰 🤱 🤲 🤳 🤴 🤵 🤶 🤷 🤸 🤹 🤺 🥰 🥱 🥲 🥳 🥴 🥵 🥶 🥷 🥸 🥹 🥺 🧐 🧑 🧒 🧓 🧔 🧕 🧖 🧗 🧘 🧙 🧚 🧛 🧜 🧝 🧞 🧟 👀 👁 👂 👃 👄 👅 👆 👇 👈 👉 👊 👋 👌 👍 👎 👏 👐 👤 👥 👦 👧 👨 👩 👪 👫 👬 👭 👮 👯 👰 👱 👲 👳 👴 👵 👶 👷 👸 👹 👺 👻 👼 👽 👾 👿 💀 💁 💂 💃 💄 💅 💆 💇 🫠 🫡 🫢 🫣 🫤 🫥 🫦 🫧 🫰 🫱 🫲 🫳 🫴 🫵 🫶 ☝️ ✊️ ✋️ ✌️ ✍️ 🤌 🤍 🤎 🤏 🖕 🖖'],
+  ['Natureza','🐀 🐁 🐂 🐃 🐄 🐅 🐆 🐇 🐈 🐉 🐊 🐋 🐌 🐍 🐎 🐏 🐐 🐑 🐒 🐓 🐔 🐕 🐖 🐗 🐘 🐙 🐚 🐛 🐜 🐝 🐞 🐟 🐠 🐡 🐢 🐣 🐤 🐥 🐦 🐧 🐨 🐩 🐪 🐫 🐬 🐭 🐮 🐯 🐰 🐱 🐲 🐳 🐴 🐵 🐶 🐷 🐸 🐹 🐺 🐻 🐼 🐽 🐾 🐿 🦀 🦁 🦂 🦃 🦄 🦅 🦆 🦇 🦈 🦉 🦊 🦋 🦌 🦍 🦎 🦏 🦐 🦑 🦒 🦓 🦔 🦕 🦖 🦗 🦘 🦙 🦚 🦛 🦜 🦝 🦞 🦟 🦠 🦡 🦢 🦣 🦤 🦥 🦦 🦧 🦨 🦩 🦪 🦫 🦬 🦭 🦮 🌰 🌱 🌲 🌳 🌴 🌵 🌶 🌷 🌸 🌹 🌺 🌻 🌼 🌽 🌾 🌿 🍀 🍁 🍂 🍃 🍄 🌈 🌉 🌊 🌋 🌌 🌚 🌛 🌜 🌝 🌞 🌟 🌠 🌡 🌢 🌣 🌤 🌥 🌦 🌧 🌨 🌩 🌪 🌫 🌬 🪰 🪱 🪲 🪳 🪴 🪵 🪶 🪷 🪸 🪹 🪺 ☀️ ☁️ ☂️ ☃️ ☄️ ⛄️ ⛅️ ⛆️ ⛇️ ⛈️ ❄️ 🎆 🎇'],
+  ['Comida','🍅 🍆 🍇 🍈 🍉 🍊 🍋 🍌 🍍 🍎 🍏 🍐 🍑 🍒 🍓 🍔 🍕 🍖 🍗 🍘 🍙 🍚 🍛 🍜 🍝 🍞 🍟 🍠 🍡 🍢 🍣 🍤 🍥 🍦 🍧 🍨 🍩 🍪 🍫 🍬 🍭 🍮 🍯 🍰 🍱 🍲 🍳 🍴 🍵 🍶 🍷 🍸 🍹 🍺 🍻 🍼 🍽 🍾 🍿 🥐 🥑 🥒 🥓 🥔 🥕 🥖 🥗 🥘 🥙 🥚 🥛 🥜 🥝 🥞 🥟 🥠 🥡 🥢 🥣 🥤 🥥 🥦 🥧 🥨 🥩 🥪 🥫 🥬 🥭 🥮 🥯 🌭 🌮 🌯 🧀 🧁 🧂 🧃 🧄 🧅 🧆 🧇 🧈 🧉 🧊 🧋 🫐 🫑 🫒 🫓 🫔 🫕 🫖 🫗 🫘 🫙 ☕️'],
+  ['Atividades','🎀 🎁 🎂 🎃 🎄 🎅 🎈 🎉 🎊 🎋 🎌 🎍 🎎 🎏 🎐 🎑 🎒 🎓 ⚽️ ⚾️ 🎠 🎡 🎢 🎣 🎤 🎥 🎦 🎧 🎨 🎩 🎪 🎫 🎬 🎭 🎮 🎯 🎰 🎱 🎲 🎳 🎴 🎵 🎶 🎷 🎸 🎹 🎺 🎻 🎼 🎽 🎾 🎿 🏀 🏁 🏂 🏃 🏄 🏅 🏆 🏇 🏈 🏉 🏊 🏏 🏐 🏑 🏒 🏓 🏔 🏕 🏖 🏗 🏘 🏙 🏚 🏛 🏜 🏝 🏞 🏟 🏠 🏡 🏢 🏣 🏤 🏥 🏦 🏧 🏨 🏩 🏪 🏫 🏬 🏭 🏮 🏯 🏰 🥍 🥎 🥏 🥇 🥈 🥉 🥊 🥋 🥌 🤼 🤽 🤾 🤿 🥀 🥁 🥂 🥃 🥄 🥅'],
+  ['Viagens','🚀 🚁 🚂 🚃 🚄 🚅 🚆 🚇 🚈 🚉 🚊 🚋 🚌 🚍 🚎 🚏 🚐 🚑 🚒 🚓 🚔 🚕 🚖 🚗 🚘 🚙 🚚 🚛 🚜 🚝 🚞 🚟 🚠 🚡 🚢 🚣 🚤 🚥 🚦 🚧 🚨 🚩 🚪 🚫 🚬 🚭 🚮 🚯 🚰 🚱 🚲 🚳 🚴 🚵 🚶 🚷 🚸 🚹 🚺 🚻 🚼 🚽 🚾 🚿 🛀 🛁 🛂 🛃 🛄 🛅 🗺 🗻 🗼 🗽 🗾 🗿 🌍 🌎 🌏 🌐 ✈️ ⛵️ ⛶️ ⛷️ ⛸️ ⛹️ ⛺️ 🛰 🛱 🛲 🛳 🛴 🛵 🛶 🛷 🛸 🛹 🛺 🛻 🛼 ⛽️'],
+  ['Objetos','💠 💡 💢 💣 💤 💥 💦 💧 💨 💩 💪 💫 💬 💭 💮 💯 💰 💱 💲 💳 💴 💵 💶 💷 💸 💹 💺 💻 💼 💽 💾 💿 📀 📁 📂 📃 📄 📅 📆 📇 📈 📉 📊 📋 📌 📍 📎 📏 📐 📑 📒 📓 📔 📕 📖 📗 📘 📙 📚 📛 📜 📝 📞 📟 📠 📡 📢 📣 📤 📥 📦 📧 📨 📩 📪 📫 📬 📭 📮 📯 📰 📱 📲 📳 📴 📵 📶 📷 📸 📹 📺 📻 📼 📽 📾 📿 🔀 🔁 🔂 🔃 🔄 🔅 🔆 🔇 🔈 🔉 🔊 🔋 🔌 🔍 🔎 🔏 🔐 🔑 🔒 🔓 🔔 🔕 🔖 🔗 🔘 🔙 🔚 🔛 🔜 🔝 🔞 🔟 🔠 🔡 🔢 🔣 🔤 🔥 🔦 🔧 🔨 🔩 🔪 🔫 🔬 🔭 🔮 🔯 🔰 🔱 🔲 🔳 🔴 🔵 🔶 🔷 🔸 🔹 🔺 🔻 🔼 🔽 🕐 🕑 🕒 🕓 🕔 🕕 🕖 🕗 🕘 🕙 🕚 🕛 🕜 🕝 🕞 🕟 🕠 🕡 🕢 🕣 🕤 🕥 🕦 🕧 🧰 🧱 🧲 🧳 🧴 🧵 🧶 🧷 🧸 🧹 🧺 🧻 🧼 🧽 🧾 🧿 ⌚️ ⌛️ ☎️ 🖤 🖥 🖇 🖈 🖉 🖊 🖋 🖌 🖍 ✂️ ✏️ ✐️ ✑️ ✒️'],
+  ['Símbolos','❤️ 💓 💔 💕 💖 💗 💘 💙 💚 💛 💜 💝 💞 💟 ♥️ ♦️ ✅️ ✔️ ✕️ ✖️ ❌️ ❍️ ❎️ ❓️ ❔️ ❕️ ❖️ ❗️ ➕️ ➖️ ➗️ ➡️ ⬅️ ⬆️ ⬇️ ⭐️ ✨️ ⚠️ ⚡️ ⚢️ ⚣️ ⚤️ ⚥️ ⚦️ ⚧️ ⚨️ ⚩️ ⚪️ ⚫️ ☑️ ©️ ª️ «️ ¬️ ®️ ‼️ ⁉️ ⬛️ ⬜️ 🆒 🆓 🆔 🆕 🆖 🆗 🆘 🆙 🆚 ♻️ 〰️ 〽️'],
+  ['Bandeiras','🇧🇷 🇵🇹 🇺🇸 🇦🇷 🇨🇱 🇺🇾 🇵🇾 🇨🇴 🇲🇽 🇪🇸 🇮🇹 🇫🇷 🇩🇪 🇬🇧 🇯🇵 🇨🇳 🇰🇷 🇨🇦 🇦🇺 🇳🇱 🇨🇭 🇸🇪 🇳🇴 🇷🇺 🇮🇳 🇿🇦 🇪🇬 🇮🇱 🇹🇷 🇬🇷']
+];
+let _waEmojiCat=-1;   // -1 = recentes
+function _waEmojiRecentes(){
+  try{ return JSON.parse(localStorage.getItem('liveops_emojis_recentes')||'[]'); }catch(e){ return []; }
+}
+function _waEmojiGuardarRecente(e){
+  try{
+    const l=_waEmojiRecentes().filter(x=>x!==e);
+    l.unshift(e);
+    localStorage.setItem('liveops_emojis_recentes', JSON.stringify(l.slice(0,32)));
+  }catch(e2){}
+}
+function waEmojiAbrir(){
+  const p=document.getElementById('wa-emoji-panel');
+  if(!p) return;
+  if(p.style.display!=='none'){ waEmojiFechar(); return; }
+  try{ waTplFechar(); }catch(e){}
+  p.style.display='block';
+  // Abre nos recentes quando já há algum; senão, direto nos rostos
+  if(_waEmojiCat===-1 && !_waEmojiRecentes().length) _waEmojiCat=0;
+  _waEmojiPintar();
+}
+function waEmojiFechar(){
+  const p=document.getElementById('wa-emoji-panel');
+  if(p) p.style.display='none';
+}
+function waEmojiCat(i){ _waEmojiCat=i; _waEmojiPintar(); }
+function _waEmojiPintar(){
+  const p=document.getElementById('wa-emoji-panel');
+  if(!p || p.style.display==='none') return;
+  const recentes=_waEmojiRecentes();
+  const abas=[['\uD83D\uDD50',-1,'Recentes']].concat(
+    WA_EMOJIS.map((c,i)=>[c[1].split(' ')[0], i, c[0]]));
+  const lista = _waEmojiCat===-1 ? recentes : WA_EMOJIS[_waEmojiCat][1].split(' ');
+  p.innerHTML=
+    '<div class="wa-emoji-abas">'+abas.map(([ic,i,nome])=>
+      '<button type="button" class="wa-emoji-aba'+(_waEmojiCat===i?' ativa':'')+'" title="'+_iniEsc(nome)+'"'
+      +' onclick="waEmojiCat('+i+')">'+ic+'</button>').join('')+'</div>'
+    +'<div class="wa-emoji-grade">'+(lista.length
+      ? lista.map(e=>'<button type="button" class="wa-emoji" onclick="waEmojiEscolher(\''+e+'\')">'+e+'</button>').join('')
+      : '<div class="wa-emoji-vazio">Os emojis que você usar aparecem aqui.</div>')+'</div>';
+}
+/* Entra na posição do cursor — quem está no meio de uma frase não quer o
+   emoji colado no fim. O painel fica aberto: mandar dois seguidos é comum. */
+function waEmojiEscolher(e){
+  const ta=document.getElementById('wa-input');
+  if(!ta) return;
+  const i=ta.selectionStart==null?ta.value.length:ta.selectionStart;
+  const f=ta.selectionEnd==null?i:ta.selectionEnd;
+  ta.value=ta.value.slice(0,i)+e+ta.value.slice(f);
+  const pos=i+e.length;
+  ta.focus();
+  try{ ta.setSelectionRange(pos,pos); }catch(e2){}
+  _waEmojiGuardarRecente(e);
+}
+
 /* ── Etiquetas das conversas ─────────────────────────────────────────
    Marcar a conversa é o que transforma uma lista de nomes em fila de
    trabalho: "aguardando pagamento", "reclamação", "orçamento enviado".
@@ -14331,6 +14432,19 @@ function _waPintarTagsCabecalho(){
   box.innerHTML=tags.map(t=>_waTagChip(t)).join('');
   box.style.display=tags.length?'flex':'none';
 }
+/* Criar é na barra da lista, como no WhatsApp; o painel da conversa só
+   escolhe entre o que já existe. */
+function waTagNovaBarra(){
+  const box=document.getElementById('wa-tag-criar');
+  if(!box) return;
+  box.style.display='flex';
+  const el=document.getElementById('wa-tag-nome');
+  if(el){ el.value=''; el.focus(); }
+}
+function waTagCancelarCriar(){
+  const box=document.getElementById('wa-tag-criar');
+  if(box) box.style.display='none';
+}
 function waTagCriar(){
   if(!currentUser){ showToast('Faça login para criar etiquetas','warn'); return; }
   const el=document.getElementById('wa-tag-nome');
@@ -14344,10 +14458,9 @@ function waTagCriar(){
   appState.waEtiquetas.push(t);
   saveState(appState);
   if(el) el.value='';
-  // Criada de dentro de uma conversa, já marca essa conversa: é o que se quer
-  if(_waTagPainelConv) waTagAlternar(_waTagPainelConv,t.id);
-  else { inboxRender(); _waPintarTagsCabecalho(); _waTagPainelPintar(); }
-  showToast('🏷 Etiqueta "'+nome+'" criada','success');
+  waTagCancelarCriar();
+  inboxRender(); _waPintarTagsCabecalho(); _waTagPainelPintar();
+  showToast('🏷 Etiqueta "'+nome+'" criada — marque as conversas por 🏷 Etiquetas','success');
 }
 function waTagExcluir(id){
   if(!currentUser || !currentUser.master){ showToast('Só o master exclui etiquetas','warn'); return; }
@@ -14396,7 +14509,7 @@ function _waTagPainelPintar(){
         ${marcadas.indexOf(t.id)>=0?'<span class="wa-tag-ok">✓</span>':''}
         ${currentUser&&currentUser.master?`<span class="wa-tag-x" title="Excluir etiqueta" onclick="event.stopPropagation();waTagExcluir('${t.id}')">×</span>`:''}
       </div>`).join('')
-    : '<div class="wa-tag-vazio">Nenhuma etiqueta ainda — crie a primeira abaixo.</div>';
+    : '<div class="wa-tag-vazio">Nenhuma etiqueta ainda. Crie no <b>+</b> da barra acima da lista de conversas.</div>';
 }
 function waTagTecla(ev){
   if(ev.key==='Enter'){ ev.preventDefault(); waTagCriar(); }
@@ -14493,12 +14606,15 @@ function _waPintarFiltroTags(){
   const box=document.getElementById('wa-filtro-tags');
   if(!box) return;
   const tags=_waEtiquetas();
-  if(!tags.length){ box.style.display='none'; box.innerHTML=''; return; }
-  box.style.display='flex';
-  box.innerHTML=tags.map(t=>
-    `<span class="wa-tag wa-tag-filtro${_waFiltroTag===t.id?' ativa':''}" style="--tc:${t.cor||'#2563eb'};"
-      onclick="waFiltrarTag('${t.id}')">${_iniEsc(t.nome)}</span>`).join('')
-    +(_waFiltroTag?`<span class="wa-tag-limpar" onclick="waFiltrarTag('')">limpar</span>`:'');
+  const conta=id=>Object.keys(_waConvs).filter(k=>_waTagsDaConv(k).indexOf(id)>=0).length;
+  box.innerHTML=
+    `<span class="wa-pil${_waFiltroTag?'':' ativa'}" onclick="waFiltrarTag('')">Tudo</span>`
+    + tags.map(t=>{
+        const n=conta(t.id);
+        return `<span class="wa-pil${_waFiltroTag===t.id?' ativa':''}" style="--tc:${t.cor||'#2563eb'};"
+          onclick="waFiltrarTag('${t.id}')">${_iniEsc(t.nome)}${n?' <b>'+n+'</b>':''}</span>`;
+      }).join('')
+    + `<span class="wa-pil wa-pil-mais" onclick="waTagNovaBarra()" title="Criar etiqueta">+</span>`;
 }
 
 /* Quando o Firebase tem conversa que o espelho da Cloudflare não tem, o
