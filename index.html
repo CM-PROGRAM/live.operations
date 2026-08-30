@@ -665,6 +665,9 @@ html{overflow-x:hidden;}
 .wa-wrap{display:flex;height:calc(100vh - 175px);min-height:420px;border:1px solid var(--glass-border);
   border-radius:14px;overflow:hidden;background:var(--bg-card);}
 .wa-lista{width:340px;min-width:260px;border-right:1px solid var(--glass-border);display:flex;flex-direction:column;}
+/* Os dois painéis ocupam a coluna inteira; só um aparece por vez */
+#wa-vista-conversas{flex:1;display:flex;flex-direction:column;min-height:0;}
+#wa-vista-etiquetas{flex:1;min-height:0;}
 .wa-topo-lista{padding:10px;border-bottom:1px solid var(--linha-sutil);}
 .wa-topo-lista input{width:100%;}
 .wa-convs{flex:1;overflow-y:auto;}
@@ -687,9 +690,45 @@ html{overflow-x:hidden;}
 .wa-pil:hover{background:var(--veu-medio);}
 .wa-pil b{font-size:10.5px;font-weight:800;opacity:.8;}
 .wa-pil.ativa{color:#fff;background:var(--tc,#2563eb);border-color:var(--tc,#2563eb);}
-.wa-pil-mais{font-size:15px;font-weight:800;padding:5px 11px;color:var(--text-muted);}
-.wa-tag-criar{display:flex;gap:6px;margin-top:8px;align-items:center;}
-.wa-tag-criar input{flex:1;min-width:0;font-size:12px;}
+.wa-pil-etq{cursor:pointer;}
+
+/* ── A coluna de ícones (conversas · etiquetas) ── */
+.wa-rail{flex:0 0 56px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 0;
+  border-right:1px solid var(--glass-border);background:var(--veu-suave);}
+.wa-rail-btn{position:relative;width:40px;height:40px;border:0;border-radius:11px;cursor:pointer;
+  background:transparent;color:var(--text-muted);display:flex;align-items:center;justify-content:center;
+  transition:background .15s,color .15s;}
+.wa-rail-btn svg{width:22px;height:22px;}
+.wa-rail-btn:hover{background:var(--veu-medio);color:var(--text-secondary);}
+.wa-rail-btn.ativa{background:rgba(37,99,235,.12);color:#2563eb;}
+:root:not([data-theme="light"]) .wa-rail-btn.ativa{background:rgba(96,165,250,.16);color:#60a5fa;}
+.wa-rail-badge{position:absolute;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;
+  border-radius:999px;background:#2563eb;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;
+  font-family:var(--font-mono);}
+
+/* ── O painel das etiquetas ── */
+#wa-vista-etiquetas{display:flex;flex-direction:column;height:100%;overflow-y:auto;}
+.wa-etq-cab{padding:14px 14px 8px;font-size:16px;font-weight:800;color:var(--text-primary);}
+.wa-etq-lista{padding:0 8px;}
+.wa-etq-linha{display:flex;align-items:center;gap:9px;padding:9px 8px;border-radius:9px;}
+.wa-etq-linha:hover{background:var(--veu-suave);}
+.wa-etq-cor{width:16px;height:16px;border-radius:5px;flex-shrink:0;cursor:pointer;
+  box-shadow:0 0 0 1px rgba(0,0,0,.12) inset;}
+.wa-etq-nome{flex:1;font-size:13px;color:var(--text-primary);cursor:pointer;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;}
+.wa-etq-cnt{font-family:var(--font-mono);font-size:11px;color:var(--text-muted);cursor:pointer;}
+.wa-etq-x{color:var(--text-muted);font-size:17px;line-height:1;padding:0 4px;border-radius:5px;cursor:pointer;}
+.wa-etq-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
+.wa-etq-vazio{padding:8px 8px 14px;font-size:12px;color:var(--text-muted);line-height:1.7;}
+.wa-etq-nova{margin-top:auto;padding:12px 14px 14px;border-top:1px solid var(--linha-sutil);}
+.wa-etq-nova-tit{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--text-muted);font-family:var(--font-mono);margin-bottom:7px;}
+.wa-etq-nova input{width:100%;font-size:12.5px;margin-bottom:9px;}
+.wa-etq-cores{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;}
+.wa-etq-swatch{width:24px;height:24px;border-radius:7px;cursor:pointer;
+  box-shadow:0 0 0 1px rgba(0,0,0,.12) inset;transition:transform .12s;}
+.wa-etq-swatch:hover{transform:scale(1.12);}
+.wa-etq-swatch.ativa{box-shadow:0 0 0 2px var(--bg-card),0 0 0 4px currentColor;color:var(--text-secondary);}
 .wa-tag-btn{white-space:nowrap;}
 /* O painel fica logo abaixo do cabeçalho da conversa, ancorado à direita */
 .wa-tag-panel{position:absolute;right:14px;top:62px;z-index:40;width:270px;max-height:340px;overflow-y:auto;
@@ -792,7 +831,8 @@ html{overflow-x:hidden;}
 .wa-enviar:hover{filter:brightness(1.08);}
 .wa-enviar:disabled{opacity:.55;cursor:default;}
 .wa-msg.falhou{outline:1.5px solid rgba(239,68,68,.7);cursor:pointer;}
-@media(max-width:860px){.wa-lista{width:100%;}.wa-wrap.aberta .wa-lista{display:none;}
+@media(max-width:860px){.wa-rail{flex:0 0 46px;}.wa-wrap.aberta .wa-rail{display:none;}
+  .wa-lista{width:100%;}.wa-wrap.aberta .wa-lista{display:none;}
   .wa-chat{display:none;}.wa-wrap.aberta .wa-chat{display:flex;}}
 
 /* ── Acompanhamento ─────────────────────────────────────────── */
@@ -4085,23 +4125,35 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            direita. As mensagens chegam do Chatwoot pelo n8n e vivem em
            suplelive/inbox — só o robô escreve lá, a tela apenas lê. -->
       <div class="wa-wrap">
+        <!-- A coluna de ícones do WhatsApp: conversas em cima, etiquetas
+             embaixo. Cada uma troca o painel da esquerda inteiro. -->
+        <div class="wa-rail">
+          <button type="button" class="wa-rail-btn ativa" id="wa-rail-conversas"
+            onclick="waPainelLateral('conversas')" title="Todas as conversas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9 9 0 0 1-3.9-.9L3 21l1.9-5.1A8.4 8.4 0 0 1 12 3.1a8.4 8.4 0 0 1 9 8.4z"/></svg>
+            <span class="wa-rail-badge" id="wa-rail-badge" style="display:none;"></span>
+          </button>
+          <button type="button" class="wa-rail-btn" id="wa-rail-etiquetas"
+            onclick="waPainelLateral('etiquetas')" title="Etiquetas">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h8l8.6 8.6a2 2 0 0 1 0 1.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>
+          </button>
+        </div>
         <div class="wa-lista">
-          <div class="wa-topo-lista">
-            <input id="wa-q" type="text" placeholder="Pesquisar conversa..." oninput="inboxRender()" autocomplete="off">
-            <!-- A barra do WhatsApp: Tudo + as etiquetas + o "+" que cria.
-                 É aqui que a etiqueta nasce; o painel da conversa só escolhe. -->
-            <div id="wa-filtro-tags" class="wa-filtro-tags"></div>
-            <div id="wa-tag-criar" class="wa-tag-criar" style="display:none;">
-              <input id="wa-tag-nome" type="text" placeholder="Nome da etiqueta" maxlength="28"
-                onkeydown="waTagTecla(event)" autocomplete="off">
-              <button class="btn btn-sm" style="width:auto;" onclick="waTagCriar()">Criar</button>
-              <button class="btn-ghost btn-sm" style="width:auto;" onclick="waTagCancelarCriar()">Cancelar</button>
+          <!-- Painel 1: as conversas -->
+          <div id="wa-vista-conversas">
+            <div class="wa-topo-lista">
+              <input id="wa-q" type="text" placeholder="Pesquisar conversa..." oninput="inboxRender()" autocomplete="off">
+              <!-- As pílulas do WhatsApp: o que se vê da caixa. Etiqueta é
+                   assunto do painel próprio, ao lado. -->
+              <div id="wa-filtro-tags" class="wa-filtro-tags"></div>
+            </div>
+            <div id="wa-aviso-fluxo" class="wa-aviso-fluxo" style="display:none;"></div>
+            <div id="wa-convs" class="wa-convs">
+              <div class="wa-aguarde">Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.</div>
             </div>
           </div>
-          <div id="wa-aviso-fluxo" class="wa-aviso-fluxo" style="display:none;"></div>
-          <div id="wa-convs" class="wa-convs">
-            <div class="wa-aguarde">Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.</div>
-          </div>
+          <!-- Painel 2: as etiquetas — ver, criar (com cor), renomear, excluir -->
+          <div id="wa-vista-etiquetas" style="display:none;"></div>
         </div>
         <div class="wa-chat">
           <div class="wa-chat-cab" id="wa-chat-cab" style="display:none;"></div>
@@ -12946,7 +12998,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30s';
+const APP_VERSAO='2026.08.30t';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14399,11 +14451,46 @@ function waEmojiEscolher(e){
    do n8n, que reescreve a conversa a cada mensagem, nunca as apaga. */
 const WA_TAG_CORES=['#2563eb','#16a34a','#f59e0b','#ef4444','#8b5cf6','#0891b2','#db2777','#65a30d'];
 let _waFiltroTag='';
+let _waVista='tudo';        // 'tudo' | 'arquivadas'
+let _waPainel='conversas';  // qual painel a coluna da esquerda mostra
+let _waCorNova=WA_TAG_CORES[0];
 function _waEtiquetas(){ return (appState.waEtiquetas||[]).filter(Boolean); }
 function _waEtiqueta(id){ return _waEtiquetas().find(t=>t.id===id)||null; }
+/* Um registro por conversa guarda o que é NOSSO sobre ela — etiquetas e
+   arquivamento. Fica fora da conversa em si porque o robô do n8n reescreve
+   aquela a cada mensagem que chega. */
+function _waConvReg(convId,criar){
+  if(!Array.isArray(appState.waConvTags)) appState.waConvTags=[];
+  let r=appState.waConvTags.find(x=>x&&x.id===convId);
+  if(!r && criar){ r={id:convId,tags:[],em:Date.now(),por:(currentUser&&currentUser.name)||''}; appState.waConvTags.push(r); }
+  return r||null;
+}
 function _waTagsDaConv(convId){
-  const r=(appState.waConvTags||[]).find(x=>x&&x.id===convId);
+  const r=_waConvReg(convId);
   return (r&&Array.isArray(r.tags))?r.tags.filter(id=>_waEtiqueta(id)):[];
+}
+function _waArquivada(convId){ const r=_waConvReg(convId); return !!(r&&r.arquivada); }
+function waArquivar(convId,arquivar){
+  if(!currentUser){ showToast('Faça login para arquivar','warn'); return; }
+  const r=_waConvReg(convId,true);
+  r.arquivada=!!arquivar; r.em=Date.now(); r.por=currentUser.name;
+  saveState(appState);
+  inboxRender();
+  try{ inboxAbrir(convId); }catch(e){}
+  showToast(arquivar?'Conversa arquivada':'Conversa desarquivada','success');
+}
+/* Troca o painel da coluna esquerda — conversas ou etiquetas */
+function waPainelLateral(qual){
+  _waPainel=qual||'conversas';
+  const conv=document.getElementById('wa-vista-conversas');
+  const etq=document.getElementById('wa-vista-etiquetas');
+  if(conv) conv.style.display=_waPainel==='conversas'?'':'none';
+  if(etq) etq.style.display=_waPainel==='etiquetas'?'':'none';
+  const bc=document.getElementById('wa-rail-conversas'), be=document.getElementById('wa-rail-etiquetas');
+  if(bc) bc.classList.toggle('ativa',_waPainel==='conversas');
+  if(be) be.classList.toggle('ativa',_waPainel==='etiquetas');
+  if(_waPainel==='etiquetas') _waPintarPainelEtiquetas();
+  else inboxRender();
 }
 function _waTagChip(t,extra){
   return `<span class="wa-tag" style="--tc:${t.cor||'#2563eb'};"${extra||''}>${_iniEsc(t.nome)}</span>`;
@@ -14419,6 +14506,7 @@ function waTagAlternar(convId,tagId){
   r.em=Date.now(); r.por=currentUser.name;
   saveState(appState);
   inboxRender();
+  if(_waPainel==='etiquetas') _waPintarPainelEtiquetas();
   _waPintarTagsCabecalho();
   _waTagPainelPintar();
 }
@@ -14432,18 +14520,49 @@ function _waPintarTagsCabecalho(){
   box.innerHTML=tags.map(t=>_waTagChip(t)).join('');
   box.style.display=tags.length?'flex':'none';
 }
-/* Criar é na barra da lista, como no WhatsApp; o painel da conversa só
-   escolhe entre o que já existe. */
-function waTagNovaBarra(){
-  const box=document.getElementById('wa-tag-criar');
+/* O painel das etiquetas: onde elas são vistas, criadas com a cor
+   escolhida, renomeadas e excluídas. Clicar numa delas filtra a caixa e
+   volta para as conversas — que é o que se quer depois de etiquetar. */
+function _waPintarPainelEtiquetas(){
+  const box=document.getElementById('wa-vista-etiquetas');
   if(!box) return;
-  box.style.display='flex';
-  const el=document.getElementById('wa-tag-nome');
-  if(el){ el.value=''; el.focus(); }
+  const tags=_waEtiquetas();
+  const conta=id=>Object.keys(_waConvs).filter(k=>_waTagsDaConv(k).indexOf(id)>=0).length;
+  const linhas=tags.length ? tags.map(t=>`
+    <div class="wa-etq-linha">
+      <span class="wa-etq-cor" style="background:${t.cor||'#2563eb'};" title="Trocar a cor" onclick="waTagTrocarCor('${t.id}')"></span>
+      <span class="wa-etq-nome" onclick="waFiltrarPorEtiqueta('${t.id}')">${_iniEsc(t.nome)}</span>
+      <span class="wa-etq-cnt" onclick="waFiltrarPorEtiqueta('${t.id}')">${conta(t.id)}</span>
+      ${currentUser&&currentUser.master
+        ? `<span class="wa-etq-x" title="Excluir" onclick="waTagExcluir('${t.id}')">×</span>` : ''}
+    </div>`).join('')
+    : '<div class="wa-etq-vazio">Nenhuma etiqueta ainda. Crie a primeira abaixo — ela serve para separar a caixa por assunto: aguardando pagamento, reclamação, orçamento enviado.</div>';
+  box.innerHTML=`
+    <div class="wa-etq-cab">Etiquetas</div>
+    <div class="wa-etq-lista">${linhas}</div>
+    <div class="wa-etq-nova">
+      <div class="wa-etq-nova-tit">Nova etiqueta</div>
+      <input id="wa-tag-nome" type="text" placeholder="Nome (ex.: Aguardando pagamento)" maxlength="28"
+        onkeydown="waTagTecla(event)" autocomplete="off">
+      <div class="wa-etq-cores">${WA_TAG_CORES.map(c=>
+        `<span class="wa-etq-swatch${_waCorNova===c?' ativa':''}" style="background:${c};"
+          onclick="waCorNova('${c}')" title="${c}"></span>`).join('')}</div>
+      <button class="btn btn-sm" style="width:auto;" onclick="waTagCriar()">Criar etiqueta</button>
+    </div>`;
 }
-function waTagCancelarCriar(){
-  const box=document.getElementById('wa-tag-criar');
-  if(box) box.style.display='none';
+function waCorNova(c){ _waCorNova=c; _waPintarPainelEtiquetas(); }
+function waTagTrocarCor(id){
+  const t=_waEtiqueta(id); if(!t) return;
+  // Gira pela paleta: um clique por cor, sem modal para uma escolha tão pequena
+  const i=WA_TAG_CORES.indexOf(t.cor);
+  t.cor=WA_TAG_CORES[(i+1)%WA_TAG_CORES.length];
+  saveState(appState);
+  _waPintarPainelEtiquetas(); inboxRender(); _waPintarTagsCabecalho(); _waTagPainelPintar();
+}
+function waFiltrarPorEtiqueta(id){
+  _waFiltroTag=id;
+  _waVista='tudo';
+  waPainelLateral('conversas');
 }
 function waTagCriar(){
   if(!currentUser){ showToast('Faça login para criar etiquetas','warn'); return; }
@@ -14453,12 +14572,14 @@ function waTagCriar(){
   if(_waEtiquetas().some(t=>t.nome.toLowerCase()===nome.toLowerCase())){ showToast('Já existe uma etiqueta com esse nome','warn'); return; }
   if(!Array.isArray(appState.waEtiquetas)) appState.waEtiquetas=[];
   const t={id:'wtag_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
-    nome, cor:WA_TAG_CORES[_waEtiquetas().length % WA_TAG_CORES.length],
+    nome, cor:_waCorNova||WA_TAG_CORES[0],
     criadoEm:Date.now(), criadoPor:currentUser.name};
   appState.waEtiquetas.push(t);
   saveState(appState);
   if(el) el.value='';
-  waTagCancelarCriar();
+  // A próxima nasce na cor seguinte da paleta, para não sair tudo azul
+  _waCorNova=WA_TAG_CORES[(WA_TAG_CORES.indexOf(t.cor)+1)%WA_TAG_CORES.length];
+  _waPintarPainelEtiquetas();
   inboxRender(); _waPintarTagsCabecalho(); _waTagPainelPintar();
   showToast('🏷 Etiqueta "'+nome+'" criada — marque as conversas por 🏷 Etiquetas','success');
 }
@@ -14472,6 +14593,7 @@ function waTagExcluir(id){
   if(_waFiltroTag===id) _waFiltroTag='';
   saveState(appState);
   inboxRender();
+  _waPintarPainelEtiquetas();
   _waPintarTagsCabecalho();
   _waTagPainelPintar();
   showToast('Etiqueta excluída','success');
@@ -14513,7 +14635,6 @@ function _waTagPainelPintar(){
 }
 function waTagTecla(ev){
   if(ev.key==='Enter'){ ev.preventDefault(); waTagCriar(); }
-  else if(ev.key==='Escape'){ waTagPainelFechar(); }
 }
 
 function inboxRender(){
@@ -14525,6 +14646,7 @@ function inboxRender(){
     .map(([id,c])=>({id,...c}))
     .filter(c=>!q || _biNorm([c.nome,c.telefone,c.ultima].join(' ')).includes(q))
     .filter(c=>!_waFiltroTag || _waTagsDaConv(c.id).indexOf(_waFiltroTag)>=0)
+    .filter(c=>_waVista==='arquivadas' ? _waArquivada(c.id) : !_waArquivada(c.id))
     .sort((a,b)=>(b.ts||0)-(a.ts||0));
 
   /* Conversa nova recém-criada no Chatwoot: quando o espelho dela chegar,
@@ -14581,7 +14703,9 @@ function inboxRender(){
       ?'Nenhuma conversa nem contato encontrado para essa busca.'
       :(_waFiltroTag
         ?'Nenhuma conversa com esta etiqueta.'
-        :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.'))+'</div>';
+        :(_waVista==='arquivadas'
+          ?'Nenhuma conversa arquivada.'
+          :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.')))+'</div>';
     return;
   }
   box.innerHTML=lista.map(c=>{
@@ -14602,20 +14726,21 @@ function inboxRender(){
 
 /* A fileira de etiquetas acima da lista: clicar filtra, clicar de novo
    solta. Só aparece depois que existe a primeira etiqueta. */
+/* As pílulas são o que se vê da caixa: tudo ou o que foi arquivado. A
+   etiqueta escolhida no painel ao lado aparece como uma terceira pílula,
+   com o × para soltar — sem isso, filtro ligado vira lista misteriosa. */
 function _waPintarFiltroTags(){
   const box=document.getElementById('wa-filtro-tags');
   if(!box) return;
-  const tags=_waEtiquetas();
-  const conta=id=>Object.keys(_waConvs).filter(k=>_waTagsDaConv(k).indexOf(id)>=0).length;
+  const nArq=Object.keys(_waConvs).filter(_waArquivada).length;
+  const t=_waFiltroTag?_waEtiqueta(_waFiltroTag):null;
   box.innerHTML=
-    `<span class="wa-pil${_waFiltroTag?'':' ativa'}" onclick="waFiltrarTag('')">Tudo</span>`
-    + tags.map(t=>{
-        const n=conta(t.id);
-        return `<span class="wa-pil${_waFiltroTag===t.id?' ativa':''}" style="--tc:${t.cor||'#2563eb'};"
-          onclick="waFiltrarTag('${t.id}')">${_iniEsc(t.nome)}${n?' <b>'+n+'</b>':''}</span>`;
-      }).join('')
-    + `<span class="wa-pil wa-pil-mais" onclick="waTagNovaBarra()" title="Criar etiqueta">+</span>`;
+    `<span class="wa-pil${_waVista==='tudo'?' ativa':''}" onclick="waVista('tudo')">Tudo</span>`
+    +`<span class="wa-pil${_waVista==='arquivadas'?' ativa':''}" onclick="waVista('arquivadas')">Arquivadas${nArq?' <b>'+nArq+'</b>':''}</span>`
+    +(t?`<span class="wa-pil ativa wa-pil-etq" style="--tc:${t.cor||'#2563eb'};" onclick="waFiltrarTag('')"
+        title="Soltar a etiqueta">${_iniEsc(t.nome)} ×</span>`:'');
 }
+function waVista(v){ _waVista=v||'tudo'; inboxRender(); }
 
 /* Quando o Firebase tem conversa que o espelho da Cloudflare não tem, o
    fluxo do n8n voltou a gravar no lugar antigo. Foi assim que um dia de
@@ -14702,6 +14827,9 @@ function inboxAbrir(id){
       </div>
       <button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
         onclick="waTagPainelAbrir('${_iniEsc(id)}')" title="Etiquetas desta conversa">🏷 Etiquetas</button>
+      <button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
+        onclick="waArquivar('${_iniEsc(id)}',${_waArquivada(id)?'false':'true'})"
+        title="${_waArquivada(id)?'Tirar do arquivo':'Arquivar esta conversa'}">${_waArquivada(id)?'↩ Desarquivar':'🗄 Arquivar'}</button>
       ${tel?`<a class="btn-sec" style="width:auto;padding:7px 14px;font-size:12px;" target="_blank" rel="noopener"
         href="https://wa.me/${tel.length<=11?'55':''}${tel}">Abrir no WhatsApp ↗</a>`:''}`;
   }
