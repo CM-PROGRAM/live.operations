@@ -724,11 +724,22 @@ html{overflow-x:hidden;}
 .wa-etq-nova-tit{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
   color:var(--text-muted);font-family:var(--font-mono);margin-bottom:7px;}
 .wa-etq-nova input{width:100%;font-size:12.5px;margin-bottom:9px;}
-.wa-etq-cores{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:11px;}
-.wa-etq-swatch{width:24px;height:24px;border-radius:7px;cursor:pointer;
+/* 24 cores cabem em quatro fileiras de seis, no tamanho em que ainda se
+   acerta o clique — mais o botão do seletor livre no fim. */
+.wa-etq-cores{display:grid;grid-template-columns:repeat(auto-fill,minmax(26px,1fr));gap:6px;
+  margin-bottom:11px;}
+.wa-etq-swatch{width:26px;height:26px;border-radius:7px;cursor:pointer;
   box-shadow:0 0 0 1px rgba(0,0,0,.12) inset;transition:transform .12s;}
 .wa-etq-swatch:hover{transform:scale(1.12);}
 .wa-etq-swatch.ativa{box-shadow:0 0 0 2px var(--bg-card),0 0 0 4px currentColor;color:var(--text-secondary);}
+.wa-etq-livre{position:relative;width:26px;height:26px;border-radius:7px;cursor:pointer;display:flex;
+  align-items:center;justify-content:center;border:1.5px dashed var(--linha-sutil);color:var(--text-muted);
+  font-size:15px;font-weight:700;line-height:1;}
+.wa-etq-livre:hover{border-color:#2563eb;color:#2563eb;}
+.wa-etq-livre input{position:absolute;inset:0;opacity:0;width:100%;height:100%;padding:0;border:0;cursor:pointer;}
+/* A paleta que abre embaixo da etiqueta para trocar a cor dela */
+.wa-etq-editar{padding:4px 8px 2px;}
+.wa-etq-linha.aberta{background:var(--veu-suave);}
 .wa-tag-btn{white-space:nowrap;}
 /* O painel fica logo abaixo do cabeçalho da conversa, ancorado à direita */
 .wa-tag-panel{position:absolute;right:14px;top:62px;z-index:40;width:270px;max-height:340px;overflow-y:auto;
@@ -12998,7 +13009,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.30t';
+const APP_VERSAO='2026.08.30u';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14449,7 +14460,13 @@ function waEmojiEscolher(e){
    waConvTags, com o id da conversa como id do registro — assim duas
    pessoas etiquetando conversas diferentes não se atropelam, e o robô
    do n8n, que reescreve a conversa a cada mensagem, nunca as apaga. */
-const WA_TAG_CORES=['#2563eb','#16a34a','#f59e0b','#ef4444','#8b5cf6','#0891b2','#db2777','#65a30d'];
+/* Vinte e quatro cores cobrindo o círculo inteiro, todas em tom que se lê
+   nos dois temas — e, para quem quiser outra, o seletor livre ao lado. */
+const WA_TAG_CORES=[
+  '#ef4444','#f43f5e','#ec4899','#d946ef','#a855f7','#8b5cf6',
+  '#6366f1','#2563eb','#0ea5e9','#06b6d4','#14b8a6','#10b981',
+  '#22c55e','#84cc16','#eab308','#f59e0b','#f97316','#b45309',
+  '#9f1239','#1e3a8a','#0f766e','#78716c','#64748b','#1f2937'];
 let _waFiltroTag='';
 let _waVista='tudo';        // 'tudo' | 'arquivadas'
 let _waPainel='conversas';  // qual painel a coluna da esquerda mostra
@@ -14528,14 +14545,27 @@ function _waPintarPainelEtiquetas(){
   if(!box) return;
   const tags=_waEtiquetas();
   const conta=id=>Object.keys(_waConvs).filter(k=>_waTagsDaConv(k).indexOf(id)>=0).length;
+  /* A mesma paleta serve para criar e para trocar depois — um só lugar
+     que desenha as 24 cores e o seletor livre, para as duas não saírem
+     diferentes com o tempo. */
+  const paleta=(corAtual,fn)=>`
+    <div class="wa-etq-cores">${WA_TAG_CORES.map(c=>
+      `<span class="wa-etq-swatch${String(corAtual).toLowerCase()===c?' ativa':''}" style="background:${c};"
+        onclick="${fn}('${c}')" title="${c}"></span>`).join('')}
+      <label class="wa-etq-livre" title="Escolher outra cor">
+        <input type="color" value="${_iniEsc(corAtual||'#2563eb')}" oninput="${fn}(this.value)">
+        <span>+</span>
+      </label>
+    </div>`;
   const linhas=tags.length ? tags.map(t=>`
-    <div class="wa-etq-linha">
+    <div class="wa-etq-linha${_waEditandoCor===t.id?' aberta':''}">
       <span class="wa-etq-cor" style="background:${t.cor||'#2563eb'};" title="Trocar a cor" onclick="waTagTrocarCor('${t.id}')"></span>
       <span class="wa-etq-nome" onclick="waFiltrarPorEtiqueta('${t.id}')">${_iniEsc(t.nome)}</span>
       <span class="wa-etq-cnt" onclick="waFiltrarPorEtiqueta('${t.id}')">${conta(t.id)}</span>
       ${currentUser&&currentUser.master
         ? `<span class="wa-etq-x" title="Excluir" onclick="waTagExcluir('${t.id}')">×</span>` : ''}
-    </div>`).join('')
+    </div>
+    ${_waEditandoCor===t.id?`<div class="wa-etq-editar">${paleta(t.cor,'waTagCorAplicar')}</div>`:''}`).join('')
     : '<div class="wa-etq-vazio">Nenhuma etiqueta ainda. Crie a primeira abaixo — ela serve para separar a caixa por assunto: aguardando pagamento, reclamação, orçamento enviado.</div>';
   box.innerHTML=`
     <div class="wa-etq-cab">Etiquetas</div>
@@ -14544,18 +14574,21 @@ function _waPintarPainelEtiquetas(){
       <div class="wa-etq-nova-tit">Nova etiqueta</div>
       <input id="wa-tag-nome" type="text" placeholder="Nome (ex.: Aguardando pagamento)" maxlength="28"
         onkeydown="waTagTecla(event)" autocomplete="off">
-      <div class="wa-etq-cores">${WA_TAG_CORES.map(c=>
-        `<span class="wa-etq-swatch${_waCorNova===c?' ativa':''}" style="background:${c};"
-          onclick="waCorNova('${c}')" title="${c}"></span>`).join('')}</div>
+      ${paleta(_waCorNova,'waCorNova')}
       <button class="btn btn-sm" style="width:auto;" onclick="waTagCriar()">Criar etiqueta</button>
     </div>`;
 }
 function waCorNova(c){ _waCorNova=c; _waPintarPainelEtiquetas(); }
+/* Trocar a cor de uma etiqueta já criada abre a paleta embaixo dela —
+   com 24 cores, girar de uma em uma seria um castigo. */
+let _waEditandoCor='';
 function waTagTrocarCor(id){
-  const t=_waEtiqueta(id); if(!t) return;
-  // Gira pela paleta: um clique por cor, sem modal para uma escolha tão pequena
-  const i=WA_TAG_CORES.indexOf(t.cor);
-  t.cor=WA_TAG_CORES[(i+1)%WA_TAG_CORES.length];
+  _waEditandoCor=(_waEditandoCor===id)?'':id;
+  _waPintarPainelEtiquetas();
+}
+function waTagCorAplicar(c){
+  const t=_waEtiqueta(_waEditandoCor); if(!t) return;
+  t.cor=c;
   saveState(appState);
   _waPintarPainelEtiquetas(); inboxRender(); _waPintarTagsCabecalho(); _waTagPainelPintar();
 }
