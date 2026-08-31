@@ -55,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v16';
+const VERSAO_WORKER = 'v17';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -328,6 +328,13 @@ async function tokenGoogle(env) {
 // Falha aqui não derruba a resposta ao robô: o dado já está guardado no
 // D1, e o que se perde é a cópia — que o relatório de erro deixa visível.
 async function repassarAoFirebase(env, caminho, metodo, corpo) {
+  /* O desligamento do Firebase, do lado do worker: uma variavel no painel
+     (FB_REPASSE=off) e a copia para o banco antigo para de sair. Sem
+     republicar codigo, e reversivel na mesma tela.
+     Remover os secrets FB_SA_EMAIL/FB_SA_KEY tem o mesmo efeito — mas por
+     acidente, e um desligamento que parece acidente e dificil de auditar
+     depois. */
+  if (env.FB_REPASSE === 'off') return { status: 'desligado' };
   try {
     const tk = await tokenGoogle(env);
     if (!tk) return { status: 'sem-credencial' };
@@ -604,6 +611,27 @@ async function atenderAuth(req, env, url) {
      nada — e por isso exige que a pessoa JÁ tenha provado quem é nesta
      mesma requisição. Sem essa prova, qualquer um escolheria a senha de
      qualquer um. */
+  /* O master define a senha de outra pessoa direto no cofre.
+     Sem esta rota, semear dependia de a PROPRIA pessoa entrar — e entrar
+     dependia do Firebase. Quem nunca tivesse semeado ficaria trancado no
+     dia do desligamento, e a troca de senha pelo master viraria um beco
+     sem saida: o cofre guardaria a senha antiga para sempre.
+     So o master passa, e o cracha dele e conferido do mesmo jeito que em
+     qualquer outra decisao de identidade. */
+  if (url.pathname === '/auth/definir') {
+    const quem = await conferirTokenAutorizado(req, env);
+    if (!quem) return respostaJson(401, { erro: 'sem-login' });
+    if (!_ehMestre(env, quem)) return respostaJson(403, { erro: 'so-master' });
+    const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer);
+    const feito = await _hashSenhaNoMaximo(senha, sal);
+    await env.DADOS.prepare(
+      'INSERT INTO ' + TABELA_SENHAS + ' (chave, sal, hash, uid, iter, ts) VALUES (?1, ?2, ?3, ?4, ?5, ?6) ' +
+      'ON CONFLICT(chave) DO UPDATE SET sal = ?2, hash = ?3, iter = ?5, ts = ?6'
+    ).bind(chave, sal, feito.hash, '', feito.voltas, Date.now()).run();
+    console.log('[auth] senha de', chave, 'definida pelo master');
+    return respostaJson(200, { ok: true, chave, voltas: feito.voltas });
+  }
+
   if (url.pathname === '/auth/semear') {
     const quem = await conferirTokenAutorizado(req, env);
     if (!quem) return respostaJson(401, { erro: 'sem-login' });

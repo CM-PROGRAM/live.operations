@@ -6739,8 +6739,20 @@ function initFirebase(){
   try {
     if(typeof firebase !== 'undefined' && firebase.initializeApp){
       firebase.initializeApp(FB_CONFIG);
-      db = firebase.database();
-      fbConnected = true;
+      /* Aposentado, o BANCO não é sequer aberto: `db` fica nulo e os
+         `if(db && fbConnected)` espalhados pelo sistema viram no-ops de
+         uma vez só. É o desligamento mais seguro que existe aqui —
+         nenhuma gravação some por engano, porque desde a 31j todas elas
+         já sobem pela Cloudflare por conta própria.
+
+         O app do Firebase segue inicializado só por causa da ponte de
+         login de quem ainda não semeou. */
+      if(!FB_APOSENTADO){
+        db = firebase.database();
+        fbConnected = true;
+      } else {
+        console.log('[firebase] aposentado — banco não aberto; só a ponte de login segue de pé');
+      }
     } else {
       console.warn('Firebase não disponível, usando localStorage local');
     }
@@ -7461,7 +7473,47 @@ function _cfSemear(chave,senha){
    ainda não estiver lá, usa o Firebase como sempre e aproveita para
    semear. Quando todos tiverem entrado uma vez, o Firebase deixa de ser
    necessário sem ninguém redefinir nada. */
+/* ══════════════════════════════════════════════════════════════════
+   O DESLIGAMENTO DO FIREBASE
+   ══════════════════════════════════════════════════════════════════
+   Um interruptor, um lugar. Ligado, o sistema para de pensar em dois
+   bancos: dado nenhum vai ou vem do Firebase, e a decisão de quem entra
+   é do cofre da Cloudflare.
+
+   Sobra UMA ponte, e ela se apaga sozinha: quem ainda não tem senha no
+   cofre (o `/auth/entrar` responde `sem-cadastro`) entra pelo Firebase
+   uma última vez e é semeado na hora. Sem essa ponte, quem não tivesse
+   semeado ficaria trancado do lado de fora — e a lista de pendentes,
+   no painel de Segurança, é justamente quem corre esse risco.
+
+   Quando `/auth/semeados` mostrar todo mundo, esta ponte pode cair
+   também: é só apagar a firebaseConfig, e nada mais no sistema procura
+   por ela. */
+const FB_APOSENTADO=true;
+function _fbVivo(){
+  return !FB_APOSENTADO && typeof firebase!=='undefined' && !!firebase.apps;
+}
+
 function _autenticarNaNuvem(chave,senha){
+  if(FB_APOSENTADO){
+    /* O cofre decide. O Firebase só é consultado quando esta pessoa
+       ainda não existe do lado novo — e o sucesso dele semeia na hora,
+       o que faz esta exceção desaparecer no próximo login dela. */
+    return Promise.resolve(_cfEntrar(chave,senha)).then(r=>{
+      if(r===true){ _ultimoErroAuth=''; return true; }
+      if(r===false){ _ultimoErroAuth='auth/wrong-password'; return false; }
+      // 'sem-cadastro': a ponte, enquanto o Firebase ainda responder
+      if(typeof firebase==='undefined' || !firebase.auth){
+        _ultimoErroAuth='sem-cadastro';
+        return false;
+      }
+      return _autenticarNoFirebase(chave,senha).then(ok=>{
+        if(!ok) return false;
+        console.log('[auth] entrou pelo Firebase e foi semeado no cofre — última vez para',chave);
+        return Promise.resolve(_cfSemear(chave,senha)).then(()=>true);
+      });
+    });
+  }
   /* O Firebase vem PRIMEIRO enquanto existir, por dois motivos que só
      aparecem quando se inverte a ordem:
        · a gravação dupla ainda passa por ele, e ela exige a sessão dele
@@ -11804,8 +11856,23 @@ function cfBootLeitura(){
 
 let _fbSyncStarted = false;
 function startFirebaseSync(){
+  /* A ORDEM importa, e ela mudou com o desligamento: a abertura pela
+     Cloudflare precisa ser tentada ANTES de desistir por falta de banco.
+     Aposentado o Firebase, `db` é nulo de propósito — e a versão antiga
+     desta guarda mandava a sessão direto para o modo local, sem nunca
+     buscar na nuvem nova. O sistema abriria com a foto do último acesso
+     desta máquina, sem dizer nada. */
+  if(cfLeituraModo()==='preferir' && !_cfBootTentado){
+    _cfBootTentado=true;
+    _fbSyncStarted=false;
+    _cfLeituraAtiva=true;
+    cfBootLeitura().then(()=>startFirebaseSync());
+    return;
+  }
   if(!db || !fbConnected) {
-    updateConnectionUI(false);
+    /* Sem banco antigo: quem manda é a leitura da Cloudflare. Se ela está
+       de pé, o sistema está online — a sala é o fio. */
+    updateConnectionUI(!!_cfLeituraAtiva);
     startLocalSync();
     return;
   }
@@ -11815,22 +11882,11 @@ function startFirebaseSync(){
   }
   _fbSyncStarted = true;
 
-  /* Etapa 4, parte 2 — nesta sessão a leitura pode vir da Cloudflare. O
-     boot é assíncrono, então a função se chama de volta quando ele acaba:
-     deu certo, os listeners do Firebase não são ligados (é aí que o
-     download deixa de ser gasto); falhou, tudo segue como sempre. */
-  if(cfLeituraModo()==='preferir' && !_cfBootTentado){
-    _cfBootTentado=true;
-    _fbSyncStarted=false;
-    /* A leitura se declara ativa AQUI, antes de a busca terminar: o resto
-       do login segue rodando em seguida (feed, presença, permissões) e
-       precisa saber desde já que a fonte é outra — senão esses três se
-       ligariam ao Firebase e a troca ficaria pela metade. Falhando a
-       busca, o próprio cfBootLeitura desfaz e refaz os três. */
-    _cfLeituraAtiva=true;
-    cfBootLeitura().then(()=>startFirebaseSync());
-    return;
-  }
+  /* A tentativa pela Cloudflare subiu para o topo desta função — ela
+     precisa acontecer mesmo sem banco antigo. Daqui para baixo é o
+     caminho de quem ainda usa o Firebase: a leitura se declarou ativa lá
+     em cima, e o resto do login (feed, presença, permissões) já sabe que
+     a fonte é outra. */
 
   // Monitor online/offline. Pela Cloudflare quem diz se há conexão é a
   // sala: enquanto ela estiver de pé, o tempo real está de pé.
@@ -12912,7 +12968,13 @@ function doLogin(){
     // e-mail valer de verdade. Sem internet, vale a senha guardada aqui.
     let liberado=senhaLocalConfere;
     let nuvemAceitou=false;
-    const temNuvem = (typeof firebase!=='undefined' && firebase.auth && navigator.onLine!==false);
+    /* Aposentado o Firebase, quem responde é o cofre do worker — e ele
+       responde por HTTP, sem SDK nenhum carregado. Exigir `firebase.auth`
+       aqui deixaria o login inteiro dependente do script que acabamos de
+       aposentar. */
+    const temNuvem = FB_APOSENTADO
+      ? (_cfImgAtivo() && navigator.onLine!==false)
+      : (typeof firebase!=='undefined' && firebase.auth && navigator.onLine!==false);
     if(temNuvem){
       const entrou=await _autenticarNaNuvem(chave,p);
       nuvemAceitou=entrou;
@@ -12923,6 +12985,20 @@ function doLogin(){
       } else if(_ultimoErroAuth==='auth/wrong-password' || _ultimoErroAuth==='auth/invalid-login-credentials'
              || _ultimoErroAuth==='auth/invalid-credential'){
         liberado=false; // a nuvem tem outra senha — prevalece
+        /* Uma exceção, e ela é o que impede um beco sem saída: o master
+           acabou de redefinir a senha desta pessoa. O novo passHash veio
+           pela Cloudflare (é a palavra do master, não uma cópia velha
+           desta máquina), mas o cofre ainda guarda a senha ANTIGA — e
+           ninguém semeia sem entrar. Sem o Firebase para arbitrar, o
+           empate travaria a pessoa para sempre.
+
+           Então: se o que foi digitado bate com a senha que o master
+           gravou, entra — e o cofre é acertado na hora. */
+        if(FB_APOSENTADO && senhaLocalConfere && dados.passHash && hashDigitado===dados.passHash){
+          liberado=true;
+          console.log('[auth] senha redefinida pelo master — acertando o cofre');
+          try{ _cfSemear(chave,p); }catch(e){}
+        }
       }
     }
     if(!liberado){
@@ -13164,7 +13240,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31o';
+const APP_VERSAO='2026.08.31p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -27347,8 +27423,33 @@ async function redefinirSenha(key){
   saveState(appState);
   // O derrubar viaja pelos dois bancos — a sessão do outro pode estar em qualquer um
   try{ _forceLogoutEnviar(key,{ts:Date.now(),reason:'perm_change'}); }catch(e){}
-  showToast(`Senha de ${user.name} redefinida — informe a nova senha a ele(a)`,'success');
+  /* E o cofre da Cloudflare é acertado NA HORA. Sem isto, a senha nova
+     valia só na cópia do estado e o cofre seguia com a antiga — e, sem o
+     Firebase para arbitrar, a pessoa ficaria trancada. É também assim que
+     quem nunca semeou entra pela primeira vez: o master define, e pronto. */
+  const r=await _cfDefinirSenha(key,limpa);
   renderUsersGrid();
+  if(r===true){
+    showToast(`Senha de ${user.name} redefinida — informe a nova senha a ele(a)`,'success');
+  }else{
+    showToast(`Senha trocada aqui, mas o cofre da nuvem recusou (${r}). Ela pode não valer no próximo login — confira o painel de Segurança.`,'warn');
+  }
+}
+/* Define a senha de alguém direto no cofre do worker. Só o master
+   consegue — quem confere isso é o worker, não esta tela. */
+function _cfDefinirSenha(chave,senha){
+  if(!_cfImgAtivo()) return Promise.resolve('cf-desligado');
+  return _cfToken().then(tk=>{
+    if(!tk) return 'sem-cracha';
+    return fetch(CF_IMG_URL+'/auth/definir',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tk},
+      body:JSON.stringify({chave,senha})
+    }).then(r=>r.json().catch(()=>({})).then(j=>{
+      if(r.ok) return true;
+      return (j&&j.erro)||('http-'+r.status);
+    }));
+  }).catch(e=>e.message||'falhou');
 }
 
 function removeUser(key){
