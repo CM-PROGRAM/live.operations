@@ -801,6 +801,10 @@ html{overflow-x:hidden;}
   border-bottom:1px solid var(--linha-sutil);transition:background .12s;}
 .wa-conv:hover{background:var(--veu-suave);}
 .wa-conv.ativa{background:var(--veu-medio);}
+.wa-mais{display:block;width:calc(100% - 20px);margin:8px 10px 12px;padding:9px;border-radius:9px;
+  border:1px solid var(--glass-border);background:var(--veu-medio);color:var(--text-secondary);
+  font-size:12px;font-weight:700;cursor:pointer;}
+.wa-mais:hover{color:#2563eb;border-color:rgba(37,99,235,.4);}
 .wa-av{width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,#2563eb,#5b8def);color:#fff;font-weight:800;font-size:14px;font-family:var(--font-sans);}
 .wa-conv-meio{flex:1;min-width:0;}
@@ -11280,7 +11284,9 @@ function cfLerPacote(){
 // Uma coleção inteira, página a página (o banco devolve em blocos)
 function cfLerColecao(nome,opcoes){
   const o=opcoes||{};
-  const limite=o.limite||500;
+  // 1000 é o teto do worker; com as coleções na casa dos milhares, cada
+  // página a mais é uma ida e volta a menos na abertura do sistema.
+  const limite=o.limite||1000;
   const linhas=[];
   const pagina=depois=>_cfDadosReq('colecao?nome='+encodeURIComponent(nome)+'&limite='+limite
       +(o.ultimos?'&ultimos=1':'')
@@ -11652,7 +11658,21 @@ function _cfAplicarLinhaDaSala(l){
     if(p[0]==='activity'){ _cfRecarregarFeed(); return; }
     if(p[0]==='notificacoes' && currentUser && p[1]===currentUser.key){ _cfRecarregarAvisos(); return; }
     if(p[0]==='atividadesExternas'){ _cfFilaExternasCarregar(); return; }
-    if(p[0]==='inbox' && p[1]==='conv'){ if(_waIniciado||_waNotifRef) _cfInboxCarregarConversas(); return; }
+    if(p[0]==='inbox' && p[1]==='conv'){
+      /* Uma conversa mudou — busca SÓ ela. Recarregar a coleção inteira
+         aqui era o que fazia cada mensagem nova custar a leitura de
+         milhares de conversas: com o histórico importado, o WhatsLive
+         inteiro engasgava a cada balão que chegava. */
+      if(!(_waIniciado||_waNotifRef)) return;
+      if(l.apagada){ delete _waConvs[l.chave]; _inboxAgendarRender(); return; }
+      cfLerRegistro('inbox/conv', l.chave).then(d=>{
+        if(!d) return;
+        _waCfChaves.add(l.chave);
+        if(_waMesclarConv(l.chave,d)) _inboxAgendarRender();
+        try{ _inboxAvisarDaConversa(l.chave,d); }catch(e){}
+      });
+      return;
+    }
     if(p[0]==='inbox' && p[1]==='msg' && p[2] && p[2]===_waAberta){ _cfInboxCarregarMensagens(p[2]); return; }
     if(p[0]==='forceLogout' && currentUser && p[1]===currentUser.key && !l.apagada){
       _cfDadosReq('registro?colecao='+encodeURIComponent(l.colecao)+'&chave='+encodeURIComponent(l.chave))
@@ -13127,7 +13147,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31k';
+const APP_VERSAO='2026.08.31l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14683,7 +14703,14 @@ function _waPintarPainelClientes(tipo){
   const lista=todos
     .filter(c=>!q || _biNorm([c.nome,c.sobrenome,c.telefone,c.cpf].join(' ')).includes(q))
     .sort((a,b)=>_waNomeCompleto(a).localeCompare(_waNomeCompleto(b)));
-  const linhas=lista.length ? lista.map(c=>`
+  /* Janela de desenho: milhares de linhas de uma vez é o que trava a tela.
+     A busca olha todo mundo; o desenho vai em blocos. */
+  const janela=_waCliJanela[tipo]||150;
+  const recorte=lista.slice(0,janela);
+  const maisHtml=lista.length>recorte.length
+    ?`<button type="button" class="wa-mais" onclick="waClientesMais('${tipo}')">▼ Mostrar mais ${Math.min(300,lista.length-recorte.length)} — ${recorte.length} de ${lista.length}</button>`
+    :'';
+  const linhas=recorte.length ? recorte.map(c=>`
     <div class="wa-ct-linha">
       <span class="wa-av">${_iniEsc(_waIni(_waNomeCompleto(c)))}</span>
       <div class="wa-ct-meio" onclick="waContatoConversar('${c.id}')">
@@ -14704,9 +14731,14 @@ function _waPintarPainelClientes(tipo){
         value="${_iniEsc(q?((document.getElementById(idBusca)||{}).value||''):'')}"
         oninput="_waPintarPainelClientes('${tipo}')" autocomplete="off">
     </div>
-    <div class="wa-ct-lista">${linhas}</div>`;
+    <div class="wa-ct-lista">${linhas}${maisHtml}</div>`;
   const b=document.getElementById(idBusca);
   if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
+}
+const _waCliJanela={};
+function waClientesMais(tipo){
+  _waCliJanela[tipo]=(_waCliJanela[tipo]||150)+300;
+  _waPintarPainelClientes(tipo);
 }
 /* A vista vazia diz POR QUE está vazia — em vez de mandar rodar varredura
    que talvez já tenha rodado. Três causas possíveis, três recados. */
@@ -14789,7 +14821,12 @@ function _waPintarPainelContatos(){
   const lista=_waContatos()
     .filter(c=>!q || _biNorm([c.nome,c.sobrenome,c.telefone,c.cpf].join(' ')).includes(q))
     .sort((a,b)=>_waNomeCompleto(a).localeCompare(_waNomeCompleto(b)));
-  const linhas=lista.length ? lista.map(c=>`
+  // Janela de desenho — a agenda tem milhares; a busca olha todos
+  const recorteCt=lista.slice(0,_waCtJanela);
+  const maisCtHtml=lista.length>recorteCt.length
+    ?`<button type="button" class="wa-mais" onclick="waContatosMais()">▼ Mostrar mais ${Math.min(300,lista.length-recorteCt.length)} — ${recorteCt.length} de ${lista.length}</button>`
+    :'';
+  const linhas=recorteCt.length ? recorteCt.map(c=>`
     <div class="wa-ct-linha">
       <span class="wa-av">${_iniEsc(_waIni(_waNomeCompleto(c)))}</span>
       <div class="wa-ct-meio" onclick="waContatoConversar('${c.id}')">
@@ -14807,7 +14844,7 @@ function _waPintarPainelContatos(){
       <input id="wa-ct-busca" type="text" placeholder="Buscar na agenda..." value="${_iniEsc(q?((document.getElementById('wa-ct-busca')||{}).value||''):'')}"
         oninput="_waPintarPainelContatos()" autocomplete="off">
     </div>
-    <div class="wa-ct-lista">${linhas}</div>
+    <div class="wa-ct-lista">${linhas}${maisCtHtml}</div>
     <div class="wa-etq-nova">
       <div class="wa-etq-nova-tit">Novo contato</div>
       <input id="wa-ct-nome" type="text" placeholder="Nome" maxlength="40" onkeydown="waContatoTecla(event)" autocomplete="off">
@@ -14820,6 +14857,8 @@ function _waPintarPainelContatos(){
   if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
 }
 function waContatoTecla(ev){ if(ev.key==='Enter'){ ev.preventDefault(); waContatoSalvar(); } }
+let _waCtJanela=150;
+function waContatosMais(){ _waCtJanela+=300; _waPintarPainelContatos(); }
 function _waNomeCompleto(c){
   return [String((c&&c.nome)||'').trim(), String((c&&c.sobrenome)||'').trim()]
     .filter(Boolean).join(' ') || 'Contato';
@@ -15052,17 +15091,40 @@ function waTagTecla(ev){
   if(ev.key==='Enter'){ ev.preventDefault(); waTagCriar(); }
 }
 
+/* Janela de renderização: com o histórico importado, a caixa tem milhares
+   de conversas — desenhar todas a cada balão que chega era o tranco que o
+   CM sentia. A busca e os filtros continuam olhando TODAS; só o desenho é
+   por janela, e o botão no fim puxa mais. */
+let _waJanela=120;
+const _WA_JANELA_PASSO=300;
+let _waUltimaBusca='';
+function waMostrarMais(){ _waJanela+=_WA_JANELA_PASSO; inboxRender(); }
 function inboxRender(){
   const box=document.getElementById('wa-convs');
   if(!box) return;
   try{ _waPintarFiltroTags(); _waAvisoDivergencia(); }catch(e){}
   const q=_biNorm((document.getElementById('wa-q')||{}).value||'').trim();
+  if(q!==_waUltimaBusca){ _waUltimaBusca=q; _waJanela=120; }
+  /* Um mapa só, em vez de UMA VARREDURA POR CONVERSA: etiquetas e
+     arquivadas vinham de find() na lista de registros — 6 mil conversas
+     × 6 mil buscas era metade do custo de cada redesenho. */
+  const regs=new Map();
+  (appState.waConvTags||[]).forEach(r=>{ if(r&&r.id) regs.set(r.id,r); });
   const lista=Object.entries(_waConvs)
     .map(([id,c])=>({id,...c}))
     .filter(c=>!q || _biNorm([c.nome,c.telefone,c.ultima].join(' ')).includes(q))
-    .filter(c=>!_waFiltroTag || _waTagsDaConv(c.id).indexOf(_waFiltroTag)>=0)
-    .filter(c=>_waVista==='arquivadas' ? _waArquivada(c.id) : !_waArquivada(c.id))
+    .filter(c=>{
+      if(!_waFiltroTag) return true;
+      const r=regs.get(c.id);
+      return !!(r&&Array.isArray(r.tags)&&r.tags.indexOf(_waFiltroTag)>=0);
+    })
+    .filter(c=>{
+      const arq=!!(regs.get(c.id)||{}).arquivada;
+      return _waVista==='arquivadas' ? arq : !arq;
+    })
     .sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const totalFiltrado=lista.length;
+  const visiveis=lista.slice(0,_waJanela);
 
   /* Conversa nova recém-criada no Chatwoot: quando o espelho dela chegar,
      a tela troca sozinha da "conversa nova" para a conversa de verdade. */
@@ -15123,8 +15185,9 @@ function inboxRender(){
           :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.')))+'</div>';
     return;
   }
-  box.innerHTML=lista.map(c=>{
-    const tags=_waTagsDaConv(c.id).map(_waEtiqueta).filter(Boolean);
+  box.innerHTML=visiveis.map(c=>{
+    const r=regs.get(c.id);
+    const tags=(r&&Array.isArray(r.tags))?r.tags.map(_waEtiqueta).filter(Boolean):[];
     return `
     <div class="wa-conv${_waAberta===c.id?' ativa':''}" onclick="inboxAbrir('${_iniEsc(c.id)}')">
       <span class="wa-av">${_iniEsc(_waIni(c.nome))}</span>
@@ -15136,7 +15199,11 @@ function inboxRender(){
         </div>
         ${tags.length?`<div class="wa-conv-tags">${tags.map(t=>_waTagChip(t)).join('')}</div>`:''}
       </div>
-    </div>`;}).join('')+contatosHtml;
+    </div>`;}).join('')
+    +(totalFiltrado>visiveis.length
+      ?`<button type="button" class="wa-mais" onclick="waMostrarMais()">▼ Mostrar mais ${Math.min(_WA_JANELA_PASSO,totalFiltrado-visiveis.length)} — ${visiveis.length} de ${totalFiltrado}</button>`
+      :'')
+    +contatosHtml;
 }
 
 /* A fileira de etiquetas acima da lista: clicar filtra, clicar de novo
@@ -15147,7 +15214,8 @@ function inboxRender(){
 function _waPintarFiltroTags(){
   const box=document.getElementById('wa-filtro-tags');
   if(!box) return;
-  const nArq=Object.keys(_waConvs).filter(_waArquivada).length;
+  // Conta pelos registros de etiqueta (dezenas), não pelas conversas (milhares)
+  const nArq=(appState.waConvTags||[]).filter(r=>r&&r.arquivada&&_waConvs[r.id]).length;
   const t=_waFiltroTag?_waEtiqueta(_waFiltroTag):null;
   box.innerHTML=
     `<span class="wa-pil${_waVista==='tudo'?' ativa':''}" onclick="waVista('tudo')">Tudo</span>`
