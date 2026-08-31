@@ -10504,6 +10504,14 @@ function _agendarRenderRegistros(){
     ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
       .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
     ['canc','cancnf'].forEach(p=>{ try{ renderCanceladas(p); }catch(e){} });
+    /* A coluna lateral do WhatsLive não estava nesta lista: a agenda
+       chegava da nuvem (varredura de milhares de contatos) e a vista
+       aberta continuava dizendo zero até a pessoa trocar de painel. */
+    try{
+      if(_waPainel==='contatos') _waPintarPainelContatos();
+      else if(_waPainel==='cli-antigo') _waPintarPainelClientes('antigo');
+      else if(_waPainel==='cli-oficial') _waPintarPainelClientes('oficial');
+    }catch(e){}
     // Base Conhecimento só se redesenha se for a vista aberta agora
     try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
     try{ _tplRenderSeguro(); }catch(e){}
@@ -13089,7 +13097,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31f';
+const APP_VERSAO='2026.08.31g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14647,9 +14655,12 @@ function _waPintarPainelClientes(tipo){
         <div class="wa-ct-tel">${_iniEsc(c.telefone||'')}${c.cpf?' · CPF '+_iniEsc(_cliFmtCpf(_cliSoDigitos(c.cpf))):' · <i>sem CPF</i>'}</div>
       </div>
     </div>`).join('')
-    : `<div class="wa-ct-vazio">${todos.length?'Nenhum cliente para essa busca.':cfg.vazio}</div>`;
+    : `<div class="wa-ct-vazio">${todos.length?'Nenhum cliente para essa busca.':_waCliDiagnostico(cfg)}</div>`;
   box.innerHTML=`
-    <div class="wa-etq-cab">${cfg.titulo} · ${todos.length}</div>
+    <div class="wa-etq-cab" style="display:flex;align-items:center;gap:8px;">${cfg.titulo} · ${todos.length}
+      <button type="button" title="Buscar a agenda na nuvem agora" onclick="waClientesRecarregar('${tipo}')"
+        style="margin-left:auto;background:none;border:1px solid var(--glass-border);border-radius:8px;cursor:pointer;color:var(--text-muted);font-size:12px;padding:2px 9px;">↻ nuvem</button>
+    </div>
     <div style="padding:0 14px 8px;font-size:11px;line-height:1.5;color:var(--text-muted);">
       ${cfg.nota} <b>${comCpf}</b> de <b>${todos.length}</b> com CPF.</div>
     <div class="wa-ct-busca">
@@ -14660,6 +14671,32 @@ function _waPintarPainelClientes(tipo){
     <div class="wa-ct-lista">${linhas}</div>`;
   const b=document.getElementById(idBusca);
   if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
+}
+/* A vista vazia diz POR QUE está vazia — em vez de mandar rodar varredura
+   que talvez já tenha rodado. Três causas possíveis, três recados. */
+function _waCliDiagnostico(cfg){
+  const total=_waContatos().length;
+  const semCaixa=_waContatos().filter(c=>!String(c.caixa||'').trim()).length;
+  if(!total) return cfg.vazio+'<br><br>Se a varredura JÁ rodou e aqui segue zerado, clique em <b>↻ nuvem</b> ali em cima e me diga o número que aparecer.';
+  if(semCaixa===total) return 'A agenda tem <b>'+total+'</b> contato(s), mas nenhum traz a marca da caixa de origem — clique em <b>↻ nuvem</b> ali em cima para buscar a versão completa.';
+  return 'A agenda tem <b>'+total+'</b> contato(s), mas nenhum da caixa desta vista. '+cfg.vazio;
+}
+/* Botão ↻ nuvem: lê a coleção direto da Cloudflare e aplica, sem depender
+   de recarregar o sistema. Também é o termômetro: o aviso diz quantos a
+   nuvem tem — se disser zero, o problema é na gravação, não aqui. */
+function waClientesRecarregar(tipo){
+  const acc=COLECOES_REG.waContatos;
+  if(!acc || typeof cfLerColecao!=='function'){ showToast('Leitura da nuvem indisponível nesta sessão','warn'); return; }
+  cfLerColecao('reg/waContatos').then(linhas=>{
+    let aplicados=0;
+    linhas.forEach(l=>{ try{ if(l.dados && _aplicarRegistroRemoto('waContatos',acc,l.chave,l.dados)) aplicados++; }catch(e){} });
+    try{ saveLocal(appState); }catch(e){}
+    _waPintarPainelClientes(tipo);
+    showToast('Nuvem: '+linhas.length+' contato(s) na agenda · '+aplicados+' aplicado(s) agora','success');
+  }).catch(err=>{
+    console.warn('[clientes] nuvem:',err);
+    showToast('Não consegui ler a agenda na nuvem: '+(err.message||'falhou'),'error');
+  });
 }
 
 /* ── Contatos salvos ─────────────────────────────────────────────────
