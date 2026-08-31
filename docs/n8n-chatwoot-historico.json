@@ -53,7 +53,10 @@
         0
       ],
       "id": "Contar conversas",
-      "name": "Contar conversas"
+      "name": "Contar conversas",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -71,7 +74,10 @@
       ],
       "id": "Listar caixas",
       "name": "Listar caixas",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -96,7 +102,10 @@
       ],
       "id": "Listar conversas",
       "name": "Listar conversas",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -191,7 +200,10 @@
       ],
       "id": "Listar mensagens",
       "name": "Listar mensagens",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
     },
     {
       "parameters": {
@@ -239,7 +251,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// O placar da varredura: sabe o tamanho do alvo, entao da para conferir de\n// olho se veio tudo — e nao ficar adivinhando se falta pagina.\nlet conversas = 0, mensagens = 0, total = 0, paginas = 0, contatos = 0, caixa = '';\ntry {\n  const p = $('Paginas a varrer').all();\n  paginas = p.length;\n  total = Number(p[0].json.total || 0);\n  caixa = p[0].json.caixaNome || '';\n} catch (e) {}\ntry { $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Montar agenda').all().forEach(i => { contatos += (i.json.quantas || 0); }); } catch (e) {}\n\n// Gravacao que falhou nao some: os nos estao em continueRegularOutput, entao\n// o item segue com um campo de erro em vez de matar a varredura. Quem conta\n// tem que olhar OS TRES nomes possiveis — n8n escreve 'error', o worker\n// responde 'ok:false', e um erro nosso viria como 'erro'. Contar so 'erro'\n// era o furo: 3.141 gravacoes com timeouts no meio fechavam com falhas: 0.\nfunction contarFalhas(no) {\n  let n = 0;\n  try {\n    $(no).all().forEach(i => {\n      const j = i.json || {};\n      if (j.ok === false || j.erro || j.error) n++;\n    });\n  } catch (e) {}\n  return n;\n}\n// De propria conta, e nao do $input: assim as tres passagens do Placar\n// (uma por ramo que chega nele) mostram o mesmo numero, o total.\nconst falhasConversas = contarFalhas('Gravar conversas no LiveOps');\nconst falhasMensagens = contarFalhas('Gravar mensagens no LiveOps');\nconst falhasContatos  = contarFalhas('Gravar contatos no LiveOps');\nconst falhas = falhasConversas + falhasMensagens + falhasContatos;\n\nlet cortou = false, bloco = false;\ntry {\n  const cfg = $('Resolver caixa').first().json;\n  cortou = !!cfg.corte;                 // com corte por data, vir menos e o esperado\n  bloco = cfg.paginasMax > 0 || cfg.paginaInicial > 1;\n} catch (e) {}\nconst faltou = total && !cortou && !bloco && conversas < total - 5;\n\nlet proxima = 0, ultimaPagina = 0;\ntry {\n  const p = $('Paginas a varrer').all();\n  ultimaPagina = Number(p[0].json.ultimaPagina || 0);\n  proxima = Number(p[p.length - 1].json.pagina || 0) + 1;\n} catch (e) {}\nconst acabou = ultimaPagina && proxima > ultimaPagina;\n\nconst aviso = falhas\n  ? (' ATENCAO: ' + falhas + ' gravacao(oes) nao entraram ('\n     + [falhasConversas ? falhasConversas + ' conversas' : '',\n        falhasMensagens ? falhasMensagens + ' mensagens' : '',\n        falhasContatos  ? falhasContatos  + ' contatos'  : ''].filter(Boolean).join(', ')\n     + '). Rode de novo: regravar sobrescreve o mesmo registro, nao duplica.')\n  : '';\n\nreturn [{ json: {\n  caixa,\n  totalNoChatwoot: total,\n  paginasVarridas: paginas,\n  conversas,\n  contatos,\n  mensagens,\n  falhas,\n  falhasConversas, falhasMensagens, falhasContatos,\n  recado: (!conversas\n    ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'\n    : (faltou\n      ? ('Vieram ' + conversas + ' de ' + total + ' conversas. Faltou gente: rode de novo, '\n         + 'ou quebre em blocos com PAGINA_INICIAL / PAGINAS_MAX no no \"Resolver caixa\".')\n      : ((bloco ? 'Bloco concluido' : 'Varredura completa') + ' da caixa \"' + caixa + '\": '\n         + conversas + ' conversa(s) de ' + total + ', ' + contatos\n         + ' contato(s) na agenda e ' + mensagens + ' mensagem(ns). '\n         + (!bloco ? (falhas ? '' : 'Nao precisa rodar de novo.')\n            : (acabou ? 'Era o ultimo bloco — acabou aqui.'\n                      : ('Proximo bloco: PAGINA_INICIAL = ' + proxima + ' (de ' + ultimaPagina + ').')))))) + aviso,\n} }];\n"
+        "jsCode": "// O placar da varredura: sabe o tamanho do alvo, entao da para conferir de\n// olho se veio tudo — e nao ficar adivinhando se falta pagina.\nlet conversas = 0, mensagens = 0, total = 0, paginas = 0, contatos = 0, caixa = '';\ntry {\n  const p = $('Paginas a varrer').all();\n  paginas = p.length;\n  total = Number(p[0].json.total || 0);\n  caixa = p[0].json.caixaNome || '';\n} catch (e) {}\ntry { $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Montar agenda').all().forEach(i => { contatos += (i.json.quantas || 0); }); } catch (e) {}\n\n// Gravacao que falhou nao some: os nos estao em continueRegularOutput, entao\n// o item segue com um campo de erro em vez de matar a varredura. Quem conta\n// tem que olhar OS TRES nomes possiveis — n8n escreve 'error', o worker\n// responde 'ok:false', e um erro nosso viria como 'erro'. Contar so 'erro'\n// era o furo: 3.141 gravacoes com timeouts no meio fechavam com falhas: 0.\nfunction contarFalhas(no) {\n  let n = 0;\n  try {\n    $(no).all().forEach(i => {\n      const j = i.json || {};\n      if (j.ok === false || j.erro || j.error) n++;\n    });\n  } catch (e) {}\n  return n;\n}\n// De propria conta, e nao do $input: assim as tres passagens do Placar\n// (uma por ramo que chega nele) mostram o mesmo numero, o total.\nconst falhasConversas = contarFalhas('Gravar conversas no LiveOps');\nconst falhasMensagens = contarFalhas('Gravar mensagens no LiveOps');\nconst falhasContatos  = contarFalhas('Gravar contatos no LiveOps');\n// A rodada que perdeu 1.292 conversas ensinou: a LEITURA tambem falha —\n// pagina do Chatwoot que volta vazia some da varredura sem entrar em\n// falha nenhuma. Conta-se aqui, separada das gravacoes.\nconst falhasLeituraPaginas   = contarFalhas('Listar conversas');\nconst falhasLeituraMensagens = contarFalhas('Listar mensagens');\nconst falhas = falhasConversas + falhasMensagens + falhasContatos\n             + falhasLeituraPaginas + falhasLeituraMensagens;\n\nlet cortou = false, bloco = false;\ntry {\n  const cfg = $('Resolver caixa').first().json;\n  cortou = !!cfg.corte;                 // com corte por data, vir menos e o esperado\n  bloco = cfg.paginasMax > 0 || cfg.paginaInicial > 1;\n} catch (e) {}\nconst faltou = total && !cortou && !bloco && conversas < total - 5;\n\nlet proxima = 0, ultimaPagina = 0;\ntry {\n  const p = $('Paginas a varrer').all();\n  ultimaPagina = Number(p[0].json.ultimaPagina || 0);\n  proxima = Number(p[p.length - 1].json.pagina || 0) + 1;\n} catch (e) {}\nconst acabou = ultimaPagina && proxima > ultimaPagina;\n\nconst aviso = falhas\n  ? (' ATENCAO: ' + falhas + ' chamada(s) falharam ('\n     + [falhasLeituraPaginas ? falhasLeituraPaginas + ' paginas nao lidas' : '',\n        falhasLeituraMensagens ? falhasLeituraMensagens + ' conversas sem leitura de mensagens' : '',\n        falhasConversas ? falhasConversas + ' gravacoes de conversa' : '',\n        falhasMensagens ? falhasMensagens + ' gravacoes de mensagem' : '',\n        falhasContatos  ? falhasContatos  + ' gravacoes de contato'  : ''].filter(Boolean).join(', ')\n     + '). Rode de novo: regravar sobrescreve o mesmo registro, nao duplica.')\n  : '';\n\nreturn [{ json: {\n  caixa,\n  totalNoChatwoot: total,\n  paginasVarridas: paginas,\n  conversas,\n  contatos,\n  mensagens,\n  falhas,\n  falhasConversas, falhasMensagens, falhasContatos,\n  falhasLeituraPaginas, falhasLeituraMensagens,\n  recado: (!conversas\n    ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'\n    : (faltou\n      ? ('Vieram ' + conversas + ' de ' + total + ' conversas. Faltou gente: rode de novo, '\n         + 'ou quebre em blocos com PAGINA_INICIAL / PAGINAS_MAX no no \"Resolver caixa\".')\n      : ((bloco ? 'Bloco concluido' : 'Varredura completa') + ' da caixa \"' + caixa + '\": '\n         + conversas + ' conversa(s) de ' + total + ', ' + contatos\n         + ' contato(s) na agenda e ' + mensagens + ' mensagem(ns). '\n         + (!bloco ? (falhas ? '' : 'Nao precisa rodar de novo.')\n            : (acabou ? 'Era o ultimo bloco — acabou aqui.'\n                      : ('Proximo bloco: PAGINA_INICIAL = ' + proxima + ' (de ' + ultimaPagina + ').')))))) + aviso,\n} }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,

@@ -31,7 +31,13 @@ function contarFalhas(no) {
 const falhasConversas = contarFalhas('Gravar conversas no LiveOps');
 const falhasMensagens = contarFalhas('Gravar mensagens no LiveOps');
 const falhasContatos  = contarFalhas('Gravar contatos no LiveOps');
-const falhas = falhasConversas + falhasMensagens + falhasContatos;
+// A rodada que perdeu 1.292 conversas ensinou: a LEITURA tambem falha —
+// pagina do Chatwoot que volta vazia some da varredura sem entrar em
+// falha nenhuma. Conta-se aqui, separada das gravacoes.
+const falhasLeituraPaginas   = contarFalhas('Listar conversas');
+const falhasLeituraMensagens = contarFalhas('Listar mensagens');
+const falhas = falhasConversas + falhasMensagens + falhasContatos
+             + falhasLeituraPaginas + falhasLeituraMensagens;
 
 let cortou = false, bloco = false;
 try {
@@ -50,10 +56,12 @@ try {
 const acabou = ultimaPagina && proxima > ultimaPagina;
 
 const aviso = falhas
-  ? (' ATENCAO: ' + falhas + ' gravacao(oes) nao entraram ('
-     + [falhasConversas ? falhasConversas + ' conversas' : '',
-        falhasMensagens ? falhasMensagens + ' mensagens' : '',
-        falhasContatos  ? falhasContatos  + ' contatos'  : ''].filter(Boolean).join(', ')
+  ? (' ATENCAO: ' + falhas + ' chamada(s) falharam ('
+     + [falhasLeituraPaginas ? falhasLeituraPaginas + ' paginas nao lidas' : '',
+        falhasLeituraMensagens ? falhasLeituraMensagens + ' conversas sem leitura de mensagens' : '',
+        falhasConversas ? falhasConversas + ' gravacoes de conversa' : '',
+        falhasMensagens ? falhasMensagens + ' gravacoes de mensagem' : '',
+        falhasContatos  ? falhasContatos  + ' gravacoes de contato'  : ''].filter(Boolean).join(', ')
      + '). Rode de novo: regravar sobrescreve o mesmo registro, nao duplica.')
   : '';
 
@@ -66,6 +74,7 @@ return [{ json: {
   mensagens,
   falhas,
   falhasConversas, falhasMensagens, falhasContatos,
+  falhasLeituraPaginas, falhasLeituraMensagens,
   recado: (!conversas
     ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'
     : (faltou
