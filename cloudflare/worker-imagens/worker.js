@@ -55,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v18';
+const VERSAO_WORKER = 'v19';
 
 // As chaves seguem o formato do imgChave()/push do sistema: letras,
 // números, _ e -. Recusar o resto evita chave torta virando lixo.
@@ -95,6 +95,21 @@ const ORIGENS_OK = new Set([
 ]);
 const ORIGEM_PADRAO = 'https://cm-program.github.io';
 function _comCors(req, resp) {
+  /* A SALA NAO PODE SER REEMBRULHADA — v19
+     ═══════════════════════════════════════════════════════════════
+     A resposta de um WebSocket e um 101, e o par de sockets viaja no
+     campo `webSocket` da Response. `new Response(...)` nao carrega esse
+     campo, e o construtor nem aceita status 101: reconstruir aqui
+     destruia o handshake.
+
+     Foi o que a v16 passou a fazer com TODAS as respostas, inclusive a
+     do /rt. Desde entao a sala nunca mais conectou — e o sintoma
+     aparecia longe da causa: "tempo real reconectando" no painel, e a
+     leitura caindo para o Firebase depois de quatro tentativas.
+
+     CORS tambem nao se aplica: o handshake de WebSocket nao passa por
+     preflight, e o navegador nao le esses cabecalhos nele. */
+  if (resp.status === 101 || resp.webSocket) return resp;
   const o = req.headers.get('Origin') || '';
   const permitida = ORIGENS_OK.has(o) ? o : ORIGEM_PADRAO;
   const h = new Headers(resp.headers);
