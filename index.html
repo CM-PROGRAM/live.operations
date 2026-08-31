@@ -7530,6 +7530,11 @@ function _cfEspelharPacote(payload){
    próprio de sincronia (avisos, feed de atividade). Recebe o caminho
    inteiro e reparte no formato do espelho: tudo menos a última parte
    vira a coleção, a última é a chave. */
+/* Chave nova para um registro da nuvem quando o Firebase não está aí para
+   inventá-la — mesmo alfabeto das chaves de push, ordenável por tempo. */
+function _chaveNuvem(){
+  return 'cf'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+}
 function _espelharCaminho(caminho,dados){
   try{
     const p=String(caminho||'').replace(/^suplelive\//,'').split('/').filter(Boolean);
@@ -10024,21 +10029,30 @@ function _logDiffRegistro(entidade,antes,depois){
 }
 
 function _logGravar(entidade,registroId,evento,campos,resumo){
-  if(!db||!fbConnected||!registroId) return;
+  if(!registroId) return;
   const entrada={ts:Date.now(), autor:_logAutorAtual(), evento, campos:campos||[]};
   if(resumo) entrada.resumo=resumo;
-  // Por registro (histórico dentro do card) e no índice geral (Adm. Master)
-  const refReg=db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push(entrada);
-  refReg.catch(()=>{});
   const geral=Object.assign({entidade,registroId},entrada);
-  const refGeral=db.ref(FB_LOGS_PATH+'/_geral').push(geral);
-  refGeral.catch(()=>{});
+  // Por registro (histórico dentro do card) e no índice geral (Adm. Master).
+  // O Firebase recebe cópia enquanto estiver de pé; as chaves saem do push
+  // quando dá e são inventadas quando não dá — o histórico não para.
+  let chaveReg='', chaveGeral='';
+  if(db && fbConnected){
+    try{
+      const refReg=db.ref(FB_LOGS_PATH+'/'+entidade+'/'+registroId).push(entrada);
+      refReg.catch(()=>{}); chaveReg=refReg.key;
+      const refGeral=db.ref(FB_LOGS_PATH+'/_geral').push(geral);
+      refGeral.catch(()=>{}); chaveGeral=refGeral.key;
+    }catch(e){}
+  }
+  if(!chaveReg) chaveReg=_chaveNuvem();
+  if(!chaveGeral) chaveGeral=_chaveNuvem();
   // Espelho Cloudflare (etapa 2): cada lançamento do histórico em cópia
   try{
     const regLimpo=String(registroId).replace(/[.#$/\[\]]/g,'_');
     _cfEspelharLinhas([
-      {colecao:'logs/'+entidade+'/'+regLimpo, chave:refReg.key, dados:entrada},
-      {colecao:'logs/_geral', chave:refGeral.key, dados:geral}
+      {colecao:'logs/'+entidade+'/'+regLimpo, chave:chaveReg, dados:entrada},
+      {colecao:'logs/_geral', chave:chaveGeral, dados:geral}
     ]);
   }catch(e){}
 }
@@ -10076,7 +10090,9 @@ function logSincronizarSnapshot(state){
 }
 
 function auditarMudancas(novo){
-  if(!db||!fbConnected) return;
+  // A auditoria alimenta o histórico dos cards — segue rodando enquanto
+  // QUALQUER nuvem estiver de pé, não só o Firebase.
+  if(!(db && fbConnected) && !_cfLeituraAtiva && !CF_DADOS_ATIVO) return;
   if(!_logPronto){ logSincronizarSnapshot(novo); return; }
   Object.keys(LOG_ENTIDADES).forEach(entidade=>{
     const antes=_logSnapshot[entidade]||{};
@@ -10274,7 +10290,7 @@ function _gravarRegistrosAlterados(s){
       return {colecao:'reg/'+p[2], chave:p[3], dados:v};
     }));
   }catch(e){}
-  db.ref().update(updates).catch(err=>{
+  if(db && fbConnected) db.ref().update(updates).catch(err=>{
     console.error('[reg] falha ao gravar:',err.message);
     // Desfaz a marca, para que a próxima gravação tente de novo
     Object.entries(enviadosAgora).forEach(([nome,chaves])=>{
@@ -10662,7 +10678,11 @@ function saveState(s){
   _lastSaveTs = _localVersion;
   // Salva localmente SEM _savedBy (para não contaminar o appState)
   saveLocal(s);
-  if(db && fbConnected){
+  /* A gravação na nuvem não é mais assunto só do Firebase: com o espelho
+     ligado, o pacote e as listas sobem para a Cloudflare mesmo que o SDK
+     do Firebase nem tenha carregado. Os toques diretos em db.ref ficam
+     guardados dentro de cada gravador. */
+  if((db && fbConnected) || CF_DADOS_ATIVO){
     if(!_recebeuNuvem){
       // Ainda não sabemos o que a nuvem tem. Guarda a intenção e publica
       // assim que o estado remoto chegar.
@@ -10768,7 +10788,7 @@ function _gravarPacotePorPartes(payload){
   // A marca de quem gravou continua sendo o que identifica o eco
   updates[FB_PATH+'/_version']=payload._version;
   updates[FB_PATH+'/_savedBy']=payload._savedBy;
-  db.ref().update(updates).catch(err=>{
+  if(db && fbConnected) db.ref().update(updates).catch(err=>{
     console.error('[Firebase] ERRO AO SALVAR:', err.message);
     // Desfaz as marcas para a próxima gravação tentar de novo
     Object.keys(updates).forEach(caminho=>{
@@ -11959,7 +11979,7 @@ function startLocalSync(){
 
 // ── ACTIVITY LOG ─────────────────────────────────────────────
 function logActivity(action, task, section){
-  if(!db || !fbConnected || !currentUser) return;
+  if(!currentUser) return;
   const entry={
     user:currentUser.name,
     initials:currentUser.initials||(currentUser.name.substring(0,2).toUpperCase()),
@@ -11971,9 +11991,15 @@ function logActivity(action, task, section){
     sessionId:_sessionId,
     ts:Date.now()
   };
-  const _refAtv=db.ref(FB_ACT_PATH).push(entry);
-  _refAtv.catch(()=>{});
-  _espelharCaminho(FB_ACT_PATH+'/'+_refAtv.key, entry);
+  /* O feed é a cara do "quem fez o quê" em tempo real — ele não pode
+     depender do Firebase estar de pé. A chave vem do push quando dá
+     (mantém a ordenação de sempre) e é inventada quando não dá. */
+  let chave='';
+  if(db && fbConnected){
+    try{ const r=db.ref(FB_ACT_PATH).push(entry); r.catch(()=>{}); chave=r.key; }catch(e){}
+  }
+  if(!chave) chave=_chaveNuvem();
+  _espelharCaminho(FB_ACT_PATH+'/'+chave, entry);
 }
 
 function initActivityListener(){
@@ -13101,7 +13127,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31i';
+const APP_VERSAO='2026.08.31j';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13190,13 +13216,19 @@ function _avisarVersaoNaCaixa(nova){
   if(!currentUser || !nova) return;
   const marca='liveops_avisou_versao_'+nova+'_'+currentUser.key;
   try{ if(localStorage.getItem(marca)==='1') return; }catch(e){}
-  if(!(db && fbConnected)) return;
+  if(!(db && fbConnected) && !_cfLeituraAtiva) return;
   try{
-    _refNotificacoes('suplelive/notificacoes/'+currentUser.key).push({
+    const aviso={
       msg:`🔄 ATUALIZE O SISTEMA — saiu a versão ${nova} e este computador está na ${APP_VERSAO}. Clique aqui para atualizar.`,
       ts:Date.now(), lida:false, tipo:'sistema', de:'Sistema',
       alvoTipo:'atualizacao', alvoId:nova
-    });
+    };
+    let chave='';
+    if(db && fbConnected){
+      try{ const r=db.ref('suplelive/notificacoes/'+currentUser.key).push(aviso); r.catch(()=>{}); chave=r.key; }catch(e){}
+    }
+    if(!chave) chave=_chaveNuvem();
+    _espelharCaminho('suplelive/notificacoes/'+currentUser.key+'/'+chave, aviso);
     localStorage.setItem(marca,'1');
   }catch(e){ console.warn('[versao] aviso na caixa:',e); }
 }
@@ -27176,7 +27208,8 @@ async function redefinirSenha(key){
   const hash=await _hashSenha(limpa);
   if(hash){ user.passHash=hash; delete user.pass; } else { user.pass=limpa; }
   saveState(appState);
-  if(db && fbConnected){ db.ref('suplelive/forceLogout/'+key).set({ts:Date.now(),reason:'perm_change'}); }
+  // O derrubar viaja pelos dois bancos — a sessão do outro pode estar em qualquer um
+  try{ _forceLogoutEnviar(key,{ts:Date.now(),reason:'perm_change'}); }catch(e){}
   showToast(`Senha de ${user.name} redefinida — informe a nova senha a ele(a)`,'success');
   renderUsersGrid();
 }
