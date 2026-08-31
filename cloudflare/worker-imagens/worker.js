@@ -55,10 +55,8 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v17';
+const VERSAO_WORKER = 'v18';
 
-const PROJETO = 'suplelive-8a700';
-const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 // As chaves seguem o formato do imgChave()/push do sistema: letras,
 // números, _ e -. Recusar o resto evita chave torta virando lixo.
 const CHAVE_OK = /^[A-Za-z0-9_-]{1,200}$/;
@@ -126,89 +124,47 @@ function b64urlBytes(s) {
   return out;
 }
 
-// Cache das chaves públicas do Google — giram de tempos em tempos
-let _jwks = null;
-let _jwksValidade = 0;
+/* O cache das chaves publicas do Google saiu na v18, junto com o resto do
+   Firebase: nao se busca mais chave de fora para decidir quem entra. */
 
-async function chavesGoogle(forcar) {
-  const agora = Date.now();
-  if (!forcar && _jwks && agora < _jwksValidade) return _jwks;
-  const res = await fetch(JWKS_URL);
-  if (!res.ok) throw new Error('jwks-indisponivel');
-  const dados = await res.json();
-  _jwks = dados.keys || [];
-  _jwksValidade = agora + 6 * 3600 * 1000;
-  return _jwks;
-}
-
-// Confere o token do Firebase Auth. Devolve o payload (com .sub = uid)
+// Confere o cracha da sessao. Devolve o payload (com .chave = quem)
 // ou null. Qualquer defeito cai no null: não existe "meio autenticado".
 async function conferirToken(req, env) {
   const bruto = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
   return conferirTokenBruto(bruto, env);
 }
 async function conferirTokenBruto(bruto, env) {
-  /* Dois crachás valem nesta porta: o do Firebase (enquanto ele existir)
-     e o que este worker emite. É essa convivência que permite desligar o
-     Firebase sem que ninguém fique do lado de fora. */
-  if (env) {
-    const meu = await _conferirTokenProprio(env, bruto);
-    if (meu) return meu;
-  }
-  try {
-    const partes = String(bruto || '').split('.');
-    if (partes.length !== 3) return null;
-    const dec = new TextDecoder();
-    const cab = JSON.parse(dec.decode(b64urlBytes(partes[0])));
-    const corpo = JSON.parse(dec.decode(b64urlBytes(partes[1])));
-    if (cab.alg !== 'RS256' || !cab.kid) return null;
-    const agora = Math.floor(Date.now() / 1000);
-    if (corpo.aud !== PROJETO) return null;
-    if (corpo.iss !== 'https://securetoken.google.com/' + PROJETO) return null;
-    if (!corpo.sub || (corpo.exp || 0) <= agora) return null;
-    let jwk = (await chavesGoogle(false)).find(k => k.kid === cab.kid);
-    if (!jwk) jwk = (await chavesGoogle(true)).find(k => k.kid === cab.kid);
-    if (!jwk) return null;
-    const chave = await crypto.subtle.importKey(
-      'jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
-    );
-    const assinou = await crypto.subtle.verify(
-      'RSASSA-PKCS1-v1_5', chave,
-      b64urlBytes(partes[2]),
-      new TextEncoder().encode(partes[0] + '.' + partes[1])
-    );
-    return assinou ? corpo : null;
-  } catch (e) {
-    return null;
-  }
+  /* v18 — o projeto do Firebase foi EXCLUIDO em 31/08/2026, e com ele a
+     unica coisa capaz de emitir o outro cracha que esta porta aceitava.
+     O caminho saiu inteiro em vez de ficar de enfeite: enquanto existisse,
+     era uma dependencia externa viva (chaves publicas do Google, busca de
+     JWKS, cache) num portao de autenticacao — para validar tokens de um
+     projeto que nao existe mais.
+     Fica UM cracha, o que este worker mesmo emite. */
+  if (!env) return null;
+  return await _conferirTokenProprio(env, bruto);
 }
 
 /* ══════════════════════════════════════════════════════════════════
    TER TOKEN DO PROJETO NUNCA FOI O MESMO QUE TRABALHAR AQUI
    ══════════════════════════════════════════════════════════════════
-   A firebaseConfig esta a vista na pagina — e por design, esta certo.
-   Só que, com o apiKey publico, qualquer pessoa cria uma conta contra o
-   projeto e recebe um token que passa em conferirToken(): assinatura
-   boa, aud certo, exp valido. O que faltava perguntar era se aquele uid
-   pertence a alguem que trabalha aqui.
+   O achado 1 da auditoria, e vale guardado porque explica a forma que o
+   codigo tem hoje: com o apiKey publico na pagina, qualquer pessoa criava
+   conta contra o projeto e recebia um token que passava em
+   conferirToken() — assinatura boa, aud certo, exp valido. Faltava
+   perguntar se aquele uid trabalhava aqui, e a v16 passou a perguntar.
 
-   A resposta ja existia — _autorizadoNoEspelho() — mas so /auth/semear a
-   usava. Agora ela guarda o portao principal tambem.
-
-   O cracha emitido por ESTE worker (iss:'liveops') passa direto: ele so
-   nasce de uma senha semeada contra essa mesma lista. */
+   Na v18 a pergunta perdeu o objeto: o projeto foi excluido, nao existe
+   mais token de fora para conferir, e a porta aceita um cracha so — o que
+   este worker emite, que nasce de uma senha conferida no proprio cofre.
+   A funcao ficou como o portao unico. */
 async function _filtrarAutorizado(env, quem) {
   if (!quem) return null;
-  if (quem.iss === 'liveops') return quem;
-  const v = await _autorizadoNoEspelho(env, String(quem.sub || ''));
-  if (v === 'ok') return quem;
-  /* 'espelho-sem-autorizados' recusa igual — mas grita no log, porque os
-     dois casos se consertam de formas opostas: um e intruso, o outro e o
-     espelho que ainda nao recebeu a copia do ramo. */
-  if (v === 'espelho-sem-autorizados') {
-    console.error('[auth] a colecao autorizados esta VAZIA no espelho — ninguem do Firebase entra ate ela ser populada');
-  }
-  return null;
+  /* Sobrou so o cracha proprio, e ele ja nasce de uma senha conferida
+     contra o cofre. A consulta a lista `autorizados` servia ao cracha do
+     Firebase; sem ele, quem semeia so consegue semear a PROPRIA chave —
+     e isso quem confere e o /auth/semear, comparando cracha e chave. */
+  return quem.iss === 'liveops' ? quem : null;
 }
 async function conferirTokenAutorizado(req, env) {
   return _filtrarAutorizado(env, await conferirToken(req, env));
@@ -274,7 +230,6 @@ function abrirDataUrl(texto) {
    segredo CHAVE_ROBO. É a credencial dos robôs — não dá acesso a
    imagem, a pacote, nem à sala. */
 const ROBO_PREFIXOS = ['reg/', 'inbox/', 'atividadesExternas'];
-const FB_BASE = 'https://suplelive-8a700-default-rtdb.firebaseio.com';
 
 function b64urlDeTexto(txt) {
   return btoa(unescape(encodeURIComponent(txt))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -286,69 +241,22 @@ function b64urlDeBytes(buf) {
   return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-// Token do Google para escrever no Firebase, a partir da MESMA conta de
-// serviço que o n8n já usa. Vale uma hora; guardado até perto do fim.
-let _tokenGoogle = null, _tokenGoogleAte = 0;
-async function tokenGoogle(env) {
-  if (_tokenGoogle && Date.now() < _tokenGoogleAte) return _tokenGoogle;
-  const email = env.FB_SA_EMAIL, pem = env.FB_SA_KEY;
-  if (!email || !pem) return null;          // sem credencial: não repassa
-  const agora = Math.floor(Date.now() / 1000);
-  const cabecalho = b64urlDeTexto(JSON.stringify({ alg: 'RS256', typ: 'JWT' }));
-  const corpo = b64urlDeTexto(JSON.stringify({
-    iss: email,
-    scope: 'https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email',
-    aud: 'https://oauth2.googleapis.com/token',
-    iat: agora, exp: agora + 3600,
-  }));
-  const limpo = String(pem).replace(/\\n/g, '\n').replace(/-----[^-]+-----/g, '').replace(/\s+/g, '');
-  const bin = atob(limpo);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  const chave = await crypto.subtle.importKey(
-    'pkcs8', bytes.buffer, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
-  );
-  const assinatura = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5', chave, new TextEncoder().encode(cabecalho + '.' + corpo)
-  );
-  const jwt = cabecalho + '.' + corpo + '.' + b64urlDeBytes(assinatura);
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + encodeURIComponent(jwt),
-  });
-  if (!res.ok) throw new Error('token-google-' + res.status);
-  const j = await res.json();
-  _tokenGoogle = j.access_token;
-  _tokenGoogleAte = Date.now() + (((j.expires_in || 3600) - 300) * 1000);
-  return _tokenGoogle;
-}
+/* v18 — O REPASSE MORREU COM O PROJETO
+   ══════════════════════════════════════════════════════════════════
+   Aqui viviam a conta de servico (tokenGoogle, com FB_SA_EMAIL e
+   FB_SA_KEY) e a copia de cada gravacao para o Realtime Database. O
+   projeto do Firebase foi EXCLUIDO em 31/08/2026: nao ha banco para
+   copiar, nem credencial que sirva.
 
-// Repassa a gravação ao Firebase, igualzinha à que o fluxo mandaria.
-// Falha aqui não derruba a resposta ao robô: o dado já está guardado no
-// D1, e o que se perde é a cópia — que o relatório de erro deixa visível.
+   A funcao ficou, e devolve sempre o mesmo. Cinco lugares gravam e
+   perguntam "como foi a copia?" — trocar isso agora seria mexer em cinco
+   caminhos de gravacao para nao mudar nada. Ela sai no dia em que a
+   pergunta sair junto.
+
+   No painel: os secrets FB_SA_EMAIL e FB_SA_KEY podem ser apagados, e a
+   variavel FB_REPASSE tambem — nao ha mais o que ligar ou desligar. */
 async function repassarAoFirebase(env, caminho, metodo, corpo) {
-  /* O desligamento do Firebase, do lado do worker: uma variavel no painel
-     (FB_REPASSE=off) e a copia para o banco antigo para de sair. Sem
-     republicar codigo, e reversivel na mesma tela.
-     Remover os secrets FB_SA_EMAIL/FB_SA_KEY tem o mesmo efeito — mas por
-     acidente, e um desligamento que parece acidente e dificil de auditar
-     depois. */
-  if (env.FB_REPASSE === 'off') return { status: 'desligado' };
-  try {
-    const tk = await tokenGoogle(env);
-    if (!tk) return { status: 'sem-credencial' };
-    const res = await fetch(FB_BASE + '/suplelive/' + caminho + '.json', {
-      method: metodo,
-      headers: { 'Authorization': 'Bearer ' + tk, 'Content-Type': 'application/json' },
-      body: corpo,
-    });
-    let dados = null;
-    if (res.ok && metodo === 'POST') { try { dados = await res.json(); } catch (e) {} }
-    return { status: res.ok ? 'ok' : ('http-' + res.status), dados };
-  } catch (e) {
-    return { status: 'erro-' + (e.message || 'desconhecido') };
-  }
+  return { status: 'firebase-excluido' };
 }
 
 /* ══════════════════════════════════════════════════════════════════

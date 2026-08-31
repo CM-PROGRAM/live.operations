@@ -2790,6 +2790,14 @@ body.menu-oculto .sb-atu-txt{display:none;}
   
   // Aguarda DOM e carrega Firebase antes de iniciar o app
   document.addEventListener('DOMContentLoaded', function(){
+    /* O projeto do Firebase foi EXCLUÍDO em 31/08/2026. Não há banco,
+       conta nem SDK que faça sentido carregar: seriam três downloads e um
+       atraso na abertura para falar com um projeto que não existe. O
+       evento continua sendo disparado porque é ele que dá partida no app. */
+    if(typeof FB_APOSENTADO!=='undefined' && FB_APOSENTADO){
+      document.dispatchEvent(new Event('firebase-ready'));
+      return;
+    }
     loadFirebase(function(){
       // Firebase carregado (ou falhou — localStorage será usado)
       // Dispara evento para o app principal saber que pode iniciar
@@ -3084,7 +3092,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <h3 id="perfil-nome" style="margin-bottom:2px;"></h3>
           <p id="perfil-email" style="font-size:12.5px;color:var(--text-secondary);font-family:var(--font-mono);"></p>
           <p id="perfil-papel" style="font-size:11px;color:var(--text-muted);margin-top:6px;letter-spacing:1.5px;text-transform:uppercase;font-family:var(--font-mono);"></p>
-          <p style="font-size:11.5px;color:var(--text-muted);margin-top:14px;line-height:1.6;">Nome, e-mail e permissões são geridos pelo master em <b>Administrador → Equipe</b>. A senha é trocada no "Esqueci minha senha" da tela de entrada.</p>
+          <p style="font-size:11.5px;color:var(--text-muted);margin-top:14px;line-height:1.6;">Nome, e-mail e permissões são geridos pelo master em <b>Administrador → Equipe</b>. A senha é redefinida pelo master, em <b>Administrador → Segurança</b>.</p>
           <button class="btn" style="width:auto;margin:16px auto 0;" onclick="perfilFechar()">Fechar</button>
         </div>
       </div>
@@ -6692,21 +6700,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
    Atualiza em tempo real entre qualquer dispositivo
    ============================================================ */
 
-// ── FIREBASE CONFIG ──────────────────────────────────────────
-// INSTRUÇÃO: Crie um projeto gratuito em https://console.firebase.google.com
-// Vá em "Realtime Database" > "Criar banco" > modo teste (30 dias) ou regras abaixo
-// Copie as configs e substitua aqui:
-const FB_CONFIG = {
-  apiKey: "AIzaSyCFzUPEf8K1LjaO0trO3arG6mYCh1kPf-M",
-  authDomain: "suplelive-8a700.firebaseapp.com",
-  databaseURL: "https://suplelive-8a700-default-rtdb.firebaseio.com",
-  projectId: "suplelive-8a700",
-  storageBucket: "suplelive-8a700.firebasestorage.app",
-  messagingSenderId: "101989750419",
-  appId: "1:101989750419:web:38d393ea805d06b6e39f66"
-};
-// Regras do banco (cole no painel Firebase > Rules):
-// { "rules": { ".read": true, ".write": true } }
+/* ── FIREBASE: PROJETO EXCLUÍDO EM 31/08/2026 ─────────────────
+   A `firebaseConfig` vivia aqui. Ela saiu junto com o projeto: banco,
+   contas e endereço deixaram de existir, e endereço de projeto apagado
+   num repositório público é só pista para quem sonda.
+
+   Quem manda no acesso agora é o cofre do worker (`/auth/entrar`), e nos
+   dados, a Cloudflare. Não há volta por esta linha — o caminho de volta
+   seria criar um projeto novo, não descomentar uma configuração. */
 
 // ── CLOUDFLARE R2 · IMAGENS (etapa 1 da migração) ────────────
 // Com um endereço aqui, as imagens passam a ter uma cópia no R2 da
@@ -6735,24 +6736,17 @@ let db = null;
 let fbConnected = false;
 // Firebase será inicializado quando o loader CDN terminar (evento firebase-ready)
 // Fallback imediato para localStorage se Firebase não disponível
+/* Não há mais o que inicializar: `db` nasce nulo e permanece nulo, e com
+   isso os cerca de trinta `if(db && fbConnected)` espalhados pelo sistema
+   são no-ops definitivos. Eles ficaram de propósito — arrancar trinta
+   guardas de uma vez é exatamente como se perde uma gravação sem
+   perceber. Saem aos poucos, cada um no dia em que sua tela for mexida. */
 function initFirebase(){
+  if(FB_APOSENTADO){ console.log('[firebase] projeto excluído — o acesso e os dados são da Cloudflare'); return; }
   try {
     if(typeof firebase !== 'undefined' && firebase.initializeApp){
-      firebase.initializeApp(FB_CONFIG);
-      /* Aposentado, o BANCO não é sequer aberto: `db` fica nulo e os
-         `if(db && fbConnected)` espalhados pelo sistema viram no-ops de
-         uma vez só. É o desligamento mais seguro que existe aqui —
-         nenhuma gravação some por engano, porque desde a 31j todas elas
-         já sobem pela Cloudflare por conta própria.
-
-         O app do Firebase segue inicializado só por causa da ponte de
-         login de quem ainda não semeou. */
-      if(!FB_APOSENTADO){
-        db = firebase.database();
-        fbConnected = true;
-      } else {
-        console.log('[firebase] aposentado — banco não aberto; só a ponte de login segue de pé');
-      }
+      db = firebase.database();
+      fbConnected = true;
     } else {
       console.warn('Firebase não disponível, usando localStorage local');
     }
@@ -7419,7 +7413,7 @@ function _cfTokenDoFirebase(){
 // Devolve true se entrou, false se a senha não bate, e 'sem-cadastro'
 // quando esta pessoa ainda não tem senha guardada deste lado.
 function _cfEntrar(chave,senha){
-  if(!_cfImgAtivo()) return Promise.resolve('sem-cadastro');
+  if(!_cfImgAtivo()) return Promise.resolve('indisponivel');
   return fetch(CF_IMG_URL+'/auth/entrar',{
     method:'POST', headers:{'Content-Type':'application/json'},
     body:JSON.stringify({chave,senha})
@@ -7431,8 +7425,12 @@ function _cfEntrar(chave,senha){
     if(status===404) return 'sem-cadastro';
     return false;
   }).catch(err=>{
+    /* Antes isto virava 'sem-cadastro' porque o Firebase decidia em
+       seguida. Sem ele, confundir "não respondeu" com "não tem senha"
+       mandaria a pessoa pedir senha nova ao master quando o problema era
+       a internet dela. */
     console.warn('[auth][cf] entrar:',err.message);
-    return 'sem-cadastro';   // indisponível: o Firebase decide
+    return 'indisponivel';
   });
 }
 
@@ -7442,11 +7440,11 @@ function _cfEntrar(chave,senha){
    novo. Falhar aqui não impede ninguém de entrar. */
 function _cfSemear(chave,senha){
   if(!_cfImgAtivo()) return Promise.resolve(false);
-  /* O crachá do Firebase vem na frente aqui de propósito: é ele que
-     acabou de provar, agora, que esta pessoa é esta pessoa. O crachá
-     guardado no navegador pode ser antigo — e o worker, com razão,
-     recusa semear a senha de um apresentando o crachá de outro. */
-  return _cfTokenDoFirebase().then(tk=>tk||_cfToken()).then(tk=>{
+  /* Sobrou um crachá só, o do próprio worker: o do Firebase morreu com o
+     projeto. Ele semeia apenas a própria chave — o worker recusa quem
+     apresenta o crachá de um para gravar a senha de outro. Trocar a senha
+     de outra pessoa é ato do master, e tem porta própria (/auth/definir). */
+  return (FB_APOSENTADO ? _cfToken() : _cfTokenDoFirebase().then(tk=>tk||_cfToken())).then(tk=>{
     if(!tk) return false;
     return fetch(CF_IMG_URL+'/auth/semear',{
       method:'POST',
@@ -7496,22 +7494,17 @@ function _fbVivo(){
 
 function _autenticarNaNuvem(chave,senha){
   if(FB_APOSENTADO){
-    /* O cofre decide. O Firebase só é consultado quando esta pessoa
-       ainda não existe do lado novo — e o sucesso dele semeia na hora,
-       o que faz esta exceção desaparecer no próximo login dela. */
+    /* O cofre decide, e agora decide sozinho: a ponte que mandava quem
+       ainda não tinha senha entrar pelo Firebase caiu junto com o
+       projeto. Quem não estiver no cofre não entra — e o master resolve
+       em dois cliques, no Redefinir senha do painel de Segurança. */
     return Promise.resolve(_cfEntrar(chave,senha)).then(r=>{
       if(r===true){ _ultimoErroAuth=''; return true; }
       if(r===false){ _ultimoErroAuth='auth/wrong-password'; return false; }
-      // 'sem-cadastro': a ponte, enquanto o Firebase ainda responder
-      if(typeof firebase==='undefined' || !firebase.auth){
-        _ultimoErroAuth='sem-cadastro';
-        return false;
-      }
-      return _autenticarNoFirebase(chave,senha).then(ok=>{
-        if(!ok) return false;
-        console.log('[auth] entrou pelo Firebase e foi semeado no cofre — última vez para',chave);
-        return Promise.resolve(_cfSemear(chave,senha)).then(()=>true);
-      });
+      /* Os dois motivos que sobram pedem coisas diferentes de quem está
+         na tela, então não podem ser o mesmo erro. */
+      _ultimoErroAuth = (r==='indisponivel') ? 'nuvem-indisponivel' : 'sem-cadastro';
+      return false;
     });
   }
   /* O Firebase vem PRIMEIRO enquanto existir, por dois motivos que só
@@ -9530,7 +9523,18 @@ function renderSegurancaCf(){
       html += linha('atencao','Cofre de senhas não consultado',
         (j&&j.erro)?('O worker respondeu: '+j.erro):'Entre no sistema (o crachá da sessão é que abre essa consulta) e clique em ↻ Verificar.');
     }
+    if(FB_APOSENTADO){
+      html += `<div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);
+        margin-top:12px;padding-top:10px;border-top:1px solid var(--border);line-height:1.6;">
+        Firebase excluído em 31/08/2026. Senha de quem entra: <b>Redefinir senha</b>, aqui mesmo.</div>`;
+    }
     box.innerHTML=html;
+    /* As ferramentas do banco antigo — forçar redefinição por e-mail,
+       autorizar UID, as regras para colar no console — perderam o banco a
+       que serviam. Escondidas, e não apagadas: o dia em que a última linha
+       de Firebase sair do código é uma faxina, não um susto. */
+    const dobra=document.getElementById('seg-fb-dobra');
+    if(dobra && FB_APOSENTADO) dobra.hidden=true;
   });
 }
 
@@ -12734,6 +12738,12 @@ function _explicarErroAuth(codigo){
     'sdk-ausente':
       ['A biblioteca de autenticação não carregou',
        'Atualize a página com Ctrl+Shift+R. Se persistir, pode ser bloqueio de rede/extensão.'],
+    'sem-cadastro':
+      ['Esta conta ainda não tem senha na nuvem',
+       'Peça ao master: Administrador → Segurança → Redefinir senha. Ele define uma na hora e te passa.'],
+    'nuvem-indisponivel':
+      ['O servidor do LiveOps não respondeu',
+       'Confira a internet e tente de novo. Se continuar, abra liveops-imagens.carlosmagnoav94.workers.dev/saude no navegador — tem que responder "ok".'],
     'auth/network-request-failed':
       ['Sem conexão com o serviço de autenticação',
        'Verifique a internet e tente de novo.'],
@@ -12777,6 +12787,19 @@ function testarAutenticacao(){
 // O Firebase envia um e-mail com um código; a pessoa cola o código aqui
 // e escolhe a senha. Nem o master precisa saber qual é.
 function abrirRedefinicao(email){
+  /* O e-mail com o código era do Firebase. Sem ele, este formulário não
+     enviaria nada — e um formulário que aceita e some é pior que um aviso.
+     Quem redefine agora é o master, direto no cofre, e a tela precisa
+     dizer isso em vez de fingir que mandou. */
+  if(FB_APOSENTADO){
+    const e=document.getElementById('login-error');
+    if(e){
+      e.textContent='Peça ao master para redefinir: Administrador → Segurança → Redefinir senha. Ele define uma na hora e te passa.';
+      e.style.display='block';
+      setTimeout(()=>{ e.style.display='none'; e.textContent='Usuário ou senha incorretos'; },12000);
+    }
+    return;
+  }
   document.getElementById('login-form').style.display='none';
   document.getElementById('reset-box').style.display='flex';
   document.getElementById('reset-passo1').style.display='flex';
@@ -13080,7 +13103,9 @@ function doLogin(){
         /* Recusa sem saída é o que faz a pessoa tentar a mesma senha dez
            vezes. A conta existe na nuvem e o endereço é real — então o
            caminho de volta é o link, e ele fica escrito aqui. */
-        recusar('Senha incorreta para a conta '+conta+'. Use "Esqueci minha senha" — o link vai para esse endereço.');
+        recusar(FB_APOSENTADO
+          ? 'Senha incorreta. Se esqueceu, peça ao master: Administrador → Segurança → Redefinir senha.'
+          : 'Senha incorreta para a conta '+conta+'. Use "Esqueci minha senha" — o link vai para esse endereço.');
       }
       return;
     }
@@ -13303,7 +13328,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31q';
+const APP_VERSAO='2026.08.31r';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

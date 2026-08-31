@@ -90,20 +90,61 @@ Agora, sem banco antigo:
 - o painel passa a dizer a verdade, em vermelho, se a leitura realmente
   parar.
 
-## Como voltar atrás
+## O projeto foi excluído — **2026.08.31r** e worker **v18**
 
-`FB_APOSENTADO = false` e republicar. O código do caminho antigo continua
-inteiro — não foi apagado, só deixou de ser o padrão. No worker, apagar a
-variável `FB_REPASSE` devolve a cópia.
+Desativar não bastava: projeto que existe pode ser reaberto, copiado ou
+violado um dia. A pedido do master, o projeto do Firebase foi **excluído**
+em 31/08/2026, e o código foi limpo para não sobrar nada apontando para um
+fantasma.
 
-Por navegador, `cfLeitura('off')` + F5 continua valendo como saída de
-emergência para a leitura.
+**No `index.html` (31r)**
+
+| Saiu | Por quê |
+|---|---|
+| A `firebaseConfig` inteira | Endereço de projeto morto num repositório público é pista para quem sonda |
+| O download do SDK (3 arquivos do gstatic) | Três downloads e um atraso na abertura para falar com o que não existe |
+| A ponte de primeiro login | Todo mundo já tem senha no cofre; quem faltar, o master resolve em dois cliques |
+| A redefinição por e-mail | O e-mail era do Firebase. Agora a tela manda pedir ao master, em vez de fingir que enviou |
+| As ferramentas do banco antigo no painel | Escondidas, não apagadas — a faxina final é outro dia |
+
+E uma distinção que **precisava** nascer aqui: worker mudo deixou de virar
+`sem-cadastro`. Antes o Firebase decidia em seguida, então dava no mesmo;
+sem ele, confundir *"não respondeu"* com *"não tem senha"* mandaria a
+pessoa pedir senha nova ao master quando o problema era a internet dela.
+
+**No worker (v18)**
+
+- `repassarAoFirebase` virou uma linha só. A conta de serviço
+  (`tokenGoogle`, `FB_SA_EMAIL`, `FB_SA_KEY`) saiu inteira.
+- **O crachá do Firebase deixou de ser aceito.** Era uma dependência
+  externa viva — buscar chaves públicas do Google num portão de
+  autenticação — para validar tokens de um projeto que não existe. Fica um
+  crachá só: o que este worker emite.
+- Saíram `PROJETO`, `JWKS_URL`, `FB_BASE` e o cache de JWKS.
+
+**No painel da Cloudflare, dá para apagar:** `FB_SA_EMAIL`, `FB_SA_KEY` e
+`FB_REPASSE`. Não há mais o que ligar, desligar ou autenticar.
+
+## Não há mais como voltar atrás — e está certo assim
+
+Até a 31p, `FB_APOSENTADO = false` devolvia tudo. Com o projeto excluído,
+o caminho de volta deixou de ser um interruptor: seria **criar um projeto
+novo**, semear as contas de novo e reapontar a configuração. Foi uma
+decisão consciente do master, tomada depois de o painel de Segurança
+mostrar as três linhas verdes.
+
+O que continua sendo saída de emergência é o que importa: `cfLeitura('off')`
++ F5, por navegador, e o worker respondendo em `/saude`.
 
 ## O que confirmar depois de publicar
 
-- O rodapé mostra **2026.08.31p** e o sistema abre com os dados de hoje
+- O rodapé mostra **2026.08.31r** e o sistema abre com os dados de hoje
   (não com a foto do último acesso — se abrir vazio, a leitura pela
   Cloudflare falhou e o console diz por quê)
 - Uma alteração em Vendas aparece na tela do outro em segundos
 - O console **não** mostra mais `[Firebase]` em gravação nenhuma
-- No worker, `/saude` responde `ok v17`
+- No worker, `/saude` responde `ok v18`
+- Na aba Rede do navegador (F12), a abertura **não** busca nada em
+  `gstatic.com/firebasejs` — se buscar, o `index.html` publicado é antigo
+- Todo mundo consegue entrar. É o teste que importa: sem o Firebase, quem
+  entra é quem tem senha no cofre, e mais ninguém
