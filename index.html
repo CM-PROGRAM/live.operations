@@ -6741,6 +6741,23 @@ let fbConnected = false;
    são no-ops definitivos. Eles ficaram de propósito — arrancar trinta
    guardas de uma vez é exatamente como se perde uma gravação sem
    perceber. Saem aos poucos, cada um no dia em que sua tela for mexida. */
+/* ── "TEM NUVEM?" ─────────────────────────────────────────────
+   A pergunta que meio sistema faz antes de ler ou de gravar. Ela nasceu
+   escrita como `db && fbConnected` porque, na época, nuvem só havia uma.
+   Excluído o Firebase, essa expressão passou a responder NÃO para sempre
+   — e telas inteiras (o arquivo do que foi excluído, o backup diário, a
+   auditoria, os avisos entre pessoas) ficaram dizendo "sem conexão" com a
+   Cloudflare de pé do lado.
+
+   Duas perguntas, porque são mesmo duas: ler pede a leitura ativa;
+   gravar pede o espelho ligado. */
+function temNuvemLeitura(){
+  try{ return !!(_cfLeituraAtiva || (db && fbConnected)); }catch(e){ return !!(db && fbConnected); }
+}
+function temNuvemGravacao(){
+  try{ return !!((CF_DADOS_ATIVO && _cfImgAtivo()) || (db && fbConnected)); }catch(e){ return !!(db && fbConnected); }
+}
+
 function initFirebase(){
   if(FB_APOSENTADO){ console.log('[firebase] projeto excluído — o acesso e os dados são da Cloudflare'); return; }
   try {
@@ -7624,6 +7641,22 @@ function _espelharCaminho(caminho,dados){
    duas operações que eles já usam (push e set) — e que, de quebra,
    espelha na Cloudflare. Nenhum ponto de chamada muda de forma. */
 function _refNotificacoes(caminho){
+  /* Sem banco antigo, `db.ref()` estoura na primeira linha — e estourava
+     ANTES do espelho, então o aviso não chegava a lugar nenhum. A chave
+     agora nasce aqui mesmo, e o caminho é um só: a Cloudflare. */
+  if(!(db && fbConnected)){
+    return {
+      push(valor){
+        const chave=_chaveNuvem();
+        _espelharCaminho(caminho+'/'+chave, valor);
+        return {key:chave};
+      },
+      set(valor){
+        _espelharCaminho(caminho, valor);
+        return Promise.resolve();
+      }
+    };
+  }
   const ref=db.ref(caminho);
   return {
     push(valor){
@@ -7996,7 +8029,7 @@ const ARQ_AREAS={
 
 function arquivarRegistro(area,registro,extras){
   if(!registro) return Promise.resolve(false);
-  if(!(db && fbConnected)){
+  if(!temNuvemGravacao()){
     console.warn('[arquivo] sem conexão — registro não arquivado:',area,registro.id);
     return Promise.resolve(false);
   }
@@ -8012,8 +8045,14 @@ function arquivarRegistro(area,registro,extras){
     ...(extras||{})
   };
   const chaveArq=String(id).replace(/[.#$/\[\]]/g,'_');
-  // Espelho Cloudflare (etapa 2): o arquivo permanente também em cópia
-  try{ _cfEspelharLinhas([{colecao:'arquivo/'+area, chave:chaveArq, dados:pacote}]); }catch(e){}
+  /* A Cloudflare deixou de ser "cópia" e passou a ser o arquivo. A fila do
+     espelho é assíncrona de propósito (junta até 400 linhas antes de
+     subir), então quem confirma aqui é a enfileiração — e é ela que
+     autoriza a exclusão a seguir. */
+  try{ _cfEspelharLinhas([{colecao:'arquivo/'+area, chave:chaveArq, dados:pacote}]); }catch(e){
+    console.warn('[arquivo] não deu para enfileirar:',e.message); return Promise.resolve(false);
+  }
+  if(!(db && fbConnected)) return Promise.resolve(true);
   return db.ref(FB_ARQUIVO+'/'+area+'/'+chaveArq).set(pacote)
     .then(()=>true)
     .catch(err=>{ console.warn('[arquivo] falha:',err.message); return false; });
@@ -8033,7 +8072,11 @@ function _arqResumo(area,r){
 // Arquiva e só então executa a remoção, para nunca perder o conteúdo
 function excluirComArquivo(area,registro,remover,extras){
   return arquivarRegistro(area,registro,extras).then(ok=>{
-    if(!ok && (db && fbConnected)){
+    /* Se o arquivamento falhou COM nuvem de pé, a exclusão não segue — é o
+       que impede o conteúdo de sumir sem cópia. Escrito como `db &&
+       fbConnected`, isso virava sempre falso depois do desligamento: o
+       registro seria apagado mesmo sem ter sido arquivado. */
+    if(!ok && temNuvemGravacao()){
       showToast('Não foi possível arquivar — exclusão cancelada','error');
       return false;
     }
@@ -8046,7 +8089,7 @@ let _arqCache=null;
 function carregarArquivo(){
   const alvo=document.getElementById('arq-lista');
   if(!alvo) return;
-  if(!(db && fbConnected)){ alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão com a nuvem.</div>'; return; }
+  if(!temNuvemLeitura()){ alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Sem conexão com a nuvem.</div>'; return; }
   alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Carregando…</div>';
   (_cfLeituraAtiva ? cfLerRamoDeDoisNiveis('arquivo/').then(_snapshotDe)
                    : db.ref(FB_ARQUIVO).once('value')).then(snap=>{
@@ -8148,7 +8191,7 @@ function _hojeISO(){ return new Date().toISOString().slice(0,10); }
 // Só o master gera, para não haver várias sessões gravando o mesmo
 function verificarBackupAutomatico(){
   if(!currentUser || !currentUser.master) return;
-  if(!(db && fbConnected)) return;
+  if(!temNuvemGravacao()) return;
   const hoje=_hojeISO();
   _lerRegistroSnapshot('backupsIndex', hoje).then(snap=>{
     if(snap.exists()) return;            // já existe a cópia de hoje
@@ -8288,7 +8331,7 @@ function restaurarBackup(dia){
    por dia por navegador; quando está tudo em ordem, não faz nada. */
 function _autoRecuperarBaseInfo(){
   if(!currentUser || !currentUser.master) return;
-  if(!(db && fbConnected) || !_recebeuNuvem) return;
+  if(!temNuvemLeitura() || !_recebeuNuvem) return;
   if(Array.isArray(appState.baseInfo) && appState.baseInfo.length) return;
   try{
     const k='liveops_autorec_baseinfo';
@@ -8434,7 +8477,7 @@ const _LOG_CONCLUIDA=new Set(['Concluída','Finalizada']);
 // Lê o histórico das tarefas que hoje estão abertas e devolve, para cada uma
 // que o histórico dá como concluída, quem concluiu e quando.
 function _conclusoesNoHistorico(){
-  if(!(db && fbConnected)) return Promise.resolve([]);
+  if(!temNuvemLeitura()) return Promise.resolve([]);
   const abertas=(appState.atividades||[]).filter(a=>a && a.status!=='concluida' && a.status!=='finalizada');
   if(!abertas.length) return Promise.resolve([]);
   return Promise.all(abertas.map(a=>
@@ -8518,7 +8561,7 @@ function _recriarRotinaConcluida(x,ordem){
 
 function recuperarPeloHistorico(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode reparar','warn'); return; }
-  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  if(!temNuvemLeitura()){ showToast('Sem conexão com a nuvem','error'); return; }
   const btn=document.getElementById('btn-recuperar-historico');
   if(btn){ btn.disabled=true; btn.textContent='Lendo o histórico…'; }
   const soltar=()=>{ if(btn){ btn.disabled=false; btn.textContent='🕘 Recuperar pelo histórico'; } };
@@ -8565,7 +8608,7 @@ function recuperarPeloHistorico(){
    acertar na mão, na ordem certa. */
 function repararTudo(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode reparar','warn'); return; }
-  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  if(!temNuvemLeitura()){ showToast('Sem conexão com a nuvem','error'); return; }
   const btn=document.getElementById('btn-reparar-tudo');
   if(btn){ btn.disabled=true; btn.textContent='1/3 · recuperando imagens…'; }
   _recuperarImagensPerdidas(true).then(imgs=>{
@@ -8802,7 +8845,7 @@ function _recuperarImagensPerdidas(silencioso){
 
 function recuperarImagensPerdidas(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return; }
-  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  if(!temNuvemLeitura()){ showToast('Sem conexão com a nuvem','error'); return; }
   const btn=document.getElementById('btn-recuperar-img');
   if(btn){ btn.disabled=true; btn.textContent='Lendo imagens guardadas…'; }
   showToast('Procurando imagens guardadas…','warn');
@@ -9177,12 +9220,19 @@ function renderAdmHub(){
   const users=Object.entries(appState.users||{});
   const semEmail=users.filter(([,u])=>!(u&&_emailValido(u.email))).length;
 
-  // Segurança: conexão, autenticação e lista de autorizados
-  const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
-  const seg = !fbConnected            ? {txt:'sem conexão',tom:'ruim'}
-            : !autenticado            ? {txt:'sem autenticar',tom:'atencao'}
-            : _souAutorizado===false  ? {txt:'fora da lista',tom:'ruim'}
-                                      : {txt:'acesso em ordem'};
+  /* Segurança: quem responde por conexão e por acesso agora é a Cloudflare.
+     Perguntar `fbConnected` aqui era perguntar a um banco excluído — e o
+     cartão dizia "sem conexão" com o sistema inteiro funcionando. */
+  const salaCf=!!(typeof _cfSala!=='undefined' && _cfSala && _cfSala.readyState===1);
+  const seg = FB_APOSENTADO
+    ? ( !temNuvemLeitura()  ? {txt:'sem conexão',tom:'ruim'}
+      : !salaCf             ? {txt:'tempo real reconectando',tom:'atencao'}
+                            : {txt:'acesso em ordem'} )
+    : (()=>{ const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
+        return !fbConnected            ? {txt:'sem conexão',tom:'ruim'}
+             : !autenticado            ? {txt:'sem autenticar',tom:'atencao'}
+             : _souAutorizado===false  ? {txt:'fora da lista',tom:'ruim'}
+                                       : {txt:'acesso em ordem'}; })();
 
   // Dados & Backup: junta backup .zip, peso do pacote e reparos
   let avisosDados=0, graveDados=false;
@@ -9243,12 +9293,19 @@ function renderVisaoGeral(){
      </button>`);
   const VERDE='#4ade80', AMBAR='#f59e0b', VERMELHO='#ef4444';
 
-  // 1. Nuvem e acesso
-  const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
-  if(!fbConnected)          add(VERMELHO,'Nuvem','Sem conexão','As alterações ficam neste computador até voltar.','seguranca');
-  else if(!autenticado)     add(AMBAR,'Nuvem','Sem autenticar','Conectado, mas sem conta autenticada.','seguranca');
-  else if(_souAutorizado===false) add(VERMELHO,'Nuvem','Fora da lista','Este acesso ainda não foi aprovado.','seguranca');
-  else                      add(VERDE,'Nuvem','Conectada','Autenticada e aprovada na lista.','seguranca');
+  // 1. Nuvem e acesso — a Cloudflare é quem responde desde 31/08/2026
+  const salaViva=!!(typeof _cfSala!=='undefined' && _cfSala && _cfSala.readyState===1);
+  if(FB_APOSENTADO){
+    if(!temNuvemLeitura())  add(VERMELHO,'Nuvem','Sem conexão','As alterações ficam neste computador até voltar. Recarregue a página (F5).','seguranca');
+    else if(!salaViva)      add(AMBAR,'Nuvem','Tempo real reconectando','Os dados estão vindo; o que os outros gravarem agora pode demorar a aparecer.','seguranca');
+    else                    add(VERDE,'Nuvem','Conectada','Lendo pela Cloudflare, com tempo real de pé.','seguranca');
+  }else{
+    const autenticado=(typeof firebase!=='undefined' && firebase.auth && firebase.auth().currentUser)?true:false;
+    if(!fbConnected)          add(VERMELHO,'Nuvem','Sem conexão','As alterações ficam neste computador até voltar.','seguranca');
+    else if(!autenticado)     add(AMBAR,'Nuvem','Sem autenticar','Conectado, mas sem conta autenticada.','seguranca');
+    else if(_souAutorizado===false) add(VERMELHO,'Nuvem','Fora da lista','Este acesso ainda não foi aprovado.','seguranca');
+    else                      add(VERDE,'Nuvem','Conectada','Autenticada e aprovada na lista.','seguranca');
+  }
 
   // 2. Backup .zip — a única cópia que sobrevive a um problema na conta
   let dias=null; try{ dias=_diasDesdeUltimoZip(); }catch(e){}
@@ -9704,7 +9761,7 @@ function renderSaudeDados(){
 // antigo em memória e podem regravá-lo por cima do que foi corrigido.
 function derrubarTodosUsuarios(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode derrubar sessões','warn'); return; }
-  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  if(!temNuvemGravacao()){ showToast('Sem conexão com a nuvem','error'); return; }
   const alvos=Object.keys(appState.users||{}).filter(k=>k!==currentUser.key);
   if(!alvos.length){ showToast('Não há outros usuários cadastrados','warn'); return; }
   if(!confirmar(()=>derrubarTodosUsuarios(), `Desconectar ${alvos.length} usuário(s) agora?\n\nCada um verá um aviso e será deslogado em alguns segundos. Você continua conectado.`)) return;
@@ -9724,7 +9781,7 @@ function derrubarTodosUsuarios(){
 // confere que chegou, e só então substitui pela miniatura.
 function migrarImagensParaFora(){
   if(!currentUser || !currentUser.master){ showToast('Apenas o master pode migrar','warn'); return; }
-  if(!(db && fbConnected)){ showToast('Sem conexão com a nuvem','error'); return; }
+  if(!temNuvemGravacao()){ showToast('Sem conexão com a nuvem','error'); return; }
   const alvos=[];
   _percorrerImagensDoEstado(appState,(obj,chave,rotulo,dono,campo,indice)=>{
     // Já migrada? (tem referência e a imagem é pequena) — pula
@@ -13328,7 +13385,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31r';
+const APP_VERSAO='2026.08.31s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -29802,7 +29859,7 @@ function carregarLogRegistro(prefixo,entidade,id){
   body.style.display='none';
   const chev=document.getElementById(prefixo+'-log-chevron');
   if(chev) chev.style.transform='';
-  if(!db||!fbConnected||!id){ wrap.style.display='none'; return; }
+  if(!temNuvemLeitura()||!id){ wrap.style.display='none'; return; }
   wrap.style.display='block';
   body.innerHTML='<div style="padding:12px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Carregando…</div>';
   _lerRamoSnapshot(FB_LOGS_PATH+'/'+entidade+'/'+id, 80).then(snap=>{
@@ -29858,7 +29915,7 @@ let _auditEntradas=[];
 function carregarAuditoriaGeral(){
   const alvo=document.getElementById('audit-lista');
   if(!alvo) return;
-  if(!db||!fbConnected){
+  if(!temNuvemLeitura()){
     alvo.innerHTML='<div style="padding:14px;font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Sem conexão com a nuvem — histórico indisponível.</div>';
     return;
   }
@@ -31585,7 +31642,7 @@ function _notifDescricaoItem(item){
 // Envia uma notificação para um usuário (sino + push), ignorando o próprio autor
 function _notifEnviar(destKey,msg,tipo,alvoTipo,alvoId){
   if(!destKey || !currentUser || destKey===currentUser.key) return;
-  if(!(db && fbConnected)) return;
+  if(!temNuvemGravacao()) return;
   _refNotificacoes('suplelive/notificacoes/'+destKey).push({
     msg, ts:Date.now(), lida:false, tipo:tipo||'tarefa', de:currentUser.name,
     alvoTipo:alvoTipo||tipo||'tarefa', alvoId:alvoId||''
@@ -31597,7 +31654,7 @@ function _notifEnviar(destKey,msg,tipo,alvoTipo,alvoId){
 // automação, então o responsável precisa ser avisado mesmo sendo ele quem
 // está com o navegador aberto na hora em que o registro chegou.
 function _notifEnviarDeFora(destKey,msg,de,tipo,alvoTipo,alvoId){
-  if(!destKey || !(db && fbConnected)) return;
+  if(!destKey || !temNuvemGravacao()) return;
   _refNotificacoes('suplelive/notificacoes/'+destKey).push({
     msg, ts:Date.now(), lida:false, tipo:tipo||'tarefa', de:de||'automação',
     alvoTipo:alvoTipo||tipo||'tarefa', alvoId:alvoId||''
