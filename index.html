@@ -801,6 +801,14 @@ html{overflow-x:hidden;}
   border-bottom:1px solid var(--linha-sutil);transition:background .12s;}
 .wa-conv:hover{background:var(--veu-suave);}
 .wa-conv.ativa{background:var(--veu-medio);}
+.wa-dt-panel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 2px 2px;
+  font-size:11.5px;color:var(--text-muted);}
+.wa-dt-panel label{display:inline-flex;align-items:center;gap:5px;font-weight:700;}
+.wa-dt-panel input[type=date]{border:1px solid var(--glass-border);background:var(--bg-surface);
+  color:var(--text-primary);border-radius:8px;padding:4px 7px;font-size:12px;font-family:inherit;}
+.wa-dt-limpar{background:none;border:1px solid var(--glass-border);border-radius:8px;cursor:pointer;
+  color:var(--text-muted);font-size:11px;padding:4px 10px;font-weight:700;}
+.wa-dt-limpar:hover{color:#ef4444;border-color:rgba(239,68,68,.45);}
 .wa-mais{display:block;width:calc(100% - 20px);margin:8px 10px 12px;padding:9px;border-radius:9px;
   border:1px solid var(--glass-border);background:var(--veu-medio);color:var(--text-secondary);
   font-size:12px;font-weight:700;cursor:pointer;}
@@ -4226,6 +4234,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               <!-- As pílulas do WhatsApp: o que se vê da caixa. Etiqueta é
                    assunto do painel próprio, ao lado. -->
               <div id="wa-filtro-tags" class="wa-filtro-tags"></div>
+              <!-- Filtro por período: abre no 📅 das pílulas -->
+              <div id="wa-dt-panel" class="wa-dt-panel" style="display:none;">
+                <label>De <input type="date" id="wa-dt-ini" onchange="waDtAplicar()"></label>
+                <label>Até <input type="date" id="wa-dt-fim" onchange="waDtAplicar()"></label>
+                <button type="button" class="wa-dt-limpar" onclick="waDtLimpar()">Limpar</button>
+              </div>
             </div>
             <div id="wa-aviso-fluxo" class="wa-aviso-fluxo" style="display:none;"></div>
             <div id="wa-convs" class="wa-convs">
@@ -13147,7 +13161,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31l';
+const APP_VERSAO='2026.08.31m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15122,6 +15136,7 @@ function inboxRender(){
       const arq=!!(regs.get(c.id)||{}).arquivada;
       return _waVista==='arquivadas' ? arq : !arq;
     })
+    .filter(c=>_waDentroDoPeriodo(c.ts))
     .sort((a,b)=>(b.ts||0)-(a.ts||0));
   const totalFiltrado=lista.length;
   const visiveis=lista.slice(0,_waJanela);
@@ -15178,11 +15193,13 @@ function inboxRender(){
   if(!lista.length && !contatosHtml){
     box.innerHTML='<div class="wa-aguarde">'+(q
       ?'Nenhuma conversa nem contato encontrado para essa busca.'
-      :(_waFiltroTag
-        ?'Nenhuma conversa com esta etiqueta.'
-        :(_waVista==='arquivadas'
-          ?'Nenhuma conversa arquivada.'
-          :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.')))+'</div>';
+      :((_waDtIni||_waDtFim)
+        ?'Nenhuma conversa no período escolhido.'
+        :(_waFiltroTag
+          ?'Nenhuma conversa com esta etiqueta.'
+          :(_waVista==='arquivadas'
+            ?'Nenhuma conversa arquivada.'
+            :'Nenhuma conversa ainda. Assim que o fluxo do n8n estiver ligado ao Chatwoot, as mensagens novas aparecem aqui sozinhas.'))))+'</div>';
     return;
   }
   box.innerHTML=visiveis.map(c=>{
@@ -15217,13 +15234,55 @@ function _waPintarFiltroTags(){
   // Conta pelos registros de etiqueta (dezenas), não pelas conversas (milhares)
   const nArq=(appState.waConvTags||[]).filter(r=>r&&r.arquivada&&_waConvs[r.id]).length;
   const t=_waFiltroTag?_waEtiqueta(_waFiltroTag):null;
+  const temDt=!!(_waDtIni||_waDtFim);
   box.innerHTML=
     `<span class="wa-pil${_waVista==='tudo'?' ativa':''}" onclick="waVista('tudo')">Tudo</span>`
     +`<span class="wa-pil${_waVista==='arquivadas'?' ativa':''}" onclick="waVista('arquivadas')">Arquivadas${nArq?' <b>'+nArq+'</b>':''}</span>`
+    +`<span class="wa-pil${temDt?' ativa':''}" onclick="waDtPainel()" title="Filtrar por período">📅${temDt?' '+_iniEsc(_waDtRotulo()):''}</span>`
     +(t?`<span class="wa-pil ativa wa-pil-etq" style="--tc:${t.cor||'#2563eb'};" onclick="waFiltrarTag('')"
         title="Soltar a etiqueta">${_iniEsc(t.nome)} ×</span>`:'');
 }
 function waVista(v){ _waVista=v||'tudo'; inboxRender(); }
+
+/* ── Filtro por período ──────────────────────────────────────────────
+   Dt Início / Dt Fim com o calendário do próprio navegador. Combina com
+   a busca, a etiqueta e as arquivadas — cada filtro estreita o anterior. */
+let _waDtIni='', _waDtFim='', _waDtAberto=false;
+function _waDtRotulo(){
+  const f=v=>{ const p=String(v).split('-'); return p.length===3?(p[2]+'/'+p[1]):''; };
+  if(_waDtIni&&_waDtFim) return f(_waDtIni)+' – '+f(_waDtFim);
+  if(_waDtIni) return 'desde '+f(_waDtIni);
+  return 'até '+f(_waDtFim);
+}
+function waDtPainel(){
+  _waDtAberto=!_waDtAberto;
+  const p=document.getElementById('wa-dt-panel');
+  if(p){ p.style.display=_waDtAberto?'':'none';
+    const i=document.getElementById('wa-dt-ini'), f=document.getElementById('wa-dt-fim');
+    if(i) i.value=_waDtIni; if(f) f.value=_waDtFim;
+    if(_waDtAberto && i) i.focus(); }
+}
+function waDtAplicar(){
+  let ini=(document.getElementById('wa-dt-ini')||{}).value||'';
+  let fim=(document.getElementById('wa-dt-fim')||{}).value||'';
+  if(ini && fim && fim<ini){ const t=ini; ini=fim; fim=t;   // datas trocadas: entende, não briga
+    const i=document.getElementById('wa-dt-ini'), f=document.getElementById('wa-dt-fim');
+    if(i) i.value=ini; if(f) f.value=fim; }
+  _waDtIni=ini; _waDtFim=fim; _waJanela=120;
+  inboxRender();
+}
+function waDtLimpar(){
+  _waDtIni=''; _waDtFim=''; _waJanela=120; _waDtAberto=false;
+  const p=document.getElementById('wa-dt-panel'); if(p) p.style.display='none';
+  inboxRender();
+}
+function _waDentroDoPeriodo(ts){
+  if(!_waDtIni && !_waDtFim) return true;
+  const t=Number(ts)||0;
+  if(_waDtIni && t<Date.parse(_waDtIni+'T00:00:00')) return false;
+  if(_waDtFim && t>Date.parse(_waDtFim+'T23:59:59.999')) return false;
+  return true;
+}
 
 /* Quando o Firebase tem conversa que o espelho da Cloudflare não tem, o
    fluxo do n8n voltou a gravar no lugar antigo. Foi assim que um dia de
