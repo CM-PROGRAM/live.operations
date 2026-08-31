@@ -10656,9 +10656,40 @@ function _removerRegistroRemoto(nome,acc,chave,valor){
 
 // Re-renderiza uma vez só, mesmo recebendo vários registros seguidos
 let _regRenderTimer=null;
+/* ── POR QUE O WHATSLIVE TRAVAVA ────────────────────────────────────
+   Cada gravação que chega pela sala agenda esta passada. Medida com o
+   volume real (6.216 contatos, 3.000 conversas, estado de 2,3 MB), ela
+   custa ~205 ms — e o `saveLocal` sozinho são ~100 ms deles.
+
+   Enquanto a sala esteve quebrada (v16 a v18) isso não aparecia: não
+   chegava evento nenhum. Consertada na v19, o fluxo do Inbox voltou a
+   gravar um contato a CADA mensagem que entra — e numa hora de movimento
+   o navegador passava metade do tempo dentro desta função. Era o "Página
+   sem resposta".
+
+   Três medidas, da mais eficaz para a menor:
+     · o cache local do navegador não precisa ser reescrito a cada evento;
+       uma vez a cada 10 s basta, e é o que sobe o custo de 205 para ~105 ms;
+     · sob rajada, o intervalo mínimo entre passadas sobe para 2 s;
+     · só a aba aberta é repintada — as outras nove eram desenhadas para
+       ninguém ver. */
+let _regUltimoLocal=0, _regUltimaPassada=0;
+const _REG_LOCAL_CADA=10000, _REG_MIN_ENTRE=2000;
+
+function _regAbaAtiva(){
+  const p=document.querySelector('.tab-panel.active');
+  return p ? String(p.id||'').replace(/^tab-/,'') : '';
+}
+
 function _agendarRenderRegistros(){
   clearTimeout(_regRenderTimer);
+  /* Rajada: se a última passada foi agora há pouco, espera o resto do
+     intervalo em vez de rodar de novo. O evento não se perde — ele só
+     entra na próxima passada, que redesenha tudo do mesmo jeito. */
+  const desdeAUltima=Date.now()-_regUltimaPassada;
+  const espera=Math.max(250, _REG_MIN_ENTRE-desdeAUltima);
   _regRenderTimer=setTimeout(()=>{
+    _regUltimaPassada=Date.now();
     // Solicitações de Canceladas podem ter chegado do n8n, sem tarefa; o
     // sistema completa aqui e devolve as tarefas novas para a nuvem
     let novasTarefas=false;
@@ -10670,12 +10701,28 @@ function _agendarRenderRegistros(){
     // Tarefas gravadas direto pela API não passaram pela tela e ninguém foi
     // avisado; o sistema completa a notificação aqui
     try{ if(notificarTarefasExternas()) novasTarefas=true; }catch(e){ console.warn('[externas]',e); }
-    try{ saveLocal(appState); }catch(e){}
+    /* O cache local é conveniência, não fonte da verdade: a nuvem tem
+       tudo. Reescrever 2 MB no navegador a cada mensagem que chega era o
+       item mais caro da passada. */
+    if(Date.now()-_regUltimoLocal>_REG_LOCAL_CADA){
+      _regUltimoLocal=Date.now();
+      try{ saveLocal(appState); }catch(e){}
+    }
     try{ logSincronizarSnapshot(appState); }catch(e){}
     try{ renderAll(); }catch(e){}
-    ['renderAtividades','renderDev','renderAte','renderIntegracoes','renderExcluirIntBase','renderEntradas','renderImagens','renderProjetos','renderProjNotas']
-      .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
-    ['canc','cancnf'].forEach(p=>{ try{ renderCanceladas(p); }catch(e){} });
+    /* Desenhar as nove telas fechadas era trabalho para ninguém ver. A
+       aberta é repintada agora; as outras, quando forem abertas — que é
+       exatamente quando o switchTab as chama. */
+    const aba=_regAbaAtiva();
+    const porAba={
+      tarefas:['renderAtividades'], devolucoes:['renderDev'], atendimentos:['renderAte'],
+      integracao:['renderIntegracoes'], excluirintbase:['renderExcluirIntBase'],
+      entrada:['renderEntradas'], imagens:['renderImagens'],
+      projetos:['renderProjetos','renderProjNotas'], notas:['renderProjNotas']
+    };
+    (porAba[aba]||[]).forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+    if(aba==='canceladas')   { try{ renderCanceladas('canc');   }catch(e){} }
+    if(aba==='canceladasnf') { try{ renderCanceladas('cancnf'); }catch(e){} }
     /* A coluna lateral do WhatsLive não estava nesta lista: a agenda
        chegava da nuvem (varredura de milhares de contatos) e a vista
        aberta continuava dizendo zero até a pessoa trocar de painel. */
@@ -10688,7 +10735,7 @@ function _agendarRenderRegistros(){
     try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
     try{ _tplRenderSeguro(); }catch(e){}
     if(novasTarefas){ try{ saveState(appState); }catch(e){} }
-  },250);
+  },espera);
 }
 
 function _ouvirRegistros(){
@@ -13386,7 +13433,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31t';
+const APP_VERSAO='2026.08.31u';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14629,16 +14676,44 @@ function inboxParar(){
    existe é dado como lido — a bolinha conta só o movimento dali em diante,
    senão ela nasceria com as 40 conversas antigas. */
 let _waBadgeConvs={};
+/* O mapa de "até onde eu já li" vive no navegador. Lê-lo era um
+   localStorage.getItem + JSON.parse com milhares de chaves — barato uma
+   vez, ruinoso quando chamado uma vez POR CONVERSA carregada. Fica em
+   memória, e o disco só é tocado quando alguma coisa muda. */
+let _waLidoCache=null, _waLidoCacheDe='';
 function _waLidoMapa(){
   if(!currentUser) return {};
-  try{ return JSON.parse(localStorage.getItem('liveops_walidas_'+currentUser.key)||'{}'); }catch(e){ return {}; }
+  if(_waLidoCache && _waLidoCacheDe===currentUser.key) return _waLidoCache;
+  try{ _waLidoCache=JSON.parse(localStorage.getItem('liveops_walidas_'+currentUser.key)||'{}'); }
+  catch(e){ _waLidoCache={}; }
+  _waLidoCacheDe=currentUser.key;
+  return _waLidoCache;
+}
+function _waLidoGravar(m){
+  _waLidoCache=m; _waLidoCacheDe=(currentUser&&currentUser.key)||'';
+  try{ localStorage.setItem('liveops_walidas_'+currentUser.key, JSON.stringify(m)); }catch(e){}
+}
+
+/* ── O QUE TRAVAVA O WHATSLIVE ──────────────────────────────────────
+   _waBadgeAtualizar percorre TODAS as conversas para contar as não
+   lidas. Correto — só que era chamada uma vez por conversa dentro do
+   laço que carrega as conversas. Com 6.460 conversas isso é 6.460 ×
+   6.460 ≈ 42 milhões de comparações, mais um JSON.parse do mapa de
+   lidas a cada volta. Daí o "Página sem resposta" ao abrir a aba.
+
+   A conta é a mesma; o que muda é quantas vezes ela é feita: uma só,
+   ao fim da carga. */
+let _waBadgeTimer=null;
+function _waBadgeAgendar(){
+  clearTimeout(_waBadgeTimer);
+  _waBadgeTimer=setTimeout(()=>{ try{ _waBadgeAtualizar(); }catch(e){} },120);
 }
 function _waMarcarLida(id,ts){
   if(!currentUser||!id) return;
   const m=_waLidoMapa();
   m[id]=Math.max(m[id]||0, ts||Date.now());
-  try{ localStorage.setItem('liveops_walidas_'+currentUser.key, JSON.stringify(m)); }catch(e){}
-  _waBadgeAtualizar();
+  _waLidoGravar(m);
+  _waBadgeAgendar();
 }
 function _waBadgeAtualizar(){
   const btn=document.querySelector('.tab-btn[data-tab="inbox"]');
@@ -14651,10 +14726,8 @@ function _waBadgeAtualizar(){
   if(seed){
     const m=_waLidoMapa();
     Object.entries(convs).forEach(([k,c])=>{ m[k]=Math.max(m[k]||0,c.ts||0); });
-    try{
-      localStorage.setItem('liveops_walidas_'+currentUser.key, JSON.stringify(m));
-      localStorage.setItem(marcaSeed,'1');
-    }catch(e){}
+    _waLidoGravar(m);
+    try{ localStorage.setItem(marcaSeed,'1'); }catch(e){}
   }
   const lido=_waLidoMapa();
   const n=Object.entries(convs).filter(([k,c])=>c && c.deUltima==='cliente' && (c.ts||0)>(lido[k]||0)).length;
@@ -14729,7 +14802,7 @@ function _inboxAvisarDaConversa(chave,c){
     if(!currentUser || !chave) return;
     c=c||{};
     _waBadgeConvs[chave]={ts:c.ts,deUltima:c.deUltima};
-    try{ _waBadgeAtualizar(); }catch(e){}
+    _waBadgeAgendar();
     if(c.deUltima!=='cliente') return;
     if(!c.ts || c.ts<=_waNotifDesde) return;
     const painel=document.getElementById('tab-inbox');
@@ -15145,6 +15218,121 @@ function waSalvarContatoDaConversa(id){
   const nome=partes.shift()||'Contato';
   waContatoSalvar(nome, c.telefone, partes.join(' '));
 }
+/* ── O cadastro do cliente: completo ou pela metade ──────────────────
+   "Na agenda" dizia apenas que o telefone estava guardado — e telefone
+   guardado sem nome e sem CPF não serve para nada além de discar. A
+   varredura do Chatwoot trouxe milhares assim: número, e só.
+
+   Então o selo passou a valer o que promete. Ele só aparece com os TRÊS
+   campos preenchidos; faltando um, o botão convida a completar. */
+function _waCadastroCompleto(c){
+  if(!c) return false;
+  const nome=String(c.nome||'').trim();
+  return !!(nome && nome!=='Contato'
+         && String(c.sobrenome||'').trim()
+         && _cliSoDigitos(c.cpf||'').length===11);
+}
+
+function _waSeloCadastro(convId,tel){
+  const c=_waContatoSalvo(tel);
+  if(c && _waCadastroCompleto(c)){
+    return `<span class="wa-ct-selo" title="Nome, sobrenome e CPF preenchidos">✓ Na agenda</span>`;
+  }
+  const rotulo = c ? '✎ Atualizar cadastro' : '＋ Salvar contato';
+  const dica   = c ? 'Falta nome, sobrenome ou CPF' : 'Guardar na agenda';
+  return `<button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
+    onclick="waCadastroAbrir('${_iniEsc(convId)}')" title="${dica}">${rotulo}</button>`;
+}
+
+/* A tela de cadastro. Vem preenchida com o que já se sabe — o nome do
+   Chatwoot quebrado em nome e sobrenome, o telefone da conversa, o CPF se
+   alguém já tiver digitado — para o trabalho ser completar, não redigitar. */
+function waCadastroAbrir(convId){
+  const conv=_waConvs[convId]||{};
+  const tel=conv.telefone||'';
+  if(!tel){ showToast('Esta conversa não tem telefone','warn'); return; }
+  const ja=_waContatoSalvo(tel);
+  /* O nome que vem do WhatsApp costuma vir enfeitado — "||:..diego
+     rodrigues..:||", emojis, pontuação. Preencher o campo com isso obriga
+     a apagar antes de digitar; limpo, quase sempre já está certo. */
+  const limpo=t=>String(t||'').replace(/[^\p{L}\p{M}\s'-]/gu,' ').replace(/\s+/g,' ').trim();
+  /* "Contato" é o rótulo que a varredura põe em quem chegou só com
+     telefone. Tratá-lo como nome de verdade era jogar fora o nome que a
+     conversa sabe. */
+  const salvoTemNome=!!(ja && ja.nome && ja.nome!=='Contato');
+  const base=limpo(salvoTemNome?_waNomeCompleto(ja):conv.nome);
+  const partes=base.split(' ').filter(Boolean);
+  const nome=partes.shift()||'';
+  const sobre=(ja&&ja.sobrenome)?ja.sobrenome:partes.join(' ');
+  const cpf=ja?_cliFmtCpf(_cliSoDigitos(ja.cpf||'')):'';
+
+  const antigo=document.getElementById('wa-cad-overlay');
+  if(antigo) antigo.remove();
+  const ov=document.createElement('div');
+  ov.id='wa-cad-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:2950;display:flex;align-items:center;justify-content:center;padding:24px;';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  ov.innerHTML=`<div style="background:var(--bg-panel,var(--bg-surface));border:1px solid var(--border);border-radius:14px;
+      padding:22px;max-width:430px;width:100%;box-shadow:0 18px 50px rgba(0,0,0,.45);">
+      <div style="font-size:20px;font-weight:700;color:var(--accent);letter-spacing:-0.02em;margin-bottom:3px;">
+        ${ja?'Atualizar cadastro':'Salvar contato'}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">
+        ${_iniEsc(tel)} — o selo <b>Na agenda</b> só aparece com os três preenchidos.</div>
+      <div class="input-group"><label>Nome</label>
+        <input type="text" id="wa-cad-nome" maxlength="40" value="${_iniEsc(nome)}" placeholder="Ex.: Diego"></div>
+      <div class="input-group"><label>Sobrenome</label>
+        <input type="text" id="wa-cad-sobre" maxlength="40" value="${_iniEsc(sobre)}" placeholder="Ex.: Rodrigues"></div>
+      <div class="input-group"><label>CPF</label>
+        <input type="text" id="wa-cad-cpf" maxlength="14" value="${_iniEsc(cpf)}" placeholder="000.000.000-00"
+          oninput="this.value=_cliFmtCpf(_cliSoDigitos(this.value))"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+        <button class="btn-sec" style="width:auto;" onclick="document.getElementById('wa-cad-overlay').remove()">Cancelar</button>
+        <button class="btn btn-sm" onclick="waCadastroSalvar('${_iniEsc(convId)}')">Salvar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+  setTimeout(()=>{ const el=document.getElementById(nome?(sobre?'wa-cad-cpf':'wa-cad-sobre'):'wa-cad-nome'); if(el) el.focus(); },30);
+}
+
+function waCadastroSalvar(convId){
+  if(!currentUser){ showToast('Faça login para salvar contatos','warn'); return; }
+  const v=id=>String((document.getElementById(id)||{}).value||'').trim();
+  const nome=v('wa-cad-nome').slice(0,40);
+  const sobrenome=v('wa-cad-sobre').slice(0,40);
+  const cpf=_cliSoDigitos(v('wa-cad-cpf'));
+  const tel=(_waConvs[convId]||{}).telefone||'';
+  if(!nome){ showToast('Escreva o nome','warn'); return; }
+  if(cpf && cpf.length!==11){ showToast('CPF precisa ter 11 dígitos','warn'); return; }
+  if(_waDigitos(tel).length<10){ showToast('Telefone incompleto','warn'); return; }
+
+  if(!Array.isArray(appState.waContatos)) appState.waContatos=[];
+  const fim=_waDigitos(tel).slice(-8);
+  /* Atualiza TODOS os registros daquele telefone, não só o vencedor da
+     desduplicação: o gêmeo trazido pela varredura continuaria com o nome
+     velho e voltaria a vencer no próximo cálculo. */
+  let achou=false;
+  appState.waContatos.forEach(c=>{
+    if(!c || !_waDigitos(c.telefone).endsWith(fim)) return;
+    achou=true;
+    c.nome=nome; c.sobrenome=sobrenome;
+    if(cpf) c.cpf=cpf;
+    c.atualizadoEm=Date.now(); c.atualizadoPor=currentUser.name;
+  });
+  if(!achou){
+    appState.waContatos.push({
+      id:'wct_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6),
+      nome, sobrenome, telefone:tel, cpf,
+      criadoEm:Date.now(), criadoPor:currentUser.name});
+  }
+  saveState(appState);
+  const ov=document.getElementById('wa-cad-overlay'); if(ov) ov.remove();
+  _waPintarPainelContatos();
+  try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
+  const completo=[nome,sobrenome].filter(Boolean).join(' ');
+  showToast('✔ '+nomeProprio(completo)+(achou?' atualizado':' salvo na agenda'),'success');
+  try{ _cliCadastrarChatwoot(completo, tel, '', cpf); }catch(e){}
+}
+
 function waContatoExcluir(id){
   const c=_waContatos().find(x=>x.id===id); if(!c) return;
   if(!confirmar(()=>waContatoExcluir(id), `Tirar "${nomeProprio(_waNomeCompleto(c))}" da agenda?`)) return;
@@ -15605,10 +15793,7 @@ function inboxAbrir(id){
       <button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
         onclick="waArquivar('${_iniEsc(id)}',${_waArquivada(id)?'false':'true'})"
         title="${_waArquivada(id)?'Tirar do arquivo':'Arquivar esta conversa'}">${_waArquivada(id)?'↩ Desarquivar':'🗄 Arquivar'}</button>
-      ${c.telefone?(_waContatoSalvo(c.telefone)
-        ? `<span class="wa-ct-selo" title="Já está na sua agenda">✓ Na agenda</span>`
-        : `<button class="btn-sec wa-tag-btn" style="width:auto;padding:7px 12px;font-size:12px;"
-             onclick="waSalvarContatoDaConversa('${_iniEsc(id)}')" title="Guardar na agenda">＋ Salvar contato</button>`):''}
+      ${c.telefone?_waSeloCadastro(id,c.telefone):''}
       ${tel?`<a class="btn-sec" style="width:auto;padding:7px 14px;font-size:12px;" target="_blank" rel="noopener"
         href="https://wa.me/${tel.length<=11?'55':''}${tel}">Abrir no WhatsApp ↗</a>`:''}`;
   }
