@@ -34,6 +34,8 @@
   --bg-base:#0a0d15;--bg-surface:#10141f;--bg-card:#151a28;--bg-hover:#1b2133;--bg-active:#212942;
   --border:#27304b;--border-light:#33405f;
   --accent:#8fa8d8;--accent-dim:#2b3a5e;--accent-glow:rgba(143,168,216,0.18);--accent-soft:#aec3ea;
+  /* O azul dos botões, disponível como cor de texto: é o "azul padrão" da casa */
+  --lo-azul:#3b82f6;
   --green:#8fa8d8;--green-dim:#14532d;--green-glow:rgba(143,168,216,0.10);
   --amber:#b0bfd8;--amber-dim:#78350f;
   --red:#ef4444;--red-dim:#7f1d1d;
@@ -86,6 +88,9 @@
 :root[data-theme="light"]{
   --bg-base:#eef1f6;--bg-surface:#ffffff;--bg-card:#ffffff;--bg-hover:#e9edf4;--bg-active:#dfe5ef;
   --border:#d5dbe6;--border-light:#c1c9d8;
+  /* No claro o azul precisa ser o mais fechado, o mesmo dos botões: o
+     #3b82f6 do tema escuro clareia demais sobre branco. */
+  --lo-azul:#2563eb;
   /* Cinzas mais escuros que os do tema escuro invertido: sobre branco, o
      mesmo contraste exige mais tinta — era daqui que vinham as letras
      "quase transparentes". */
@@ -2430,9 +2435,13 @@ body.menu-oculto .sb-atu-txt{display:none;}
 /* Nas páginas internas da Página inicial (Base Conhecimento, Manual), o
    caminho de volta e o título precisam de presença: o botão era pequeno e o
    título de 11px quase não se via. */
-#inicio-conteudo .ini-voltar{font-size:15px;font-weight:700;padding:12px 24px;border-width:1.5px;
+/* O mesmo peso vale para o voltar do Administrador (Equipe, Desempenho
+   Equipe, Segurança, Dados & Backup): era o mesmo botão pequeno. */
+#inicio-conteudo .ini-voltar,
+#adm-voltar{font-size:15px;font-weight:700;padding:12px 24px;border-width:1.5px;
   border-color:rgba(19,26,38,0.3);}
-:root[data-theme="light"] #inicio-conteudo .ini-voltar:hover{border-color:#2563eb;color:#2563eb;}
+:root[data-theme="light"] #inicio-conteudo .ini-voltar:hover,
+:root[data-theme="light"] #adm-voltar:hover{border-color:#2563eb;color:#2563eb;}
 #inicio-conteudo .section-title{font-size:21px;font-weight:800;letter-spacing:.8px;}
 /* O botão de incluir informação, no mesmo peso dos botões primários */
 .bi-incluir{width:auto;font-size:15px;font-weight:700;padding:12px 28px;border-radius:10px;}
@@ -2545,22 +2554,33 @@ body.menu-oculto .sb-atu-txt{display:none;}
    Título grande em azul, botões azuis de letra branca: o padrão da casa.
    A tabela é o conteúdo — nome, plataforma, atividade, quando, e o olho. */
 .conf-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
-.conf-titulo{font-family:var(--font-sans);font-size:22px;font-weight:700;letter-spacing:-0.02em;color:var(--accent);margin:0 0 4px;}
+.conf-sanfona{display:flex;align-items:flex-start;gap:10px;background:none;border:0;padding:0;margin:0;
+  cursor:pointer;text-align:left;font-family:var(--font-sans);color:inherit;flex:1;min-width:240px;}
+.conf-sanfona .conf-titulo{display:block;}
+.conf-sanfona .conf-sub{display:block;margin-top:4px;}
+.conf-chevron{color:var(--lo-azul);font-size:17px;line-height:1.35;transition:transform .15s;flex-shrink:0;}
+.conf-chevron.fechado{transform:rotate(-90deg);}
+/* O azul da casa é o dos botões (#2563eb), não o --accent, que é um
+   azul-acinzentado de apoio e sumia ao lado do resto. */
+.conf-titulo{font-family:var(--font-sans);font-size:22px;font-weight:700;letter-spacing:-0.02em;
+  color:var(--lo-azul);margin:0;}
 .conf-sub{font-size:12px;color:var(--text-muted);line-height:1.55;max-width:640px;}
 .conf-filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
 .conf-filtros select{width:auto;min-width:170px;}
 .conf-filtros input{flex:1;min-width:220px;width:auto;}
 .conf-placar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
 .conf-chip{background:var(--bg-surface);border:1px solid var(--border);border-radius:10px;padding:9px 14px;min-width:118px;}
-.conf-chip b{display:block;font-size:19px;font-weight:700;color:var(--accent);font-family:var(--font-mono);line-height:1.2;}
+.conf-chip b{display:block;font-size:19px;font-weight:700;color:var(--lo-azul);font-family:var(--font-mono);line-height:1.2;}
 .conf-chip span{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);}
-.conf-tabela{border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;}
+/* Teto de altura: com 281 conferências a página passava de 13 mil pixels.
+   A lista rola por dentro; a página continua do tamanho da tela. */
+.conf-tabela{border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden auto;max-height:62vh;}
 .conf-linha{display:grid;grid-template-columns:minmax(120px,1fr) minmax(150px,1.4fr) minmax(120px,1.1fr) minmax(120px,.9fr) 46px;
   gap:12px;align-items:center;padding:11px 14px;border-bottom:1px solid var(--border);font-size:12.5px;}
 .conf-linha:last-child{border-bottom:none;}
 .conf-cab{background:var(--bg-surface);position:sticky;top:0;z-index:2;padding:9px 14px;}
 .conf-cab span{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);}
-.conf-quem{font-weight:600;color:var(--accent);}
+.conf-quem{font-weight:600;color:var(--lo-azul);}
 .conf-loja{font-size:11px;color:var(--text-muted);margin-top:1px;}
 .conf-quando{font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);}
 .conf-olho{width:30px;height:30px;border-radius:50%;border:1px solid rgb(37,99,235);background:rgb(37,99,235);color:#fff;
@@ -5358,13 +5378,20 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            garimpar isso no meio de "de: aberta → para: concluída". -->
       <div class="admin-panel adm-sec" data-sec="desempenho" id="conf-panel">
         <div class="conf-topo">
-          <div>
-            <h2 class="conf-titulo">Conferências concluídas</h2>
-            <div class="conf-sub">Quem conferiu, o que conferiu e quando. O olho abre o comentário e o print anexados pelo colaborador.</div>
-          </div>
-          <button class="btn btn-sm" onclick="confRecarregar()">↻ Atualizar</button>
+          <!-- Sanfona: 281 linhas empurravam tudo o que vem depois para
+               longe. O cabeçalho fica sempre visível; o corpo recolhe. -->
+          <button type="button" class="conf-sanfona" id="conf-sanfona" onclick="confSanfona()"
+            aria-expanded="true" title="Recolher ou abrir a lista">
+            <span class="conf-chevron" id="conf-chevron">▾</span>
+            <span>
+              <span class="conf-titulo">Conferências concluídas</span>
+              <span class="conf-sub">Quem conferiu, o que conferiu e quando. O olho abre o comentário e o print anexados pelo colaborador.</span>
+            </span>
+          </button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();confRecarregar()">↻ Atualizar</button>
         </div>
 
+        <div id="conf-corpo">
         <div class="conf-filtros">
           <select id="conf-f-quem" onchange="renderConferencias()"><option value="">Todos os colaboradores</option></select>
           <select id="conf-f-plat" onchange="renderConferencias()"><option value="">Todas as plataformas</option></select>
@@ -5379,6 +5406,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
 
         <div id="conf-placar" class="conf-placar"></div>
         <div id="conf-lista" class="conf-tabela"></div>
+        </div>
       </div>
 
       <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
@@ -9254,23 +9282,25 @@ function renderAdmHub(){
   }catch(e){}
   const dados = avisosDados ? {txt:avisosDados+' atenção(ões)',tom:graveDados?'ruim':'atencao'} : {txt:'tudo em ordem'};
 
+  /* A ordem é a do trabalho do master: primeiro quem é a equipe, depois o
+     que ela entregou, depois os dados e por último a segurança. */
   const cards=[
-    {sec:'desempenho', tit:'Desempenho',
-     ic:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
-     sub:'Quem conferiu o quê e quando, com o comentário e o print que cada um anexou.',
-     selo:selo(feitasHoje?(feitasHoje+' concluída(s) hoje'):'nada concluído hoje')},
     {sec:'equipe', tit:'Equipe',
      ic:'<path d="M16 20v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="3.2"/><path d="M22 20v-2a4 4 0 0 0-3-3.8"/><path d="M16.5 3.7a4 4 0 0 1 0 7.5"/>',
      sub:'Quem entra no sistema e quais abas cada um enxerga. É a permissão que monta o menu da pessoa.',
      selo:semEmail?selo(semEmail+' sem e-mail','atencao'):selo(users.length+' pessoa(s)')},
-    {sec:'seguranca', tit:'Segurança',
-     ic:'<rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
-     sub:'Estado do acesso à nuvem e os pedidos de liberação de navegador novo, esperando aprovação.',
-     selo:selo(seg.txt,seg.tom)},
+    {sec:'desempenho', tit:'Desempenho Equipe',
+     ic:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+     sub:'Quem conferiu o quê e quando, com o comentário e o print que cada um anexou.',
+     selo:selo(feitasHoje?(feitasHoje+' concluída(s) hoje'):'nada concluído hoje')},
     {sec:'dados', tit:'Dados & Backup',
      ic:'<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
      sub:'A cópia .zip, o arquivo do que foi excluído e os reparos do que ficou fora do lugar.',
-     selo:selo(dados.txt,dados.tom)}
+     selo:selo(dados.txt,dados.tom)},
+    {sec:'seguranca', tit:'Segurança',
+     ic:'<rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+     sub:'Estado do acesso à nuvem e os pedidos de liberação de navegador novo, esperando aprovação.',
+     selo:selo(seg.txt,seg.tom)}
   ];
   box.innerHTML=`
     <p style="font-size:14.5px;color:var(--text-secondary);margin:0 0 20px;line-height:1.65;">
@@ -13437,7 +13467,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31w';
+const APP_VERSAO='2026.08.31x';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -30240,6 +30270,20 @@ function _nomeDoUsuario(chave){
   return (u&&u.name)||'';
 }
 
+/* Abre e fecha a lista. Fica no navegador, não no estado: é escolha de
+   quem está na frente da tela, e cada um tem a sua. */
+function confSanfona(forcar){
+  const corpo=document.getElementById('conf-corpo');
+  const chev=document.getElementById('conf-chevron');
+  const btn=document.getElementById('conf-sanfona');
+  if(!corpo) return;
+  const fechado = (forcar===undefined) ? (corpo.style.display!=='none') : !forcar;
+  corpo.style.display = fechado ? 'none' : '';
+  if(chev) chev.classList.toggle('fechado', fechado);
+  if(btn) btn.setAttribute('aria-expanded', fechado?'false':'true');
+  try{ localStorage.setItem('liveops_conf_sanfona', fechado?'0':'1'); }catch(e){}
+}
+
 function confRecarregar(){
   try{ renderConferencias(); }catch(e){ console.warn('[conf]',e.message); }
   showToast('Conferências atualizadas','success');
@@ -30261,6 +30305,11 @@ function _confPreencherFiltros(linhas){
 function renderConferencias(){
   const alvo=document.getElementById('conf-lista');
   if(!alvo) return;
+  /* Fechou a sanfona, sai da seção e volta: tem que continuar fechada. */
+  try{
+    const guardado=localStorage.getItem('liveops_conf_sanfona');
+    if(guardado!==null) confSanfona(guardado==='1');
+  }catch(e){}
   const todas=_confLinhas();
   _confPreencherFiltros(todas);
 
