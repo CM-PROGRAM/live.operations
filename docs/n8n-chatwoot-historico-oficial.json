@@ -1,0 +1,491 @@
+{
+  "name": "Chatwoot → LiveOps · Histórico (1. Oficial)",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        0
+      ],
+      "id": "Rodar agora",
+      "name": "Rodar agora"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Quantas paginas existem: o proprio Chatwoot responde, no meta.all_count\n// da primeira chamada. Era aqui que estava o furo — a versao anterior\n// varria 20 paginas fixas e, como o Chatwoot devolve da mais recente para\n// a mais antiga, o historico parava dez dias atras.\nconst cfg = $('Resolver caixa').first().json;\nconst r = $json || {};\nconst meta = (r.data && r.data.meta) || r.meta || {};\nconst lista = (r.data && r.data.payload) || r.payload || [];\n\nconst total = Number(meta.all_count || 0);\nif (!total) {\n  throw new Error('O Chatwoot nao informou o total de conversas da caixa \"'\n    + cfg.caixaNome + '\". Confira a credencial e o id da conta.');\n}\n// O tamanho da pagina vem observado, nao chutado: se um dia o Chatwoot\n// mudar de 25 para outro numero, a conta continua certa.\nconst porPagina = lista.length || 25;\nconst TETO = 600;\n\nconst ultimaPagina = Math.min(Math.ceil(total / porPagina), TETO);\nconst fim = cfg.paginasMax > 0\n  ? Math.min(cfg.paginaInicial + cfg.paginasMax - 1, ultimaPagina)\n  : ultimaPagina;\n\nconst paginas = [];\nfor (let p = cfg.paginaInicial; p <= fim; p++) {\n  paginas.push({ json: {\n    pagina: p,\n    url: cfg.urlBase + '&page=' + p,\n    trazerMensagens: cfg.trazerMensagens,\n    corte: cfg.corte,\n    mapaCaixas: cfg.mapaCaixas,\n    total, ultimaPagina, caixaNome: cfg.caixaNome,\n  } });\n}\nif (!paginas.length) {\n  throw new Error('PAGINA_INICIAL (' + cfg.paginaInicial + ') passou da ultima pagina ('\n    + ultimaPagina + ') da caixa \"' + cfg.caixaNome + '\".');\n}\nreturn paginas;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        0
+      ],
+      "id": "Paginas a varrer",
+      "name": "Paginas a varrer"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── O QUE AJUSTAR AQUI — e so aqui ───────────────────────────────\n//\n// CAIXA: qual caixa de entrada varrer. '' (vazio) = todas.\n//   Vale o nome como aparece no Chatwoot ('2. Antigo', '1. Oficial') ou\n//   so um pedaco dele ('antigo'). Comece pela Antigo, que e a que tem os\n//   contatos que ainda nao estao no nosso banco.\n//\n// CRIADO_ANTES: 'AAAA-MM-DD' traz so as conversas criadas antes dessa\n//   data; '' traz todas. E o mesmo filtro \"Criado em / e menos que\" da\n//   tela do Chatwoot.\n//\n// TRAZER_MENSAGENS: false = so a lista de conversas e a agenda de\n//   contatos (rapido). true = traz tambem as mensagens, e ai e UMA\n//   chamada por conversa: use com PAGINAS_MAX para ir em blocos.\n//\n// PAGINA_INICIAL / PAGINAS_MAX: 1 e 0 varrem tudo. Para ir em blocos,\n//   PAGINAS_MAX = 20 e va avancando PAGINA_INICIAL: 1, 21, 41...\nconst CAIXA = '1. Oficial';\nconst CRIADO_ANTES = '';\nconst TRAZER_MENSAGENS = true;\nconst PAGINA_INICIAL = 1;\nconst PAGINAS_MAX = 0;\n\nconst BASE = 'https://chat.suplelive.com.br/api/v1/accounts/1/conversations'\n           + '?status=all&assignee_type=all';\n\nconst r = $json || {};\nconst caixas = r.payload || r.data || [];\nconst nomes = caixas.map(i => i.name || '').filter(Boolean);\n\nlet caixaId = '', caixaNome = 'todas as caixas';\nif (String(CAIXA).trim()) {\n  const alvo = String(CAIXA).trim().toLowerCase();\n  const achada = caixas.find(i => String(i.name || '').toLowerCase() === alvo)\n              || caixas.find(i => String(i.name || '').toLowerCase().indexOf(alvo) >= 0);\n  if (!achada) {\n    throw new Error('Nao achei a caixa \"' + CAIXA + '\". As que existem: ' + (nomes.join(' | ') || 'nenhuma'));\n  }\n  caixaId = String(achada.id);\n  caixaNome = achada.name;\n}\n\n// O corte por data e feito depois, ao converter: o endpoint de listagem\n// do Chatwoot nao aceita filtro de data — so a tela dele aceita.\nlet corte = 0;\nif (String(CRIADO_ANTES).trim()) {\n  corte = Date.parse(String(CRIADO_ANTES).trim() + 'T00:00:00Z');\n  if (!corte) throw new Error('CRIADO_ANTES precisa ser AAAA-MM-DD (ex.: 2026-08-30).');\n}\n\nconst url = BASE + (caixaId ? ('&inbox_id=' + caixaId) : '');\n// Os nomes das caixas viajam junto para o Converter nao ter que pedi-los\n// de novo — sao os mesmos para a varredura inteira.\nconst mapaCaixas = {};\ncaixas.forEach(i => { mapaCaixas[i.id] = i.name || ''; });\n\nreturn [{ json: {\n  caixaId, caixaNome, mapaCaixas, corte,\n  trazerMensagens: TRAZER_MENSAGENS,\n  paginaInicial: PAGINA_INICIAL,\n  paginasMax: PAGINAS_MAX,\n  urlBase: url,\n  urlContagem: url + '&page=1',\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        0
+      ],
+      "id": "Resolver caixa",
+      "name": "Resolver caixa"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.urlContagem }}",
+        "method": "GET",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -140,
+        0
+      ],
+      "id": "Contar conversas",
+      "name": "Contar conversas",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://chat.suplelive.com.br/api/v1/accounts/1/inboxes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -560,
+        -180
+      ],
+      "id": "Listar caixas",
+      "name": "Listar caixas",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        300,
+        0
+      ],
+      "id": "Listar conversas",
+      "name": "Listar conversas",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Cada conversa do Chatwoot vira DUAS coisas: o registro que o WhatsLive\n// desenha na caixa e o contato que vai para a agenda. O formato e o mesmo\n// do fluxo ao vivo, para historico e mensagem nova ficarem indistinguiveis.\nconst saida = [];\nfor (const item of $input.all()) {\n  const cfg = item.json || {};\n  const caixas = cfg.mapaCaixas || {};\n  const corte = Number(cfg.corte || 0);\n  const r = cfg;\n  const lista = (r.data && r.data.payload) || r.payload || [];\n\n  for (const c of lista) {\n    const num = c.id;                    // display_id da conversa\n    if (!num) continue;\n\n    let criada = Number(c.created_at || 0);\n    if (criada && criada < 1e12) criada = criada * 1000;\n    // O mesmo \"Criado em / e menos que\" da tela do Chatwoot, feito aqui\n    // porque o endpoint de listagem nao aceita filtro de data.\n    if (corte && criada && criada >= corte) continue;\n\n    const contato = (c.meta && c.meta.sender) || {};\n    const ultima = c.last_non_activity_message || {};\n    const mtU = ultima.message_type;\n    const deU = ultima.private === true ? 'nota'\n              : (mtU === 1 || mtU === 3 || mtU === 'outgoing' || mtU === 'template') ? 'agente'\n              : 'cliente';\n    let ts = (c.timestamp || c.last_activity_at || ultima.created_at || 0);\n    if (ts && ts < 1e12) ts = ts * 1000;\n    let texto = String(ultima.content || '').trim();\n    if (!texto && Array.isArray(ultima.attachments) && ultima.attachments.length) {\n      const tipos = { image: 'imagem', audio: 'audio', video: 'video', file: 'arquivo' };\n      texto = '[' + (tipos[ultima.attachments[0].file_type] || 'anexo') + ']';\n    }\n\n    // A caixa \"2. Antigo\" e um canal da Evolution, nao da Gupshup: por la\n    // o contato as vezes chega sem phone_number, com o numero escondido no\n    // identifier ('5527999987802@s.whatsapp.net'). Sem esta rede, meia\n    // agenda do numero antigo entraria sem telefone — e telefone e a\n    // chave da agenda inteira.\n    let tel = String(contato.phone_number || '').trim();\n    if (!tel) {\n      const ident = String(contato.identifier || '').replace(/@.*$/, '').replace(/\\D/g, '');\n      if (ident.length >= 10) tel = '+' + ident;\n    }\n    const digitos = tel.replace(/\\D/g, '');\n    const cpf = String((contato.custom_attributes && contato.custom_attributes.cpf) || '')\n      .replace(/\\D/g, '');\n    const caixa = caixas[c.inbox_id] || '';\n\n    saida.push({ json: {\n      convId: 'cw_' + num,\n      convNum: num,\n      trazerMensagens: cfg.trazerMensagens !== false,\n      conv: {\n        id: 'cw_' + num,\n        nome: contato.name || 'Contato',\n        telefone: tel,\n        caixa,\n        ultima: texto.slice(0, 120),\n        deUltima: deU,\n        ts: ts || Date.now(),\n      },\n      contato: {\n        nome: contato.name || 'Contato',\n        telefone: tel,\n        digitos,\n        cpf: cpf.length === 11 ? cpf : '',\n        criadoEm: criada || ts || Date.now(),\n        caixa,\n      },\n    } });\n  }\n}\nreturn saida;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ],
+      "id": "Converter conversas",
+      "name": "Converter conversas"
+    },
+    {
+      "parameters": {
+        "jsCode": "// As conversas sobem em blocos de 200 numa chamada so — uma por uma\n// seriam milhares de chamadas e a varredura levaria horas.\nconst BLOCO = 200;\nconst todas = $input.all().map(i => i.json.conv).filter(c => c && c.id);\nconst saida = [];\nfor (let i = 0; i < todas.length; i += BLOCO) {\n  const mapa = {};\n  todas.slice(i, i + BLOCO).forEach(c => { mapa[c.id] = c; });\n  saida.push({ json: { corpo: mapa, quantas: Object.keys(mapa).length } });\n}\nreturn saida.length ? saida : [{ json: { corpo: {}, quantas: 0 } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        -140
+      ],
+      "id": "Agrupar conversas",
+      "name": "Agrupar conversas"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/conv.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -140
+      ],
+      "id": "Gravar conversas no LiveOps",
+      "name": "Gravar conversas no LiveOps",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Sem mensagens pedidas, a varredura para aqui: as conversas ja foram\n// gravadas e o Inbox ja mostra todo mundo com a ultima fala.\nreturn $input.all().filter(i => i.json.trazerMensagens);"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        140
+      ],
+      "id": "So quem quer mensagens",
+      "name": "So quem quer mensagens"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://chat.suplelive.com.br/api/v1/accounts/1/conversations/{{ $json.convNum }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        140
+      ],
+      "id": "Listar mensagens",
+      "name": "Listar mensagens",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mesma classificacao do fluxo ao vivo — cliente, agente e a NOTA\n// interna (o cadeado), que e como o envio de template pelo Gupshup fica\n// registrado. Historico e mensagem nova precisam ficar iguais na tela.\nconst saida = [];\nconst entradas = $input.all();\nfor (let i = 0; i < entradas.length; i++) {\n  const r = entradas[i].json || {};\n  const lista = r.payload || (r.data && r.data.payload) || [];\n  let convId = '';\n  try { convId = $('So quem quer mensagens').all()[i].json.convId; } catch (e) {}\n  if (!convId || !lista.length) continue;\n\n  const mapa = {};\n  for (const m of lista) {\n    const mt = m.message_type;\n    const deCliente = mt === 0 || mt === 'incoming';\n    const ehTemplate = mt === 3 || mt === 'template';\n    const deAgente = mt === 1 || mt === 'outgoing' || ehTemplate;\n    if (!deCliente && !deAgente) continue;          // atividade do sistema\n    const privada = m.private === true;\n\n    let texto = String(m.content || '').trim();\n    const anexos = Array.isArray(m.attachments) ? m.attachments : [];\n    if (!texto && anexos.length) {\n      const tipos = { image: 'imagem', audio: 'audio', video: 'video', file: 'arquivo' };\n      texto = '[' + (tipos[anexos[0].file_type] || 'anexo') + ']';\n    }\n    if (!texto) continue;\n    // O eco da persona e os comandos internos nao viram balao\n    if (deAgente && !privada && texto.indexOf('*Manoel - Suplelive:*') === 0) continue;\n    if (deAgente && !privada && texto[0] === '/') continue;\n\n    let ts = m.created_at || 0;\n    if (ts && ts < 1e12) ts = ts * 1000;\n    const quem = (((m.sender && m.sender.name) || '?').trim().split(/\\s+/)[0]);\n    mapa['m' + m.id] = {\n      texto: texto.slice(0, 4000),\n      de: privada ? 'nota' : (deAgente ? 'agente' : 'cliente'),\n      autor: privada ? quem : (deAgente ? ('Manoel (' + quem + ')') : ''),\n      ts: ts || Date.now(),\n    };\n  }\n  if (Object.keys(mapa).length) saida.push({ json: { convId, corpo: mapa, quantas: Object.keys(mapa).length } });\n}\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1180,
+        140
+      ],
+      "id": "Converter mensagens",
+      "name": "Converter mensagens"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://liveops-imagens.carlosmagnoav94.workers.dev/robo/inbox/msg/{{ $json.convId }}.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        140
+      ],
+      "id": "Gravar mensagens no LiveOps",
+      "name": "Gravar mensagens no LiveOps",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "jsCode": "// O placar da varredura: sabe o tamanho do alvo, entao da para conferir de\n// olho se veio tudo — e nao ficar adivinhando se falta pagina.\nlet conversas = 0, mensagens = 0, total = 0, paginas = 0, contatos = 0, caixa = '';\ntry {\n  const p = $('Paginas a varrer').all();\n  paginas = p.length;\n  total = Number(p[0].json.total || 0);\n  caixa = p[0].json.caixaNome || '';\n} catch (e) {}\ntry { $('Agrupar conversas').all().forEach(i => { conversas += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Converter mensagens').all().forEach(i => { mensagens += (i.json.quantas || 0); }); } catch (e) {}\ntry { $('Montar agenda').all().forEach(i => { contatos += (i.json.quantas || 0); }); } catch (e) {}\n\n// Gravacao que falhou nao some: os nos estao em continueRegularOutput, entao\n// o item segue com um campo de erro em vez de matar a varredura. Quem conta\n// tem que olhar OS TRES nomes possiveis — n8n escreve 'error', o worker\n// responde 'ok:false', e um erro nosso viria como 'erro'. Contar so 'erro'\n// era o furo: 3.141 gravacoes com timeouts no meio fechavam com falhas: 0.\nfunction contarFalhas(no) {\n  let n = 0;\n  try {\n    $(no).all().forEach(i => {\n      const j = i.json || {};\n      if (j.ok === false || j.erro || j.error) n++;\n    });\n  } catch (e) {}\n  return n;\n}\n// De propria conta, e nao do $input: assim as tres passagens do Placar\n// (uma por ramo que chega nele) mostram o mesmo numero, o total.\nconst falhasConversas = contarFalhas('Gravar conversas no LiveOps');\nconst falhasMensagens = contarFalhas('Gravar mensagens no LiveOps');\nconst falhasContatos  = contarFalhas('Gravar contatos no LiveOps');\n// A rodada que perdeu 1.292 conversas ensinou: a LEITURA tambem falha —\n// pagina do Chatwoot que volta vazia some da varredura sem entrar em\n// falha nenhuma. Conta-se aqui, separada das gravacoes.\nconst falhasLeituraPaginas   = contarFalhas('Listar conversas');\nconst falhasLeituraMensagens = contarFalhas('Listar mensagens');\nconst falhas = falhasConversas + falhasMensagens + falhasContatos\n             + falhasLeituraPaginas + falhasLeituraMensagens;\n\nlet cortou = false, bloco = false;\ntry {\n  const cfg = $('Resolver caixa').first().json;\n  cortou = !!cfg.corte;                 // com corte por data, vir menos e o esperado\n  bloco = cfg.paginasMax > 0 || cfg.paginaInicial > 1;\n} catch (e) {}\nconst faltou = total && !cortou && !bloco && conversas < total - 5;\n\nlet proxima = 0, ultimaPagina = 0;\ntry {\n  const p = $('Paginas a varrer').all();\n  ultimaPagina = Number(p[0].json.ultimaPagina || 0);\n  proxima = Number(p[p.length - 1].json.pagina || 0) + 1;\n} catch (e) {}\nconst acabou = ultimaPagina && proxima > ultimaPagina;\n\nconst aviso = falhas\n  ? (' ATENCAO: ' + falhas + ' chamada(s) falharam ('\n     + [falhasLeituraPaginas ? falhasLeituraPaginas + ' paginas nao lidas' : '',\n        falhasLeituraMensagens ? falhasLeituraMensagens + ' conversas sem leitura de mensagens' : '',\n        falhasConversas ? falhasConversas + ' gravacoes de conversa' : '',\n        falhasMensagens ? falhasMensagens + ' gravacoes de mensagem' : '',\n        falhasContatos  ? falhasContatos  + ' gravacoes de contato'  : ''].filter(Boolean).join(', ')\n     + '). Rode de novo: regravar sobrescreve o mesmo registro, nao duplica.')\n  : '';\n\nreturn [{ json: {\n  caixa,\n  totalNoChatwoot: total,\n  paginasVarridas: paginas,\n  conversas,\n  contatos,\n  mensagens,\n  falhas,\n  falhasConversas, falhasMensagens, falhasContatos,\n  falhasLeituraPaginas, falhasLeituraMensagens,\n  recado: (!conversas\n    ? 'Nenhuma conversa voltou — confira a credencial do Chatwoot.'\n    : (faltou\n      ? ('Vieram ' + conversas + ' de ' + total + ' conversas. Faltou gente: rode de novo, '\n         + 'ou quebre em blocos com PAGINA_INICIAL / PAGINAS_MAX no no \"Resolver caixa\".')\n      : ((bloco ? 'Bloco concluido' : 'Varredura completa') + ' da caixa \"' + caixa + '\": '\n         + conversas + ' conversa(s) de ' + total + ', ' + contatos\n         + ' contato(s) na agenda e ' + mensagens + ' mensagem(ns). '\n         + (!bloco ? (falhas ? '' : 'Nao precisa rodar de novo.')\n            : (acabou ? 'Era o ultimo bloco — acabou aqui.'\n                      : ('Proximo bloco: PAGINA_INICIAL = ' + proxima + ' (de ' + ultimaPagina + ').')))))) + aviso,\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1620,
+        0
+      ],
+      "id": "Placar",
+      "name": "Placar"
+    },
+    {
+      "parameters": {
+        "jsCode": "// A agenda: cada conversa varrida carrega um contato, e e ele que o\n// pedido \"alimentar nosso novo banco de dados\" quer guardar.\n//\n// O id sai do telefone, nao do relogio: 'wct_5527999987802'. Assim rodar\n// a varredura duas vezes reescreve o MESMO registro em vez de encher a\n// agenda de gente repetida — e o mesmo contato visto na caixa Antigo e na\n// Oficial vira um so.\nconst BLOCO = 200;\nconst quem = 'varredura do Chatwoot';\n\nconst porTelefone = {};\nfor (const item of $input.all()) {\n  const c = (item.json || {}).contato;\n  if (!c || !c.digitos || c.digitos.length < 10) continue;\n  const id = 'wct_' + c.digitos;\n  const ja = porTelefone[id];\n  // Entre duas visitas ao mesmo numero, fica a mais completa: nome de\n  // verdade ganha de \"Contato\", e quem tem CPF ganha de quem nao tem.\n  if (ja) {\n    const melhorNome = (!ja.nome || ja.nome === 'Contato') && c.nome && c.nome !== 'Contato';\n    const ganhouCpf = !ja.cpf && c.cpf;\n    if (!melhorNome && !ganhouCpf) continue;\n  }\n  const partes = String(c.nome || 'Contato').trim().split(/\\s+/);\n  const nome = (partes.shift() || 'Contato').slice(0, 40);\n  porTelefone[id] = {\n    id,\n    nome,\n    sobrenome: partes.join(' ').slice(0, 40),\n    telefone: c.telefone,\n    cpf: c.cpf || '',\n    criadoEm: c.criadoEm || Date.now(),\n    criadoPor: quem,\n    caixa: c.caixa || '',\n  };\n}\n\nconst ids = Object.keys(porTelefone);\nconst saida = [];\nfor (let i = 0; i < ids.length; i += BLOCO) {\n  const mapa = {};\n  ids.slice(i, i + BLOCO).forEach(k => { mapa[k] = porTelefone[k]; });\n  saida.push({ json: { corpo: mapa, quantas: Object.keys(mapa).length } });\n}\nreturn saida.length ? saida : [{ json: { corpo: {}, quantas: 0 } }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        740,
+        -320
+      ],
+      "id": "Montar agenda",
+      "name": "Montar agenda"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/reg/waContatos.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.corpo) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 5,
+              "batchInterval": 1000
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -320
+      ],
+      "id": "Gravar contatos no LiveOps",
+      "name": "Gravar contatos no LiveOps",
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Rodar agora": {
+      "main": [
+        [
+          {
+            "node": "Listar caixas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar caixas": {
+      "main": [
+        [
+          {
+            "node": "Resolver caixa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Paginas a varrer": {
+      "main": [
+        [
+          {
+            "node": "Listar conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar conversas": {
+      "main": [
+        [
+          {
+            "node": "Converter conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter conversas": {
+      "main": [
+        [
+          {
+            "node": "Agrupar conversas",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Montar agenda",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "So quem quer mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar conversas": {
+      "main": [
+        [
+          {
+            "node": "Gravar conversas no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "So quem quer mensagens": {
+      "main": [
+        [
+          {
+            "node": "Listar mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar mensagens": {
+      "main": [
+        [
+          {
+            "node": "Converter mensagens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter mensagens": {
+      "main": [
+        [
+          {
+            "node": "Gravar mensagens no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar mensagens no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Placar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar conversas no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Placar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Contar conversas": {
+      "main": [
+        [
+          {
+            "node": "Paginas a varrer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resolver caixa": {
+      "main": [
+        [
+          {
+            "node": "Contar conversas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Montar agenda": {
+      "main": [
+        [
+          {
+            "node": "Gravar contatos no LiveOps",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gravar contatos no LiveOps": {
+      "main": [
+        [
+          {
+            "node": "Placar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
