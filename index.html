@@ -9485,10 +9485,18 @@ function renderSegurancaCf(){
   // O que dá para dizer sem perguntar nada: como esta sessão está lendo
   const modo=(typeof cfLeituraModo==='function')?cfLeituraModo():'off';
   const salaOk=!!(typeof _cfSala!=='undefined' && _cfSala && _cfSala.readyState===1);
+  /* Aposentado o Firebase, "voltar para o banco antigo" deixou de ser uma
+     saída — e dizer isso no painel seria pior que não dizer nada. */
+  const semBancoAntigo=(typeof FB_APOSENTADO!=='undefined' && FB_APOSENTADO) || !db;
   const leitura = (modo!=='off' && _cfLeituraAtiva)
-      ? linha('ok','Lendo pela Cloudflare', salaOk?'Sala de tempo real conectada.':'Sala de tempo real reconectando…')
+      ? linha('ok','Lendo pela Cloudflare', salaOk
+          ? 'Sala de tempo real conectada.'
+          : 'Sala de tempo real reconectando — o que os outros gravarem agora só aparece quando ela voltar.')
     : (modo!=='off')
-      ? linha('atencao','Cloudflare preferida, mas lendo pelo Firebase agora','A leitura volta sozinha; se persistir, recarregue a página.')
+      ? (semBancoAntigo
+          ? linha('ruim','Leitura pela Cloudflare parada — nada novo chega nesta tela',
+              'Não existe banco antigo para assumir. Recarregue a página (F5); se continuar, o console (F12) diz o motivo.')
+          : linha('atencao','Cloudflare preferida, mas lendo pelo Firebase agora','A leitura volta sozinha; se persistir, recarregue a página.'))
       : linha('atencao','Leitura pela Cloudflare desligada nesta sessão','Ligue com cfLeitura(\'preferir\') no console (F12).');
 
   const pSaude=fetch(CF_IMG_URL+'/saude').then(r=>r.text()).then(t=>String(t||'').trim()).catch(()=>null);
@@ -11553,6 +11561,9 @@ function conferirSenhasNaNuvem(){
 // ── A sala: o tempo real pela Cloudflare ─────────────────────────
 let _cfSala=null, _cfSalaTentativas=0, _cfSalaTimer=null, _cfSalaPing=null;
 let _cfSalaPresenca=[], _cfBootTentado=false, _cfLeituraAtiva=false;
+/* Uma queda avisa uma vez. Sem isso o aviso sairia a cada nova tentativa,
+   de 30 em 30 segundos, enquanto a rede estivesse ruim. */
+let _cfSalaAvisouQueda=false;
 /* Sair do sistema fecha a sala, e o fechamento dispara o mesmo onclose de
    uma queda de conexão. Sem esta marca, a reconexão automática levantaria
    a sala de novo para uma sessão que já saiu. */
@@ -11570,8 +11581,14 @@ function cfSalaConectar(){
     const ws=new WebSocket(CF_IMG_URL.replace(/^http/,'ws')+'/rt?token='+encodeURIComponent(tk));
     _cfSala=ws;
     ws.onopen=()=>{
+      /* Tudo o que os outros gravaram enquanto a sala esteve fora passou
+         longe desta tela: os avisos vêm pela sala, não são guardados para
+         depois. Voltar da queda pede uma releitura. */
+      const voltouDeQueda=_cfSalaTentativas>0;
       _cfSalaTentativas=0;
+      _cfSalaAvisouQueda=false;
       console.log('[cf][sala] conectada');
+      if(voltouDeQueda && _cfLeituraAtiva) _cfRessincronizar();
       // Lendo pela Cloudflare, a sala é o fio: de pé, o sistema está online
       if(_cfLeituraAtiva){ try{ updateConnectionUI(true); }catch(e){} }
       try{ ws.send(JSON.stringify({t:'ola',
@@ -11777,6 +11794,20 @@ function _cfAplicarLinhaDaSala(l){
 // Firebase reassume a leitura, sem deslogar ninguém.
 function _cfVoltarParaFirebase(motivo){
   if(!_cfLeituraAtiva) return;
+  /* Aposentado o Firebase, não há para onde voltar. Desligar a leitura aqui
+     era o pior dos mundos: a sessão parava de receber QUALQUER coisa nova —
+     inbox, avisos, notificações, tudo é guardado por `_cfLeituraAtiva` — e o
+     painel de Segurança ainda anunciava que o banco antigo tinha assumido.
+     O que caiu foi o fio do tempo real; a leitura por HTTP segue de pé e a
+     sala volta sozinha. */
+  if(FB_APOSENTADO || !db){
+    if(!_cfSalaAvisouQueda){
+      _cfSalaAvisouQueda=true;
+      console.warn('[cf] sala fora do ar ('+motivo+') — leitura segue pela Cloudflare, reconectando');
+      try{ showToast('Tempo real caiu — reconectando. Os dados continuam vindo pela Cloudflare','warn'); }catch(e){}
+    }
+    return;
+  }
   _cfLeituraAtiva=false;
   console.warn('[cf] voltando a ouvir o Firebase:',motivo);
   try{ showToast('Tempo real pela Cloudflare indisponível — voltando ao Firebase','warn'); }catch(e){}
@@ -11789,6 +11820,38 @@ function _cfVoltarParaFirebase(motivo){
       });
     }
   }catch(e){ console.warn('[cf] religar o Firebase:',e); }
+}
+
+/* Releitura depois de a sala voltar de uma queda. É o miolo do boot, sem o
+   desvio de emergência dele: aqui uma falha de rede não pode desligar a
+   leitura nem religar listener nenhum — a próxima reconexão tenta de novo. */
+function _cfRessincronizar(){
+  return Promise.all([cfLerPacote(), cfLerRegistros()])
+    .then(([pacote,colecoes])=>{
+      let faltou=0, registros=0;
+      Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
+        const linhas=colecoes[nome];
+        if(!Array.isArray(linhas)){ faltou++; return; }   // lista sem resposta: não mexe
+        _regEnviado[nome]={};
+        const lista=[];
+        linhas.forEach(l=>{
+          const reg={...(l.dados||{})};
+          delete reg._by;
+          if(!reg.id) return;
+          _regEnviado[nome][_regChave(reg.id)]=JSON.stringify(reg);
+          lista.push(reg);
+        });
+        acc.set(appState,lista);
+        registros+=lista.length;
+      });
+      if(pacote) _aplicarPacoteDaNuvem(pacote);
+      try{ saveLocal(appState); }catch(e){}
+      try{ renderAll(); }catch(e){}
+      try{ _agendarRenderRegistros(); }catch(e){}
+      console.log('[cf] ressincronizado depois da queda:',registros,'registro(s)',
+        faltou?('— '+faltou+' lista(s) sem resposta'):'');
+    })
+    .catch(err=>console.warn('[cf] ressincronizar falhou:',err.message));
 }
 
 /* A virada: abre o sistema com o que está na Cloudflare. Devolve true se
@@ -13240,7 +13303,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31p';
+const APP_VERSAO='2026.08.31q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

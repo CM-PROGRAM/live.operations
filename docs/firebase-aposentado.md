@@ -70,6 +70,26 @@ não serve mais para ninguém. Aí dá para:
 Enquanto isso não acontece, o custo do Firebase é zero: ninguém lê, ninguém
 grava, e o Auth só é consultado no primeiro login de quem falta.
 
+## A queda de sala que ficou sem rede de proteção (**2026.08.31q**)
+
+Quatro tentativas de reconectar a sala sem sucesso e o sistema chamava
+`_cfVoltarParaFirebase` — desligava `_cfLeituraAtiva` e passava a ouvir o
+banco antigo. Com o Firebase aposentado, `db` é nulo: não havia para onde
+voltar. A sessão ficava muda (inbox, avisos e notificações são todos
+guardados por `_cfLeituraAtiva`) e o painel de Segurança ainda anunciava
+*"lendo pelo Firebase agora"*.
+
+Agora, sem banco antigo:
+
+- a leitura **não** é desligada — o que caiu foi o fio do tempo real, e a
+  leitura por HTTP segue de pé;
+- a reconexão continua tentando, com aviso uma única vez;
+- quando a sala volta, `_cfRessincronizar()` relê pacote e listas: o que os
+  outros gravaram durante a queda não é guardado para depois, então voltar
+  a ouvir não bastava;
+- o painel passa a dizer a verdade, em vermelho, se a leitura realmente
+  parar.
+
 ## Como voltar atrás
 
 `FB_APOSENTADO = false` e republicar. O código do caminho antigo continua
