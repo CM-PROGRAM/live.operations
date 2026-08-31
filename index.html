@@ -13161,7 +13161,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31m';
+const APP_VERSAO='2026.08.31n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15136,7 +15136,7 @@ function inboxRender(){
       const arq=!!(regs.get(c.id)||{}).arquivada;
       return _waVista==='arquivadas' ? arq : !arq;
     })
-    .filter(c=>_waDentroDoPeriodo(c.ts))
+    .filter(c=>_waDentroDoPeriodo(c))
     .sort((a,b)=>(b.ts||0)-(a.ts||0));
   const totalFiltrado=lista.length;
   const visiveis=lista.slice(0,_waJanela);
@@ -15276,11 +15276,16 @@ function waDtLimpar(){
   const p=document.getElementById('wa-dt-panel'); if(p) p.style.display='none';
   inboxRender();
 }
-function _waDentroDoPeriodo(ts){
+/* A conversa entra no período se esteve VIVA nele: do nascimento
+   (criadaEm, que a varredura grava) até a última atividade (ts). Filtrar
+   só pelo ts escondia janeiro inteiro — toda conversa antiga que recebeu
+   um disparo em agosto "virava de agosto" e sumia da busca de janeiro. */
+function _waDentroDoPeriodo(c){
   if(!_waDtIni && !_waDtFim) return true;
-  const t=Number(ts)||0;
-  if(_waDtIni && t<Date.parse(_waDtIni+'T00:00:00')) return false;
-  if(_waDtFim && t>Date.parse(_waDtFim+'T23:59:59.999')) return false;
+  const fimVida=Number(c.ts)||0;
+  const inicioVida=Number(c.criadaEm)||fimVida;
+  if(_waDtIni && fimVida<Date.parse(_waDtIni+'T00:00:00')) return false;      // morreu antes do período
+  if(_waDtFim && inicioVida>Date.parse(_waDtFim+'T23:59:59.999')) return false; // nasceu depois dele
   return true;
 }
 

@@ -66,6 +66,10 @@ for (const item of $input.all()) {
         ultima: texto.slice(0, 120),
         deUltima: deU,
         ts: ts || Date.now(),
+        // Quando a conversa NASCEU — sem isto o filtro de periodo do
+        // WhatsLive so enxerga a ultima atividade, e uma conversa de
+        // janeiro que recebeu disparo em agosto some da busca de janeiro.
+        criadaEm: criada || ts || Date.now(),
       },
       contato: {
         nome: contato.name || 'Contato',
