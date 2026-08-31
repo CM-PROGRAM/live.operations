@@ -3,6 +3,22 @@
 O sistema é servido pelo GitHub Pages a partir de `index.html` na raiz do
 branch `main`.
 
+## Quem publica o quê
+
+| Peça | Onde mora | Quem publica |
+|---|---|---|
+| `index.html` (o sistema) | GitHub Pages, raiz do `main` | **Automático.** O push para o `main` já é a publicação. Nada de manual. |
+| Worker `liveops-imagens` | Painel da Cloudflare | **CM Andrade**, à mão: *Edit code* → colar → *Deploy* |
+| Variáveis e secrets do worker | Painel da Cloudflare | **CM Andrade**, à mão |
+| Fluxos do n8n | Painel do n8n | **CM Andrade**, à mão: importar o JSON ou colar o código do nó |
+
+Ou seja: quando uma versão nova do sistema é commitada e enviada para o
+`main`, ela **já está no ar**. Não existe passo "publicar o `index.html`" —
+se algum roteiro deste repositório disser isso, o roteiro está errado.
+
+O que sobra de manual é só o que vive **fora** do GitHub: a Cloudflare e o
+n8n.
+
 ## Por que existe o arquivo `.nojekyll`
 
 O GitHub Pages, por padrão, passa o repositório inteiro pelo Jekyll antes de

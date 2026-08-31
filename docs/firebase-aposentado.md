@@ -44,15 +44,19 @@ Isso fecha dois buracos de uma vez:
 
 ## Ordem de implantação
 
-1. **Publicar o worker v17** (traz `/auth/definir` e o `FB_REPASSE`)
-2. **Publicar o `index.html` 2026.08.31p**
-3. No painel do worker, criar a variável **`FB_REPASSE` = `off`** — é ela
+O `index.html` **2026.08.31p** não entra nesta lista: ele foi para o `main`
+e o GitHub Pages já publicou sozinho. O que precisa de mão é só o que vive
+fora do GitHub.
+
+1. **Publicar o worker v17** (traz `/auth/definir` e o `FB_REPASSE`) — painel
+   da Cloudflare, *Edit code* → *Deploy*
+2. No painel do worker, criar a variável **`FB_REPASSE` = `off`** — é ela
    que corta a cópia para o banco antigo
-4. **Administrador → Segurança** → para cada pessoa ainda sem senha no
+3. **Administrador → Segurança** → para cada pessoa ainda sem senha no
    cofre (o painel lista), clicar **Redefinir senha**, definir uma e
    avisar a pessoa
-5. Conferir em `/auth/semeados` que todo mundo aparece
-6. Só então, no console do Firebase: desativar o Realtime Database
+4. Conferir em `/auth/semeados` que todo mundo aparece
+5. Só então, no console do Firebase: desativar o Realtime Database
 
 ## Quando a última linha do Firebase pode cair
 

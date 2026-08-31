@@ -75,11 +75,13 @@ Veio populada → publique. Veio vazia → popule primeiro. O worker grita
 
 ## Ordem de implantação
 
+O `index.html` (**2026.08.31o**) não é passo de ninguém: ele foi para o
+`main` e o GitHub Pages publicou sozinho.
+
 1. Desligar o cadastro aberto no console do Firebase
-2. Publicar o `index.html` (**2026.08.31o**)
-3. Conferir `autorizados` no espelho
-4. Publicar o worker (**v16**)
-5. Limpar do Firebase Auth as contas fora da lista
+2. Conferir `autorizados` no espelho
+3. Publicar o worker (**v16**) no painel da Cloudflare
+4. Limpar do Firebase Auth as contas fora da lista
 
 ## O que ficou em aberto
 
