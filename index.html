@@ -13101,7 +13101,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31h';
+const APP_VERSAO='2026.08.31i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -26865,11 +26865,15 @@ function _permsGravarOficial(k){
   if(u.atvAreasVisiveis!==undefined) g.atvAreasVisiveis=u.atvAreasVisiveis;
   if(u.atvTabsVisiveis!==undefined) g.atvTabsVisiveis=u.atvTabsVisiveis;
   (_permsOficiais=_permsOficiais||{})[k]=JSON.parse(JSON.stringify(g));
+  /* A Cloudflare recebe SEMPRE: desde a virada, é dela que toda sessão lê
+     as permissões — e o espelho avisa a sala, que faz a mudança chegar em
+     tempo real na tela de quem foi afetado. O guard antigo (só gravar com
+     o Firebase conectado) deixava o clique do master mudo: lendo pela
+     Cloudflare, fbConnected é false, nada subia, e o nó oficial velho
+     ainda DESFAZIA a concessão por cima do pacote. */
+  try{ _espelharCaminho(FB_PERMS+'/'+k, g); }catch(e){ console.warn('[perms] espelho:',e); }
   if(db && fbConnected){
-    try{
-      db.ref(FB_PERMS+'/'+k).set(g);
-      _espelharCaminho(FB_PERMS+'/'+k, g);
-    }catch(e){ console.warn('[perms] nó oficial:',e); }
+    try{ db.ref(FB_PERMS+'/'+k).set(g); }catch(e){ console.warn('[perms] nó oficial:',e); }
   }
 }
 
@@ -26922,14 +26926,17 @@ function _aplicarPermissoesOficiais(v){
    é o que permite a guarda (_protegerPermissoes) reconhecer e desfazer
    qualquer regravação feita por uma cópia mais velha. */
 function _gravarPermissoesDireto(k){
-  if(!(db && fbConnected)) return;
   const u=appState.users[k]; if(!u) return;
-  try{
-    const dados={perms:Array.isArray(u.perms)?u.perms:[], permsAtualizadoEm:u.permsAtualizadoEm||Date.now()};
-    if(u.atvAreasVisiveis!==undefined) dados.atvAreasVisiveis=u.atvAreasVisiveis;
-    if(u.atvTabsVisiveis!==undefined) dados.atvTabsVisiveis=u.atvTabsVisiveis;
-    db.ref(FB_PATH+'/users/'+k).update(dados);
-  }catch(e){ console.warn('[perms] gravação direta:',e); }
+  /* O Firebase é a parte opcional agora; sair daqui quando ele não está
+     conectado era engolir o clique inteiro — inclusive o nó oficial. */
+  if(db && fbConnected){
+    try{
+      const dados={perms:Array.isArray(u.perms)?u.perms:[], permsAtualizadoEm:u.permsAtualizadoEm||Date.now()};
+      if(u.atvAreasVisiveis!==undefined) dados.atvAreasVisiveis=u.atvAreasVisiveis;
+      if(u.atvTabsVisiveis!==undefined) dados.atvTabsVisiveis=u.atvTabsVisiveis;
+      db.ref(FB_PATH+'/users/'+k).update(dados);
+    }catch(e){ console.warn('[perms] gravação direta:',e); }
+  }
   // A fonte da verdade: o nó oficial, que só o clique do master escreve
   try{ _permsGravarOficial(k); }catch(e){ console.warn('[perms] oficial:',e); }
 }
