@@ -12,6 +12,18 @@
       navigator.serviceWorker.register('sw.js');
     });
   }
+  /* Todo dado que veio de gente precisa passar por aqui antes de virar
+     HTML. O template escapa o VALOR; a marcação em volta continua sendo
+     código nosso. Fica no primeiro bloco de propósito: assim está de pé
+     para os onze blocos seguintes, sem depender da ordem de execução.
+
+     A aspa simples entra na lista porque metade dos atributos do sistema
+     é escrita com ela (onclick='...') — escapar só a dupla deixaria a
+     porta aberta justamente onde o clique mora. */
+  function esc(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,c=>
+      ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8579,7 +8591,7 @@ function diagnosticarReparos(){
   const perdidas=_conclusoesPerdidas();
   const semResp=_solicitacoesSemResponsavel();
   const linha=(n,texto,detalhe)=>
-    `<div style="color:${n?'var(--tom-vermelho)':'var(--tom-verde)'};">${n?'⚠':'✓'} ${texto}</div>`
+    `<div style="color:${n?'var(--tom-vermelho)':'var(--tom-verde)'};">${n?'⚠':'✓'} ${esc(texto)}</div>`
     + (detalhe?`<div style="padding-left:16px;color:var(--text-muted);">${detalhe}</div>`:'');
   const listar=(arr,f)=>arr.slice(0,8).map(f).join('<br>')+(arr.length>8?`<br>… e mais ${arr.length-8}`:'');
   alvo.innerHTML=
@@ -12393,29 +12405,20 @@ function _autenticarNoFirebase(chave,senha){
       console.warn('[auth]',_ultimoErroAuth); return false; };
     return firebase.auth().signInWithEmailAndPassword(email,senha)
       .then(()=>{ _ultimoErroAuth=''; return true; })
-      .catch(err=>{
-        const c=(err&&err.code)||'';
-        /* O Firebase novo devolve `invalid-login-credentials` tanto para
-           "essa conta não existe" quanto para "a senha está errada" — os dois
-           casos com o mesmo código, de propósito, para não revelar quais
-           e-mails têm conta. A única forma de separar é tentar criar. */
-        if(c==='auth/user-not-found' || c==='auth/invalid-login-credentials' || c==='auth/invalid-credential'){
-          return firebase.auth().createUserWithEmailAndPassword(email,senha)
-            .then(()=>{ _ultimoErroAuth=''; return true; })
-            .catch(err2=>{
-              const c2=(err2&&err2.code)||'';
-              /* A conta existe: então o que falhou lá em cima foi a senha, e
-                 é ESSE o erro que interessa. Deixar `email-already-in-use`
-                 como resposta apagava a única pista de que a nuvem recusou a
-                 senha — e o login, sem essa pista, caía de volta na cópia
-                 local e deixava entrar com a senha antiga. A troca por
-                 e-mail virava enfeite. */
-              if(c2==='auth/email-already-in-use') return registrar(err);
-              return registrar(err2);
-            });
-        }
-        return registrar(err);
-      });
+      /* O Firebase novo devolve `invalid-login-credentials` tanto para
+         "essa conta não existe" quanto para "a senha está errada" — de
+         propósito, para não revelar quais e-mails têm conta.
+
+         Aqui se tentava CRIAR a conta para separar os dois casos. Isso
+         abria o sistema inteiro: digitar um usuário inexistente com
+         qualquer senha na tela de login criava uma conta válida no
+         projeto, e o token dela passava no worker. Era o degrau de
+         entrada para ler e escrever todo o banco.
+
+         Separar os dois casos, aliás, é enumeração de usuário — também
+         é falha. Os dois problemas somem com a mesma decisão: não
+         separar. Conta nova é ato do master, no painel. */
+      .catch(registrar);
   }catch(e){ _ultimoErroAuth=e.message||'erro'; return Promise.resolve(false); }
 }
 
@@ -13161,7 +13164,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31n';
+const APP_VERSAO='2026.08.31o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13892,9 +13895,11 @@ function restaurarMenuOculto(){
    abas que a pessoa enxerga — explicar uma aba que ela não tem só
    gera pedido de acesso e confusão. */
 
-function _iniEsc(s){
-  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+/* Era um escape só para os quatro caracteres; a aspa simples ficava de
+   fora, e é com ela que quase todo onclick do sistema é escrito. Agora
+   delega para o esc() do primeiro bloco — um escape só, o mesmo em toda
+   parte, sem dois níveis de rigor convivendo. */
+function _iniEsc(s){ return esc(s); }
 function _iniPode(perm){
   if(perm===null||perm===undefined) return true;
   if(currentUser && currentUser.master) return true;
@@ -19047,7 +19052,7 @@ function _arqRenderConferencia(){
   const linha=(rot,val,obs)=>`<div style="display:flex;gap:10px;align-items:baseline;padding:4px 0;">
       <span style="font-size:11.5px;color:var(--text-muted);min-width:190px;">${rot}</span>
       <span style="font-size:12.5px;font-weight:700;color:var(--text-primary);font-family:var(--font-mono);">${val}</span>
-      ${obs?`<span style="font-size:10.5px;color:var(--text-muted);">${obs}</span>`:''}</div>`;
+      ${obs?`<span style="font-size:10.5px;color:var(--text-muted);">${esc(obs)}</span>`:''}</div>`;
   painel.style.display='block';
   painel.innerHTML=
     `<div style="font-size:13px;font-weight:800;color:var(--text-primary);margin-bottom:2px;">Conferência antes de gravar</div>
@@ -19324,7 +19329,7 @@ function _estSkuHtml(p){
   const sku=String((p&&p.sku)||'').trim() || '—';
   const url=_estLinkValido(p&&p.link);
   return url
-    ? `<a class="est-sku-link" href="${url}" target="_blank" rel="noopener" title="Abrir na Base">${sku} ↗</a>`
+    ? `<a class="est-sku-link" href="${url}" target="_blank" rel="noopener" title="Abrir na Base">${esc(sku)} ↗</a>`
     : sku;
 }
 
@@ -19451,7 +19456,7 @@ function renderEstoque(){
       <td>${armazens.length
         ? `<div class="est-arm">${armazens.map(a=>{
             const q=Number(a.qtd)||0;
-            return `<div><span class="nome">${a.nome||'—'}</span><span class="qtd${q<0?' neg':''}">${_estNum(q)} un.</span></div>`;
+            return `<div><span class="nome">${esc(a.nome)||'—'}</span><span class="qtd${q<0?' neg':''}">${_estNum(q)} un.</span></div>`;
           }).join('')}</div>`
         : '<span style="color:var(--text-muted);">—</span>'}</td>
       <td class="est-custo" style="color:${custo>0?'var(--text-primary)':'var(--text-muted)'};">${custo>0?_pedFmt(custo):'—'}</td>`;
@@ -20743,7 +20748,7 @@ function etpRenderEtapa2(){
 
   const linhaCusto=(nome,valor,fixo,i)=>
     `<div class="etp-custo">`
-    +(fixo?`<span class="nome">${nome}</span>`
+    +(fixo?`<span class="nome">${esc(nome)}</span>`
           :`<input type="text" class="nome-livre" value="${_etpEsc(nome)}" placeholder="Nome do custo"
               ${trav?'disabled':''} oninput="etpCampoExtra(${i},'nome',this.value)">`)
     +`<input type="number" step="0.01" class="valor" value="${_etpEsc(valor)}" placeholder="0,00"
@@ -21361,7 +21366,7 @@ function _acpCelula(col,a,pode){
     case 'data':
       return `<td style="${mono}">${a.data?_pedDataBR(a.data):_ACP_VAZIO}</td>`;
     case 'cliente':
-      return `<td style="color:var(--text-primary);white-space:normal;max-width:210px;">${a.cliente?nomeProprio(a.cliente):_ACP_VAZIO}
+      return `<td style="color:var(--text-primary);white-space:normal;max-width:210px;">${a.cliente?esc(nomeProprio(a.cliente)):_ACP_VAZIO}
         ${a.numeroPedido?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">pedido ${a.numeroPedido}</div>`:''}</td>`;
     case 'loja':
       return `<td style="color:var(--text-secondary);white-space:normal;max-width:210px;">${a.loja||'<span style="color:var(--text-muted);">Não informado</span>'}
@@ -22034,8 +22039,8 @@ function renderEntradasEstoque(){
       :`<span style="color:var(--text-muted);">${de==null?'—':de}</span> → <b>${para==null?'—':para}</b>`;
     tr.innerHTML=`
       <td style="font-family:var(--font-mono);font-weight:700;color:var(--text-primary);">${a.sku||'—'}
-        ${a.nomeProduto?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);white-space:normal;max-width:230px;">${a.nomeProduto}</div>`:''}
-        ${a.obs?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);white-space:normal;max-width:230px;">${a.obs}</div>`:''}</td>
+        ${a.nomeProduto?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);white-space:normal;max-width:230px;">${esc(a.nomeProduto)}</div>`:''}
+        ${a.obs?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);white-space:normal;max-width:230px;">${esc(a.obs)}</div>`:''}</td>
       <td style="font-family:var(--font-mono);">+${a.quantidade||0}</td>
       <td style="font-family:var(--font-mono);">${_pedFmt(a.custo)}</td>
       <td><span class="ent-sit ${sit.c}">${sit.r}</span>
@@ -22238,7 +22243,7 @@ function renderPedidosBase(){
     const cor=_BASE_CORES[_baseClasse(p.status)];
     const o=ordem.get(p.id)||{};
     const marca=(ok,titulo)=>ok
-      ? `<span class="ped-sim" title="${titulo}">${_ICO_SIM}</span>`
+      ? `<span class="ped-sim" title="${esc(titulo)}">${_ICO_SIM}</span>`
       : `<span class="ped-nao" title="Não">${_ICO_NAO}</span>`;
     tr.innerHTML=`
       <td style="font-weight:700;font-family:var(--font-mono);">
@@ -23047,7 +23052,7 @@ function showMarcaColorPicker(nome){
   overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;';
   const box=document.createElement('div');
   box.style.cssText='background:var(--bg-surface);border:1px solid var(--glass-border);border-radius:var(--radius-lg);padding:20px;max-width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.6);';
-  box.innerHTML=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Nova marca: ${nome}</div>
+  box.innerHTML=`<div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--accent);margin-bottom:4px;">Nova marca: ${esc(nome)}</div>
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:14px;">Escolha uma cor (texto branco fica legível em todas)</div>`;
   const grid=document.createElement('div');
   grid.style.cssText='display:grid;grid-template-columns:repeat(4,1fr);gap:10px;';
@@ -23080,7 +23085,7 @@ function saveNewMarca(nome,cor){
   const marcaSel=document.getElementById('conf-marca');
   if(marcaSel){
     marcaSel.innerHTML='<option value="">— Selecionar —</option>'+
-      getAllMarcas().map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
+      getAllMarcas().map(m=>`<option value="${esc(m.nome)}">${esc(m.nome)}</option>`).join('');
     marcaSel.value=nome;
   }
   showToast('✓ Marca "'+nome+'" adicionada','success');
@@ -23487,7 +23492,7 @@ function openConfModal(id){
   const marcaSel = document.getElementById('conf-marca');
   if(marcaSel){
     marcaSel.innerHTML = '<option value="">— Selecionar —</option>' +
-      getAllMarcas().map(m=>`<option value="${m.nome}">${m.nome}</option>`).join('');
+      getAllMarcas().map(m=>`<option value="${esc(m.nome)}">${esc(m.nome)}</option>`).join('');
     marcaSel.value='';
   }
   // Monta o grid de selects por plataforma dinamicamente (mesma ordem da tabela)
@@ -31194,7 +31199,7 @@ function renderAtividades(){
           <div style="flex:1;"></div>
           <div style="display:flex;gap:2px;flex-shrink:0;" id="atv-actions-${a.id}"></div>
         </div>
-        <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${a.titulo||'Sem título'}</div>
+        <div style="font-size:13.5px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;line-height:1.25;margin-bottom:3px;">${esc(a.titulo)||'Sem título'}</div>
         ${codigoLabel?`<div style="font-size:10.5px;color:var(--text-secondary);font-family:var(--font-mono);font-weight:600;margin-bottom:2px;">${codigoLabel}</div>`:''}
         ${extraFrente}
         ${a.prazoHoras?`<div style="font-size:10px;color:var(--text-muted);margin-bottom:2px;">Prazo: <span style="color:var(--text-secondary);font-weight:600;">${a.prazoHoras}h</span></div>`:''}
@@ -31938,7 +31943,7 @@ function renderProjetos(){
             ${statusBadge}
           </div>
         </div>
-        ${p.descricao?`<div style="font-size:11px;color:var(--text-muted);line-height:1.4;margin-bottom:8px;">${p.descricao.length>120?p.descricao.slice(0,120)+'…':p.descricao}</div>`:''}
+        ${p.descricao?`<div style="font-size:11px;color:var(--text-muted);line-height:1.4;margin-bottom:8px;">${esc(p.descricao.length>120?p.descricao.slice(0,120)+'…':p.descricao)}</div>`:''}
         <div style="display:flex;align-items:center;justify-content:space-between;padding-top:7px;border-top:1px solid var(--linha-sutil);">
           <span style="font-size:9.5px;color:var(--text-muted);">Solicitado por ${p.criadoPor||'—'} · ${p.criadoEm||''}</span>
         </div>
@@ -32908,7 +32913,7 @@ function initCanceladaForm(p){
       const u=(appState.users||{})[k]||{};
       const nome=u.name||k;
       const ini=u.initials||nome.split(/\s+/).map(x=>x[0]).join('').slice(0,2).toUpperCase();
-      return `<span class="canc-chip">${userAvatarHTML({...u,initials:ini},18)}${nome}</span>`;
+      return `<span class="canc-chip">${userAvatarHTML({...u,initials:ini},18)}${esc(nome)}</span>`;
     }).join('');
   }
   // Cobre o caso de o registro do n8n ter chegado com a aba fechada

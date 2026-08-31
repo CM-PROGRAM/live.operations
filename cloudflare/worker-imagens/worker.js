@@ -55,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v15';
+const VERSAO_WORKER = 'v16';
 
 const PROJETO = 'suplelive-8a700';
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -77,9 +77,37 @@ const AVISO_MAX_LINHAS = 100;              // acima disso, a sala avisa a lista 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,PUT,POST,DELETE,OPTIONS',
-  'Access-Control-Allow-Headers': 'Authorization,Content-Type',
+  'Access-Control-Allow-Headers': 'Authorization,Content-Type,X-LiveOps-Chave',
   'Access-Control-Max-Age': '86400',
 };
+
+/* As origens que de fato abrem o sistema. Quem chama de fora — n8n,
+   parceiro com chave — nao passa por CORS: navegador nenhum esta
+   envolvido ali. O '*' que estava aqui deixava qualquer pagina da
+   internet ler a resposta com um token que ela ja tivesse.
+
+   A troca e feita na SAIDA, num lugar so (_comCors), e nao numa variavel
+   global lida por resposta(): o isolate atende varias requisicoes ao
+   mesmo tempo, e uma global viraria a origem de um pedido na resposta de
+   outro. */
+const ORIGENS_OK = new Set([
+  'https://cm-program.github.io',
+  'http://localhost:8080',
+  'http://127.0.0.1:8080',
+]);
+const ORIGEM_PADRAO = 'https://cm-program.github.io';
+function _comCors(req, resp) {
+  const o = req.headers.get('Origin') || '';
+  const permitida = ORIGENS_OK.has(o) ? o : ORIGEM_PADRAO;
+  const h = new Headers(resp.headers);
+  h.set('Access-Control-Allow-Origin', permitida);
+  /* Sem o Vary, a cache pode servir a uma origem o cabecalho calculado
+     para outra — e o fechamento vira teatro. */
+  h.set('Vary', 'Origin');
+  h.set('X-Content-Type-Options', 'nosniff');
+  h.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  return new Response(resp.body, { status: resp.status, statusText: resp.statusText, headers: h });
+}
 
 function resposta(status, corpo, extra) {
   return new Response(corpo, { status, headers: { ...CORS, ...(extra || {}) } });
@@ -154,6 +182,54 @@ async function conferirTokenBruto(bruto, env) {
     return null;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   TER TOKEN DO PROJETO NUNCA FOI O MESMO QUE TRABALHAR AQUI
+   ══════════════════════════════════════════════════════════════════
+   A firebaseConfig esta a vista na pagina — e por design, esta certo.
+   Só que, com o apiKey publico, qualquer pessoa cria uma conta contra o
+   projeto e recebe um token que passa em conferirToken(): assinatura
+   boa, aud certo, exp valido. O que faltava perguntar era se aquele uid
+   pertence a alguem que trabalha aqui.
+
+   A resposta ja existia — _autorizadoNoEspelho() — mas so /auth/semear a
+   usava. Agora ela guarda o portao principal tambem.
+
+   O cracha emitido por ESTE worker (iss:'liveops') passa direto: ele so
+   nasce de uma senha semeada contra essa mesma lista. */
+async function _filtrarAutorizado(env, quem) {
+  if (!quem) return null;
+  if (quem.iss === 'liveops') return quem;
+  const v = await _autorizadoNoEspelho(env, String(quem.sub || ''));
+  if (v === 'ok') return quem;
+  /* 'espelho-sem-autorizados' recusa igual — mas grita no log, porque os
+     dois casos se consertam de formas opostas: um e intruso, o outro e o
+     espelho que ainda nao recebeu a copia do ramo. */
+  if (v === 'espelho-sem-autorizados') {
+    console.error('[auth] a colecao autorizados esta VAZIA no espelho — ninguem do Firebase entra ate ela ser populada');
+  }
+  return null;
+}
+async function conferirTokenAutorizado(req, env) {
+  return _filtrarAutorizado(env, await conferirToken(req, env));
+}
+async function conferirTokenBrutoAutorizado(bruto, env) {
+  return _filtrarAutorizado(env, await conferirTokenBruto(bruto, env));
+}
+
+/* Quem e o dono da casa. Mesma pergunta que a API v1 ja fazia; agora as
+   rotas /dados/ tambem sabem responder. */
+function _ehMestre(env, quem) {
+  if (!quem) return false;
+  return !!((env.MASTER_CHAVE && quem.iss === 'liveops' && String(quem.chave || '') === env.MASTER_CHAVE) ||
+            (env.MASTER_UID && String(quem.sub || '') === env.MASTER_UID));
+}
+
+/* Estas colecoes decidem QUEM E QUEM. Gravar nelas pela porta comum
+   seria escolher a propria permissao — e era o degrau que transformava
+   uma conta qualquer em master. So o master e o robo (que entra por
+   /robo/, com portao proprio) passam. */
+const COLECOES_PROTEGIDAS = new Set(['autorizados', 'usuarios', 'users', 'permissoes', 'senhas', 'forceLogout']);
 
 // dataURL → binário com o content-type original; texto puro se não for
 function abrirDataUrl(texto) {
@@ -442,7 +518,42 @@ async function _autorizadoNoEspelho(env, uid) {
   return algum ? 'sem-autorizacao' : 'espelho-sem-autorizados';
 }
 
+/* Teto por conta e por IP, na memoria do isolate. Nao e exato — cada
+   isolate tem a sua conta — mas transforma forca bruta em algo inviavel,
+   que e o objetivo. */
+const LOGIN_TETO_MINUTO = 8;
+const _loginRitmo = new Map();
+function _passouDoRitmoLogin(id) {
+  const janela = Math.floor(Date.now() / 60000);
+  const r = _loginRitmo.get(id);
+  if (!r || r.janela !== janela) {
+    if (_loginRitmo.size > 5000) _loginRitmo.clear();   // nao cresce sem fim
+    _loginRitmo.set(id, { janela, n: 1 });
+    return false;
+  }
+  r.n++;
+  return r.n > LOGIN_TETO_MINUTO;
+}
+
 async function atenderAuth(req, env, url) {
+  /* O teto vem ANTES de tudo — antes do binding, antes de preparar tabela,
+     antes do PBKDF2. Colocado depois, cada tentativa de forca bruta ainda
+     custava trabalho de banco: o atacante nao entrava, mas derrubava o
+     worker de cansaco. Aqui ele bate numa porta que nao abre nada.
+
+     O worker responde num subdominio workers.dev, que nao pertence a uma
+     zona nossa — logo o WAF e o rate limiting da Cloudflare NAO se aplicam.
+     Sem este teto nao ha NADA entre a internet e o cofre de senhas.
+     Conta e IP juntos de proposito: so por IP, um proxy passa; so por
+     conta, varre-se a lista batendo uma vez em cada. */
+  if (url.pathname === '/auth/entrar' || url.pathname === '/auth/semear') {
+    const ip = req.headers.get('CF-Connecting-IP') || 'sem-ip';
+    let quemTenta = '';
+    try { const c = await req.clone().json(); quemTenta = String((c && c.chave) || ''); } catch (e) {}
+    if (_passouDoRitmoLogin('ip:' + ip) || (quemTenta && _passouDoRitmoLogin('u:' + quemTenta))) {
+      return respostaJson(429, { erro: 'muitas-tentativas' });
+    }
+  }
   if (!env.DADOS) return respostaJson(500, { erro: 'binding-DADOS-ausente' });
   if (!_segredoSessao(env)) return respostaJson(500, { erro: 'sem-segredo-de-sessao' });
   await garantirTabelas(env);
@@ -459,7 +570,7 @@ async function atenderAuth(req, env, url) {
     let podeLer = false;
     if (env.CHAVE_ROBO && (req.headers.get('X-LiveOps-Chave') || '') === env.CHAVE_ROBO) podeLer = true;
     if (url.pathname === '/auth/semeados') {
-      if (!podeLer && !(await conferirToken(req, env))) return respostaJson(401, { erro: 'sem-login' });
+      if (!podeLer && !(await conferirTokenAutorizado(req, env))) return respostaJson(401, { erro: 'sem-login' });
     } else if (!podeLer) {
       return respostaJson(401, { erro: 'chave-invalida' });
     }
@@ -494,7 +605,7 @@ async function atenderAuth(req, env, url) {
      mesma requisição. Sem essa prova, qualquer um escolheria a senha de
      qualquer um. */
   if (url.pathname === '/auth/semear') {
-    const quem = await conferirToken(req, env);
+    const quem = await conferirTokenAutorizado(req, env);
     if (!quem) return respostaJson(401, { erro: 'sem-login' });
     const jaTem = await env.DADOS.prepare(
       'SELECT uid FROM ' + TABELA_SENHAS + ' WHERE chave = ?1'
@@ -963,7 +1074,7 @@ async function _portadorDaApi(req, env) {
     return null;
   }
   // Pessoa logada: lê, não escreve — e é master se o worker souber quem é
-  const quem = await conferirToken(req, env);
+  const quem = await conferirTokenAutorizado(req, env);
   if (!quem) return null;
   const mestre = !!((env.MASTER_CHAVE && quem.iss === 'liveops' && String(quem.chave || '') === env.MASTER_CHAVE) ||
                     (env.MASTER_UID && String(quem.sub || '') === env.MASTER_UID));
@@ -1170,7 +1281,15 @@ async function atenderApi(req, env, ctx, url) {
 }
 
 export default {
+  /* O CORS e decidido na SAIDA, aqui, e nao em cada resposta: um lugar so,
+     sem estado global, sem risco de a origem de um pedido vazar para a
+     resposta de outro. */
   async fetch(req, env, ctx) {
+    return _comCors(req, await _atender(req, env, ctx));
+  },
+};
+
+async function _atender(req, env, ctx) {
     const url = new URL(req.url);
 
     if (req.method === 'OPTIONS') return resposta(204, null);
@@ -1184,24 +1303,29 @@ export default {
       /* O nome da exceção e a primeira linha da pilha vêm junto de
          propósito: sem elas, "falha-no-worker" é só a notícia de que algo
          quebrou — e uma manhã inteira se vai adivinhando o quê. */
-      return atenderAuth(req, env, url).catch(e => respostaJson(500, {
-        erro: 'falha-no-worker',
-        detalhe: [e && e.name, e && e.message].filter(Boolean).join(': ') || String(e),
-        onde: String((e && e.stack) || '').split('\n')[1] || '',
-      }));
+      return atenderAuth(req, env, url).catch(e => {
+        /* O detalhe e o que salva a manha de depuracao — mas ele vai para
+           o log do worker (wrangler tail / Workers Logs), nao para quem
+           chamou. Devolver nome de funcao, arquivo e linha era entregar o
+           mapa da rota mais sensivel a quem so provocou um erro. */
+        console.error('[auth]', (e && e.stack) || e);
+        return respostaJson(500, { erro: 'falha-no-worker' });
+      });
     }
 
     if (url.pathname.indexOf('/robo/') === 0) {
-      return atenderRobo(req, env, ctx, url).catch(e =>
-        respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
-      );
+      return atenderRobo(req, env, ctx, url).catch(e => {
+        console.error('[robo]', (e && e.stack) || e);
+        return respostaJson(500, { erro: 'falha-no-worker' });
+      });
     }
 
     // A API REST (v1): a porta das integrações de fora
     if (url.pathname === '/api/v1' || url.pathname.indexOf('/api/v1/') === 0) {
-      return atenderApi(req, env, ctx, url).catch(e =>
-        respostaJson(500, { erro: 'falha-no-worker', detalhe: (e && e.message) || String(e) })
-      );
+      return atenderApi(req, env, ctx, url).catch(e => {
+        console.error('[api]', (e && e.stack) || e);
+        return respostaJson(500, { erro: 'falha-no-worker' });
+      });
     }
 
     if (!env.IMAGENS) return respostaJson(500, { erro: 'binding-IMAGENS-ausente' });
@@ -1214,7 +1338,7 @@ export default {
       if ((req.headers.get('Upgrade') || '').toLowerCase() !== 'websocket') {
         return respostaJson(400, { erro: 'esperava-websocket' });
       }
-      const quemRt = await conferirTokenBruto(url.searchParams.get('token') || '', env);
+      const quemRt = await conferirTokenBrutoAutorizado(url.searchParams.get('token') || '', env);
       if (!quemRt) return respostaJson(401, { erro: 'sem-login' });
       const cab = new Headers(req.headers);
       cab.set('X-Uid', quemRt.sub);
@@ -1320,12 +1444,18 @@ export default {
         const apaga = env.DADOS.prepare('DELETE FROM registros WHERE colecao = ?1 AND chave = ?2');
         const stmts = [];
         const mudancas = [];
-        let puladas = 0;
+        let puladas = 0, recusadas = 0;
         const agora = Date.now();
+        const mestre = _ehMestre(env, quem);
         for (const l of linhas) {
           const colecao = l && l.colecao, chave = l && l.chave;
           if (typeof colecao !== 'string' || typeof chave !== 'string'
             || !COLECAO_OK.test(colecao) || !CHAVE_OK.test(chave)) { puladas++; continue; }
+          /* Gravar o proprio trabalho e o dia a dia da equipe; gravar QUEM
+             EU SOU e decisao do master. Sem esta linha, um POST de uma
+             linha so na colecao autorizados promovia o autor a usuario
+             legitimo — e dai a master. */
+          if (COLECOES_PROTEGIDAS.has(colecao) && !mestre) { recusadas++; continue; }
           if (l.dados === null || l.dados === undefined) {
             stmts.push(apaga.bind(colecao, chave));
             mudancas.push({ colecao, chave, apagada: true });
@@ -1342,10 +1472,13 @@ export default {
           await env.DADOS.batch(stmts);
           ctx.waitUntil(avisarSala(env, { linhas: mudancas }));
         }
-        return respostaJson(200, { ok: true, gravadas: stmts.length, puladas });
+        if (recusadas) console.warn('[dados] recusadas', recusadas, 'gravacao(oes) em colecao protegida por', (quem && (quem.chave || quem.sub)) || '?');
+        return respostaJson(200, { ok: true, gravadas: stmts.length, puladas, recusadas });
       }
 
       if (url.pathname === '/dados/resumo' && req.method === 'GET') {
+        // O inventario do banco inteiro e assunto de dono, nao de sessao comum
+        if (!_ehMestre(env, quem)) return respostaJson(403, { erro: 'so-master' });
         const regs = await env.DADOS.prepare(
           'SELECT colecao, COUNT(*) AS registros FROM registros GROUP BY colecao ORDER BY colecao'
         ).all();
@@ -1365,6 +1498,9 @@ export default {
 
     // ── IMAGENS (etapa 1) ────────────────────────────────────────
     if (url.pathname === '/lista' && req.method === 'GET') {
+      /* Percorrer o R2 inteiro (ate 50 mil chaves) e um laco caro que
+         qualquer sessao disparava a vontade. So o master. */
+      if (!_ehMestre(env, quem)) return respostaJson(403, { erro: 'so-master' });
       const chaves = [];
       let cursor;
       do {
@@ -1416,5 +1552,4 @@ export default {
     }
 
     return respostaJson(405, { erro: 'metodo-nao-suportado' });
-  },
-};
+}
