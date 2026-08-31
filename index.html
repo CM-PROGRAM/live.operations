@@ -852,13 +852,17 @@ html{overflow-x:hidden;}
   cursor:pointer;background:rgba(0,0,0,.05);}
 .wa-midia audio{width:100%;min-width:230px;height:38px;}
 .wa-audio{gap:2px;}
-.wa-baixar{align-self:flex-start;font-size:11px;font-family:var(--font-mono);color:#2563eb;
-  text-decoration:none;padding:2px 0;}
-.wa-baixar:hover{text-decoration:underline;}
+/* Baixar: só o símbolo, no azul dos botões do sistema — o texto "⤓ Baixar"
+   em mono era ilegível em cima do fundo do balão. */
+.wa-baixar{align-self:flex-end;display:inline-flex;align-items:center;justify-content:center;
+  width:26px;height:26px;border-radius:50%;background:#2563eb;color:#fff;
+  text-decoration:none;box-shadow:0 1px 3px rgba(0,0,0,.28);transition:background .12s;}
+.wa-baixar:hover{background:#1d4ed8;}
+.wa-baixar svg{width:14px;height:14px;}
 .wa-anexo{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:#2563eb;
   text-decoration:none;word-break:break-all;padding:4px 0;}
 .wa-anexo:hover{text-decoration:underline;}
-:root:not([data-theme="light"]) .wa-baixar,:root:not([data-theme="light"]) .wa-anexo{color:#60a5fa;}
+:root:not([data-theme="light"]) .wa-anexo{color:#60a5fa;}
 :root:not([data-theme="light"]) .wa-msg.nota{background:#4a3f1c;border-color:#6b5a24;color:#f3e6c0;}
 :root:not([data-theme="light"]) .wa-msg.nota .autor{color:#e3c96a;}
 :root:not([data-theme="light"]) .wa-msg{color:#e9edef;box-shadow:0 1px .5px rgba(0,0,0,.3);}
@@ -13097,7 +13101,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31g';
+const APP_VERSAO='2026.08.31h';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -15248,7 +15252,9 @@ function _waMidiaHtml(a){
   if(!/^https?:\/\//i.test(url)) return '';
   const nome=String(a.nome||'').trim() || (tipo==='image'?'imagem.jpg':tipo==='audio'?'audio.ogg':tipo==='video'?'video.mp4':'arquivo');
   const esc=_iniEsc(url), escNome=_iniEsc(nome);
-  const baixar=`<a class="wa-baixar" href="${esc}" download="${escNome}" target="_blank" rel="noopener" title="Baixar">⤓ Baixar</a>`;
+  const baixar=`<a class="wa-baixar" href="${esc}" download="${escNome}" target="_blank" rel="noopener" title="Baixar ${escNome}">`+
+    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">`+
+    `<path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg></a>`;
   if(tipo==='image'){
     return `<div class="wa-midia">
       <img src="${esc}" alt="${escNome}" loading="lazy" onclick="window.open('${esc}','_blank','noopener')"
