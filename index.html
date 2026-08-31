@@ -733,7 +733,7 @@ html{overflow-x:hidden;}
 .wa-etq-x:hover{color:var(--tom-vermelho);background:var(--veu-medio);}
 .wa-etq-vazio{padding:8px 8px 14px;font-size:12px;color:var(--text-muted);line-height:1.7;}
 /* ── Agenda de contatos ── */
-#wa-vista-contatos,#wa-vista-cli-antigo,#wa-vista-cli-oficial{display:flex;flex-direction:column;height:100%;}
+#wa-vista-contatos,#wa-vista-cli-antigo,#wa-vista-cli-oficial,#wa-vista-cadastrados{display:flex;flex-direction:column;height:100%;}
 .wa-ct-busca{padding:0 12px 8px;}
 .wa-ct-busca input{width:100%;font-size:12.5px;}
 .wa-ct-lista{flex:1;overflow-y:auto;padding:0 8px;}
@@ -4276,6 +4276,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             onclick="waPainelLateral('cli-oficial')" title="Cliente Oficial — quem fala com a gente no número atual">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 20v-1.6a3.4 3.4 0 0 0-3.4-3.4H5.4A3.4 3.4 0 0 0 2 18.4V20"/><circle cx="7.5" cy="8" r="3.4"/><circle cx="17.5" cy="15.5" r="4.3"/><path d="m15.6 15.5 1.3 1.3 2.4-2.5"/></svg>
           </button>
+          <!-- Onde o cadastro fica pronto: só quem tem nome, sobrenome e CPF -->
+          <button type="button" class="wa-rail-btn" id="wa-rail-cadastrados"
+            onclick="waPainelLateral('cadastrados')" title="Contatos cadastrados — nome, telefone e CPF completos">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="9" cy="10" r="2.4"/><path d="M5.6 16.6a3.6 3.6 0 0 1 6.8 0"/><path d="M14.5 9.5h4M14.5 13h4"/></svg>
+          </button>
         </div>
         <div class="wa-lista">
           <!-- Painel 1: as conversas -->
@@ -4305,6 +4310,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                vindo da varredura, e o oficial, que cresce em tempo real -->
           <div id="wa-vista-cli-antigo" style="display:none;"></div>
           <div id="wa-vista-cli-oficial" style="display:none;"></div>
+          <div id="wa-vista-cadastrados" style="display:none;"></div>
         </div>
         <div class="wa-chat">
           <div class="wa-chat-cab" id="wa-chat-cab" style="display:none;"></div>
@@ -10727,9 +10733,7 @@ function _agendarRenderRegistros(){
        chegava da nuvem (varredura de milhares de contatos) e a vista
        aberta continuava dizendo zero até a pessoa trocar de painel. */
     try{
-      if(_waPainel==='contatos') _waPintarPainelContatos();
-      else if(_waPainel==='cli-antigo') _waPintarPainelClientes('antigo');
-      else if(_waPainel==='cli-oficial') _waPintarPainelClientes('oficial');
+      _waRepintarPainelLateral();
     }catch(e){}
     // Base Conhecimento só se redesenha se for a vista aberta agora
     try{ if(typeof _iniVista!=='undefined' && _iniVista==='baseinfo') renderBaseInfo(); }catch(e){}
@@ -13433,7 +13437,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31u';
+const APP_VERSAO='2026.08.31v';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14981,7 +14985,8 @@ function waPainelLateral(qual){
    ['etiquetas','wa-vista-etiquetas','wa-rail-etiquetas'],
    ['contatos','wa-vista-contatos','wa-rail-contatos'],
    ['cli-antigo','wa-vista-cli-antigo','wa-rail-cli-antigo'],
-   ['cli-oficial','wa-vista-cli-oficial','wa-rail-cli-oficial']].forEach(([nome,vista,botao])=>{
+   ['cli-oficial','wa-vista-cli-oficial','wa-rail-cli-oficial'],
+   ['cadastrados','wa-vista-cadastrados','wa-rail-cadastrados']].forEach(([nome,vista,botao])=>{
     const v=document.getElementById(vista), b=document.getElementById(botao);
     if(v) v.style.display=_waPainel===nome?'':'none';
     if(b) b.classList.toggle('ativa',_waPainel===nome);
@@ -14990,6 +14995,7 @@ function waPainelLateral(qual){
   else if(_waPainel==='contatos') _waPintarPainelContatos();
   else if(_waPainel==='cli-antigo') _waPintarPainelClientes('antigo');
   else if(_waPainel==='cli-oficial') _waPintarPainelClientes('oficial');
+  else if(_waPainel==='cadastrados') _waPintarPainelCadastrados();
   else inboxRender();
 }
 
@@ -15049,6 +15055,71 @@ function _waPintarPainelClientes(tipo){
   const b=document.getElementById(idBusca);
   if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
 }
+/* ── Contatos cadastrados ────────────────────────────────────────────
+   As outras vistas mostram quem CHEGOU até nós — telefone e pouco mais.
+   Esta mostra quem já está pronto: nome com sobrenome, telefone e CPF.
+   É a lista que serve para vender, emitir nota e procurar pedido, e é
+   por isso que ela existe separada das outras três.
+
+   Nada é cadastrado aqui: o cadastro se completa na conversa, pelo botão
+   "Atualizar cadastro". Aqui é onde o resultado aparece. */
+let _waCadJanela=150;
+function waCadastradosMais(){ _waCadJanela+=300; _waPintarPainelCadastrados(); }
+
+function _waPintarPainelCadastrados(){
+  const box=document.getElementById('wa-vista-cadastrados'); if(!box) return;
+  const q=_biNorm((document.getElementById('wa-cad-busca')||{}).value||'').trim();
+  const todos=_waContatos();
+  const prontos=todos.filter(_waCadastroCompleto);
+  const lista=prontos
+    .filter(c=>!q || _biNorm([c.nome,c.sobrenome,c.telefone,c.cpf].join(' ')).includes(q))
+    .sort((a,b)=>_waNomeCompleto(a).localeCompare(_waNomeCompleto(b)));
+  const recorte=lista.slice(0,_waCadJanela);
+  const maisHtml=lista.length>recorte.length
+    ?`<button type="button" class="wa-mais" onclick="waCadastradosMais()">▼ Mostrar mais ${Math.min(300,lista.length-recorte.length)} — ${recorte.length} de ${lista.length}</button>`
+    :'';
+
+  const linhas=recorte.length ? recorte.map(c=>`
+    <div class="wa-ct-linha">
+      <span class="wa-av">${_iniEsc(_waIni(_waNomeCompleto(c)))}</span>
+      <div class="wa-ct-meio" onclick="waContatoConversar('${_iniEsc(c.id)}')" title="Abrir a conversa">
+        <div class="wa-ct-nome">${_iniEsc(nomeProprio(_waNomeCompleto(c)))}</div>
+        <div class="wa-ct-tel">${_iniEsc(c.telefone||'')} · CPF ${_iniEsc(_cliFmtCpf(_cliSoDigitos(c.cpf)))}</div>
+      </div>
+    </div>`).join('')
+    : `<div class="wa-ct-vazio">${
+        prontos.length ? 'Nenhum cadastro para essa busca.'
+        : (todos.length
+            ? 'Nenhum cadastro completo ainda. A agenda tem <b>'+todos.length+'</b> contato(s), mas falta nome, sobrenome ou CPF neles.<br><br>Abra uma conversa e use <b>Atualizar cadastro</b>, no alto à direita — assim que os três campos estiverem preenchidos, o contato aparece aqui.'
+            : 'Agenda vazia por enquanto.')}</div>`;
+
+  const falta=todos.length-prontos.length;
+  box.innerHTML=`
+    <div class="wa-etq-cab">Contatos cadastrados · ${prontos.length}</div>
+    <div style="padding:0 14px 8px;font-size:11px;line-height:1.5;color:var(--text-muted);">
+      Cadastro completo: nome, telefone e CPF.${falta>0?' Faltam <b>'+falta+'</b> da agenda — complete pelo botão <b>Atualizar cadastro</b> da conversa.':''}</div>
+    <div class="wa-ct-busca">
+      <input id="wa-cad-busca" type="text" placeholder="Buscar por nome, telefone ou CPF..."
+        value="${_iniEsc(q?((document.getElementById('wa-cad-busca')||{}).value||''):'')}"
+        oninput="_waPintarPainelCadastrados()" autocomplete="off">
+    </div>
+    <div class="wa-ct-lista">${linhas}${maisHtml}</div>`;
+  const b=document.getElementById('wa-cad-busca');
+  if(b && q){ b.focus(); b.setSelectionRange(b.value.length,b.value.length); }
+}
+
+/* Repinta o painel que está aberto, seja ele qual for. Cada lugar que
+   mexe na agenda chamava _waPintarPainelContatos direto — e a vista nova
+   ficava desatualizada até a pessoa trocar de painel e voltar. */
+function _waRepintarPainelLateral(){
+  try{
+    if(_waPainel==='contatos')          _waPintarPainelContatos();
+    else if(_waPainel==='cadastrados')  _waPintarPainelCadastrados();
+    else if(_waPainel==='cli-antigo')   _waPintarPainelClientes('antigo');
+    else if(_waPainel==='cli-oficial')  _waPintarPainelClientes('oficial');
+  }catch(e){}
+}
+
 const _waCliJanela={};
 function waClientesMais(tipo){
   _waCliJanela[tipo]=(_waCliJanela[tipo]||150)+300;
@@ -15199,7 +15270,7 @@ function waContatoSalvar(nomeFixo,telFixo,sobreFixo){
   if(daTela){
     ['wa-ct-nome','wa-ct-sobre','wa-ct-tel','wa-ct-cpf'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   }
-  _waPintarPainelContatos();
+  _waRepintarPainelLateral();
   try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
   const completo=[nome,sobrenome].filter(Boolean).join(' ');
   showToast('✔ '+nomeProprio(completo)+' salvo na agenda','success');
@@ -15326,7 +15397,7 @@ function waCadastroSalvar(convId){
   }
   saveState(appState);
   const ov=document.getElementById('wa-cad-overlay'); if(ov) ov.remove();
-  _waPintarPainelContatos();
+  _waRepintarPainelLateral();
   try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
   const completo=[nome,sobrenome].filter(Boolean).join(' ');
   showToast('✔ '+nomeProprio(completo)+(achou?' atualizado':' salvo na agenda'),'success');
@@ -15346,7 +15417,7 @@ function waContatoExcluir(id){
     return !(fim.length===8 && _waDigitos(x.telefone).endsWith(fim));
   });
   saveState(appState);
-  _waPintarPainelContatos();
+  _waRepintarPainelLateral();
   try{ if(_waAberta) inboxAbrir(_waAberta); }catch(e){}
   showToast('Contato removido da agenda','success');
 }
