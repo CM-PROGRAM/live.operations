@@ -2560,6 +2560,52 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .conf-sanfona .conf-sub{display:block;margin-top:4px;}
 .conf-chevron{color:var(--lo-azul);font-size:17px;line-height:1.35;transition:transform .15s;flex-shrink:0;}
 .conf-chevron.fechado{transform:rotate(-90deg);}
+
+/* ── SAÚDE DOS DADOS ────────────────────────────────────────────────
+   Os medidores em relevo: anel para o que tem teto (o pacote), placas
+   para o que é contagem. Sem cor nova — o azul da casa, o verde e o
+   âmbar que o resto do sistema já usa. */
+.sd-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:14px;margin-bottom:16px;}
+.sd-card{position:relative;border-radius:16px;padding:18px 20px;overflow:hidden;
+  background:linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-card) 60%, var(--bg-active) 100%);
+  border:1px solid var(--glass-border);
+  box-shadow:0 10px 26px rgba(15,23,42,.10), 0 1px 0 rgba(255,255,255,.55) inset, 0 -12px 24px rgba(15,23,42,.05) inset;}
+:root:not([data-theme="light"]) .sd-card{
+  box-shadow:0 12px 30px rgba(0,0,0,.42), 0 1px 0 rgba(255,255,255,.06) inset, 0 -14px 26px rgba(0,0,0,.22) inset;}
+.sd-card::after{content:'';position:absolute;inset:0 0 auto;height:42%;pointer-events:none;
+  background:linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,0));}
+:root:not([data-theme="light"]) .sd-card::after{background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,0));}
+.sd-rot{position:relative;z-index:1;font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--text-muted);font-family:var(--font-mono);margin-bottom:8px;}
+.sd-num{position:relative;z-index:1;font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1;
+  color:var(--lo-azul);font-family:var(--font-mono);}
+.sd-num small{font-size:14px;font-weight:700;margin-left:3px;color:var(--text-secondary);}
+.sd-nota{position:relative;z-index:1;font-size:11px;color:var(--text-muted);line-height:1.55;margin-top:8px;}
+.sd-barra{position:relative;z-index:1;height:9px;border-radius:99px;margin-top:12px;overflow:hidden;
+  background:rgba(20,30,55,.10);box-shadow:0 1px 3px rgba(15,23,42,.18) inset;}
+:root:not([data-theme="light"]) .sd-barra{background:rgba(255,255,255,.08);}
+.sd-barra i{display:block;height:100%;border-radius:99px;transition:width .5s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 1px 0 rgba(255,255,255,.45) inset;}
+/* O anel: o único medidor com teto de verdade, então ganha o desenho maior */
+.sd-anel{position:relative;z-index:1;width:132px;height:132px;margin:2px auto 0;display:grid;place-items:center;}
+.sd-anel svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.sd-anel-txt{position:relative;text-align:center;}
+.sd-anel-txt b{display:block;font-size:25px;font-weight:800;font-family:var(--font-mono);line-height:1.1;letter-spacing:-.02em;}
+.sd-anel-txt span{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);}
+.sd-lista{border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden auto;max-height:280px;}
+.sd-linha{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;
+  padding:9px 13px;border-bottom:1px solid var(--border);font-size:12px;}
+.sd-linha:last-child{border-bottom:none;}
+.sd-linha b{font-weight:600;color:var(--text-primary);}
+.sd-linha span{font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);}
+.sd-linha i{font-style:normal;font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);min-width:74px;text-align:right;}
+
+/* Registros excluídos: ver e apagar, um botão redondo cada */
+.rx-acao{width:30px;height:30px;border-radius:50%;border:1px solid var(--lo-azul);background:var(--lo-azul);color:#fff;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;transition:filter .15s;}
+.rx-acao:hover{filter:brightness(1.12);}
+.rx-acao.perigo{border-color:var(--tom-vermelho,#ef4444);background:transparent;color:var(--tom-vermelho,#ef4444);}
+.rx-acao.perigo:hover{background:var(--tom-vermelho,#ef4444);color:#fff;}
 /* O azul da casa é o dos botões (#2563eb), não o --accent, que é um
    azul-acinzentado de apoio e sumia ao lado do resto. */
 .conf-titulo{font-family:var(--font-sans);font-size:22px;font-weight:700;letter-spacing:-0.02em;
@@ -5203,172 +5249,155 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
 
       <!-- BACKUP — cópias automáticas diárias -->
-      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="backup-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div class="admin-title" style="margin-bottom:0;">💾 Backup Automático</div>
-          <button class="btn btn-sm" onclick="carregarBackups()" style="width:auto;">↻ Atualizar</button>
-        </div>
-        <div id="bkp-aviso" style="margin-bottom:12px;"></div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
-          Uma cópia por dia é guardada na nuvem automaticamente (últimos 14 dias). Serve para voltar
-          atrás de uma exclusão em massa. Para uma cópia fora da nuvem, use o botão de backup .zip abaixo.
-        </div>
-        <div id="bkp-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:300px;overflow-y:auto;"></div>
-      </div>
-
-      <!-- ARQUIVO — tudo que foi excluído, nunca some de verdade -->
-      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="arquivo-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div class="admin-title" style="margin-bottom:0;">🗄 Arquivo — Registros Excluídos
-            <span id="arq-count" style="background:rgba(125,148,196,.12);border:1px solid rgba(125,148,196,.4);border-radius:10px;color:var(--amber);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;margin-left:6px;">0</span>
-          </div>
-          <button class="btn btn-sm" onclick="carregarArquivo()" style="width:auto;">↻ Atualizar</button>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
-          Ao excluir, o registro inteiro vem para cá com quem excluiu e quando — e fica por 7 dias, tempo de desfazer.
-          Depois disso sai sozinho; o que é mais antigo continua nos backups diários e no .zip.
-          Fica fora do pacote do dia a dia, então não pesa no sistema — e pode ser restaurado.
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-          <select id="arq-area" onchange="renderArquivo()" style="width:auto;min-width:170px;">
-            <option value="">Todas as áreas</option>
-            <option value="tarefa">Tarefas</option>
-            <option value="devolucao">Devoluções</option>
-            <option value="atendimento">Atendimentos</option>
-            <option value="integracao">Integração</option>
-            <option value="excluirintbase">Exclusão Integração</option>
-            <option value="atualizacaocatalogo">Atualização Catálogo</option>
-            <option value="entrada">Entrada</option>
-            <option value="imagens">Imagens</option>
-            <option value="projeto">Projetos</option>
-          </select>
-          <input type="text" id="arq-busca" oninput="renderArquivo()" placeholder="🔎 Buscar por conteúdo, quem excluiu..." style="flex:1;min-width:200px;width:auto;">
-        </div>
-        <div id="arq-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;max-height:420px;overflow-y:auto;"></div>
-      </div>
-
-      <!-- MANUTENÇÃO — peso dos dados enviados à nuvem -->
+      <!-- ═══ SAÚDE DOS DADOS ═══
+           O que a Cloudflare tem, medido nela e não em suposição: o peso do
+           pacote contra o teto do worker, o que está no D1 e o que está no
+           R2. O Firebase saiu junto com o projeto; os números de lá não
+           descrevem mais nada. -->
       <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="manutencao-panel">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div class="admin-title" style="margin-bottom:0;">🩺 Saúde dos Dados</div>
-          <button class="btn btn-sm" onclick="renderSaudeDados()" style="width:auto;">↻ Verificar</button>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:12px;line-height:1.6;">
-          O que pesa numa gravação é o pacote — configurações e o que viaja junto a cada alteração.
-          Tarefas, registros e as fotos deles sobem registro a registro, só quando o próprio item muda.
-          Se o pacote passar do limite, a nuvem recusa a gravação e aparece o aviso "Conexão perdida".
-        </div>
-        <div id="saude-resumo" style="margin-bottom:12px;"></div>
-        <div id="saude-detalhe" style="margin-bottom:14px;"></div>
-        <!-- O que é do dia a dia fica à mão; a rotina de compactação e o que
-             mexe na sessão dos outros ficam guardados. Antes eram cinco botões
-             lado a lado, com "Desconectar todos" com o mesmo peso visual de
-             "Baixar backup" — e a ordem 1-2-3 parecia decoração. -->
-        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-          <button class="btn" id="btn-backup" onclick="baixarBackupCompleto()" style="width:auto;">
-            💾 Baixar backup (.zip)
+        <div class="conf-topo">
+          <button type="button" class="conf-sanfona" onclick="pnlSanfona('saude')" title="Recolher ou abrir">
+            <span class="conf-chevron" id="pnl-chevron-saude">▾</span>
+            <span>
+              <span class="conf-titulo">Saúde dos dados</span>
+              <span class="conf-sub">O que está guardado na Cloudflare e quanto pesa cada gravação.</span>
+            </span>
           </button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();renderSaudeDados()">↻ Verificar</button>
         </div>
+        <div id="pnl-corpo-saude">
+          <div id="saude-resumo"></div>
+          <div id="saude-detalhe" style="margin-bottom:14px;"></div>
 
-        <details class="adm-dobra">
-          <summary>Rotina de compactação<span class="hint">quando o pacote passar de 5 MB</span></summary>
-          <div class="adm-dobra-corpo">
-            <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:10px;line-height:1.6;">
-              Os quatro passos, nesta ordem. Desconectar vem primeiro porque sessão aberta ainda tem os
-              dados antigos em memória e regrava por cima do que você acabou de compactar. Você
-              continua conectado; os demais entram de novo em seguida.
-              O passo 4 encolhe as miniaturas que sobraram: o que se vê na tela passa a vir do médio
-              guardado na Cloudflare, então elas não precisam mais ser grandes. Ele só mexe no que já
-              tem cópia guardada — por isso vem depois do 3, nunca antes.
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-              <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
-                🛠 1. Desconectar todos
-              </button>
-              <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
-                🗜 2. Compactar imagens
-              </button>
-              <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
-                📤 3. Tirar imagens do pacote
-              </button>
-              <button class="btn" id="btn-encolher" onclick="encolherMiniaturas()" style="width:auto;">
-                🪶 4. Encolher miniaturas
-              </button>
-            </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <button class="btn" id="btn-backup" onclick="baixarBackupCompleto()" style="width:auto;">
+              💾 Baixar backup (.zip)
+            </button>
+            <button class="btn btn-sm" id="btn-diagnosticar-reparos" onclick="diagnosticarReparos()" style="width:auto;">
+              🔎 Procurar registro fora do lugar
+            </button>
           </div>
-        </details>
+          <div id="reparo-diagnostico" style="font-size:11.5px;color:var(--text-muted);line-height:1.7;margin-top:10px;"></div>
 
-        <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--linha-sutil);">
-          <div class="admin-title" style="margin-bottom:8px;">🩹 Reparos</div>
-          <div id="reparo-diagnostico" style="font-size:11px;font-family:var(--font-mono);color:var(--text-muted);line-height:1.7;margin-bottom:10px;"></div>
-          <!-- Confirmação dentro da própria tela: o confirm() do navegador para
-               de aparecer depois que o usuário marca "impedir caixas de diálogo",
-               e aí o botão não fazia nada, sem dizer por quê -->
-          <div id="reparo-confirmacao" style="display:none;background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;">
+          <!-- Confirmação dentro da tela: o confirm() do navegador some depois
+               que a pessoa marca "impedir caixas de diálogo", e aí o botão
+               deixava de fazer efeito sem dizer por quê. -->
+          <div id="reparo-confirmacao" style="display:none;background:var(--veu-medio);border:1px solid var(--linha-sutil);border-radius:var(--radius);padding:12px 14px;margin-top:10px;">
             <div id="reparo-confirma-texto" style="font-size:11.5px;color:var(--text-primary);line-height:1.6;margin-bottom:10px;white-space:pre-line;"></div>
             <div style="display:flex;gap:8px;">
               <button class="btn" id="reparo-confirma-ok" style="width:auto;">Confirmar</button>
               <button class="btn btn-ghost" onclick="cancelarReparo()" style="width:auto;">Cancelar</button>
             </div>
           </div>
-          <!-- "Reparar tudo" resolve o caso comum e é o único que precisa estar
-               à mão. Os passos isolados e o que apaga registro ficam guardados:
-               cinco botões na mesma linha faziam parecer que era preciso
-               escolher entre eles. -->
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn" id="btn-reparar-tudo" onclick="repararTudo()" style="width:auto;--bc: var(--rgb-teal);">
-              🧰 Reparar tudo
-            </button>
-            <button class="btn" id="btn-diagnosticar-reparos" onclick="diagnosticarReparos()" style="width:auto;">
-              🔎 Verificar
-            </button>
-          </div>
-          <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
-            <b>Reparar tudo</b> faz os três passos na ordem certa, de uma vez: recupera as imagens,
-            devolve o que o histórico dá como concluído e recoloca em Concluídas o que tem prova.
-            É o botão do dia a dia.
-          </div>
 
+          <!-- Ferramentas de exceção. Ficam guardadas porque é o que elas são:
+               nenhuma faz parte do dia a dia, e três delas mexem na sessão
+               dos outros ou apagam registro. -->
           <details class="adm-dobra">
-            <summary>Passos isolados<span class="hint">quando quiser rodar um de cada vez</span></summary>
+            <summary>Manutenção pesada<span class="hint">só quando algo estiver fora do lugar</span></summary>
             <div class="adm-dobra-corpo">
+              <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:10px;">
+                <b>Reparar tudo</b> faz os três passos de recuperação na ordem certa: devolve as imagens
+                aos registros, recupera o que o histórico dá como concluído e recoloca em Concluídas o
+                que tem prova. Rodar os passos separados não é mais necessário — a ordem entre eles
+                importa, e errá-la é o que fazia a recuperação não pegar.
+              </div>
               <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                <button class="btn" id="btn-recuperar-historico" onclick="recuperarPeloHistorico()" style="width:auto;">
-                  🕘 Recuperar pelo histórico
+                <button class="btn" id="btn-reparar-tudo" onclick="repararTudo()" style="width:auto;--bc: var(--rgb-teal);">
+                  🧰 Reparar tudo
                 </button>
-                <button class="btn" id="btn-restaurar-conclusoes" onclick="restaurarConclusoesPerdidas()" style="width:auto;">
-                  ↩ Devolver às Concluídas
+                <button class="btn" id="btn-compactar" onclick="compactarImagensDoEstado()" style="width:auto;">
+                  🗜 Compactar imagens
                 </button>
-                <button class="btn" id="btn-recuperar-img" onclick="recuperarImagensPerdidas()" style="width:auto;">
-                  🔧 Recuperar imagens
+                <button class="btn" id="btn-migrar" onclick="migrarImagensParaFora()" style="width:auto;">
+                  📤 Tirar imagens do pacote
+                </button>
+                <button class="btn" id="btn-encolher" onclick="encolherMiniaturas()" style="width:auto;">
+                  🪶 Encolher miniaturas
                 </button>
               </div>
-              <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
-                <b>Recuperar pelo histórico</b> lê o registro de alterações, que fica fora da tarefa e não
-                se perde numa regravação. É o único caminho para as tarefas concluídas sem print, como a
-                revisão diária dos marketplaces. Tarefa reaberta de propósito não volta: vale o último
-                movimento de status.<br>
-                <b>Devolver às Concluídas</b> procura tarefas que guardam prova (print, data, quem concluiu
-                ou comentário) mas voltaram para aberto. <b>Recuperar imagens</b> lê os prints guardados
-                fora do pacote e devolve cada um ao seu registro.
+              <div style="font-size:10.5px;color:var(--text-muted);line-height:1.7;margin-top:10px;">
+                Os três últimos existem para um caso só: o pacote passar do teto de 15 MB por gravação
+                do worker. Rode-os na ordem em que aparecem, e só se a Saúde dos dados acusar peso.
+              </div>
+
+              <div class="adm-zona-risco" style="margin-top:14px;">
+                <div style="font-size:11px;font-weight:800;color:var(--tom-vermelho);font-family:var(--font-mono);letter-spacing:.5px;margin-bottom:8px;">
+                  ⚠ INTERROMPE A EQUIPE OU APAGA REGISTRO
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                  <button class="btn btn-danger" id="btn-derrubar" onclick="derrubarTodosUsuarios()" style="width:auto;">
+                    🛠 Desconectar todos
+                  </button>
+                  <button class="btn btn-danger" id="btn-limpar-sem-resp" onclick="excluirSolicitacoesSemResponsavel()" style="width:auto;">
+                    🗑 Excluir solicitações sem responsável
+                  </button>
+                </div>
+                <div style="font-size:10.5px;color:var(--text-muted);line-height:1.7;margin-top:8px;">
+                  <b>Desconectar todos</b> vem antes de compactar: sessão aberta ainda tem os dados
+                  antigos em memória e regrava por cima do que você acabou de arrumar. Você continua
+                  conectado.<br>
+                  <b>Excluir solicitações sem responsável</b> apaga as que ficaram sem colaborador — elas
+                  nunca notificaram ninguém. Tudo vai para Registros excluídos e pode voltar de lá.
+                </div>
               </div>
             </div>
           </details>
+        </div>
+      </div>
 
-          <div class="adm-zona-risco">
-            <div style="font-size:11px;font-weight:800;color:var(--tom-vermelho);font-family:var(--font-mono);letter-spacing:.5px;margin-bottom:8px;">
-              ⚠ APAGA REGISTRO
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-danger" id="btn-limpar-sem-resp" onclick="excluirSolicitacoesSemResponsavel()" style="width:auto;">
-                🗑 Excluir solicitações sem responsável
-              </button>
-            </div>
-            <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:8px;line-height:1.6;">
-              <b>Excluir sem responsável</b> apaga as solicitações que ficaram sem colaborador — elas
-              nunca notificaram ninguém. Tudo vai para o arquivo e pode ser recuperado de lá.
-            </div>
+      <!-- ═══ REGISTROS EXCLUÍDOS ═══
+           Nada some de verdade: o registro inteiro vem para cá com quem
+           excluiu e quando. Sem prazo de validade — quem decide o que sai
+           é o master, pela lixeira. -->
+      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="arquivo-panel">
+        <div class="conf-topo">
+          <button type="button" class="conf-sanfona" onclick="pnlSanfona('arquivo')" title="Recolher ou abrir">
+            <span class="conf-chevron" id="pnl-chevron-arquivo">▾</span>
+            <span>
+              <span class="conf-titulo">Registros excluídos
+                <span id="arq-count" style="font-size:15px;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);">0</span>
+              </span>
+              <span class="conf-sub">Tudo o que foi excluído fica aqui. O olho abre o registro inteiro; a lixeira apaga de vez.</span>
+            </span>
+          </button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();carregarArquivo()">↻ Atualizar</button>
+        </div>
+        <div id="pnl-corpo-arquivo">
+          <div class="conf-filtros">
+            <select id="arq-area" onchange="renderArquivo()">
+              <option value="">Todas as áreas</option>
+              <option value="tarefa">Tarefas</option>
+              <option value="devolucao">Devoluções</option>
+              <option value="atendimento">Atendimentos</option>
+              <option value="integracao">Integração</option>
+              <option value="excluirintbase">Exclusão Integração</option>
+              <option value="atualizacaocatalogo">Atualização Catálogo</option>
+              <option value="entrada">Entrada</option>
+              <option value="imagens">Imagens</option>
+              <option value="projeto">Projetos</option>
+            </select>
+            <input type="text" id="arq-busca" oninput="renderArquivo()" placeholder="🔎 Buscar por conteúdo, quem excluiu...">
           </div>
+          <div id="arq-lista" class="conf-tabela"></div>
+        </div>
+      </div>
+
+      <!-- ═══ CÓPIAS DIÁRIAS ═══ -->
+      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="backup-panel">
+        <div class="conf-topo">
+          <button type="button" class="conf-sanfona" onclick="pnlSanfona('backup')" title="Recolher ou abrir">
+            <span class="conf-chevron" id="pnl-chevron-backup">▾</span>
+            <span>
+              <span class="conf-titulo">Cópias diárias</span>
+              <span class="conf-sub">Uma cópia por dia guardada na Cloudflare, dos últimos 14 dias. É o caminho de volta de uma exclusão em massa.</span>
+            </span>
+          </button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();carregarBackups()">↻ Atualizar</button>
+        </div>
+        <div id="pnl-corpo-backup">
+          <div id="bkp-aviso" style="margin-bottom:12px;"></div>
+          <div id="bkp-lista" class="conf-tabela"></div>
         </div>
       </div>
 
@@ -8049,12 +8078,11 @@ function _semearEmails(s){
 
 // ── ARQUIVO DE EXCLUSÕES ─────────────────────────────────────
 // Antes de sair do sistema, o registro inteiro é copiado para
-// suplelive/arquivo/<área>/<id>, fora do pacote que trafega a cada
-// alteração. Fica aqui por 7 dias — tempo de sobra para desfazer uma
-// exclusão — e depois sai sozinho (regra do master, 30/08): o que é mais
-// antigo continua nos backups diários e no .zip.
+// arquivo/<área>/<id>, fora do pacote que trafega a cada alteração.
+// Fica ali sem prazo: a regra dos 7 dias saiu em 31/08 a pedido do
+// master — apagar sozinho era a única operação sem volta do painel, e
+// acontecia sem ninguém pedir. Quem tira de lá é a lixeira de cada linha.
 const FB_ARQUIVO='suplelive/arquivo';
-const ARQ_MANTER_DIAS=7;
 const ARQ_AREAS={
   tarefa:'Tarefas', devolucao:'Devoluções', atendimento:'Atendimentos',
   integracao:'Integração', excluirintbase:'Exclusão Integração',
@@ -8133,19 +8161,10 @@ function carregarArquivo(){
     Object.entries(dados).forEach(([area,itens])=>{
       Object.entries(itens||{}).forEach(([k,v])=>{ if(v) _arqCache.push({...v, area:v.area||area, _k:k}); });
     });
-    /* Limpeza dos 7 dias: o master que abre o painel apaga o que venceu —
-       no Firebase e no espelho Cloudflare. Quem não é master só deixa de
-       ver; a remoção fica para a próxima visita do master. */
-    const corte=Date.now()-ARQ_MANTER_DIAS*86400000;
-    const vencidos=_arqCache.filter(i=>(i.ts||0)>0 && i.ts<corte);
-    if(vencidos.length && currentUser && currentUser.master && db && fbConnected){
-      vencidos.forEach(i=>{
-        db.ref(FB_ARQUIVO+'/'+i.area+'/'+i._k).remove().catch(err=>console.warn('[arquivo] limpeza:',err.message));
-        try{ _cfEspelharLinhas([{colecao:'arquivo/'+i.area, chave:i._k, dados:null}]); }catch(e){}
-      });
-      console.log('[arquivo] limpeza: '+vencidos.length+' registro(s) com mais de '+ARQ_MANTER_DIAS+' dias removido(s)');
-    }
-    _arqCache=_arqCache.filter(i=>!((i.ts||0)>0 && i.ts<corte));
+    /* A regra dos 7 dias saiu a pedido do master: o que decide o que fica
+       é ele, pela lixeira de cada linha. Apagar sozinho é a única operação
+       daqui que não tem volta — e ela acontecia sem ninguém pedir, num
+       painel que a pessoa talvez só tenha aberto para olhar. */
     _arqCache.sort((a,b)=>(b.ts||0)-(a.ts||0));
     renderArquivo();
   }).catch(err=>{
@@ -8165,21 +8184,96 @@ function renderArquivo(){
   });
   const cnt=document.getElementById('arq-count'); if(cnt) cnt.textContent=_arqCache.length;
   if(!itens.length){
-    alvo.innerHTML='<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">'+(_arqCache.length?'Nenhum registro para este filtro.':'Nada foi excluído até agora.')+'</div>';
+    alvo.innerHTML='<div class="conf-vazio">'+(_arqCache.length?'Nenhum registro para este filtro.':'Nada foi excluído até agora.')+'</div>';
     return;
   }
-  alvo.innerHTML=itens.slice(0,200).map(i=>`
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border-bottom:1px solid var(--border-light);">
-      <div style="min-width:0;">
-        <div style="font-size:12px;color:var(--text-primary);font-weight:600;">${(i.resumo||'—').replace(/</g,'&lt;')}</div>
-        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">
-          ${ARQ_AREAS[i.area]||i.area} · excluído por ${i.excluidoPor||'—'} em ${i.excluidoEm||'—'}
-        </div>
+  const cab=`<div class="conf-linha conf-cab" style="grid-template-columns:minmax(150px,1.6fr) minmax(110px,.9fr) minmax(150px,1.1fr) 86px;">
+      <span>Registro</span><span>Área</span><span>Excluído por</span><span></span></div>`;
+  alvo.innerHTML=cab+itens.slice(0,300).map(i=>`
+    <div class="conf-linha" style="grid-template-columns:minmax(150px,1.6fr) minmax(110px,.9fr) minmax(150px,1.1fr) 86px;">
+      <div style="min-width:0;"><b style="font-weight:600;">${esc(i.resumo||'—')}</b></div>
+      <div style="color:var(--text-secondary);">${esc(ARQ_AREAS[i.area]||i.area||'—')}</div>
+      <div class="conf-quando">${esc(i.excluidoPor||'—')}<br>${esc(i.excluidoEm||'—')}</div>
+      <div style="display:flex;gap:7px;justify-content:flex-end;">
+        <button class="rx-acao" title="Ver o registro inteiro" onclick="arqVer('${esc(i.area)}','${esc(i._k)}')">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+            <path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="12" cy="12" r="3.2" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+        <button class="rx-acao perigo" title="Apagar de vez" onclick="arqApagar('${esc(i.area)}','${esc(i._k)}')">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16M10 7V4.8c0-.4.4-.8.8-.8h2.4c.4 0 .8.4.8.8V7M6.5 7l.8 12.2c0 .5.4.8.9.8h7.6c.5 0 .9-.3.9-.8L17.5 7"
+              stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
       </div>
-      <button class="btn btn-sm" style="width:auto;flex-shrink:0;" onclick="restaurarDoArquivo('${i.area}','${i._k}')">↩ Restaurar</button>
     </div>`).join('')
-    + (itens.length>200?`<div style="padding:8px 10px;font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">Mostrando 200 de ${itens.length} — refine a busca.</div>`:'');
+    + (itens.length>300?`<div class="conf-vazio">Mostrando 300 de ${itens.length} — refine a busca.</div>`:'');
 }
+
+/* O olho: o registro inteiro como ele era, mais o botão de trazer de
+   volta. Antes só existia "Restaurar" — e restaurar sem ver o que se está
+   restaurando é o tipo de clique que dá arrependimento. */
+/* O nome bonito do campo, quando a área tem um. Sem isso a tela mostrava
+   "concluidoPorKey" para quem só queria saber quem excluiu o quê. */
+function _arqRotulo(area,campo){
+  try{
+    const m=(typeof LOG_ROTULOS!=='undefined' && LOG_ROTULOS[area]) || {};
+    return m[campo] || campo;
+  }catch(e){ return campo; }
+}
+
+function arqVer(area,chave){
+  const i=(_arqCache||[]).find(x=>x&&x.area===area&&x._k===chave);
+  if(!i) return;
+  const antigo=document.getElementById('arq-ver-overlay'); if(antigo) antigo.remove();
+  const ov=document.createElement('div');
+  ov.id='arq-ver-overlay';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:2950;display:flex;align-items:center;justify-content:center;padding:24px;';
+  ov.onclick=e=>{ if(e.target===ov) ov.remove(); };
+  let corpo='';
+  try{
+    const d=i.dados||{};
+    const pula=new Set(['provaConclusao','provaAtualizacao','ultimaFoto','fotos','comentarios']);
+    const linhas=Object.entries(d)
+      .filter(([k,v])=>!pula.has(k) && v!=null && v!=='' && typeof v!=='object')
+      .map(([k,v])=>`<div class="sd-linha"><b>${esc(_arqRotulo(area,k))}</b><span>${esc(String(v).slice(0,160))}</span><i></i></div>`);
+    corpo=linhas.length?`<div class="sd-lista" style="max-height:44vh;">${linhas.join('')}</div>`
+                       :'<div class="sd-nota">O registro não guardava campos simples.</div>';
+  }catch(e){ corpo='<div class="sd-nota">Não deu para abrir o conteúdo deste registro.</div>'; }
+  ov.innerHTML=`<div style="background:var(--bg-panel,var(--bg-surface));border:1px solid var(--border);border-radius:14px;
+      padding:20px 22px;max-width:640px;width:100%;max-height:84vh;overflow:auto;box-shadow:0 18px 50px rgba(0,0,0,.45);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px;">
+        <div>
+          <div class="conf-titulo" style="font-size:19px;">${esc(i.resumo||'Registro excluído')}</div>
+          <div class="conf-sub">${esc(ARQ_AREAS[i.area]||i.area||'')} · excluído por ${esc(i.excluidoPor||'—')} em ${esc(i.excluidoEm||'—')}</div>
+        </div>
+        <button class="btn btn-sm" onclick="document.getElementById('arq-ver-overlay').remove()">Fechar</button>
+      </div>
+      ${corpo}
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+        <button class="btn btn-danger btn-sm" onclick="arqApagar('${esc(i.area)}','${esc(i._k)}')">🗑 Apagar de vez</button>
+        <button class="btn btn-sm" onclick="document.getElementById('arq-ver-overlay').remove();restaurarDoArquivo('${esc(i.area)}','${esc(i._k)}')">↩ Restaurar</button>
+      </div>
+    </div>`;
+  document.body.appendChild(ov);
+}
+
+/* A lixeira. É a única porta de saída definitiva do sistema, então
+   pergunta antes — e diz o que está apagando. */
+function arqApagar(area,chave){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode apagar de vez','warn'); return; }
+  const i=(_arqCache||[]).find(x=>x&&x.area===area&&x._k===chave);
+  if(!i) return;
+  if(!confirmar(()=>arqApagar(area,chave),
+      `Apagar "${i.resumo||chave}" de vez?\n\nEste é o último lugar onde o registro existe. Depois disso ele só volta pelo backup .zip ou por uma cópia diária.`)) return;
+  try{ _cfEspelharLinhas([{colecao:'arquivo/'+area, chave, dados:null}]); }catch(e){}
+  if(db && fbConnected){ try{ db.ref(FB_ARQUIVO+'/'+area+'/'+chave).remove(); }catch(e){} }
+  _arqCache=_arqCache.filter(x=>!(x&&x.area===area&&x._k===chave));
+  const ov=document.getElementById('arq-ver-overlay'); if(ov) ov.remove();
+  renderArquivo();
+  showToast('Registro apagado de vez','success');
+}
+
 
 // Devolve o registro para a área de origem, sem removê-lo do arquivo
 function restaurarDoArquivo(area,chave){
@@ -8439,7 +8533,7 @@ function renderAvisoBackupZip(){
   if(dias===null){
     alvo.innerHTML=`<div style="font-size:11.5px;color:#f59e0b;font-family:var(--font-mono);border-left:2px solid #f59e0b;padding-left:8px;line-height:1.6;">
       Você ainda não baixou nenhum backup .zip neste computador. Ele é a única cópia que sobrevive a
-      um problema na conta do Firebase — vale baixar hoje.</div>`;
+      um problema na conta da Cloudflare — vale baixar hoje.</div>`;
   } else if(dias>=BACKUP_LEMBRETE_DIAS){
     alvo.innerHTML=`<div style="font-size:11.5px;color:#f59e0b;font-family:var(--font-mono);border-left:2px solid #f59e0b;padding-left:8px;line-height:1.6;">
       Último backup .zip baixado há ${dias} dias. Vale baixar uma cópia nova.</div>`;
@@ -9228,7 +9322,8 @@ function admAbrirSecao(sec){
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{renderConferencias();}catch(e){} },
     equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} try{renderParceirosApi();}catch(e){} },
-    dados:()=>{ try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
+    dados:()=>{ ['saude','arquivo','backup'].forEach(n=>{ try{pnlSanfonaRestaurar(n);}catch(e){} });
+                try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
                 try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){}
                 try{diagnosticarReparos();}catch(e){} }
   }[_admSecao];
@@ -9732,65 +9827,154 @@ function copiarRegrasFirebase(){
 }
 
 // Mostra o peso dos dados no painel de Adm. Master, sem precisar de console
+/* ══════════════════════════════════════════════════════════════════
+   SAÚDE DOS DADOS — medida na Cloudflare
+   ══════════════════════════════════════════════════════════════════
+   A versão anterior media o pacote contra o limite de gravação do
+   Firebase (16 MB) e mostrava "espaço no Firebase: 1 GB". Os dois
+   números descreviam um banco que não existe mais.
+
+   Agora o teto é o do worker: 15 MB por gravação (TAMANHO_MAX). E o
+   inventário vem de `/dados/resumo`, que responde com o que está mesmo
+   no D1 e no R2 — não com o que esta sessão acha que enviou. */
+const SD_TETO_GRAVACAO = 15;      // MB — TAMANHO_MAX do worker
+const SD_D1_GRATIS     = 5120;    // MB — 5 GB do plano grátis do D1
+const SD_R2_GRATIS     = 10240;   // MB — 10 GB do plano grátis do R2
+
+function _sdAnel(pct, cor, valor, rotulo){
+  /* Um piso visível: com 0,02 de 15 MB o arco some e o anel parece
+     quebrado. Dois por cento desenham um traço curto — que é a leitura
+     certa de "quase nada". */
+  const p=Math.min(100, Math.max(pct>0?2:0, pct));
+  const r=54, c=2*Math.PI*r, vazio=c*(1-p/100);
+  return `<div class="sd-anel">
+    <svg viewBox="0 0 132 132" width="132" height="132" aria-hidden="true">
+      <circle cx="66" cy="66" r="${r}" fill="none" stroke="currentColor" stroke-width="13"
+        style="color:var(--border);opacity:.55;"/>
+      <circle cx="66" cy="66" r="${r}" fill="none" stroke="${cor}" stroke-width="13" stroke-linecap="round"
+        stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${vazio.toFixed(1)}"
+        style="transition:stroke-dashoffset .6s cubic-bezier(.2,.8,.2,1);filter:drop-shadow(0 2px 5px ${cor}55);"/>
+    </svg>
+    <div class="sd-anel-txt"><b style="color:${cor};">${valor}</b><span>${rotulo}</span></div>
+  </div>`;
+}
+
 function renderSaudeDados(){
   const resumo=document.getElementById('saude-resumo');
   const detalhe=document.getElementById('saude-detalhe');
   if(!resumo) return;
   let d;
-  try{ d=diagnosticarEstado(); }catch(e){ resumo.innerHTML='<span style="color:var(--red);">Não foi possível medir.</span>'; return; }
+  try{ d=diagnosticarEstado(); }
+  catch(e){ resumo.innerHTML='<div class="sd-nota" style="color:var(--tom-vermelho);">Não foi possível medir o pacote desta sessão.</div>'; return; }
+
   const mb=d.pacoteBytes/1048576;
-  const limite=16; // limite de uma gravação no Firebase Realtime Database
-  const pct=Math.min(100,Math.round(mb/limite*100));
-  const estado = mb>=limite ? {cor:'#ef4444',txt:'CRÍTICO — a nuvem já está recusando gravações'}
-               : mb>=5      ? {cor:'#f59e0b',txt:'ATENÇÃO — pacote pesado, rode a rotina de compactação'}
-                            : {cor:'#22c55e',txt:'OK — gravações leves'};
+  const pct=Math.min(100, mb/SD_TETO_GRAVACAO*100);
+  const est = mb>=SD_TETO_GRAVACAO ? {cor:'#ef4444', txt:'a nuvem recusa gravações desse tamanho'}
+            : mb>=5                ? {cor:'#f59e0b', txt:'pesado — vale rodar a manutenção'}
+                                   : {cor:'#22c55e', txt:'folgado'};
+  const armMb=d.totalBytes/1048576;
+
   resumo.innerHTML=`
-    <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-      <span style="font-size:26px;font-weight:800;color:${estado.cor};font-family:var(--font-mono);">${mb.toFixed(2)} MB</span>
-      <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">no pacote por gravação · limite ${limite} MB</span>
-    </div>
-    <div style="height:8px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:8px;">
-      <div style="height:100%;width:${pct}%;background:${estado.cor};transition:width .3s;"></div>
-    </div>
-    <div style="font-size:11px;font-weight:700;color:${estado.cor};font-family:var(--font-mono);margin-bottom:6px;">${estado.txt}</div>
-    <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;">
-      Os ${limite} MB são o teto de <b>uma</b> gravação (regra do Firebase) — não do espaço total.
-    </div>
-    ${(()=>{ /* Armazenamento: quanto já ocupa e quanto cabe, em cada nuvem */
-      const armMb=d.totalBytes/1048576, tetoFb=1024;
-      const pctArm=Math.min(100,Math.max(armMb/tetoFb*100, armMb>0?0.5:0));
-      const aviso=(d.regItens===0 && typeof fbConnected!=='undefined' && fbConnected)
-        ? `<div style="font-size:11px;color:#f59e0b;font-family:var(--font-mono);margin-top:6px;">As listas registro a registro ainda não chegaram nesta sessão — o total abaixo está incompleto. Clique em ↻ Verificar de novo em instantes.</div>`:'';
-      return `${aviso}
-    <div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border-light);">
-      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px;">
-        <span style="font-size:15px;font-weight:800;color:var(--text-primary);font-family:var(--font-mono);">${armMb.toFixed(2)} MB</span>
-        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">guardados · espaço no Firebase: 1 GB (${(armMb/tetoFb*100).toFixed(1)}% usado)</span>
+    <div class="sd-grade">
+      <div class="sd-card" style="grid-row:span 2;display:flex;flex-direction:column;justify-content:center;">
+        <div class="sd-rot">Peso por gravação</div>
+        ${_sdAnel(pct, est.cor, mb.toFixed(2)+' MB', 'de '+SD_TETO_GRAVACAO+' MB')}
+        <div class="sd-nota" style="text-align:center;margin-top:12px;">
+          <b style="color:${est.cor};">${est.txt}</b><br>
+          O teto é de <b>uma</b> gravação, não do espaço total. As listas grandes viajam
+          registro a registro e não entram nesta conta.
+        </div>
       </div>
-      <div style="height:6px;background:rgba(255,255,255,.07);border-radius:99px;overflow:hidden;margin-bottom:6px;">
-        <div style="height:100%;width:${pctArm}%;background:#2563eb;"></div>
+
+      <div class="sd-card">
+        <div class="sd-rot">Guardado nesta sessão</div>
+        <div class="sd-num">${armMb.toFixed(2)}<small>MB</small></div>
+        <div class="sd-barra"><i style="width:${Math.max(0.6,Math.min(100,armMb/SD_D1_GRATIS*100)).toFixed(2)}%;background:linear-gradient(90deg,var(--lo-azul),#60a5fa);"></i></div>
+        <div class="sd-nota">Estado inteiro em memória. O plano grátis do D1 cabe ${(SD_D1_GRATIS/1024)} GB —
+          hoje usamos <b>${(armMb/SD_D1_GRATIS*100).toFixed(2)}%</b> dele.</div>
       </div>
-      <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);line-height:1.6;">
-        Cópia na Cloudflare: dados no D1 (até 5 GB grátis) e imagens no R2 (até 10 GB grátis)
-        · maior parte do pacote: ${d.maiorParte.nome} (${(d.maiorParte.bytes/1048576).toFixed(2)} MB)
+
+      <div class="sd-card">
+        <div class="sd-rot">Maior parte do pacote</div>
+        <div class="sd-num" style="font-size:20px;">${esc(d.maiorParte.nome)}</div>
+        <div class="sd-nota">${(d.maiorParte.bytes/1048576).toFixed(2)} MB de ${mb.toFixed(2)} MB.
+          ${d.qtdImagens? (d.qtdImagens+' imagem(ns) no estado, '+(d.imagensBytes/1048576).toFixed(2)+' MB — '
+            +d.originais.qtd+' ainda embutida(s)') : 'Nenhuma imagem embutida.'}</div>
       </div>
-    </div>`; })()}`;
-  const linha=([k,v])=>`<div style="display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid var(--border-light);">
-        <span style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">${k}</span>
-        <span style="font-size:11px;color:var(--text-primary);font-family:var(--font-mono);">${(v/1048576).toFixed(2)} MB</span></div>`;
+    </div>
+    <div id="sd-nuvem"><div class="sd-nota">Consultando a Cloudflare…</div></div>`;
+
+  /* O inventário de verdade: quantos registros o D1 tem em cada coleção e
+     quanto os pacotes ocupam no R2. Só o master enxerga — é a rota que
+     percorre o banco inteiro. */
+  _sdInventarioNuvem();
+
+  const linha=([k,v])=>`<div class="sd-linha"><b>${esc(k)}</b><span>${(v/1048576).toFixed(2)} MB</span><i></i></div>`;
   const grupos=Object.entries(d.porGrupo).sort((a,b)=>b[1]-a[1]);
   const noPacote=grupos.filter(([k])=>d.grupoPacote[k]);
   const emRegistro=grupos.filter(([k])=>!d.grupoPacote[k]);
-  const titSec=t=>`<div style="font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--text-muted);font-family:var(--font-mono);margin:10px 0 3px;">${t}</div>`;
+  const titSec=t=>`<div class="sd-rot" style="margin:14px 0 6px;">${t}</div>`;
   detalhe.innerHTML = d.qtdImagens
-    ? `<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:2px;">
-         ${d.qtdImagens} imagem(ns) · ${(d.imagensBytes/1048576).toFixed(2)} MB no total
-         · ${d.miniaturas.qtd} miniatura(s) (${(d.miniaturas.bytes/1048576).toFixed(2)} MB)
-         · ${d.originais.qtd} original(is) embutida(s) (${(d.originais.bytes/1048576).toFixed(2)} MB)</div>`
-      + titSec('Viajam a cada alteração (pacote)')
-      + (noPacote.length?noPacote.map(linha).join(''):'<div style="font-size:11px;color:var(--tom-verde);font-family:var(--font-mono);padding:3px 0;">Nenhuma — ótimo, o pacote está limpo de imagens.</div>')
-      + (emRegistro.length?(titSec('Registro a registro — sobem só quando o item muda')+emRegistro.map(linha).join('')):'')
-    : '<div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);">Nenhuma imagem embutida.</div>';
+    ? titSec('Imagens que viajam a cada alteração')
+      + `<div class="sd-lista">`
+      + (noPacote.length?noPacote.map(linha).join('')
+         :'<div class="sd-linha"><b style="color:var(--tom-verde);">Nenhuma — o pacote está limpo de imagens.</b><span></span><i></i></div>')
+      + `</div>`
+      + (emRegistro.length?(titSec('Sobem só quando o próprio item muda')+'<div class="sd-lista">'+emRegistro.map(linha).join('')+'</div>'):'')
+    : '';
+}
+
+/* Pergunta ao worker o que existe do lado de lá. Falhar aqui não estraga
+   a tela: o resto já foi desenhado, e este bloco diz o que houve. */
+function _sdInventarioNuvem(){
+  const box=()=>document.getElementById('sd-nuvem');
+  if(!box()) return;
+  if(typeof _cfDadosReq!=='function'){ box().innerHTML=''; return; }
+  _cfDadosReq('resumo')
+    .then(r=>r.json())
+    .then(j=>{
+      const alvo=box(); if(!alvo) return;
+      if(j && j.erro){
+        alvo.innerHTML=`<div class="sd-nota">${j.erro==='so-master'
+          ? 'O inventário do banco é visível só para o master.'
+          : 'A Cloudflare respondeu: '+esc(j.erro)}</div>`;
+        return;
+      }
+      const cols=(j&&j.colecoes)||[];
+      const pacotes=(j&&j.pacotes)||[];
+      const totalReg=cols.reduce((s,c)=>s+(c.registros||0),0);
+      const pacBytes=pacotes.reduce((s,p)=>s+(p.bytes||0),0);
+      const pacMb=pacBytes/1048576;
+      const maiores=cols.slice().sort((a,b)=>(b.registros||0)-(a.registros||0)).slice(0,8);
+      alvo.innerHTML=`
+        <div class="sd-grade">
+          <div class="sd-card">
+            <div class="sd-rot">Registros no D1</div>
+            <div class="sd-num">${totalReg.toLocaleString('pt-BR')}</div>
+            <div class="sd-nota">Em ${cols.length} coleção(ões). É o banco de verdade — o que esta tela
+              mostra acima é a cópia que este navegador carregou.</div>
+          </div>
+          <div class="sd-card">
+            <div class="sd-rot">Pacotes no R2</div>
+            <div class="sd-num">${pacMb.toFixed(2)}<small>MB</small></div>
+            <div class="sd-barra"><i style="width:${Math.max(0.6,Math.min(100,pacMb/SD_R2_GRATIS*100)).toFixed(2)}%;background:linear-gradient(90deg,#22c55e,#4ade80);"></i></div>
+            <div class="sd-nota">${pacotes.length} pacote(s). O R2 grátis cabe ${(SD_R2_GRATIS/1024)} GB, e as
+              imagens moram nele — baixar é sempre de graça.</div>
+          </div>
+        </div>
+        ${maiores.length?`<div class="sd-rot" style="margin:14px 0 6px;">As maiores coleções do banco</div>
+        <div class="sd-lista">${maiores.map(c=>`
+          <div class="sd-linha">
+            <b>${esc(c.colecao)}</b>
+            <span>${Number(c.registros||0).toLocaleString('pt-BR')}</span>
+            <i>${totalReg?((c.registros/totalReg)*100).toFixed(1):'0'}%</i>
+          </div>`).join('')}</div>`:''}`;
+    })
+    .catch(err=>{
+      const alvo=box(); if(!alvo) return;
+      alvo.innerHTML=`<div class="sd-nota">Não deu para consultar a Cloudflare agora (${esc(err.message||'falha')}).
+        Os números acima são os desta sessão.</div>`;
+    });
 }
 
 // Desconecta todos os outros usuários de uma vez. Serve para esvaziar o
@@ -13467,7 +13651,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31x';
+const APP_VERSAO='2026.08.31y';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -30268,6 +30452,26 @@ function _confLinhas(){
 function _nomeDoUsuario(chave){
   const u=(appState.users||{})[chave];
   return (u&&u.name)||'';
+}
+
+/* A sanfona dos painéis do Administrador. Um só para todos: o de
+   Conferências nasceu primeiro e virou o padrão, e cada painel novo que
+   copiasse o comportamento à mão seria mais um lugar para esquecer de
+   guardar a escolha. */
+function pnlSanfona(nome,forcar){
+  const corpo=document.getElementById('pnl-corpo-'+nome);
+  const chev=document.getElementById('pnl-chevron-'+nome);
+  if(!corpo) return;
+  const fechado = (forcar===undefined) ? (corpo.style.display!=='none') : !forcar;
+  corpo.style.display = fechado ? 'none' : '';
+  if(chev) chev.classList.toggle('fechado', fechado);
+  try{ localStorage.setItem('liveops_pnl_'+nome, fechado?'0':'1'); }catch(e){}
+}
+function pnlSanfonaRestaurar(nome){
+  try{
+    const g=localStorage.getItem('liveops_pnl_'+nome);
+    if(g!==null) pnlSanfona(nome, g==='1');
+  }catch(e){}
 }
 
 /* Abre e fecha a lista. Fica no navegador, não no estado: é escolha de
