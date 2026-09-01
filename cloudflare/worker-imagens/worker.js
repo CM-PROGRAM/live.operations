@@ -55,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v19';
+const VERSAO_WORKER = 'v20';
 
 // As chaves seguem o formato do imgChave()/push do sistema: letras,
 // números, _ e -. Recusar o resto evita chave torta virando lixo.
@@ -858,9 +858,23 @@ async function atenderRobo(req, env, ctx, url) {
       ).bind(colecao, ...bloco).all();
       (rs.results || []).forEach(l => { existentes[l.chave] = l.dados; });
     }
+    /* ?somenteNovos=1 — v20. Grava so o que ainda nao existe.
+
+       O fluxo de pedidos tem dois ramos que rodam juntos: a API traz o
+       pedido inteiro (telefone, status, canal) e a nota fiscal reconstroi
+       o que esta no Arquivo, sem esses campos. O ramo da nota decidia o que
+       gravar por uma foto tirada no comeco da execucao — e durante os dois
+       minutos seguintes o outro ramo escrevia por baixo. Resultado: a nota
+       passava por cima do pedido bom e sumia com o telefone.
+
+       Aqui a garantia deixa de depender de tempo: quem manda gravar so o
+       novo nao sobrescreve nada, aconteca o que acontecer no meio. */
+    const somenteNovos = url.searchParams.get('somenteNovos') === '1';
+    let ignoradas = 0;
     for (let i = 0; i < chaves.length; i += LOTE_MAX) {
       const lote = [];
       for (const k of chaves.slice(i, i + LOTE_MAX)) {
+        if (somenteNovos && existentes[k] !== undefined) { ignoradas++; continue; }
         const json = _juntarCampos(existentes[k], corpo[k]);
         if (json.length > LINHA_MAX) continue;
         lote.push(insere.bind(colecao, k, json, agora));
@@ -868,6 +882,7 @@ async function atenderRobo(req, env, ctx, url) {
       }
       if (lote.length) { await env.DADOS.batch(lote); gravadasAgora += lote.length; }
     }
+    if (ignoradas) console.log('[robo] somenteNovos: ' + ignoradas + ' ja existiam e ficaram como estavam');
 
   } else {
     const atual = await env.DADOS.prepare(
