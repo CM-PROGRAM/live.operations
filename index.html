@@ -13713,7 +13713,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31z';
+const APP_VERSAO='2026.09.01a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -13975,8 +13975,10 @@ function iconeMenu(chave){
    Tarefa). Os ids dos painéis não mudam: aparecem em permissão, tarefa e
    notificação já gravadas, e trocá-los quebraria vínculo antigo. */
 const MENU_ABAS=[
+    /* A ÚNICA aba sem permissão (regra do master, 31/08): quem entra no
+       sistema vê a Página inicial, e nada mais sem que ele libere. */
     {id:'inicio', icon:'inicio', label:'Página inicial', perm:null},
-    {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:null},
+    {id:'dashboard', icon:'dashboard', label:'Dashboard', perm:'dashboard'},
     {id:'inbox',  icon:'inbox',  label:'WhatsLive', perm:'inbox', permLegado:'whatsapp'},
     {id:'tarefas', icon:'tarefas', label:'Central de Tarefas', perm:'tarefas'},
     {id:'whatsapp', icon:'vendas', label:'Vendas', perm:'whatsapp'},
@@ -13990,9 +13992,11 @@ const MENU_ABAS=[
     /* Financeiro abre com as frentes Contabilidade, Finanças e Vendas
        WhatsApp dentro da própria página. */
     {id:'financeiro', icon:'financeiro', label:'Financeiro', perm:'financeiro', permLegado:'whatsapp'},
-    // A consulta de CPF é de todo mundo: quem atende cliente precisa do
-    // telefone, e trancar isso só criava pedido de liberação para o master
-    {id:'consultacpf', icon:'cpf', label:'Consulta CPF', perm:null},
+    /* A consulta de CPF era aberta a todos — o argumento era que quem
+       atende cliente precisa do telefone. O master decidiu o contrário em
+       31/08: consulta de CPF é dado pessoal de terceiro, e quem pode
+       consultar é escolha dele, não do desenho do menu. */
+    {id:'consultacpf', icon:'cpf', label:'Consulta CPF', perm:'consultacpf'},
     {id:'templates',  icon:'templates',    label:'Templates',       perm:'templates', permLegado:'admin'},
     {id:'integracoes',icon:'integracoes',  label:'Integrações',     perm:'painelIntegracoes', permLegado:'admin'},
     {id:'jobs',       icon:'jobs',         label:'Fluxos n8n',     perm:'jobs', permLegado:'admin'},
@@ -14048,6 +14052,17 @@ function _expandirPermsFinas(s){
         });
       });
       u.permsV2=true;
+    });
+
+    /* 31/08: Dashboard e Consulta CPF deixaram de ser abas livres e passaram
+       a ter chave própria. Sem esta passagem, todo mundo perderia as duas no
+       segundo em que a versão subisse — no meio do expediente, sem aviso.
+       Elas entram LIGADAS, e o master desliga quem não deve ter. */
+    Object.values(users).forEach(u=>{
+      if(!u || u.permsV3) return;
+      if(!Array.isArray(u.perms)) u.perms=[];
+      ['dashboard','consultacpf'].forEach(p=>{ if(u.perms.indexOf(p)<0) u.perms.push(p); });
+      u.permsV3=true;
     });
   }catch(e){ console.warn('[perms] expansão:',e); }
 }
