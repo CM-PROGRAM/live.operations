@@ -651,6 +651,21 @@ html{overflow-x:hidden;}
   color:var(--text-primary);letter-spacing:.02em;}
 .est-sku-link{color:var(--accent);text-decoration:none;white-space:nowrap;}
 .est-sku-link:hover{text-decoration:underline;}
+/* O SKU é a porta da ficha do produto — parece texto até o mouse chegar,
+   para não virar mais um botão azul competindo com a linha inteira. */
+.est-sku-btn{border:0;background:transparent;padding:0;cursor:pointer;
+  font:inherit;color:inherit;white-space:nowrap;border-bottom:1px dashed transparent;}
+.est-sku-btn:hover{color:var(--lo-azul);border-bottom-color:currentColor;}
+.est-prod-arm{display:grid;gap:6px;margin:-6px 2px 16px;}
+.est-prod-arm > div{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  border:1px solid var(--border);border-radius:9px;padding:8px 12px;background:var(--bg-card);}
+.est-prod-arm .nome{font-size:12px;color:var(--text-secondary);}
+.est-prod-arm .qtd{font-size:12px;font-weight:700;font-family:var(--font-mono);color:var(--text-primary);}
+.est-prod-arm .qtd.neg{color:#ef4444;}
+.est-prod-nota{font-size:11px;color:var(--text-muted);line-height:1.7;margin-top:4px;}
+/* Campo que a Base não mandou. Âmbar e não cinza: é uma falta a resolver no
+   fluxo, não um campo que simplesmente não se aplica. */
+.dv-c .v.est-falta{color:#f59e0b;font-weight:500;}
 .est-tabela .est-nome{font-size:13.5px;color:var(--text-primary);white-space:normal;
   max-width:440px;line-height:1.4;}
 .est-tabela .est-nome a{color:inherit;text-decoration:none;}
@@ -4576,6 +4591,24 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <div id="est-pag" class="pag-rodape"></div>
       </div>
     </div>
+
+<!-- FICHA DO PRODUTO — o que a Base mostra no cadastro, do lado de cá.
+     Abre pelo SKU da lista. Somente leitura: quem edita produto é a Base,
+     e um segundo lugar de edição é um segundo lugar onde a conta diverge. -->
+<div class="modal-overlay" id="est-prod-overlay">
+  <div class="modal dv-modal">
+    <div class="dv-topo">
+      <h3 id="est-prod-titulo">Produto</h3>
+      <button type="button" class="dv-x" title="Fechar" onclick="estFecharProduto()">✕</button>
+    </div>
+    <div id="est-prod-corpo"></div>
+    <div class="dv-rodape" id="est-prod-rodape">
+      <span id="est-prod-sync" style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);"></span>
+      <div style="flex:1;"></div>
+      <button type="button" class="btn-sec" onclick="estFecharProduto()">Fechar</button>
+    </div>
+  </div>
+</div>
 
     <div class="tab-panel" id="tab-templates">
       <div class="pag-topo">
@@ -13773,7 +13806,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01k';
+const APP_VERSAO='2026.09.01l';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -20046,11 +20079,26 @@ function pagVoltarAoInicio(chave){ _pagLer(chave).pag=1; }
      sincronizadoEm quando a leitura rodou
      _by           "n8n"
 
-   O `total` vem pronto do fluxo em vez de ser somado aqui de propósito:
+   ── Ficha do produto (01/09) ────────────────────────────────────────
+     peso          kg, número     ex 0.049
+     altura        cm, número
+     largura       cm, número
+     comprimento   cm, número
+     ncm           texto          ex "2106.90.30"
+     duracao       texto/número   ex "60"
+     precoSite     BRL, número    o preço do grupo "Preço Site" na Base
+
+   Todos opcionais: produto lido antes de 01/09 não os tem, e o fluxo pode
+   estar numa versão anterior. A ficha mostra "—" no que faltar em vez de
+   inventar zero — zero em peso muda rateio de frete, zero em preço parece
+   produto de graça. */
+
+/* O `total` vem pronto do fluxo em vez de ser somado aqui de propósito:
    produto pode ter armazém que a nossa leitura não trouxe, e somar o que
    chegou daria um total menor que o verdadeiro sem ninguém perceber. */
 let _estOrdem={campo:'sku', desc:false};
 let _estFiltroAnterior=null;
+let _estProdSku='';
 
 function estOrdenar(campo){
   if(_estOrdem.campo===campo) _estOrdem.desc=!_estOrdem.desc;
@@ -20154,12 +20202,115 @@ function _estNomeHtml(p){
    cor de destaque e a seta de "abre fora". Sem endereço válido ele fica
    texto comum — o link aparece sozinho no dia em que o formato certo entrar
    no fluxo, sem precisar mexer aqui. */
+/* O SKU abre a ficha do produto aqui dentro. O link para a Base continua
+   existindo, como seta ao lado: são duas perguntas diferentes — "o que é
+   este produto" e "quero editá-lo lá". */
 function _estSkuHtml(p){
-  const sku=String((p&&p.sku)||'').trim() || '—';
+  const sku=String((p&&p.sku)||'').trim();
+  if(!sku) return '—';
   const url=_estLinkValido(p&&p.link);
-  return url
-    ? `<a class="est-sku-link" href="${url}" target="_blank" rel="noopener" title="Abrir na Base">${esc(sku)} ↗</a>`
-    : sku;
+  return `<button type="button" class="est-sku-btn" title="Ver a ficha do produto"
+      onclick="estVerProduto('${esc(sku).replace(/'/g,'&#39;')}')">${esc(sku)}</button>`
+    + (url?` <a class="est-sku-link" href="${url}" target="_blank" rel="noopener" title="Abrir na Base">↗</a>`:'');
+}
+
+/* ── FICHA DO PRODUTO ────────────────────────────────────────────────
+   O mesmo cadastro que se lê na Base, do lado de cá: quem confere uma
+   entrada precisa do peso e das medidas sem trocar de sistema.
+
+   Só leitura. Editar aqui criaria um segundo lugar onde o mesmo produto tem
+   dois valores, e a próxima leitura da Base apagaria o que foi digitado —
+   o pior dos dois mundos: o trabalho some e ninguém sabe quando. */
+function estVerProduto(sku){
+  const alvo=String(sku||'').trim().toLowerCase();
+  const p=(appState.produtos||[]).find(x=>x && String(x.sku||'').trim().toLowerCase()===alvo);
+  if(!p){ showToast('Produto não encontrado no catálogo lido','warn'); return; }
+  _estProdSku=String(p.sku||'');
+  _estProdRender();
+  const ov=document.getElementById('est-prod-overlay');
+  if(ov) ov.classList.add('open');
+}
+function estFecharProduto(){
+  const ov=document.getElementById('est-prod-overlay');
+  if(ov) ov.classList.remove('open');
+  _estProdSku='';
+}
+
+/* Número que veio da Base pode ser texto com vírgula. E 0 é um valor: só
+   null/undefined/'' é "não informado".
+
+   O ponto só é separador de milhar quando existe uma vírgula decimal na
+   frente dele. Sem essa regra, 0.049 virava "0049" = 49 kg e 179.99 virava
+   17999 — o peso de um frasco de cápsulas passava a 49 quilos. */
+function _estVal(v){
+  if(v===null || v===undefined || v==='') return null;
+  if(typeof v==='number') return isFinite(v)?v:null;
+  const s=String(v).trim();
+  if(!s) return null;
+  const n=Number(s.indexOf(',')>=0 ? s.replace(/\./g,'').replace(',','.') : s);
+  return isFinite(n)?n:null;
+}
+
+function _estProdRender(){
+  const alvo=_estProdSku.trim().toLowerCase();
+  const p=(appState.produtos||[]).find(x=>x && String(x.sku||'').trim().toLowerCase()===alvo);
+  if(!p) return;
+
+  document.getElementById('est-prod-titulo').textContent=String(p.nome||p.sku||'Produto');
+
+  /* Falta é falta: "—" em âmbar em vez de zero. Zero em peso muda o rateio
+     do frete na conferência; zero em preço parece produto de graça. */
+  const campo=(rot,val,suf)=>{
+    const vazio=(val===null || val===undefined || String(val).trim()==='');
+    return `<div class="dv-c"><div class="r">${rot}</div>
+      <div class="v${vazio?' est-falta':''}">${vazio?'não informado':(esc(String(val))+(suf?(' '+suf):''))}</div></div>`;
+  };
+  const num=(v,casas)=>{ const n=_estVal(v); return n===null?null:_etpBR(n,casas===undefined?2:casas); };
+
+  const total=Number(p.total)||0;
+  const armazens=_estArmazens(p);
+  const precoSite=_estVal(p.precoSite);
+  const custo=Number(p.precoMedio)||0;
+
+  document.getElementById('est-prod-corpo').innerHTML=`
+    <div class="dv-sec">Produto</div>
+    <div class="dv-grid">
+      ${campo('Nome do produto',p.nome)}
+      ${campo('SKU',p.sku)}
+      ${campo('EAN',p.ean)}
+    </div>
+
+    <div class="dv-sec">Dimensões e peso</div>
+    <div class="dv-grid">
+      ${campo('Peso',num(p.peso,3),'kg')}
+      ${campo('Altura',num(p.altura,0),'cm')}
+      ${campo('Largura',num(p.largura,0),'cm')}
+      ${campo('Comprimento',num(p.comprimento,0),'cm')}
+    </div>
+
+    <div class="dv-sec">Campos adicionais</div>
+    <div class="dv-grid">
+      ${campo('NCM',p.ncm)}
+      ${campo('Duração',p.duracao)}
+      ${campo('Preço Site',precoSite===null?null:('R$ '+_etpBR(precoSite)))}
+    </div>
+
+    <div class="dv-sec">Estoque</div>
+    <div class="dv-grid">
+      ${campo('Estoque total',_estNum(total),'un.')}
+      ${campo('Custo médio',custo>0?('R$ '+_etpBR(custo)):null)}
+    </div>
+    ${armazens.length?`<div class="est-prod-arm">${armazens.map(a=>{
+      const q=Number(a.qtd)||0;
+      return `<div><span class="nome">${esc(a.nome)||'—'}</span><span class="qtd${q<0?' neg':''}">${_estNum(q)} un.</span></div>`;
+    }).join('')}</div>`:''}
+
+    <div class="est-prod-nota">Estes dados vêm da Base pelo fluxo do n8n e são
+      <b>somente leitura</b> aqui. Alterou lá, a próxima leitura traz para cá — editar
+      dos dois lados faria o mesmo produto ter dois valores.</div>`;
+
+  const sy=document.getElementById('est-prod-sync');
+  if(sy) sy.textContent=p.sincronizadoEm?('Base lida em '+p.sincronizadoEm):'';
 }
 
 function _estUtil(p){

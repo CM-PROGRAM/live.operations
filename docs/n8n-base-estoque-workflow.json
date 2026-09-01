@@ -110,7 +110,7 @@
     },
     {
       "parameters": {
-        "jsCode": "/* getInventories devolve uma LISTA de catálogos, não um objeto indexado pelo\n   id — o fluxo antigo já dizia isso em `inventories[0].inventory_id`. Ler com\n   Object.entries devolvia a CHAVE do array, que é \"0\", e a Base respondia\n   \"Storage with specified identifier does not exist\". As duas formas são\n   aceitas aqui porque não custa nada e evita a próxima surpresa. */\nfunction _catalogos(resp) {\n  const inv = (resp && resp.inventories) || [];\n  if (Array.isArray(inv)) {\n    return inv.map(x => ({ id: String(x.inventory_id), nome: x.name || '' }));\n  }\n  return Object.entries(inv).map(([k, v]) => ({\n    id: String((v && v.inventory_id) || k),\n    nome: (v && v.name) || ''\n  }));\n}\n/* Mesma história com os armazéns: lista na documentação, mas defensivo. A\n   chave que aparece no estoque do produto é tipo + \"_\" + id (\"bl_43152\"). */\nfunction _armazens(resp) {\n  const w = (resp && resp.warehouses) || [];\n  const arr = Array.isArray(w) ? w : Object.values(w);\n  return arr.map(x => ({\n    chave: String(x.warehouse_type || '') + '_' + String(x.warehouse_id || ''),\n    nome: x.name || (String(x.warehouse_type || '') + '_' + String(x.warehouse_id || ''))\n  }));\n}\n\nconst est = $getWorkflowStaticData('global');\nest.pagina = 1;\nest.gravados = 0;\nest.semCampoCusto = 0;\nest.chavesSemNome = [];\n\nconst cat = $('Base · catálogos').first().json || {};\nif (cat.status !== 'SUCCESS') {\n  throw new Error('Não consegui listar os catálogos: ' + (cat.error_message || JSON.stringify(cat).slice(0, 300)));\n}\nconst catalogos = _catalogos(cat);\nif (!catalogos.length) throw new Error('A Base não devolveu nenhum catálogo.');\n\n/* Um catálogo só. Se um dia houver mais de um, o log diz qual foi lido em\n   vez de escolher em silêncio. */\nconst escolhido = catalogos[0];\n\nconst arm = $('Base · armazéns').first().json || {};\nconst mapa = {};\n_armazens(arm).forEach(a => { mapa[a.chave] = a.nome; });\n\nconsole.log('catálogo: ' + escolhido.id + ' · ' + (escolhido.nome || '(sem nome)')\n  + ' | catálogos disponíveis: ' + catalogos.length\n  + ' | armazéns: ' + Object.keys(mapa).length + ' → ' + Object.values(mapa).join(', '));\n\nreturn [{ json: { inventory_id: escolhido.id, mapaArmazens: mapa, pagina: 1 } }];\n"
+        "jsCode": "/* getInventories devolve uma LISTA de catálogos, não um objeto indexado pelo\n   id — o fluxo antigo já dizia isso em `inventories[0].inventory_id`. Ler com\n   Object.entries devolvia a CHAVE do array, que é \"0\", e a Base respondia\n   \"Storage with specified identifier does not exist\". As duas formas são\n   aceitas aqui porque não custa nada e evita a próxima surpresa. */\nfunction _catalogos(resp) {\n  const inv = (resp && resp.inventories) || [];\n  if (Array.isArray(inv)) {\n    return inv.map(x => ({ id: String(x.inventory_id), nome: x.name || '' }));\n  }\n  return Object.entries(inv).map(([k, v]) => ({\n    id: String((v && v.inventory_id) || k),\n    nome: (v && v.name) || ''\n  }));\n}\n/* Mesma história com os armazéns: lista na documentação, mas defensivo. A\n   chave que aparece no estoque do produto é tipo + \"_\" + id (\"bl_43152\"). */\nfunction _armazens(resp) {\n  const w = (resp && resp.warehouses) || [];\n  const arr = Array.isArray(w) ? w : Object.values(w);\n  return arr.map(x => ({\n    chave: String(x.warehouse_type || '') + '_' + String(x.warehouse_id || ''),\n    nome: x.name || (String(x.warehouse_type || '') + '_' + String(x.warehouse_id || ''))\n  }));\n}\n\nconst est = $getWorkflowStaticData('global');\nest.pagina = 1;\nest.gravados = 0;\nest.semCampoCusto = 0;\nest.chavesSemNome = [];\n\nconst cat = $('Base · catálogos').first().json || {};\nif (cat.status !== 'SUCCESS') {\n  throw new Error('Não consegui listar os catálogos: ' + (cat.error_message || JSON.stringify(cat).slice(0, 300)));\n}\nconst catalogos = _catalogos(cat);\nif (!catalogos.length) throw new Error('A Base não devolveu nenhum catálogo.');\n\n/* Um catálogo só. Se um dia houver mais de um, o log diz qual foi lido em\n   vez de escolher em silêncio. */\nconst escolhido = catalogos[0];\n\nconst arm = $('Base · armazéns').first().json || {};\nconst mapa = {};\n_armazens(arm).forEach(a => { mapa[a.chave] = a.nome; });\n\nconsole.log('catálogo: ' + escolhido.id + ' · ' + (escolhido.nome || '(sem nome)')\n  + ' | catálogos disponíveis: ' + catalogos.length\n  + ' | armazéns: ' + Object.keys(mapa).length + ' → ' + Object.values(mapa).join(', '));\n\n/* ── OS CAMPOS DA FICHA DO PRODUTO (01/09/2026) ──────────────────────\n   Peso e medidas vêm prontos no produto. NCM, Duração e Preço Site não:\n   na Base eles são \"campo adicional\" e \"grupo de preço\", cada um com um id\n   numérico próprio da conta. Chutar id daria o campo errado calado — o pior\n   tipo de erro, porque parece que funcionou.\n\n   Então o fluxo PERGUNTA à Base quais existem e casa pelo NOME. Se um dia o\n   nome mudar lá, o log diz que não achou e o LiveOps mostra \"não informado\",\n   em vez de exibir o número de outro campo. */\nfunction _chave(s) {\n  return String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')\n    .toLowerCase().replace(/\\s+/g, ' ').trim();\n}\n\nconst ex = $('Base · campos extras').first().json || {};\nconst mapaExtras = {};\nif (ex.status === 'SUCCESS') {\n  const lista = Array.isArray(ex.extra_fields) ? ex.extra_fields : Object.values(ex.extra_fields || {});\n  lista.forEach(f => {\n    const id = f && (f.extra_field_id !== undefined ? f.extra_field_id : f.id);\n    if (id === undefined) return;\n    mapaExtras[_chave(f.name)] = 'extra_field_' + id;\n  });\n} else {\n  console.log('AVISO: não consegui listar os campos adicionais — NCM e Duração vão em branco. '\n    + (ex.error_message || ''));\n}\n\nconst gp = $('Base · grupos de preço').first().json || {};\nlet precoSiteId = null;\nif (gp.status === 'SUCCESS') {\n  const lista = Array.isArray(gp.price_groups) ? gp.price_groups : Object.values(gp.price_groups || {});\n  /* Nome exato primeiro; \"contém site\" só como segunda chance, para\n     aguentar \"Preço Site (BRL)\" sem aceitar qualquer coisa. */\n  const exato = lista.find(g => _chave(g.name) === 'preco site');\n  const perto = lista.find(g => _chave(g.name).indexOf('site') >= 0);\n  const alvo = exato || perto;\n  if (alvo) precoSiteId = String(alvo.price_group_id);\n  console.log('grupos de preço: ' + lista.map(g => g.name).join(', ')\n    + ' | \"Preço Site\" = ' + (precoSiteId || 'NÃO ENCONTRADO'));\n} else {\n  console.log('AVISO: não consegui listar os grupos de preço — Preço Site vai em branco. '\n    + (gp.error_message || ''));\n}\n\nconst CAMPOS_FICHA = { ncm: 'ncm', duracao: 'duracao' };\nconst idsFicha = {};\nObject.keys(CAMPOS_FICHA).forEach(k => {\n  const achado = mapaExtras[_chave(CAMPOS_FICHA[k])];\n  if (achado) idsFicha[k] = achado;\n});\nconsole.log('campos adicionais achados: '\n  + (Object.keys(idsFicha).length ? Object.keys(idsFicha).join(', ') : 'nenhum')\n  + ' | disponíveis na Base: ' + Object.keys(mapaExtras).join(', '));\n\nreturn [{ json: { inventory_id: escolhido.id, mapaArmazens: mapa,\n  idsFicha: idsFicha, precoSiteId: precoSiteId, pagina: 1 } }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -212,7 +212,7 @@
     },
     {
       "parameters": {
-        "jsCode": "/* Um registro por produto.\n\n   O custo médio é o `average_cost` — confirmado contra a conta em\n   23/08/2026. Antes daqui o código procurava entre cinco nomes plausíveis,\n   porque a rede daqui não alcança a Base e eu não podia conferir. A busca\n   sai agora, e não por elegância: ela decidia olhando **o primeiro produto\n   da primeira página**, e se justo esse viesse sem custo, o catálogo inteiro\n   era gravado com preço nulo. Nome certo e conhecido não se adivinha.\n\n   O que fica no lugar é um contador: se o campo sumir da resposta da Base\n   um dia, o log diz em quantos produtos ele faltou — em vez de zerar o valor\n   do estoque em silêncio. */\nconst CAMPO_CUSTO = 'average_cost';\n\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Dados dos produtos recusados pela Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst est = $getWorkflowStaticData('global');\nconst inicio = $('De onde começar').first().json;\nconst mapa = inicio.mapaArmazens || {};\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nconst pagina = {};\nObject.entries(r.products || {}).forEach(([id, p]) => {\n  /* O estoque vem como { \"bl_43152\": 7, \"bl_45090\": 0 }. A ordem é a que a\n     Base mandou; não reordeno porque a ordem dela agrupa por tipo. */\n  const armazens = Object.entries(p.stock || {}).map(([chave, qtd]) => {\n    if (!mapa[chave] && est.chavesSemNome.indexOf(chave) < 0) est.chavesSemNome.push(chave);\n    return { nome: mapa[chave] || chave, qtd: Number(qtd) || 0 };\n  });\n  const total = armazens.reduce((a, x) => a + x.qtd, 0);\n\n  /* Campo ausente e campo zerado são coisas diferentes. Ausente é a API ter\n     mudado; zerado é o produto não ter custo cadastrado, o que é comum e\n     legítimo. Só o primeiro é problema, e só ele é contado. */\n  if (p[CAMPO_CUSTO] === undefined) est.semCampoCusto = (est.semCampoCusto || 0) + 1;\n  const custo = Number(p[CAMPO_CUSTO]);\n\n  pagina['prod_' + id] = {\n    id: 'prod_' + id,\n    sku: String(p.sku || ''),\n    /* EAN é texto, sempre. Ele começa com zero e número come o zero:\n       \"0047469009496\" viraria 47469009496 e não bate mais com a etiqueta. */\n    ean: String(p.ean || ''),\n    /* O nome fica em text_fields.name — conferido no dado real. */\n    nome: String((p.text_fields && p.text_fields.name) || p.name || ''),\n    total: total,\n    armazens: armazens,\n    precoMedio: (isFinite(custo) && custo > 0) ? custo : null,\n    /* Sem link por enquanto. O endereço products_catalog.php#product:<id>\n       foi deduzido do link de pedido e a Base responde 500 nele — chute em\n       link vira erro na cara de quem clicou. Quando o formato certo for\n       confirmado no painel, ele entra aqui. */\n    link: '',\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n});\n\nest.gravados += Object.keys(pagina).length;\nest.pagina += 1;\nconsole.log('página ' + (est.pagina - 1) + ': ' + Object.keys(pagina).length + ' produtos');\n\n/* UM item só. O nó Code tem uma saída só — devolver [[a],[b]] é a forma de\n   dois ramos e ela não existe aqui. Os dois caminhos saem da mesma saída:\n   \"Gravar a página\" lê .pagina e \"Pausa 1s\" leva .proximaPagina de volta. */\nreturn [{ json: {\n  pagina: pagina,\n  proximaPagina: est.pagina,\n  inventory_id: inicio.inventory_id\n} }];\n"
+        "jsCode": "/* Um registro por produto.\n\n   O custo médio é o `average_cost` — confirmado contra a conta em\n   23/08/2026. Antes daqui o código procurava entre cinco nomes plausíveis,\n   porque a rede daqui não alcança a Base e eu não podia conferir. A busca\n   sai agora, e não por elegância: ela decidia olhando **o primeiro produto\n   da primeira página**, e se justo esse viesse sem custo, o catálogo inteiro\n   era gravado com preço nulo. Nome certo e conhecido não se adivinha.\n\n   O que fica no lugar é um contador: se o campo sumir da resposta da Base\n   um dia, o log diz em quantos produtos ele faltou — em vez de zerar o valor\n   do estoque em silêncio. */\nconst CAMPO_CUSTO = 'average_cost';\n/* Peso e medidas vêm como número ou como texto com vírgula, dependendo de\n   como foram digitados na Base. Ausente e zero são coisas diferentes: zero\n   em peso é peso zero (e some do rateio do frete), ausente é não cadastrado.\n   Por isso null, e não 0, quando não vier nada. */\nfunction _n(v) {\n  if (v === undefined || v === null || v === '') return null;\n  const x = Number(String(v).replace(',', '.'));\n  return isFinite(x) ? x : null;\n}\nfunction _extra(p, chave) {\n  if (!chave) return '';\n  const tf = p.text_fields || {};\n  const v = tf[chave];\n  return (v === undefined || v === null) ? '' : String(v);\n}\n\nconst r = $input.first().json || {};\nif (r.status !== 'SUCCESS') {\n  throw new Error('Dados dos produtos recusados pela Base: ' + (r.error_message || JSON.stringify(r).slice(0, 300)));\n}\nconst est = $getWorkflowStaticData('global');\nconst inicio = $('De onde começar').first().json;\nconst mapa = inicio.mapaArmazens || {};\nconst idsFicha = inicio.idsFicha || {};\nconst precoSiteId = inicio.precoSiteId || null;\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' });\n\nconst pagina = {};\nObject.entries(r.products || {}).forEach(([id, p]) => {\n  /* O estoque vem como { \"bl_43152\": 7, \"bl_45090\": 0 }. A ordem é a que a\n     Base mandou; não reordeno porque a ordem dela agrupa por tipo. */\n  const armazens = Object.entries(p.stock || {}).map(([chave, qtd]) => {\n    if (!mapa[chave] && est.chavesSemNome.indexOf(chave) < 0) est.chavesSemNome.push(chave);\n    return { nome: mapa[chave] || chave, qtd: Number(qtd) || 0 };\n  });\n  const total = armazens.reduce((a, x) => a + x.qtd, 0);\n\n  /* Campo ausente e campo zerado são coisas diferentes. Ausente é a API ter\n     mudado; zerado é o produto não ter custo cadastrado, o que é comum e\n     legítimo. Só o primeiro é problema, e só ele é contado. */\n  if (p[CAMPO_CUSTO] === undefined) est.semCampoCusto = (est.semCampoCusto || 0) + 1;\n  const custo = Number(p[CAMPO_CUSTO]);\n\n  pagina['prod_' + id] = {\n    id: 'prod_' + id,\n    sku: String(p.sku || ''),\n    /* EAN é texto, sempre. Ele começa com zero e número come o zero:\n       \"0047469009496\" viraria 47469009496 e não bate mais com a etiqueta. */\n    ean: String(p.ean || ''),\n    /* O nome fica em text_fields.name — conferido no dado real. */\n    nome: String((p.text_fields && p.text_fields.name) || p.name || ''),\n    total: total,\n    armazens: armazens,\n    precoMedio: (isFinite(custo) && custo > 0) ? custo : null,\n    /* Sem link por enquanto. O endereço products_catalog.php#product:<id>\n       foi deduzido do link de pedido e a Base responde 500 nele — chute em\n       link vira erro na cara de quem clicou. Quando o formato certo for\n       confirmado no painel, ele entra aqui. */\n    link: '',\n\n    /* ── Ficha do produto (01/09/2026) ──────────────────────────────\n       Peso e medidas saem prontos do produto; NCM e Duração são campos\n       adicionais e o Preço Site é um grupo de preço — os três chegam pelo\n       id que \"De onde começar\" descobriu pelo nome. Faltando o id, o campo\n       vai vazio e o LiveOps mostra \"não informado\". */\n    peso:        _n(p.weight),\n    altura:      _n(p.height),\n    largura:     _n(p.width),\n    comprimento: _n(p.length),\n    ncm:         _extra(p, idsFicha.ncm),\n    duracao:     _extra(p, idsFicha.duracao),\n    precoSite:   precoSiteId ? _n((p.prices || {})[precoSiteId]) : null,\n\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n});\n\nest.gravados += Object.keys(pagina).length;\nest.pagina += 1;\nconsole.log('página ' + (est.pagina - 1) + ': ' + Object.keys(pagina).length + ' produtos');\n\n/* UM item só. O nó Code tem uma saída só — devolver [[a],[b]] é a forma de\n   dois ramos e ela não existe aqui. Os dois caminhos saem da mesma saída:\n   \"Gravar a página\" lê .pagina e \"Pausa 1s\" leva .proximaPagina de volta. */\nreturn [{ json: {\n  pagina: pagina,\n  proximaPagina: est.pagina,\n  inventory_id: inicio.inventory_id\n} }];\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -262,6 +262,80 @@
       "id": "Pausa 1s",
       "name": "Pausa 1s",
       "webhookId": "estoque-pausa"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryExtraFields"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "est-getinventoryextrafields",
+      "name": "Base · campos extras",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -40,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getInventoryPriceGroups"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "est-getinventorypricegroups",
+      "name": "Base · grupos de preço",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -40,
+        360
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
     }
   ],
   "connections": {
@@ -302,7 +376,7 @@
       "main": [
         [
           {
-            "node": "De onde começar",
+            "node": "Base · campos extras",
             "type": "main",
             "index": 0
           }
@@ -374,6 +448,28 @@
         [
           {
             "node": "Base · página de produtos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · campos extras": {
+      "main": [
+        [
+          {
+            "node": "Base · grupos de preço",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · grupos de preço": {
+      "main": [
+        [
+          {
+            "node": "De onde começar",
             "type": "main",
             "index": 0
           }
