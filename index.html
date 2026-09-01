@@ -7830,7 +7830,7 @@ function _cfEspelharLinhas(linhas){
 
 // O pacote de estado sobe espaçado (uma vez a cada poucos segundos, por
 // mais que se grave) — é um espelho, não precisa de cada batida.
-let _cfPacoteTimer=null, _cfPacotePend=null;
+let _cfPacoteTimer=null, _cfPacotePend=null, _cfPacoteAvisoTs=0;
 function _cfEspelharPacote(payload){
   if(!CF_DADOS_ATIVO || !payload) return;
   _cfPacotePend=payload;
@@ -7838,9 +7838,31 @@ function _cfEspelharPacote(payload){
   _cfPacoteTimer=setTimeout(()=>{
     _cfPacoteTimer=null;
     const p=_cfPacotePend; _cfPacotePend=null;
-    _cfDadosReq('pacote/state','PUT',p)
-      .catch(err=>console.warn('[dados][cf] pacote falhou:',err.message));
+    _cfSubirPacote(p,0);
   },4000);
+}
+
+/* O pacote carrega as tarefas do dia (WhatsApp, Plataformas, Envios,
+   Anúncios), a lista de usuários e as configurações. Ele subia com um
+   .catch(console.warn) e mais nada: falhou, perdeu — e quem concluiu a
+   tarefa continuou vendo o "concluído" na própria tela, sem saber que
+   ninguém mais ia ver. Três tentativas, e se ainda assim não for, o
+   usuário fica sabendo. */
+function _cfSubirPacote(p,tentativa){
+  if(!p) return;
+  _cfDadosReq('pacote/state','PUT',p)
+    .then(()=>{ if(tentativa) console.log('[dados][cf] pacote subiu na tentativa',tentativa+1); })
+    .catch(err=>{
+      if(tentativa<2){
+        setTimeout(()=>_cfSubirPacote(p,tentativa+1), 2000*(tentativa+1));
+        return;
+      }
+      console.error('[dados][cf] pacote falhou depois de 3 tentativas:',err.message);
+      if(Date.now()-_cfPacoteAvisoTs<60000) return;
+      _cfPacoteAvisoTs=Date.now();
+      try{ showToast('⚠ Não consegui salvar na nuvem. O que você fez está neste navegador, '
+                    +'mas ainda não chegou para a equipe. Verifique a conexão.','error'); }catch(e){}
+    });
 }
 
 /* Espelha uma gravação avulsa do Firebase — ramos que não têm caminho
@@ -12399,9 +12421,20 @@ function cfBootLeitura(){
       /* As listas entram ANTES do pacote: o pacote não as carrega, e o
          _aplicarPacoteDaNuvem preserva o que já estiver em memória. */
       let registros=0, listas=0, faltou=0;
+      /* Abrir é substituir; RETOMAR é juntar. Quando a primeira tentativa
+         falhou, o usuário já trabalhou minutos com a nuvem fora — trocar a
+         lista pela da nuvem agora apagaria o que ele acabou de digitar.
+         Na retomada cada registro entra pelo caminho de sempre, que mantém
+         o que só existe aqui e deixa a nuvem vencer no que é dos dois. */
+      const retomando=_cfBootFalhas>0;
       Object.entries(COLECOES_REG).forEach(([nome,acc])=>{
         const linhas=colecoes[nome];
         if(!Array.isArray(linhas)){ faltou++; return; }  // erro de leitura: não mexe
+        if(retomando){
+          linhas.forEach(l=>{ if(l && l.dados) _aplicarRegistroRemoto(nome,acc,l.chave,l.dados); });
+          registros+=linhas.length; listas++;
+          return;
+        }
         _regEnviado[nome]={};
         const lista=[];
         linhas.forEach(l=>{
@@ -12436,19 +12469,86 @@ function cfBootLeitura(){
       return true;
     })
     .catch(err=>{
-      console.warn('[cf] não deu para abrir pela Cloudflare, seguindo pelo Firebase:',err.message);
-      try{ showToast('Cloudflare indisponível — abrindo pelo Firebase','warn'); }catch(e){}
+      console.warn('[cf] não deu para abrir pela Cloudflare:',err.message);
       _cfLeituraAtiva=false;
-      /* O login já passou pelo feed, pelas permissões e pela presença
-         acreditando que a fonte seria a Cloudflare. Agora que ela falhou,
-         os três precisam ser refeitos pelo Firebase — senão a sessão fica
-         sem histórico, sem permissões oficiais e invisível para os outros. */
+
+      /* SESSÃO FANTASMA — o dia inteiro trabalhando só no navegador ────────
+         Aqui morava o pior defeito silencioso do sistema. Uma lista que não
+         respondesse (uma requisição perdida basta) derrubava a abertura, e o
+         código dizia "seguindo pelo Firebase" — só que o Firebase foi
+         aposentado. O que acontecia de verdade: startFirebaseSync caía no
+         modo local, _recebeuNuvem ficava false para sempre, e TODO saveState
+         daquela sessão parava na fila de espera, sem nunca subir.
+
+         Foi o que aconteceu em 01/09/2026: o Gustavo concluiu várias tarefas
+         e nada apareceu para ninguém. Não havia erro na tela, só um aviso no
+         console que ninguém lê. A sessão vira um fantasma: mostra a tela
+         certa, aceita o trabalho, e não publica nada.
+
+         Agora a abertura INSISTE — 5s, 15s, 30s, 60s e de minuto em minuto —
+         e enquanto não conseguir, a faixa vermelha fica na tela dizendo o que
+         está acontecendo. Quando entra, a gravação represada sobe sozinha
+         (_liberarGravacaoNaNuvem publica o que ficou esperando). */
+      if(db && fbConnected){
+        try{ showToast('Cloudflare indisponível — abrindo pelo Firebase','warn'); }catch(e){}
+        /* O login já passou pelo feed, pelas permissões e pela presença
+           acreditando que a fonte seria a Cloudflare. Agora que ela falhou,
+           os três precisam ser refeitos pelo Firebase — senão a sessão fica
+           sem histórico, sem permissões oficiais e invisível para os outros. */
+        _permsOuvindo=false;
+        try{ initActivityListener(); }catch(e){}
+        try{ _permsOuvirOficiais(); }catch(e){}
+        try{ registerPresence(); }catch(e){}
+        return false;
+      }
+      _cfBootAvisarFalha(err);
+      _cfBootTentarDeNovo();
+      return false;
+    });
+}
+
+/* Quantas vezes a abertura já falhou seguidas — define a espera da próxima
+   tentativa e some no primeiro sucesso. */
+let _cfBootFalhas=0, _cfBootRetryTimer=null;
+const _CF_BOOT_ESPERAS=[5000,15000,30000,60000];
+
+function _cfBootAvisarFalha(err){
+  const tentativa=_cfBootFalhas+1;
+  try{
+    _mostrarBloqueio('Não consegui abrir os dados da nuvem',
+      'O que você fizer agora fica salvo SÓ neste navegador e não chega para o resto da equipe. '
+      +'Estou tentando de novo sozinho (tentativa '+tentativa+'). '
+      +'Se a faixa não sumir em alguns minutos, recarregue a página. '
+      +'Motivo técnico: '+((err&&err.message)||err||'sem resposta'),'');
+  }catch(e){}
+}
+
+function _cfBootTentarDeNovo(){
+  if(_cfBootRetryTimer) return;
+  const espera=_CF_BOOT_ESPERAS[Math.min(_cfBootFalhas,_CF_BOOT_ESPERAS.length-1)];
+  _cfBootFalhas++;
+  console.warn('[cf] nova tentativa de abrir pela Cloudflare em',(espera/1000)+'s');
+  _cfBootRetryTimer=setTimeout(()=>{
+    _cfBootRetryTimer=null;
+    // Sessão encerrada no meio da espera: não adianta insistir
+    if(!currentUser){ _cfBootFalhas=0; return; }
+    _cfLeituraAtiva=true;   // cfBootLeitura desliga sozinha se falhar de novo
+    cfBootLeitura().then(ok=>{
+      if(!ok) return;       // o próprio catch já reagendou
+      _cfBootFalhas=0;
+      /* O feed e as permissões oficiais tentaram carregar no login, quando a
+         nuvem estava fora — e cada um deles desiste calado. Agora que ela
+         voltou, os dois precisam ser refeitos, senão a sessão segue sem
+         histórico e sem as permissões que o master definiu. */
       _permsOuvindo=false;
       try{ initActivityListener(); }catch(e){}
       try{ _permsOuvirOficiais(); }catch(e){}
       try{ registerPresence(); }catch(e){}
-      return false;
+      try{ updateConnectionUI(true); }catch(e){}
+      try{ esconderBloqueio(); }catch(e){}
+      try{ showToast('Conexão com a nuvem restabelecida — seu trabalho subiu','success'); }catch(e){}
     });
+  },espera);
 }
 
 let _fbSyncStarted = false;
@@ -13883,7 +13983,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01q';
+const APP_VERSAO='2026.09.01r';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -28499,19 +28599,45 @@ function toggleAtvArea(key,areaId,checked){
 const FB_PERMS='suplelive/permissoes';
 let _permsOficiais=null;   // key -> {perms, atvAreasVisiveis?, atvTabsVisiveis?, ts, por}
 
+/* O nó oficial manda — MAS SÓ ENQUANTO FOR O MAIS NOVO ─────────────────
+   Esta função aplicava o nó por cima de tudo, sem olhar a hora. Parece
+   seguro (é "a fonte da verdade"), e é justamente o que fazia as permissões
+   voltarem sozinhas TODA VEZ que o master entrava:
+
+   o clique do master grava o nó oficial pela fila do espelho, que é
+   debounced em 1,5s e "melhor esforço" — sem retentativa. Basta essa
+   requisição se perder (ou a aba ser recarregada logo depois do clique)
+   para o nó continuar com o valor VELHO. Daí em diante, toda abertura lia
+   esse valor velho e o carimbava por cima da concessão nova. Não era um
+   reset: era o mesmo reset, repetido para sempre.
+
+   Agora vale a hora. O nó só vence quando é igual ou mais novo que o
+   carimbo local; quando o daqui é mais novo, ele fica — e o nó é
+   REESCRITO, para a divergência morrer nesta abertura em vez de voltar na
+   próxima. */
 function _permsAplicarOficiais(users){
   if(!_permsOficiais || !users) return;
+  const curar=[];
   Object.entries(_permsOficiais).forEach(([k,g])=>{
     const u=users[k];
     if(!u || !g || u.master) return;
+    const ts=Number(g.ts)||0;
+    const meu=Number(u.permsAtualizadoEm)||0;
+    if(meu>ts){ curar.push(k); return; }   // a concessão daqui é mais nova
     if(Array.isArray(g.perms)) u.perms=g.perms.slice();
     if(g.atvAreasVisiveis!==undefined && g.atvAreasVisiveis!==null) u.atvAreasVisiveis=JSON.parse(JSON.stringify(g.atvAreasVisiveis));
     else delete u.atvAreasVisiveis;
     if(g.atvTabsVisiveis!==undefined && g.atvTabsVisiveis!==null) u.atvTabsVisiveis=JSON.parse(JSON.stringify(g.atvTabsVisiveis));
     else delete u.atvTabsVisiveis;
-    const ts=Number(g.ts)||0;
-    if(ts>Number(u.permsAtualizadoEm||0)) u.permsAtualizadoEm=ts;
+    if(ts>meu) u.permsAtualizadoEm=ts;
   });
+  /* Só o master reescreve: a sessão do colaborador pode estar com cópia
+     velha, e curar a partir dela devolveria a permissão que acabou de ser
+     tirada. Fora do laço porque _permsGravarOficial lê appState.users. */
+  if(curar.length && currentUser && currentUser.master){
+    console.warn('[perms] nó oficial estava atrasado — regravando:',curar.join(', '));
+    setTimeout(()=>{ curar.forEach(k=>{ try{ _permsGravarOficial(k); }catch(e){} }); },0);
+  }
 }
 
 function _permsGravarOficial(k){
@@ -28527,10 +28653,29 @@ function _permsGravarOficial(k){
      o Firebase conectado) deixava o clique do master mudo: lendo pela
      Cloudflare, fbConnected é false, nada subia, e o nó oficial velho
      ainda DESFAZIA a concessão por cima do pacote. */
-  try{ _espelharCaminho(FB_PERMS+'/'+k, g); }catch(e){ console.warn('[perms] espelho:',e); }
+  /* Fora da fila do espelho de propósito. A fila junta 400 linhas, espera
+     1,5s e não tenta de novo se falhar — tudo bem para um log, péssimo para
+     a permissão de alguém: uma requisição perdida ali deixava o nó oficial
+     velho, e o velho voltava a valer em toda abertura. Aqui sobe na hora,
+     sozinho, e insiste três vezes antes de avisar na tela. */
+  _permsSubirOficial(k,g,0);
   if(db && fbConnected){
     try{ db.ref(FB_PERMS+'/'+k).set(g); }catch(e){ console.warn('[perms] nó oficial:',e); }
   }
+}
+
+function _permsSubirOficial(k,g,tentativa){
+  _cfDadosReq('lote','POST',{linhas:[{colecao:'permissoes', chave:k, dados:g}]})
+    .then(()=>{ if(tentativa) console.log('[perms] nó oficial de',k,'subiu na tentativa',tentativa+1); })
+    .catch(err=>{
+      if(tentativa<2){
+        setTimeout(()=>_permsSubirOficial(k,g,tentativa+1), 1200*(tentativa+1));
+        return;
+      }
+      console.error('[perms] não consegui gravar o nó oficial de',k,':',err.message);
+      try{ showToast('⚠ A permissão de '+k+' não subiu para a nuvem. Tente de novo — '
+                    +'até lá ela vale só neste navegador.','error'); }catch(e){}
+    });
 }
 
 let _permsOuvindo=false;
