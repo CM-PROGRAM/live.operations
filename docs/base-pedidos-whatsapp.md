@@ -475,3 +475,63 @@ Base** — ir olhar, não mexer.
 
 Também não há caixa de seleção por linha. Selecionar serve para agir em lote,
 e não existe ação em lote numa tela que não altera nada.
+
+---
+
+## 11. O fluxo único — todos os canais (01/09/2026)
+
+`docs/n8n-base-pedidos-todos.json` substitui o fluxo de WhatsApp e a carga
+histórica por um só. Menos fluxo no n8n era o pedido; o efeito colateral é
+que existe **um** lugar para consertar quando a Base mudar de ideia.
+
+### 11.1 O que mudou
+
+**Nenhum filtro de origem.** O fluxo antigo pedia `personal/0` ao servidor.
+Este lê tudo e nomeia cada pedido com o nome que a Base dá à loja — vindo do
+`getOrderSources`, não de uma lista no código. Loja nova de Mercado Livre ou
+Shopee entra sozinha, com o nome certo, sem ninguém vir editar nada. Loja que
+a Base ainda não nomeou sai com o código (`melibr`), nunca vazia.
+
+**Dois modos, um caminho.** O gatilho manual varre do `id_from: 0` — é a
+carga completa. O agendado começa no menor id dos últimos 7 dias que já
+temos: pega o pedido novo e relê o antigo que mudou de status, sem varrer o
+catálogo inteiro de 15 em 15 minutos. Semana sem venda cai para 0 e varre
+tudo, porque ler demais é melhor que ler de menos.
+
+**Só grava o que mudou.** A comparação ignora o carimbo de sincronização,
+senão todo pedido mudaria sempre. Numa passagem de 15 minutos isso é a
+diferença entre algumas escritas de D1 e milhares.
+
+**Grava na Cloudflare**, em `/robo/reg/pedidosBase.json` — não no Firebase,
+que foi excluído em 31/08.
+
+### 11.2 O Arquivo continua fora, e continua sendo por isto
+
+A seção 9.3 acima mediu e a própria Base confirmou por escrito: pedido com
+mais de 3 meses vai para o **Arquivo**, que é um **banco separado com busca
+própria**. Nenhum parâmetro do `getOrders` chega lá — `date_from` de janeiro
+e `id_from: 1` devolvem o mesmo pedido de 24/05/2026.
+
+Isso não é limitação do fluxo, é da API. Um fluxo único não muda esse fato;
+o que ele faz é deixar claro no log até onde chegou:
+
+```
+pedido mais antigo alcançado: 2026-06-03
+```
+
+Os anteriores entram pelo caminho da seção 10: exportar o Arquivo em CSV pela
+tela da Base e usar **Importar Arquivo** na aba Pedidos. O importador já lê a
+coluna `origem` e usa como canal — nunca foi só de WhatsApp. Para trazer
+todos os canais, exportar **sem** filtrar a origem.
+
+### 11.3 Rodar
+
+1. Importar `n8n-base-pedidos-todos.json`
+2. Credenciais: `Base (BaseLinker)` nos três nós da Base, `LiveOps (chave do
+   robô)` nos dois do worker
+3. **Execute workflow** uma vez — é a carga completa dos 3 meses
+4. Ler o log de `Página → registros`: páginas, lidos, gravados, a data do
+   mais antigo alcançado e a contagem por canal
+5. Ativar o fluxo para o agendamento de 15 minutos valer
+
+Depois disso, desligar os fluxos antigos de pedidos e de carga histórica.
