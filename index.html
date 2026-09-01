@@ -1402,25 +1402,43 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
    O desenho é o do sistema — vidro escuro, cantos do --radius, fonte mono nos
    números. A grade veio do modelo em planilha porque é assim que a operação
    já lê a conferência: uma coluna por rastreio, a diferença colorida ao lado. */
-.etp-passos{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
-.etp-passo{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;
-  padding:9px 18px;border-radius:999px;border:1px solid var(--border);color:var(--text-muted);
-  background:var(--grad-vidro);cursor:pointer;transition:color .15s,border-color .15s,background .15s;}
-.etp-passo:hover:not(.travado){color:var(--text-primary);border-color:var(--border-light);}
-.etp-passo.ativo{border-color:var(--accent-dim);background:var(--accent-glow);color:var(--accent);}
-.etp-passo.feito{border-color:rgba(34,197,94,.4);color:var(--green);}
-.etp-passo.feito.ativo{background:rgba(34,197,94,.14);}
+/* ── ACOMPANHAMENTO ─────────────────────────────────────────────────
+   Mesmo desenho das outras seções: azul da casa no que é título e no que
+   está ativo, cartão em relevo, e o contador do navegador fora de todo
+   campo numérico (regra do master: tudo se digita). */
+#tab-envios input[type="number"]::-webkit-outer-spin-button,
+#tab-envios input[type="number"]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+#tab-envios input[type="number"]{-moz-appearance:textfield;appearance:textfield;}
+
+.etp-passos{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:16px;}
+.etp-passo{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;
+  padding:10px 20px;border-radius:999px;border:1px solid var(--border);color:var(--text-secondary);
+  background:var(--bg-surface);cursor:pointer;transition:all .16s;
+  box-shadow:0 2px 6px rgba(15,23,42,.06);}
+.etp-passo:hover:not(.travado){color:var(--lo-azul);border-color:var(--lo-azul);transform:translateY(-1px);}
+.etp-passo.ativo{border-color:var(--lo-azul);background:var(--lo-azul);color:#fff;
+  box-shadow:0 5px 14px rgba(37,99,235,.32);}
+.etp-passo.feito{border-color:rgba(34,197,94,.45);color:#16a34a;}
+.etp-passo.feito.ativo{background:#16a34a;border-color:#16a34a;color:#fff;box-shadow:0 5px 14px rgba(22,163,74,.3);}
+
+/* O cabeçalho da compra aberta, com o X no canto */
+.etp-cab-compra{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
+.etp-fechar{width:32px;height:32px;border-radius:50%;flex-shrink:0;cursor:pointer;
+  border:1px solid var(--border);background:var(--bg-surface);color:var(--text-muted);
+  font-size:15px;line-height:1;transition:all .15s;}
+.etp-fechar:hover{border-color:var(--tom-vermelho,#ef4444);color:var(--tom-vermelho,#ef4444);}
 /* Etapa que ainda não abriu: apagada e sem cursor de clique. O cadeado diz
    por quê antes de a pessoa tentar. */
 .etp-passo.travado{opacity:.5;cursor:not-allowed;}
-.etp-passo-n{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:18px;
-  padding:0 6px;border-radius:999px;background:var(--bg-active);border:1px solid var(--border);
-  font-size:10.5px;font-family:var(--font-mono);color:var(--text-secondary);}
-.etp-passo.ativo .etp-passo-n{background:var(--accent-glow);border-color:var(--accent-dim);color:var(--accent);}
-.etp-pagina{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius-lg);
-  padding:20px;margin-bottom:4px;}
+.etp-passo-n{display:inline-flex;align-items:center;justify-content:center;min-width:21px;height:19px;
+  padding:0 7px;border-radius:999px;background:var(--bg-active);border:1px solid var(--border);
+  font-size:10.5px;font-weight:800;font-family:var(--font-mono);color:var(--text-secondary);}
+.etp-passo.ativo .etp-passo-n{background:rgba(255,255,255,.22);border-color:rgba(255,255,255,.45);color:#fff;}
+.etp-pagina{background:var(--bg-surface);border:1px solid var(--glass-border);border-radius:18px;
+  padding:22px 24px;margin-bottom:16px;box-shadow:0 10px 26px rgba(15,23,42,.09);}
+:root:not([data-theme="light"]) .etp-pagina{box-shadow:0 12px 30px rgba(0,0,0,.36);}
 .etp-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
-  font-size:14px;font-weight:800;color:var(--text-primary);margin:0 0 16px;}
+  font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--lo-azul);margin:0 0 18px;}
 .etp-selo{font-size:11px;font-weight:600;color:var(--text-muted);font-family:var(--font-mono);}
 .etp-selo.travado{color:#f0b429;}
 .etp-selo.pronto{color:var(--green);}
@@ -1430,7 +1448,7 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-cotacao input{width:110px;}
 .etp-tabela{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
 .etp-cab{display:grid;background:var(--bg-active);font-size:10px;font-weight:700;
-  text-transform:uppercase;letter-spacing:.04em;color:var(--text-secondary);}
+  text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);font-family:var(--font-mono);}
 .etp-cab > div{padding:8px 6px;border-right:1px solid var(--border);}
 .etp-cab > div:last-child{border-right:none;}
 .etp-linha{display:grid;align-items:center;border-top:1px solid var(--linha-sutil);}
@@ -1445,7 +1463,8 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-sug button{display:block;width:100%;text-align:left;background:none;border:0;cursor:pointer;
   padding:8px 12px;color:var(--text-primary);font-size:12.5px;font-family:var(--font-sans);}
 .etp-sug button:hover{background:var(--veu-medio);}
-.etp-linha input{height:30px;font-size:12px;padding:4px 8px;font-family:var(--font-mono);}
+.etp-linha input{height:32px;font-size:12.5px;padding:5px 10px;font-family:var(--font-mono);border-radius:8px;}
+.etp-linha:hover{background:var(--veu-fraco,rgba(37,99,235,.03));}
 .etp-c1{grid-template-columns:90px 2fr 120px 110px 40px;}
 .etp-c3{grid-template-columns:2fr 110px 90px 110px 120px 50px;}
 .etp-lido{font-size:12px;padding:6px;color:var(--text-secondary);font-family:var(--font-mono);}
@@ -1460,7 +1479,7 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-resumo{display:grid;grid-template-columns:1.6fr 1fr 1.4fr;gap:10px;margin-bottom:14px;}
 @media (max-width:900px){.etp-resumo{grid-template-columns:1fr;}}
 .etp-caixa{background:var(--bg-active);border:1px solid var(--border);border-radius:var(--radius);padding:11px 13px;}
-.etp-caixa .rot{color:var(--accent);font-size:11px;font-weight:600;}
+.etp-caixa .rot{color:var(--lo-azul);font-size:11px;font-weight:700;}
 .etp-caixa .li{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px;}
 .etp-caixa .li:last-child{margin-bottom:0;}
 .etp-caixa .li input{width:110px;height:26px;font-size:12px;padding:3px 8px;}
@@ -2022,11 +2041,11 @@ details.jobs-det summary .qtd{font-size:11px;font-weight:700;color:var(--text-mu
 :root:not([data-theme="light"]) #tab-plataformas .section-title,
 :root:not([data-theme="light"]) #tab-financeiro .section-title,
 :root:not([data-theme="light"]) #tab-consultacpf .section-title{color:#60a5fa;}
-/* Acompanhamento inteiro no mesmo padrão */
-#tab-envios .pag-titulo,#tab-envios .etp-h,#tab-envios #etp-titulo{color:#1d4ed8;}
-:root:not([data-theme="light"]) #tab-envios .pag-titulo,
-:root:not([data-theme="light"]) #tab-envios .etp-h,
-:root:not([data-theme="light"]) #tab-envios #etp-titulo{color:#60a5fa;}
+/* Acompanhamento no MESMO azul do resto do sistema. Havia aqui um
+   #1d4ed8 fixo, meio tom mais fechado que o dos botões — de perto não se
+   nota, mas ao lado do Administrador a diferença aparece. Agora é o
+   token, e muda em um lugar só. */
+#tab-envios .pag-titulo,#tab-envios .etp-h,#tab-envios #etp-titulo{color:var(--lo-azul);}
 .btn.pg-btn-solido{font-size:15px;font-weight:700;padding:12px 24px;border-radius:10px;width:auto;
   display:inline-flex;align-items:center;gap:8px;white-space:nowrap;}
 .sb-recolher{flex-shrink:0;width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;
@@ -3798,24 +3817,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <button class="btn btn-sm" style="width:auto;white-space:nowrap;" onclick="acpMigrarDevolucoes()">Trazer para cá</button>
       </div>
 
-      <!-- COMPRAS / DEVOLUÇÕES / TRANSFERÊNCIAS -->
-      <div id="acp-bloco" class="ped-bloco" style="overflow:hidden;">
-        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
-          <span id="acp-titulo" class="pg-bt-azul" style="font-size:13px;font-weight:800;color:var(--text-primary);">Compras</span>
-          <span id="acp-conta" style="font-size:11.5px;color:var(--text-muted);"></span>
-          <div style="flex:1;"></div>
-          <button id="acp-btn-migrar" class="btn-sec" style="display:none;width:auto;" onclick="acpMigrarDevolucoes()"></button>
-        </div>
-        <div style="overflow-x:auto;">
-          <table class="ped-tabela acp-tabela">
-            <thead><tr id="acp-cabecalho"></tr></thead>
-            <tbody id="acp-rows"></tbody>
-          </table>
-        </div>
-        <div id="acp-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
-        <div id="acp-pag" class="pag-rodape"></div>
-      </div>
-
       <!-- ══════════ COMPRA EM TRÊS ETAPAS ══════════
            Orçamento → Chegada/conferência → Lançamento no estoque.
            Cada etapa trava ao ser confirmada e alimenta a seguinte: é o que
@@ -3823,13 +3824,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            e de o custo já ter sido calculado em cima dele. Reabrir é possível
            e explícito — o que não pode é mudar em silêncio. -->
       <div id="acp-etapas" style="display:none;">
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="btn-sec" style="width:auto;" onclick="acpFecharEtapas()">← Voltar para a lista</button>
-          <div>
-            <div id="etp-titulo" style="font-size:14px;font-weight:800;color:var(--text-primary);">Compra</div>
-            <div id="etp-sub" style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);"></div>
+        <!-- Sem "voltar para a lista": a lista não sai mais da tela, fica
+             logo abaixo. O X serve para fechar a compra aberta, e é o que
+             dispara a faxina de orçamento em branco. -->
+        <div class="etp-cab-compra">
+          <div style="min-width:0;">
+            <div id="etp-titulo" class="conf-titulo" style="font-size:19px;">Compra</div>
+            <div id="etp-sub" class="conf-sub" style="font-family:var(--font-mono);"></div>
           </div>
-          <div style="flex:1;"></div>
+          <button type="button" class="etp-fechar" onclick="acpFecharEtapas()" title="Fechar esta compra">✕</button>
         </div>
 
         <div class="etp-passos" id="etp-passos"></div>
@@ -3876,7 +3879,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div class="etp-caixa">
               <div class="li"><span class="rot">Custo frete R$</span><span class="val" id="etp-frete-total">0,00</span></div>
               <div class="li"><span class="rot">Total kg cobrado</span>
-                <input type="number" id="etp-kg-cobrado" step="0.01" placeholder="0,00" oninput="etpRecalcular()"></div>
+                <input type="text" inputmode="decimal" id="etp-kg-cobrado" placeholder="0,00" oninput="etpRecalcular()"></div>
               <div class="li"><span class="rot">Total kg produto</span><span class="val" id="etp-kg-produto">0,00</span></div>
               <div class="li"><span class="rot">Custo real por kg</span><span class="val" id="etp-custo-kg">—</span></div>
             </div>
@@ -3958,13 +3961,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div class="input-group"><label>📅 Data de vencimento</label>
               <input type="text" id="etp-m-venc" inputmode="numeric" placeholder="dd/mm/aa" maxlength="8" oninput="etpMascaraData(this)"></div>
             <div class="input-group"><label>Preço padrão (R$)</label>
-              <input type="number" id="etp-m-padrao" step="0.01" placeholder="0,00"></div>
+              <input type="text" inputmode="decimal" id="etp-m-padrao" placeholder="0,00"></div>
             <div class="input-group"><label>Preço para o atacado (R$)</label>
-              <input type="number" id="etp-m-atacado" step="0.01" placeholder="0,00"></div>
+              <input type="text" inputmode="decimal" id="etp-m-atacado" placeholder="0,00"></div>
             <div class="input-group"><label>Preço do site (R$)</label>
-              <input type="number" id="etp-m-site" step="0.01" placeholder="0,00"></div>
+              <input type="text" inputmode="decimal" id="etp-m-site" placeholder="0,00"></div>
             <div class="input-group" style="margin-bottom:0;"><label>🔒 Peso do produto (kg)</label>
-              <input type="number" id="etp-m-peso" step="0.01" readonly></div>
+              <input type="text" inputmode="decimal" id="etp-m-peso" readonly></div>
             <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
               <button class="btn btn-ghost" style="width:auto;" onclick="etpFecharModal()">Cancelar</button>
               <button class="btn" style="width:auto;" onclick="etpSalvarModal()">Confirmar</button>
@@ -3974,13 +3977,31 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <h3>Calculadora</h3>
             <p class="sub">Mercado Livre (clássico)</p>
             <div class="input-group"><label>Valor de venda (R$)</label>
-              <input type="number" id="etp-calc" value="100" step="0.01" oninput="etpCalc()"></div>
+              <input type="text" inputmode="decimal" id="etp-calc" value="100" oninput="etpCalc()"></div>
             <div class="etp-calc-linha"><span>Preço base</span><span class="v" id="etp-calc-base">R$ 0,00</span></div>
             <div class="etp-calc-linha"><span>Após NF</span><span class="v nf" id="etp-calc-nf">R$ 0,00</span></div>
             <div class="etp-calc-formula">base = valor × 0,88 − 19,95</div>
             <div class="etp-calc-formula">nf = base − (valor × 0,1)</div>
           </div>
         </div>
+      </div>
+
+      <!-- COMPRAS / DEVOLUÇÕES / TRANSFERÊNCIAS -->
+      <div id="acp-bloco" class="ped-bloco" style="overflow:hidden;">
+        <div style="padding:14px 18px 12px;border-bottom:1px solid var(--glass-border);display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;">
+          <span id="acp-titulo" class="pg-bt-azul" style="font-size:13px;font-weight:800;color:var(--text-primary);">Compras</span>
+          <span id="acp-conta" style="font-size:11.5px;color:var(--text-muted);"></span>
+          <div style="flex:1;"></div>
+          <button id="acp-btn-migrar" class="btn-sec" style="display:none;width:auto;" onclick="acpMigrarDevolucoes()"></button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="ped-tabela acp-tabela">
+            <thead><tr id="acp-cabecalho"></tr></thead>
+            <tbody id="acp-rows"></tbody>
+          </table>
+        </div>
+        <div id="acp-vazio" style="display:none;padding:34px;text-align:center;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);line-height:1.9;"></div>
+        <div id="acp-pag" class="pag-rodape"></div>
       </div>
 
       <!-- ENVIADOS — o Live Track de sempre, agora dentro da aba -->
@@ -4047,8 +4068,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div id="env-count-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1500;align-items:center;justify-content:center;">
         <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px;width:320px;max-width:92vw;">
           <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);margin-bottom:16px;">Registrar Pedidos do Dia</div>
-          <div class="input-group" style="margin-bottom:10px;"><label>Pronto → Enviado (qtd)</label><input type="number" id="env-cnt1" min="0" placeholder="0" style="width:100%;"></div>
-          <div class="input-group" style="margin-bottom:16px;"><label>Enviado → Entregue (qtd)</label><input type="number" id="env-cnt2" min="0" placeholder="0" style="width:100%;"></div>
+          <div class="input-group" style="margin-bottom:10px;"><label>Pronto → Enviado (qtd)</label><input type="text" inputmode="numeric" id="env-cnt1" placeholder="0" style="width:100%;"></div>
+          <div class="input-group" style="margin-bottom:16px;"><label>Enviado → Entregue (qtd)</label><input type="text" inputmode="numeric" id="env-cnt2" placeholder="0" style="width:100%;"></div>
           <div style="display:flex;gap:8px;justify-content:flex-end;">
             <button class="btn btn-ghost btn-sm" onclick="closeEnvCountModal()">Cancelar</button>
             <button class="btn btn-sm" onclick="saveEnvCount()">Salvar</button>
@@ -6686,7 +6707,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Código de Rastreio <b>*</b></span>
           <input id="acp-rastreio" type="text" maxlength="60" placeholder="Ex: AA123456789BR"></label>
         <label class="ent-campo" id="acp-campo-frete"><span class="acp-rot" data-ic="cifrao">Taxa de Entrega <b>*</b></span>
-          <input id="acp-frete" type="number" min="0" step="0.01" value="0"></label>
+          <input id="acp-frete" type="text" inputmode="decimal" value="0"></label>
       </div>
       <div class="acp-linha" id="acp-linha-dev1" style="display:none;">
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Pedido Base</span>
@@ -13713,7 +13734,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01a';
+const APP_VERSAO='2026.09.01b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -20391,9 +20412,9 @@ function _acpLinhaHtml(i,p){
       <input class="acp-p-sku" readonly placeholder="Selecione um produto"
         value="${String(p.sku||'').replace(/"/g,'&quot;')}"></label>
     <label><span>Quantidade <b style="color:var(--accent);">*</b></span>
-      <input class="acp-p-qtd" type="number" min="1" step="1" value="${Number(p.qtd)||1}" oninput="acpResumoProdutos()"></label>
+      <input class="acp-p-qtd" type="text" inputmode="numeric" value="${Number(p.qtd)||1}" oninput="acpResumoProdutos()"></label>
     <label><span>Custo Unitário <b style="color:var(--accent);">*</b></span>
-      <input class="acp-p-custo" type="number" min="0" step="0.01" value="${Number(p.custo)||0}" oninput="acpResumoProdutos()"></label>
+      <input class="acp-p-custo" type="text" inputmode="decimal" value="${Number(p.custo)||0}" oninput="acpResumoProdutos()"></label>
     <button class="acp-prod-x" title="Remover" onclick="acpRemProduto(this)">&#10005;</button>
     <label class="acp-p-ean-campo" style="grid-column:1/-1;display:${novo?'flex':'none'};">
       <span>EAN <b style="color:var(--accent);">*</b> <small style="font-weight:400;color:var(--text-muted);">— produto novo: é ele que evita cadastrar duas vezes na Base</small></span>
@@ -20409,8 +20430,8 @@ function _acpLerProdutos(){
     nome: String((l.querySelector('.acp-p-nome')||{}).value||'').trim(),
     sku:  String((l.querySelector('.acp-p-sku')||{}).value||'').trim(),
     ean:  String((l.querySelector('.acp-p-ean')||{}).value||'').replace(/\D/g,''),
-    qtd:  Math.max(1,Math.round(Number((l.querySelector('.acp-p-qtd')||{}).value)||0)),
-    custo:Number((l.querySelector('.acp-p-custo')||{}).value)||0
+    qtd:  Math.max(1,Math.round(_etpNum((l.querySelector('.acp-p-qtd')||{}).value))),
+    custo:_etpNum((l.querySelector('.acp-p-custo')||{}).value)
   })).filter(x=>x.nome||x.sku);
 }
 
@@ -20737,7 +20758,7 @@ function acpSalvar(){
     data, loja:v('acp-loja'), cliente:v('acp-cliente'),
     transportadora:v('acp-transportadora'),
     armazem:perfil.armazem?v('acp-armazem'):'',
-    taxaEntrega:perfil.frete?(Number(v('acp-frete'))||0):0,
+    taxaEntrega:perfil.frete?_etpNum(v('acp-frete')):0,
     rastreio, obs:v('acp-obs'), produtos,
     fotos:perfil.fotos?_acpFotos.slice():[],
     numeroPedido:perfil.dev?v('acp-nped'):'',
@@ -21038,7 +21059,11 @@ function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(
    Não é filtro de status: é onde cada compra está no processo. Ver as três
    juntas é o que fazia alguém abrir uma compra que ainda nem chegou para
    descobrir que não havia nada a conferir. */
-let _acpEtapaFila=1;
+/* 0 = todas as compras. Antes a tela nascia presa à etapa 1, e quem
+   acabava de criar uma compra via só ela: as outras duas, já conferidas
+   ou lançadas, sumiam da lista sem aviso — pareciam perdidas. A fila
+   continua existindo, agora como filtro que se escolhe. */
+let _acpEtapaFila=0;
 
 function _acpEtapaDe(a){
   const e=(a&&a.etapas)||{};
@@ -21048,7 +21073,9 @@ function _acpEtapaDe(a){
 }
 
 function acpFila(n){
-  _acpEtapaFila=n;
+  /* Clicar na etapa já escolhida solta o filtro — é o caminho de volta
+     para "todas" sem precisar procurar outro botão. */
+  _acpEtapaFila = (_acpEtapaFila===n) ? 0 : n;
   pagVoltarAoInicio('acomp');
   renderAcompanhamento();
 }
@@ -21063,12 +21090,16 @@ function _acpRenderBarraEtapas(lista){
   const nomes=['Orçamento','Chegada / Conferência','Lançamento em Estoque'];
   const cont=[0,0,0];
   (lista||[]).forEach(a=>{ cont[_acpEtapaDe(a)-1]++; });
-  barra.innerHTML=nomes.map((nome,i)=>{
-    const n=i+1;
-    return `<button type="button" class="etp-passo${n===_acpEtapaFila?' ativo':''}" onclick="acpFila(${n})">`
-      +`${n}. ${nome}`
-      +`<span class="etp-passo-n">${cont[i]}</span></button>`;
-  }).join('');
+  const total=cont[0]+cont[1]+cont[2];
+  barra.innerHTML=
+    `<button type="button" class="etp-passo${_acpEtapaFila?'':' ativo'}" onclick="acpFila(0)">`
+    +`Todas<span class="etp-passo-n">${total}</span></button>`
+    + nomes.map((nome,i)=>{
+      const n=i+1;
+      return `<button type="button" class="etp-passo${n===_acpEtapaFila?' ativo':''}" onclick="acpFila(${n})">`
+        +`${n}. ${nome}`
+        +`<span class="etp-passo-n">${cont[i]}</span></button>`;
+    }).join('');
 }
 
 /* ══════════ COMPRA EM TRÊS ETAPAS ══════════
@@ -21167,10 +21198,11 @@ function acpAbrirEtapas(id){
   }
   if(!e.conf.rastreios.length) e.conf.rastreios.push({codigo:a.rastreio||'', valor:''});
 
-  document.getElementById('acp-bloco').style.display='none';
+  /* A lista FICA. Antes ela sumia e a compra aberta ocupava a tela
+     inteira — quem tinha três compras andando perdia as outras duas de
+     vista, e voltar era um clique a mais. Agora a compra abre em cima e a
+     lista continua embaixo, no espaço que sobrava. */
   const env=document.getElementById('acp-envios'); if(env) env.style.display='none';
-  const filtros=document.getElementById('acp-filtros'); if(filtros) filtros.style.display='none';
-  const seg=document.getElementById('acp-seg'); if(seg) seg.style.display='none';
   document.getElementById('acp-etapas').style.display='block';
   document.getElementById('etp-titulo').textContent='Compra · '+(a.loja||'sem loja');
   document.getElementById('etp-sub').textContent=
@@ -21227,9 +21259,6 @@ function acpFecharEtapas(){
   }
   _etpId='';
   document.getElementById('acp-etapas').style.display='none';
-  const filtros=document.getElementById('acp-filtros'); if(filtros) filtros.style.display='flex';
-  const seg=document.getElementById('acp-seg'); if(seg) seg.style.display='';
-  document.getElementById('acp-bloco').style.display='';
   renderAcompanhamento();
 }
 
@@ -21340,7 +21369,7 @@ function etpRenderEtapa1(){
   const box=document.getElementById('etp-linhas-1');
   box.innerHTML=e.orc.itens.map((it,i)=>
     `<div class="etp-linha etp-c1">
-      <div><input type="number" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
+      <div><input type="text" inputmode="numeric" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
         oninput="etpCampoItem(${i},'compra',this.value)"></div>
       <div class="etp-prod"><input type="text" value="${_etpEsc(it.produto)}" placeholder="Nome do produto" ${trav?'disabled':''}
         oninput="etpCampoItem(${i},'produto',this.value);etpSugerir(this,${i})"
@@ -21480,7 +21509,7 @@ function etpRenderEtapa2(){
       <span class="n">Rastreio ${i+1}</span>
       <input type="text" value="${_etpEsc(r.codigo)}" placeholder="código" ${trav?'disabled':''}
         oninput="etpCampoRastreio(${i},'codigo',this.value)">
-      <input type="number" step="0.01" value="${_etpEsc(r.valor)}" placeholder="0,00" ${trav?'disabled':''}
+      <input type="text" inputmode="decimal" value="${_etpEsc(r.valor)}" placeholder="0,00" ${trav?'disabled':''}
         oninput="etpCampoRastreio(${i},'valor',this.value)">
       ${(i>0&&!trav)?`<button class="etp-x" title="Remover" onclick="etpRemoverRastreio(${i})">×</button>`:'<span></span>'}
     </div>`).join('');
@@ -21506,11 +21535,11 @@ function etpRenderEtapa2(){
       <div class="etp-lido" title="${_etpEsc(l.produto)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_etpEsc(l.produto)||'—'}</div>
       <div class="etp-lido">${_etpEsc(l.sku)||'—'}</div>
       <div class="etp-lido">${l.preco?_etpBR(l.preco):'—'}</div>
-      <div><input type="number" step="0.01" value="${_etpEsc((e.conf.linhas[l.i]||{}).peso)}" placeholder="0,00"
+      <div><input type="text" inputmode="decimal" value="${_etpEsc((e.conf.linhas[l.i]||{}).peso)}" placeholder="0,00"
         ${trav?'disabled':''} oninput="etpCampoLinha(${l.i},'peso',this.value)"></div>
       <div class="etp-lido" data-etp="pesotot-${l.i}">${_etpBR(l.pesoTotal)}</div>
       <div class="etp-lido" data-etp="custo-${l.i}">${_etpBR(l.custo)}</div>
-      ${e.conf.rastreios.map((r,k)=>`<div><input type="number" value="${_etpEsc(l.caixas[k])}" placeholder="0"
+      ${e.conf.rastreios.map((r,k)=>`<div><input type="text" inputmode="numeric" value="${_etpEsc(l.caixas[k])}" placeholder="0"
         ${trav?'disabled':''} oninput="etpCampoLinha(${l.i},'caixa',this.value,${k})"></div>`).join('')}
     </div>`;
   }).join('') || '<div class="etp-lido" style="padding:16px;text-align:center;">Confirme o orçamento para a conferência aparecer aqui.</div>';
@@ -21520,7 +21549,7 @@ function etpRenderEtapa2(){
     +(fixo?`<span class="nome">${esc(nome)}</span>`
           :`<input type="text" class="nome-livre" value="${_etpEsc(nome)}" placeholder="Nome do custo"
               ${trav?'disabled':''} oninput="etpCampoExtra(${i},'nome',this.value)">`)
-    +`<input type="number" step="0.01" class="valor" value="${_etpEsc(valor)}" placeholder="0,00"
+    +`<input type="text" inputmode="decimal" class="valor" value="${_etpEsc(valor)}" placeholder="0,00"
         ${(trav||fixo==='calc')?'disabled':''} ${fixo==='calc'?'readonly':''}
         oninput="${fixo==='calc'?'':(fixo?`etpCampoCusto('${nome}',this.value)`:`etpCampoExtra(${i},'valor',this.value)`)}">`
     +(fixo?'':`<button class="etp-x" title="Remover" onclick="etpRemoverCustoExtra(${i})" ${trav?'disabled':''}>×</button>`)
@@ -22035,7 +22064,7 @@ function renderAcompanhamento(){
   const lista=todos.filter(a=>{
     if(!verArq && a.arquivado) return false;
     /* Em Compras a listagem é a da fila escolhida na barra de etapas. */
-    if(_acpTipo==='compra' && _acpEtapaDe(a)!==_acpEtapaFila) return false;
+    if(_acpTipo==='compra' && _acpEtapaFila && _acpEtapaDe(a)!==_acpEtapaFila) return false;
     if(fst && a.status!==fst) return false;
     if(q){
       /* Em devolução o lado "produto" cai na observação, que é onde o que
