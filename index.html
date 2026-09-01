@@ -13773,7 +13773,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01j';
+const APP_VERSAO='2026.09.01k';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21177,6 +21177,10 @@ function acpVerArquivar(){
 }
 function _acpVerRender(){
   const a=_acpVerReg(); if(!a) return;
+  /* A ficha mostra o custo real, com o frete rateado — o mesmo número da
+     Etapa 2. Recalcular aqui garante isso mesmo numa compra gravada antes
+     de 01/09, que ainda tem o valor antigo no disco. */
+  try{ if(_etpSincronizarProdutos(a)) saveState(appState); }catch(err){}
   const T=ACP_TIPOS[a.tipo]||ACP_TIPOS.compra;
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   document.getElementById('acp-ver-titulo').textContent='Detalhes da '+T.um.charAt(0).toUpperCase()+T.um.slice(1);
@@ -21560,10 +21564,43 @@ function _etpEspelhar(a,e){
   if(e.orc.data) a.data=e.orc.data;
   const brs=(e.conf.rastreios||[]).map(r=>String((r&&r.codigo)||'').trim()).filter(Boolean);
   a.rastreio = brs[0] || String(e.orc.rastreioEua||'').trim() || a.rastreio || '';
-  a.produtos=(e.orc.itens||[]).filter(it=>it&&String(it.produto||'').trim())
-    .map(it=>({nome:it.produto, sku:it.sku||'', ean:it.ean||'',
-               qtd:_etpNum(it.compra)||0, custo:_etpNum(it.preco)*(_etpNum(e.orc.cotacao)||1)}));
+  _etpSincronizarProdutos(a);
   a.atualizadoEm=new Date().toLocaleDateString('pt-BR');
+}
+
+/* ── A LISTA DE PRODUTOS DA COMPRA ───────────────────────────────────
+   O custo que sai daqui é o MESMO da Etapa 2: preço × cotação mais o frete
+   rateado por quilo. Antes era só preço × cotação, e a ficha mostrava 27,00
+   onde a conferência calculava 27,50 — o rateio do frete sumia no caminho, e
+   o total da compra saía menor do que ela custou de verdade.
+
+   A quantidade segue o mesmo raciocínio: depois da conferência fechada o que
+   vale é o que CHEGOU, não o que foi pedido. Antes disso não há conferência
+   em que acreditar, e o pedido é a melhor informação que existe.
+
+   Separada do espelho porque roda também na leitura, para as compras que já
+   estavam gravadas com o número velho se corrigirem sozinhas. Por isso ela
+   NÃO mexe em atualizadoEm: abrir uma ficha não é atualizar a compra.
+   Devolve true quando mudou alguma coisa, para quem chamou decidir se salva. */
+function _etpSincronizarProdutos(a){
+  if(!a || a.tipo!=='compra' || !a.etapas) return false;
+  const e=_etpDados(a); if(!e) return false;
+  const c=_etpContasDe(a);
+  const conferida=!!e.conf.travado;
+  const novos=(e.orc.itens||[]).map((it,i)=>{
+    if(!it || !String(it.produto||'').trim()) return null;
+    const l=(c&&c.linhas[i])||null;
+    return {nome:it.produto, sku:it.sku||'', ean:it.ean||'',
+            qtd: (conferida && l) ? l.chegou : (_etpNum(it.compra)||0),
+            custo: l ? l.custo : _etpNum(it.preco)*(_etpNum(e.orc.cotacao)||1)};
+  }).filter(Boolean);
+  /* Orçamento ainda em branco não apaga a lista que a compra já tinha: seria
+     trocar informação por nada. */
+  if(!novos.length && (a.produtos||[]).length) return false;
+  const antes=JSON.stringify(a.produtos||[]);
+  if(antes===JSON.stringify(novos)) return false;
+  a.produtos=novos;
+  return true;
 }
 
 /* O cabeçalho acompanha o que está sendo digitado: a compra recém-aberta
@@ -21800,8 +21837,14 @@ function etpCampoExtra(i,campo,valor){
    Correios sai da soma dos rastreios e Extravio do que faltou chegar: os dois
    são consequência do que já foi digitado, e deixá-los editáveis abriria a
    porta para o total não bater com as linhas. */
-function _etpContas(){
-  const a=_etpCompra(); if(!a) return null;
+/* A conta de uma compra qualquer, e não só da que está aberta no assistente.
+   O espelho para a lista e para a ficha precisa da mesma matemática da Etapa
+   2 — quando ela morava presa em _etpId, a ficha só sabia repetir o
+   orçamento e o frete rateado nunca chegava lá. */
+function _etpContas(){ return _etpContasDe(_etpCompra()); }
+
+function _etpContasDe(a){
+  if(!a) return null;
   const e=_etpDados(a);
   const cot=_etpNum(e.orc.cotacao);
 
@@ -22127,6 +22170,9 @@ function etpConfirmar(n){
      fica onde está, que é onde ela quer mexer. */
   if(n===1 && e.orc.travado) _etpAba=2;
   _etpLimparFalta(n);
+  /* Fechar a conferência muda a quantidade e o custo que valem — a lista e a
+     ficha precisam do número novo, não do que estava lá antes. */
+  _etpEspelhar(a,e);
   saveState(appState);
   etpRender();
   try{ renderAcompanhamento(); }catch(err){}
@@ -22392,6 +22438,14 @@ function renderAcompanhamento(){
   /* Antes de desenhar: o robô pode ter lançado na Base desde a última vez,
      e a compra que terminou não deve reaparecer na lista de trabalho. */
   try{ _acpReconciliarLancamentos(); }catch(err){}
+  /* E as compras gravadas antes de 01/09 guardam o custo sem o frete
+     rateado. Recalcular na leitura conserta cada uma na primeira vez que
+     aparece, sem precisar reabrir compra por compra. */
+  try{
+    let mexeu=false;
+    (appState.acompanhamentos||[]).forEach(a=>{ if(_etpSincronizarProdutos(a)) mexeu=true; });
+    if(mexeu) saveState(appState);
+  }catch(err){}
   const seg=document.querySelectorAll('#acp-seg .etp-passo');
   seg.forEach(b=>b.classList.toggle('ativo', b.dataset.t===_acpTipo));
   const btnAdd=document.getElementById('acp-btn-add');
