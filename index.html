@@ -1926,6 +1926,13 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .acao-q svg{width:15px;height:15px;stroke-width:1.9;}
 .acao-q.perigo{background:#dc2626;border-color:#dc2626;color:#fff;}
 .acao-q.perigo:hover{background:#b91c1c;border-color:#b91c1c;}
+.acao-q.azul{background:var(--lo-azul);border-color:var(--lo-azul);color:#fff;}
+.acao-q.azul:hover{filter:brightness(1.08);}
+/* Plataforma: pastilha discreta com o nome da loja como a Base a chama.
+   Sem cor por canal — são onze e crescendo, e onze cores viram confete. */
+.ped-plat{display:inline-block;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  vertical-align:middle;font-size:10.5px;font-weight:600;padding:2px 9px;border-radius:10px;
+  background:var(--veu-suave);border:1px solid var(--linha-sutil);color:var(--text-secondary);}
 
 /* Avatar dos usuários: círculo vazado, iniciais na cor do tema. */
 .u-av{border-radius:50%;background:transparent;border:1.5px solid var(--border-light);
@@ -3751,13 +3758,13 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <table class="ped-tabela">
               <thead>
                 <tr>
+                  <th class="ord" data-o="data"    onclick="baseOrdenar('data')">Data <span class="seta">&#8597;</span></th>
                   <th class="ord" data-o="numero"  onclick="baseOrdenar('numero')">Pedido <span class="seta">&#8597;</span></th>
                   <th class="ord" data-o="cliente" onclick="baseOrdenar('cliente')">Cliente <span class="seta">&#8597;</span></th>
                   <th class="ord" data-o="valor"   onclick="baseOrdenar('valor')">Valor <span class="seta">&#8597;</span></th>
                   <th>Status</th>
-                  <th class="ord" data-o="data"    onclick="baseOrdenar('data')">Data <span class="seta">&#8597;</span></th>
+                  <th class="ord" data-o="canal"   onclick="baseOrdenar('canal')" title="Onde a venda aconteceu">Plataformas <span class="seta">&#8597;</span></th>
                   <th title="Este pedido é a segunda compra do cliente ou uma depois dela">2&ordf; Compra</th>
-                  <th title="O cliente voltou a comprar depois deste pedido">Recompra</th>
                   <th style="text-align:right;">A&ccedil;&otilde;es</th>
                 </tr>
               </thead>
@@ -13806,7 +13813,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01l';
+const APP_VERSAO='2026.09.01m';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23460,7 +23467,7 @@ function baseOrdenar(campo){
      pessoa quer ver primeiro: nome de A a Z, números do maior, data da mais
      recente. */
   if(_baseOrdem.campo===campo) _baseOrdem.desc=!_baseOrdem.desc;
-  else _baseOrdem={campo, desc: campo!=='cliente'};
+  else _baseOrdem={campo, desc: (campo!=='cliente' && campo!=='canal')};
   renderPedidosBase();
 }
 
@@ -23525,6 +23532,16 @@ function _baseOrdemDeCompra(){
   return mapa;
 }
 
+/* Onde a venda aconteceu. O nome vem do fluxo, que por sua vez o pega do
+   getOrderSources da Base — "Mercado Livre VXShop", não "melibr". Pedido
+   gravado antes de 01/09 pode não ter o campo; aí a coluna diz isso em vez
+   de mostrar um traço que se confunde com "vendeu sem canal". */
+function _basePlataformaHtml(p){
+  const c=String((p&&p.canal)||'').trim();
+  if(!c) return '<span class="ped-plat" title="Pedido lido antes do canal existir no LiveOps">não informado</span>';
+  return `<span class="ped-plat" title="${esc(c)}">${esc(c)}</span>`;
+}
+
 function renderPedidosBase(){
   const tbody=document.getElementById('base-rows'); if(!tbody) return;
   const btnImp=document.getElementById('base-btn-import');
@@ -23563,6 +23580,7 @@ function renderPedidosBase(){
       case 'numero':  return dir*((Number(a.numero)||0)-(Number(b.numero)||0));
       case 'cliente': return dir*String(a.cliente||'').localeCompare(String(b.cliente||''),'pt-BR');
       case 'valor':   return dir*((Number(a.valor)||0)-(Number(b.valor)||0));
+      case 'canal':   return dir*String(a.canal||'').localeCompare(String(b.canal||''),'pt-BR');
       default:        return dir*(String(a.data||'').localeCompare(String(b.data||''))
                                  || String(a.hora||'').localeCompare(String(b.hora||'')));
     }
@@ -23629,10 +23647,11 @@ function renderPedidosBase(){
       ? `<span class="ped-sim" title="${esc(titulo)}">${_ICO_SIM}</span>`
       : `<span class="ped-nao" title="Não">${_ICO_NAO}</span>`;
     tr.innerHTML=`
+      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(p.data)}${p.hora?`<div style="font-size:9.5px;color:var(--text-muted);">${p.hora}</div>`:''}</td>
       <td style="font-weight:700;font-family:var(--font-mono);">
         ${p.link?`<a href="${p.link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">#${p.numero||'—'} ↗</a>`
                 :`<span style="color:var(--text-primary);">#${p.numero||'—'}</span>`}
-        ${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">canal: ${p.externo}</div>`:''}
+        ${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">nº na loja: ${esc(p.externo)}</div>`:''}
         ${p.doArquivo?`<div style="font-size:9px;font-weight:400;color:var(--text-muted);" title="Veio do Arquivo da Base — não é mais relido pela integração">arquivo</div>`:''}
       </td>
       <td style="color:var(--text-primary);white-space:normal;max-width:280px;">${p.cliente||'—'}
@@ -23640,10 +23659,12 @@ function renderPedidosBase(){
       </td>
       <td style="font-weight:700;color:var(--green);font-family:var(--font-mono);">${_pedFmt(p.valor)}</td>
       <td><span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;background:${cor.bg};border:1px solid ${cor.bd};color:${cor.txt};">${p.status||'—'}</span></td>
-      <td style="font-family:var(--font-mono);color:var(--text-secondary);">${_pedDataBR(p.data)}${p.hora?`<div style="font-size:9.5px;color:var(--text-muted);">${p.hora}</div>`:''}</td>
+      <td>${_basePlataformaHtml(p)}</td>
       <td>${marca(o.segunda,'Segunda compra ou depois')}</td>
-      <td>${marca(o.recompra, o.recompraEm?('Comprou de novo em '+_pedDataBR(o.recompraEm)):'Comprou de novo')}</td>
-      <td style="text-align:right;">${o.chave?`<button class="ped-acao" onclick="abrirLogCliente('${String(o.chave).replace(/'/g,"\\'")}')">Ver cliente</button>`:''}</td>`;
+      <td style="text-align:right;">${o.chave
+        ? `<button class="acao-q azul" title="Ver a ficha do cliente" onclick="abrirLogCliente('${String(o.chave).replace(/'/g,"\\'")}')">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2.2 12S5.8 5.6 12 5.6 21.8 12 21.8 12 18.2 18.4 12 18.4 2.2 12 2.2 12z"/><circle cx="12" cy="12" r="2.8"/></svg></button>`
+        : ''}</td>`;
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
