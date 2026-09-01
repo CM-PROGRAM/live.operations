@@ -13858,7 +13858,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01n';
+const APP_VERSAO='2026.09.01o';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -19935,7 +19935,12 @@ function _arqPreparar(nomeArq, lido){
       frete:_arqNum(l.preco_frete),
       itens:Math.round(_arqNum(l.itens_total))||0,
       status:String(l.status||'').trim(),
-      canal:String(l.origem||'WhatsApp').trim()||'WhatsApp',
+      /* O canal é o que a coluna origem disser. O padrão era "WhatsApp",
+         de quando este importador só trazia WhatsApp — agora que ele traz o
+         Arquivo inteiro, linha sem origem viraria uma venda de WhatsApp que
+         nunca existiu. Vazio fica vazio, e a coluna Plataformas mostra
+         "não informado", que é a verdade. */
+      canal:String(l.origem||'').trim(),
       data:dh.data, hora:dh.hora,
       link:'https://panel-u.baselinker.com/orders.php#order:'+numero,
       /* De onde veio. O pedido do Arquivo não volta a ser lido pelo n8n
