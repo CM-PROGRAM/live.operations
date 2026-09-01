@@ -1421,6 +1421,13 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-passo.feito{border-color:rgba(34,197,94,.45);color:#16a34a;}
 .etp-passo.feito.ativo{background:#16a34a;border-color:#16a34a;color:#fff;box-shadow:0 5px 14px rgba(22,163,74,.3);}
 
+/* Produtos da Etapa 1, no desenho da tela de Nova Compra */
+.etp-prod-topo{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 10px;}
+.etp-prod-tit{font-size:15px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;}
+.etp-prod-card{grid-template-columns:2.4fr 1.1fr .8fr 1fr auto;}
+.etp-prod-vazio{border:1px dashed var(--glass-border);border-radius:11px;padding:20px;text-align:center;
+  font-size:12.5px;color:var(--text-muted);line-height:1.6;}
+
 /* A fileira de tipos herda a pílula das etapas; só o espaçamento é dela */
 .acp-tipos{display:flex;gap:9px;flex-wrap:wrap;}
 /* Contador dentro do segmentado: discreto, do tamanho do texto */
@@ -3870,12 +3877,12 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                  campo esvaziar, porque o navegador recusa a vírgula. -->
             <input type="text" id="etp-cotacao" inputmode="decimal" value="5,40" oninput="etpRecalcular()">
           </div>
-          <div class="etp-tabela" style="margin-top:12px;">
-            <div class="etp-cab etp-c1"><div>Compra</div><div>Produto</div><div>SKU</div><div>Preço $</div><div></div></div>
-            <div id="etp-linhas-1"></div>
+          <div class="etp-prod-topo">
+            <span class="etp-prod-tit">Produtos</span>
+            <button class="btn-sec" id="etp-add-1" style="width:auto;" onclick="etpAddProduto()">+ Adicionar produto</button>
           </div>
+          <div id="etp-linhas-1"></div>
           <div class="etp-nota">O SKU vem do catálogo da Base pelo nome do produto — digite o nome e ele se preenche sozinho.</div>
-          <button class="btn-sec" id="etp-add-1" style="width:auto;margin-top:10px;" onclick="etpAddProduto()">+ Adicionar produto</button>
           <div class="etp-confirmar">
             <button class="btn" id="etp-btn-1" style="width:auto;" onclick="etpConfirmar(1)">Confirmar orçamento →</button>
           </div>
@@ -13748,7 +13755,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01d';
+const APP_VERSAO='2026.09.01e';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21381,20 +21388,30 @@ function etpRenderEtapa1(){
   });
   const add=document.getElementById('etp-add-1'); if(add) add.style.display=trav?'none':'';
 
+  /* Cada produto num cartão com rótulo em cada campo — o mesmo desenho da
+     tela de Nova Compra. A tabela de antes só tinha um cabeçalho fininho
+     lá em cima: quem chegava na terceira linha já não sabia qual coluna
+     era o preço, e "COMPRA" para quantidade não ajudava ninguém. */
   const box=document.getElementById('etp-linhas-1');
   box.innerHTML=e.orc.itens.map((it,i)=>
-    `<div class="etp-linha etp-c1">
-      <div><input type="text" inputmode="numeric" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
-        oninput="etpCampoItem(${i},'compra',this.value)"></div>
-      <div class="etp-prod"><input type="text" value="${_etpEsc(it.produto)}" placeholder="Nome do produto" ${trav?'disabled':''}
-        oninput="etpCampoItem(${i},'produto',this.value);etpSugerir(this,${i})"
-        onfocus="etpSugerir(this,${i})" onblur="etpFecharSug(this)"><div class="etp-sug"></div></div>
-      <div><input type="text" id="etp-sku-${i}" value="${_etpEsc(it.sku)}" placeholder="do catálogo" readonly></div>
-      <div><input type="text" inputmode="decimal" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
-        oninput="etpCampoItem(${i},'preco',this.value)"></div>
-      <div style="text-align:center;">${trav?'':`<button class="etp-x" title="Remover" onclick="etpRemoverProduto(${i})">×</button>`}</div>
+    `<div class="acp-prod etp-prod-card">
+      <label class="acp-sug-wrap etp-prod"><span>Nome do Produto <b style="color:var(--lo-azul);">*</b></span>
+        <input type="text" value="${_etpEsc(it.produto)}" placeholder="Digite o nome — o SKU vem do catálogo" ${trav?'disabled':''}
+          autocomplete="off"
+          oninput="etpCampoItem(${i},'produto',this.value);etpSugerir(this,${i})"
+          onfocus="etpSugerir(this,${i})" onblur="etpFecharSug(this)">
+        <div class="etp-sug"></div></label>
+      <label><span>SKU</span>
+        <input type="text" id="etp-sku-${i}" value="${_etpEsc(it.sku)}" placeholder="do catálogo" readonly></label>
+      <label><span>Quantidade <b style="color:var(--lo-azul);">*</b></span>
+        <input type="text" inputmode="numeric" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
+          oninput="etpCampoItem(${i},'compra',this.value)"></label>
+      <label><span>Preço unitário $ <b style="color:var(--lo-azul);">*</b></span>
+        <input type="text" inputmode="decimal" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
+          oninput="etpCampoItem(${i},'preco',this.value)"></label>
+      ${trav?'<span></span>':`<button class="acp-prod-x" title="Remover produto" onclick="etpRemoverProduto(${i})">&#10005;</button>`}
     </div>`).join('')
-    || '<div class="etp-lido" style="padding:16px;text-align:center;">Nenhum produto no orçamento. Use "+ Adicionar produto".</div>';
+    || '<div class="etp-prod-vazio">Nenhum produto no orçamento ainda. Use <b>+ Adicionar produto</b> para incluir o primeiro.</div>';
 
   const selo=document.getElementById('etp-selo-1');
   selo.textContent=trav?'🔒 Travado':'🔓 Editável';
