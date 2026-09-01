@@ -297,6 +297,14 @@ Isso encerra a investigação:
 | `getOrders` com `date_from` de 01/01/2026 | devolve o mesmo pedido de 24/05 |
 | `getOrders` com `id_from: 1` | devolve o mesmo pedido de 24/05 |
 | `getOrders` com `filter_order_status_id` do status "Whatsapp" | **ignorado** — voltaram pedidos com outro `order_status_id`, e o mesmo primeiro pedido da chamada sem filtro |
+| `getOrders` com `order_id` de um pedido ARQUIVADO (01/09/2026) | `status: SUCCESS`, `orders: []` — **a quarta e última porta** |
+
+A quarta foi testada em 01/09/2026, com a sonda `n8n-sonda-arquivo.json`, e
+é a que encerra o assunto: **busca direta pelo número também não alcança**. A
+Base responde SUCCESS e devolve lista vazia para um pedido que está no
+Arquivo e aparece na tela dela. Não é varredura, não é filtro, não é
+intervalo — é o pedido exato, pelo id, e não vem. O Arquivo é outro banco, e
+a API de pedidos não o enxerga de nenhuma forma.
 
 A terceira merece nota, porque é a armadilha desta API: **parâmetro que a
 BaseLinker não reconhece não dá erro** — ela devolve dados como se o filtro
