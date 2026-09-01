@@ -12603,6 +12603,31 @@ function _aplicarPacoteDaNuvem(data){
       if(!Array.isArray(vindo)) acc.set(patched, Array.isArray(atual)?atual:[]);
     });
 
+    /* PERMISSÕES NÃO RESETAM SOZINHAS ────────────────────────────────
+       A lista de usuários é a última coisa que ainda viaja no pacote, e por
+       isso sofre do mesmo mal que levou os cards da Base Conhecimento duas
+       vezes: qualquer sessão com cópia velha republica o pacote inteiro e
+       devolve as permissões antigas por cima das novas. Ninguém tocou no
+       Administrador e mesmo assim elas "resetam".
+
+       togglePerm já carimba permsAtualizadoEm a cada mudança — o carimbo
+       existia e nunca era consultado. Agora é: mexeu aqui depois de o pacote
+       ter sido salvo lá, o daqui vence. Vale também para usuário criado
+       agora, que um pacote velho não conhece e apagaria. */
+    try{
+      const versaoRemota=Number(data._version)||0;
+      const daqui=appState.users||{}, vindo=patched.users||{};
+      Object.keys(daqui).forEach(k=>{
+        const meu=daqui[k]; if(!meu) return;
+        const quando=Number(meu.permsAtualizadoEm)||0;
+        if(!quando || quando<=versaoRemota) return;   // o pacote é mais novo: ele manda
+        if(!vindo[k]){ vindo[k]=meu; return; }        // criado aqui depois: não some
+        vindo[k]={...vindo[k], perms:Array.isArray(meu.perms)?meu.perms.slice():vindo[k].perms,
+                  permsAtualizadoEm:meu.permsAtualizadoEm};
+      });
+      patched.users=vindo;
+    }catch(e){ console.warn('[SYNC] permissões:',e); }
+
     // Antes de trocar o estado: as listas de opções se somam, não se
     // substituem — ver _fundirListasDeOpcoes
     try{ _fundirListasDeOpcoes(patched, appState); }catch(e){ console.warn('[SYNC] listas de opções:',e); }
@@ -13858,7 +13883,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01p';
+const APP_VERSAO='2026.09.01q';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21388,7 +21413,9 @@ function _acpVerRender(){
   /* A ficha mostra o custo real, com o frete rateado — o mesmo número da
      Etapa 2. Recalcular aqui garante isso mesmo numa compra gravada antes
      de 01/09, que ainda tem o valor antigo no disco. */
-  try{ if(_etpSincronizarProdutos(a)) saveState(appState); }catch(err){}
+  /* saveLocal pelo mesmo motivo do render da lista: abrir uma ficha não é
+     gravar, e saveState publicaria o pacote inteiro — permissões incluídas. */
+  try{ if(_etpSincronizarProdutos(a)) saveLocal(appState); }catch(err){}
   const T=ACP_TIPOS[a.tipo]||ACP_TIPOS.compra;
   const esc=v=>String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   document.getElementById('acp-ver-titulo').textContent='Detalhes da '+T.um.charAt(0).toUpperCase()+T.um.slice(1);
@@ -22649,10 +22676,19 @@ function renderAcompanhamento(){
   /* E as compras gravadas antes de 01/09 guardam o custo sem o frete
      rateado. Recalcular na leitura conserta cada uma na primeira vez que
      aparece, sem precisar reabrir compra por compra. */
+  /* saveLocal, NUNCA saveState: publicar o pacote é um ato de quem clicou em
+     alguma coisa. Aqui é só desenho de tela, e saveState sobe o pacote
+     INTEIRO — com a lista de usuários e as permissões dentro. Qualquer
+     sessão com cópia velha que abrisse esta aba republicava as permissões
+     antigas por cima das novas, e elas "resetavam sozinhas" sem ninguém
+     tocar no Administrador. Foi o que aconteceu em 01/09.
+
+     O custo recalculado fica no navegador e sobe junto na próxima gravação
+     de verdade — que é quando alguém realmente muda alguma coisa. */
   try{
     let mexeu=false;
     (appState.acompanhamentos||[]).forEach(a=>{ if(_etpSincronizarProdutos(a)) mexeu=true; });
-    if(mexeu) saveState(appState);
+    if(mexeu) saveLocal(appState);
   }catch(err){}
   const seg=document.querySelectorAll('#acp-seg .etp-passo');
   seg.forEach(b=>b.classList.toggle('ativo', b.dataset.t===_acpTipo));
