@@ -1,0 +1,119 @@
+{
+  "name": "Sonda · a API alcança o Arquivo?",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "Rodar a sonda",
+      "name": "Rodar a sonda",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -420,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* O número de um pedido que ESTÁ no Arquivo. Troque pelo que\n   aparecer na sua tela — o do print era 37136684. */\nreturn [{ json: { numero: '37136684' } }];"
+      },
+      "id": "Escolher o pedido",
+      "name": "Escolher o pedido",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -200,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrders"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ order_id: Number($json.numero), get_unconfirmed_orders: true, include_custom_extra_fields: true }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Base · pedido pelo número",
+      "name": "Base · pedido pelo número",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        20,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* SONDA — a API alcança o Arquivo pedindo pelo NÚMERO?\n\n   A investigação de 22/08 concluiu que o Arquivo é inalcançável, e testou\n   três caminhos: date_from de janeiro, id_from 1 e filtro por status. Os\n   três devolvem o mesmo pedido de 24/05, o mais antigo ATIVO.\n\n   Falta um: pedir um pedido arquivado pelo número exato. É diferente dos\n   outros porque não é varredura — é busca direta, e algumas APIs atendem\n   por id o que não listam por intervalo.\n\n   Se voltar o pedido, o Arquivo inteiro é alcançável e dá para montar um\n   fluxo. Se voltar vazio, aí sim o CSV é o único caminho e a conclusão de\n   agosto está completa. */\nconst alvo = String($('Escolher o pedido').first().json.numero || '');\nconst r = $json || {};\n\nif (r.status !== 'SUCCESS') {\n  return [{ json: { veredito: 'A BASE RECUSOU', detalhe: r.error_message || r.error_code || JSON.stringify(r).slice(0,300) } }];\n}\n\nconst pedidos = r.orders || [];\nconst achado = pedidos.find(p => String(p.order_id) === alvo);\n\nif (achado) {\n  const d = achado.date_confirmed || achado.date_add;\n  return [{ json: {\n    veredito: 'ALCANÇA — a API devolve pedido arquivado pelo número',\n    order_id: achado.order_id,\n    data: d ? new Date(Number(d) * 1000).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : '(sem data)',\n    cliente: achado.delivery_fullname || achado.invoice_fullname || '',\n    origem: (achado.order_source || '') + '/' + (achado.order_source_id === undefined ? '' : achado.order_source_id),\n    proximoPasso: 'Me manda esta saída: dá para montar o fluxo do Arquivo.'\n  } }];\n}\n\nreturn [{ json: {\n  veredito: 'NÃO ALCANÇA — a API não devolve pedido arquivado nem pelo número',\n  pedidosQueVieram: pedidos.length,\n  primeiro: pedidos.length ? String(pedidos[0].order_id) : '(nenhum)',\n  proximoPasso: 'Confirma a conclusão de agosto: o Arquivo só sai pelo CSV da tela.'\n} }];"
+      },
+      "id": "Veredito",
+      "name": "Veredito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Rodar a sonda": {
+      "main": [
+        [
+          {
+            "node": "Escolher o pedido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escolher o pedido": {
+      "main": [
+        [
+          {
+            "node": "Base · pedido pelo número",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · pedido pelo número": {
+      "main": [
+        [
+          {
+            "node": "Veredito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}
