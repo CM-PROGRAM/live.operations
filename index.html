@@ -3940,72 +3940,6 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
 
 
-        <!-- ETAPA 3 — LANÇAMENTO EM ESTOQUE -->
-        <div class="etp-pagina" id="etp-p3">
-          <h3 class="etp-h">Etapa 3 — Lançamento em estoque
-            <span class="etp-selo" id="etp-selo-3">🔒 Aguardando conferência</span>
-          </h3>
-          <div class="etp-dados" style="margin-bottom:12px;">
-            <div class="input-group"><label>Armazém de destino</label>
-              <select id="etp-armazem" onchange="etpMarcar()"></select>
-              <small id="etp-armazem-aviso" style="color:var(--text-muted);font-size:11px;"></small></div>
-          </div>
-          <div class="etp-tabela">
-            <div class="etp-cab etp-c3"><div>Produto</div><div>SKU</div><div>Quant.</div><div>Custo R$</div><div>Valor total</div><div></div></div>
-            <div id="etp-linhas-3"></div>
-          </div>
-          <div class="etp-nota">Valor total = Quantidade × Custo R$ · os dados vêm direto da conferência da Etapa 2.</div>
-          <div class="etp-rodape">
-            <div class="etp-totais">
-              <div><span class="rot">Itens</span><span class="val" id="etp-tot-itens">0</span></div>
-              <div><span class="rot">Valor total do lote</span><span class="val" id="etp-tot-valor">R$ 0,00</span></div>
-            </div>
-            <div></div>
-          </div>
-          <div class="etp-confirmar">
-            <button class="btn" id="etp-btn-3" style="width:auto;" onclick="etpConfirmar(3)" disabled>Lançar no estoque</button>
-            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(2)">← Voltar para Conferência</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- MODAL DE CONFERÊNCIA DO PRODUTO (Etapa 3) -->
-      <div id="etp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:1700;
-        align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
-        <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:760px;width:100%;">
-          <div class="etp-modal-card">
-            <h3 id="etp-modal-titulo">Confirmar produto</h3>
-            <p class="sub">Para marcar o produto como conferido, informe os preços, o peso e a data de vencimento.</p>
-            <div class="input-group" id="etp-m-ean-campo" style="display:none;"><label>EAN <b>*</b>
-              <small style="color:var(--text-muted);font-weight:400;"> — produto novo: é ele que evita cadastrar duas vezes na Base</small></label>
-              <input type="text" id="etp-m-ean" inputmode="numeric" placeholder="07897570128400" maxlength="14"></div>
-            <div class="input-group"><label>📅 Data de vencimento</label>
-              <input type="text" id="etp-m-venc" inputmode="numeric" placeholder="dd/mm/aa" maxlength="8" oninput="etpMascaraData(this)"></div>
-            <div class="input-group"><label>Preço padrão (R$)</label>
-              <input type="text" inputmode="decimal" id="etp-m-padrao" placeholder="0,00"></div>
-            <div class="input-group"><label>Preço para o atacado (R$)</label>
-              <input type="text" inputmode="decimal" id="etp-m-atacado" placeholder="0,00"></div>
-            <div class="input-group"><label>Preço do site (R$)</label>
-              <input type="text" inputmode="decimal" id="etp-m-site" placeholder="0,00"></div>
-            <div class="input-group" style="margin-bottom:0;"><label>🔒 Peso do produto (kg)</label>
-              <input type="text" inputmode="decimal" id="etp-m-peso" readonly></div>
-            <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
-              <button class="btn btn-ghost" style="width:auto;" onclick="etpFecharModal()">Cancelar</button>
-              <button class="btn" style="width:auto;" onclick="etpSalvarModal()">Confirmar</button>
-            </div>
-          </div>
-          <div class="etp-modal-card" style="width:270px;">
-            <h3>Calculadora</h3>
-            <p class="sub">Mercado Livre (clássico)</p>
-            <div class="input-group"><label>Valor de venda (R$)</label>
-              <input type="text" inputmode="decimal" id="etp-calc" value="100" oninput="etpCalc()"></div>
-            <div class="etp-calc-linha"><span>Preço base</span><span class="v" id="etp-calc-base">R$ 0,00</span></div>
-            <div class="etp-calc-linha"><span>Após NF</span><span class="v nf" id="etp-calc-nf">R$ 0,00</span></div>
-            <div class="etp-calc-formula">base = valor × 0,88 − 19,95</div>
-            <div class="etp-calc-formula">nf = base − (valor × 0,1)</div>
-          </div>
-        </div>
-      </div>
 
       <!-- COMPRAS / DEVOLUÇÕES / TRANSFERÊNCIAS -->
       <div id="acp-bloco" class="ped-bloco" style="overflow:hidden;">
@@ -6844,6 +6778,46 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       <div style="flex:1;"></div>
       <button type="button" class="btn-sec" onclick="acpFecharVer()">Fechar</button>
       <button type="button" class="btn btn-sm dv-arquivar" id="acp-ver-arquivar" onclick="acpVerArquivar()">Arquivar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFERÊNCIA DO PRODUTO — vencimento, preços e peso.
+     Era o miolo da Etapa 3; com ela fora, abre pelo botão Conferir de
+     cada produto, dentro dos Detalhes da Compra. -->
+<div id="etp-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:2100;
+  align-items:center;justify-content:center;overflow-y:auto;padding:20px;">
+  <div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:760px;width:100%;">
+    <div class="etp-modal-card">
+      <h3 id="etp-modal-titulo">Confirmar produto</h3>
+      <p class="sub">Para marcar o produto como conferido, informe os preços, o peso e a data de vencimento.</p>
+      <div class="input-group" id="etp-m-ean-campo" style="display:none;"><label>EAN <b>*</b>
+        <small style="color:var(--text-muted);font-weight:400;"> — produto novo: é ele que evita cadastrar duas vezes na Base</small></label>
+        <input type="text" id="etp-m-ean" inputmode="numeric" placeholder="07897570128400" maxlength="14"></div>
+      <div class="input-group"><label>📅 Data de vencimento</label>
+        <input type="text" id="etp-m-venc" inputmode="numeric" placeholder="dd/mm/aa" maxlength="8" oninput="etpMascaraData(this)"></div>
+      <div class="input-group"><label>Preço padrão (R$)</label>
+        <input type="text" inputmode="decimal" id="etp-m-padrao" placeholder="0,00"></div>
+      <div class="input-group"><label>Preço para o atacado (R$)</label>
+        <input type="text" inputmode="decimal" id="etp-m-atacado" placeholder="0,00"></div>
+      <div class="input-group"><label>Preço do site (R$)</label>
+        <input type="text" inputmode="decimal" id="etp-m-site" placeholder="0,00"></div>
+      <div class="input-group" style="margin-bottom:0;"><label>🔒 Peso do produto (kg)</label>
+        <input type="text" inputmode="decimal" id="etp-m-peso" readonly></div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+        <button class="btn btn-ghost" style="width:auto;" onclick="etpFecharModal()">Cancelar</button>
+        <button class="btn" style="width:auto;" onclick="etpSalvarModal()">Confirmar</button>
+      </div>
+    </div>
+    <div class="etp-modal-card" style="width:270px;">
+      <h3>Calculadora</h3>
+      <p class="sub">Mercado Livre (clássico)</p>
+      <div class="input-group"><label>Valor de venda (R$)</label>
+        <input type="text" inputmode="decimal" id="etp-calc" value="100" oninput="etpCalc()"></div>
+      <div class="etp-calc-linha"><span>Preço base</span><span class="v" id="etp-calc-base">R$ 0,00</span></div>
+      <div class="etp-calc-linha"><span>Após NF</span><span class="v nf" id="etp-calc-nf">R$ 0,00</span></div>
+      <div class="etp-calc-formula">base = valor × 0,88 − 19,95</div>
+      <div class="etp-calc-formula">nf = base − (valor × 0,1)</div>
     </div>
   </div>
 </div>
@@ -13755,7 +13729,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01e';
+const APP_VERSAO='2026.09.01f';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -20972,6 +20946,84 @@ function acpVer(id){
   ov.classList.add('open');
 }
 function acpVerAba(ab){ _acpVerAba=ab; _acpVerRender(); }
+
+/* ── A CONFERÊNCIA SAIU DO ASSISTENTE ───────────────────────────────
+   A Etapa 3 existia para duas coisas: escolher o armazém e conferir cada
+   produto (vencimento, preços, peso). As duas passaram para cá — os
+   Detalhes da Compra, que é onde se olha a compra depois que ela chega. */
+function acpVerArmazem(v){
+  const a=_acpVerReg(); if(!a) return;
+  a.armazem=String(v||'');
+  saveState(appState);
+}
+
+/* Monta a lista de armazéns no seletor do modal. Roda depois do innerHTML,
+   porque é ele que cria o <select>. */
+function _acpVerPintarArmazem(){
+  const sel=document.getElementById('acp-ver-armazem');
+  if(!sel) return;
+  const a=_acpVerReg(); if(!a) return;
+  const nomes=(typeof _acpArmazensConhecidos==='function')?_acpArmazensConhecidos():[];
+  const atual=String(a.armazem||'');
+  const lista=nomes.slice();
+  if(atual && lista.indexOf(atual)<0) lista.unshift(atual);
+  sel.innerHTML='<option value="">Selecione o armazém</option>'
+    +lista.map(x=>`<option${x===atual?' selected':''}>${esc(x)}</option>`).join('');
+  /* Sem catálogo lido não há armazém para escolher — e o lançamento vai
+     barrar depois. Dizer isso agora poupa a viagem. */
+  const av=document.getElementById('acp-ver-armazem-aviso');
+  if(av){
+    av.style.display=nomes.length?'none':'';
+    av.textContent=nomes.length?'':'O catálogo da Base ainda não foi lido — rode o fluxo de estoque no n8n.';
+  }
+}
+
+/* Abre a conferência daquele produto. O modal era da Etapa 3 e lia a compra
+   aberta no assistente; agora quem diz qual é a compra é este clique. */
+function acpConferirProduto(idCompra,produto){
+  const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===idCompra);
+  if(!a){ showToast('Compra não encontrada','warn'); return; }
+  _etpIdAntesDoModal=_etpId;
+  _etpId=idCompra;
+  const e=_etpDados(a);
+  /* O peso sugerido vem do catálogo da Base, como vinha na Etapa 3. */
+  let peso='';
+  try{
+    const alvo=String(produto||'').trim().toLowerCase();
+    const cat=(appState.produtos||[]).find(x=>x && String(x.nome||'').trim().toLowerCase()===alvo);
+    if(cat && cat.peso!=null) peso=cat.peso;
+  }catch(err){}
+  etpAbrirModal(produto,peso);
+}
+
+/* Lança o lote no estoque. Continua exigindo armazém e todos os produtos
+   conferidos — sem isso a entrada iria para a fila sem destino, e o n8n não
+   saberia em qual warehouse somar. */
+function acpLancarEstoque(){
+  const a=_acpVerReg(); if(!a) return;
+  if(!_acpPodeMexer()){ showToast('Sem permissão para lançar','warn'); return; }
+  const e=_etpDados(a);
+  if(!String(a.armazem||'').trim()){
+    showToast('Escolha o armazém de destino antes de lançar','warn');
+    const sel=document.getElementById('acp-ver-armazem'); if(sel) sel.focus();
+    return;
+  }
+  /* _etpContas lê a compra do assistente; aqui a compra é a da ficha. */
+  const antes=_etpId; _etpId=a.id;
+  let c=null; try{ c=_etpContas(); } finally { _etpId=antes; }
+  if(!c){ showToast('Não foi possível ler os itens desta compra','warn'); return; }
+  const faltam=c.linhas.filter(l=>l.chegou>0 && !e.lanc.produtos[l.produto]);
+  if(faltam.length){
+    showToast(faltam.length+' produto(s) ainda sem conferência — use o botão Conferir de cada um','warn');
+    return;
+  }
+  _etpLancarNoEstoque(a,e,c);
+  e.lanc.travado=true;
+  saveState(appState);
+  _acpVerRender();
+  try{ renderAcompanhamento(); }catch(err){}
+  showToast('✔ Lote lançado no estoque','success');
+}
 function acpVerAtualizar(){ if(_acpVerReg()){ _acpVerRender(); showToast('Dados atualizados','success'); } }
 function acpVerArquivar(){
   const a=_acpVerReg(); if(!a||a._antigo) return;
@@ -21015,25 +21067,46 @@ function _acpVerRender(){
   if(_acpVerAba==='geral'){
     const taxa=Number(a.taxaEntrega)||0;
     const total=itens.reduce((s,p)=>s+(Number(p.qtd)||1)*(Number(p.custo)||0),0)+taxa;
+    /* Os campos vinham quase todos vazios porque olhavam para o cadastro
+       antigo da compra — e a compra de hoje nasce nas ETAPAS. Loja, data,
+       cotação e rastreio moram lá dentro; "Comprado por" é quem registrou,
+       que o sistema sempre soube e mostrava como "Não informado". */
+    const et=(a.etapas||{}), orc=et.orc||{}, cf=et.conf||{}, lanc=et.lanc||{};
+    const brs=(cf.rastreios||[]).map(r=>String((r&&r.codigo)||'').trim()).filter(Boolean);
+    const rastreiosHtml = brs.length
+      ? brs.map(c=>`<span style="font-family:var(--font-mono);">${esc(c)}</span>`).join('<br>')
+      : rastreioHtml;
+    const cot=Number(orc.cotacao)||0;
     corpo=`<div class="dv-grid">
-        ${campo('caminhao','Transportadora',esc(a.transportadora))}
-        ${campo('caixa',T.loja.replace(/ \*$/,''),esc(a.loja))}
-        ${campo('caixa',T.cliente||'Cliente',esc(a.cliente?nomeProprio(a.cliente):''))}
-        ${campo('caixa','Código de Rastreio',rastreioHtml)}
+        ${campo('caixa',T.loja.replace(/ \*$/,''),esc(orc.loja||a.loja))}
+        ${campo('caixa','Nº do orçamento',orc.numero?('<span style="font-family:var(--font-mono);">'+esc(orc.numero)+'</span>'):'')}
+        ${campo('calendario','Data da compra',(orc.data||a.data)?_pedDataBR(orc.data||a.data):'')}
+        ${campo('caixa','Cotação do dólar',cot?('US$ 1 = R$ '+_etpBR(cot)):'')}
+        ${campo('caixa','Rastreio EUA',orc.rastreioEua?('<span style="font-family:var(--font-mono);">'+esc(orc.rastreioEua)+'</span>'):'')}
+        ${campo('caminhao','Rastreio Brasil',rastreiosHtml)}
         ${campo('caixa','Status',statusHtml)}
-        ${campo('calendario','Previsão de Entrega',a.previsao?_pedDataBR(a.previsao):'Não disponível')}
+        ${campo('lista','Comprado por',esc(a.criadoPor||(currentUser&&currentUser.name)||''))}
       </div>
+      ${(a.tipo==='compra' && pode)?`
+      <div class="dv-sec">Armazém de destino</div>
+      <select id="acp-ver-armazem" onchange="acpVerArmazem(this.value)" style="width:100%;"></select>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:5px;">É para onde o estoque será somado quando o lote for lançado.</div>
+      <div id="acp-ver-armazem-aviso" style="font-size:11px;color:#f59e0b;margin-top:3px;display:none;"></div>`:''}
       <div class="dv-sec">Produtos</div>
       ${itens.length?itens.map(p=>{
         const tot=(Number(p.qtd)||1)*(Number(p.custo)||0);
+        const nome=String(p.nome||'');
+        const conf=(lanc.produtos||{})[nome];
         return `<div class="dv-prod">
           <div style="min-width:0;">
-            <div class="n">${esc(p.nome||'—')}${p.sku?(' - '+esc(p.sku)):''}</div>
-            <div class="d">Quantidade: <b>${p.qtd||1}</b> &nbsp; Custo: <b>${_pedFmt(p.custo||0)}</b> &nbsp; Total: <b>${_pedFmt(tot)}</b></div>
+            <div class="n">${esc(nome||'—')}${p.sku?(' - '+esc(p.sku)):''}</div>
+            <div class="d">Quantidade: <b>${p.qtd||1}</b> &nbsp; Custo: <b>${_pedFmt(p.custo||0)}</b> &nbsp; Total: <b>${_pedFmt(tot)}</b>
+              ${conf?`<br><span style="color:var(--tom-verde);">✓ conferido por ${esc(conf.conferidoPor||'—')}${conf.conferidoEm?(' · '+esc(conf.conferidoEm)):''}</span>`:''}</div>
           </div>
-          ${(pode&&a.tipo==='compra')?`<button type="button" class="btn-sec" onclick="acpFecharVer();acpAbrirEtapas('${a.id}')">
+          ${(pode&&a.tipo==='compra')?`<button type="button" class="btn-sec${conf?' dv-conferido':''}"
+              onclick="acpConferirProduto('${esc(a.id)}','${esc(nome).replace(/'/g,'&#39;')}')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3"/><path d="m8.4 12.2 2.4 2.4 4.8-4.8"/></svg>
-              Conferir</button>`:''}
+              ${conf?'Conferido':'Conferir'}</button>`:''}
         </div>`;
       }).join(''):'<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Nenhum produto listado neste registro.</div>'}
       <div class="dv-taxa">Taxa de Entrega: ${_pedFmt(taxa)}</div>
@@ -21057,6 +21130,26 @@ function _acpVerRender(){
         : ''}`;
   }
   document.getElementById('acp-ver-corpo').innerHTML=corpo;
+  /* Depois do innerHTML: o <select> do armazém só existe agora. */
+  try{ _acpVerPintarArmazem(); }catch(err){}
+  /* O lançamento no estoque, que era o botão da Etapa 3, vive aqui — e só
+     aparece quando faz sentido: compra conferida e ainda não lançada. */
+  try{
+    const antigo=document.getElementById('acp-ver-lancar'); if(antigo) antigo.remove();
+    const e2=(a.etapas||{}), cf=e2.conf||{}, lc=e2.lanc||{};
+    const rod=document.getElementById('acp-ver-rodape');
+    const arqBtn=document.getElementById('acp-ver-arquivar');
+    if(rod && a.tipo==='compra' && pode && cf.travado){
+      const b=document.createElement('button');
+      b.id='acp-ver-lancar';
+      b.className='btn btn-sm';
+      b.style.cssText='width:auto;';
+      b.textContent=lc.travado?'✓ Lançado no estoque':'Lançar no estoque';
+      b.disabled=!!lc.travado;
+      b.onclick=()=>acpLancarEstoque();
+      rod.insertBefore(b, arqBtn||null);
+    }
+  }catch(err){ console.warn('[acp] botão de lançar:',err.message); }
 
   const arq=document.getElementById('acp-ver-arquivar');
   if(arq){
@@ -21070,27 +21163,26 @@ function acpFecharVer(){ const o=document.getElementById('acp-ver-overlay'); if(
    interessa quantos itens vieram; numa devolução interessa de quem voltou,
    por qual transportadora, e se alguém já conferiu o que chegou. Mostrar as
    mesmas sete colunas nos três encheria a tela de "N/A". */
-/* ── As três filas de trabalho da compra ──────────────────────────────
-   A tela de Compras mostra uma fila de cada vez:
-
+/* ── As duas filas de trabalho da compra ──────────────────────────────
      1 · Orçamento              — comprou, falta orçar e fechar preço
      2 · Chegada / Conferência  — orçamento fechado, esperando a mercadoria
-     3 · Lançamento em Estoque  — conferido, falta lançar
 
-   Não é filtro de status: é onde cada compra está no processo. Ver as três
-   juntas é o que fazia alguém abrir uma compra que ainda nem chegou para
-   descobrir que não havia nada a conferir. */
+   A terceira fila (Lançamento em Estoque) saiu em 01/09: conferir produto e
+   lançar o lote passaram para os Detalhes da Compra, no olho da lista. */
 /* 0 = todas as compras. Antes a tela nascia presa à etapa 1, e quem
    acabava de criar uma compra via só ela: as outras duas, já conferidas
    ou lançadas, sumiam da lista sem aviso — pareciam perdidas. A fila
    continua existindo, agora como filtro que se escolhe. */
 let _acpEtapaFila=0;
 
+/* Duas etapas, e não mais três (01/09): o lançamento em estoque deixou de
+   ser uma etapa do assistente. A conferência de cada produto — vencimento,
+   preços, peso — passou para dentro dos Detalhes da Compra, no olho da
+   lista, que é onde se olha a compra depois que ela chega. */
 function _acpEtapaDe(a){
   const e=(a&&a.etapas)||{};
   if(!(e.orc&&e.orc.travado))  return 1;
-  if(!(e.conf&&e.conf.travado)) return 2;
-  return 3;
+  return 2;
 }
 
 function acpFila(n){
@@ -21110,10 +21202,10 @@ function _acpRenderBarraEtapas(lista){
   /* inline-flex, e não flex: o segmentado tem largura de conteúdo — em
      flex ele esticava de ponta a ponta da tela. */
   barra.style.display='inline-flex';
-  const nomes=['Orçamento','Chegada / Conferência','Lançamento em Estoque'];
-  const cont=[0,0,0];
+  const nomes=['Orçamento','Chegada / Conferência'];
+  const cont=[0,0];
   (lista||[]).forEach(a=>{ cont[_acpEtapaDe(a)-1]++; });
-  const total=cont[0]+cont[1]+cont[2];
+  const total=cont[0]+cont[1];
   barra.innerHTML=
     `<button type="button" class="seg-btn${_acpEtapaFila?'':' active'}" onclick="acpFila(0)">`
     +`Todas <span class="seg-n">${total}</span></button>`
@@ -21138,7 +21230,11 @@ function _acpRenderBarraEtapas(lista){
 
 const ETP_CUSTOS_FIXOS=['Frete Usa 1','Frete Usa 2','Transportadora','Frete Azul','Taxa SP','Correios','Extravio'];
 let _etpId='';       // id da compra aberta
-let _etpProdModal=''; // produto aberto no modal da etapa 3
+let _etpProdModal=''; // produto aberto no modal de conferência
+/* A ficha (olho da lista) abre o mesmo modal, mas para a compra dela — que
+   pode não ser a que está aberta no assistente. Guardamos qual era para
+   devolver no fechamento, senão o assistente trocaria de compra sozinho. */
+let _etpIdAntesDoModal=null;
 
 function _etpCompra(){
   return (appState.acompanhamentos||[]).find(x=>x && x.id===_etpId) || null;
@@ -21296,10 +21392,6 @@ function etpMarcar(){
     e.orc.cotacao=_etpNum(v('etp-cotacao'))||e.orc.cotacao;
   }
   if(!e.conf.travado) e.conf.kgCobrado=v('etp-kg-cobrado');
-  if(!e.lanc.travado){
-    const arm=document.getElementById('etp-armazem');
-    if(arm && arm.value) a.armazem=arm.value;
-  }
   _etpEspelhar(a,e);
   _etpCabecalho(a,e);
   saveState(appState);
@@ -21638,65 +21730,13 @@ function etpRenderTotais(){
   const calc=document.querySelectorAll('#etp-fretes-fixos .etp-custo .valor[readonly]');
   if(calc[0]) calc[0].value=c.correios.toFixed(2);
   if(calc[1]) calc[1].value=c.extravio.toFixed(2);
-  etpRenderEtapa3();
 }
 
-// ── Etapa 3: lançamento em estoque ──────────────────────────────────
-function etpRenderEtapa3(){
-  const c=_etpContas(); if(!c) return;
-  const a=_etpCompra();
-  const e=c.e;
-  const pronto=e.conf.travado;
-
-  /* O armazém é perguntado aqui, e não no cadastro: é aqui que ele vira
-     destino de verdade. Perguntar lá atrás fazia escolher o warehouse de uma
-     mercadoria que ainda nem tinha saído dos Estados Unidos. */
-  const sel=document.getElementById('etp-armazem');
-  if(sel){
-    const nomes=_acpArmazensConhecidos();
-    const atual=String((a&&a.armazem)||'');
-    const lista=nomes.slice();
-    if(atual && lista.indexOf(atual)<0) lista.unshift(atual);
-    const html='<option value="">Selecione o armazém</option>'
-      +lista.map(x=>`<option${x===atual?' selected':''}>${_etpEsc(x)}</option>`).join('');
-    if(sel.innerHTML!==html) sel.innerHTML=html;
-    sel.disabled=e.lanc.travado;
-    const av=document.getElementById('etp-armazem-aviso');
-    if(av) av.textContent=nomes.length?'':'O catálogo da Base ainda não foi lido — rode o fluxo de estoque no n8n.';
-  }
-  const linhas=c.linhas.filter(l=>l.chegou>0);
-  let itens=0, valor=0;
-
-  document.getElementById('etp-linhas-3').innerHTML = pronto
-    ? (linhas.map(l=>{
-        const total=l.chegou*l.custo;
-        itens+=l.chegou; valor+=total;
-        const conf=e.lanc.produtos[l.produto];
-        return `<div class="etp-linha etp-c3">
-          <div class="etp-lido" title="${_etpEsc(l.produto)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_etpEsc(l.produto)||'—'}</div>
-          <div class="etp-lido">${_etpEsc(l.sku)||'—'}</div>
-          <div class="etp-lido">${l.chegou}</div>
-          <div class="etp-lido">${_etpBR(l.custo)}</div>
-          <div class="etp-lido">${_etpBR(total)}</div>
-          <div style="text-align:center;">
-            <button class="etp-olho${conf?' feito':''}" title="${conf?'Produto conferido':'Conferir produto'}"
-              onclick="etpAbrirModal('${_etpEsc(l.produto).replace(/'/g,'&#39;')}',${l.peso})">${conf?'✅':'👁'}</button>
-          </div>
-        </div>`;
-      }).join('') || '<div class="etp-lido" style="padding:16px;text-align:center;">Nenhum item chegou — nada a lançar.</div>')
-    : '<div class="etp-lido" style="padding:16px;text-align:center;">Confirme a conferência para o lançamento aparecer aqui.</div>';
-
-  document.getElementById('etp-tot-itens').textContent=itens;
-  document.getElementById('etp-tot-valor').textContent='R$ '+_etpBR(valor);
-
-  const selo=document.getElementById('etp-selo-3');
-  if(e.lanc.travado){ selo.textContent='🔒 Lançado no estoque'; selo.className='etp-selo pronto'; }
-  else if(pronto){ selo.textContent='🔓 Pronto para lançar'; selo.className='etp-selo'; }
-  else { selo.textContent='🔒 Aguardando conferência'; selo.className='etp-selo travado'; }
-  const btn=document.getElementById('etp-btn-3');
-  btn.disabled=!pronto;
-  btn.textContent=e.lanc.travado?'Reabrir lançamento':'Lançar no estoque';
-}
+/* A Etapa 3 saiu do assistente (01/09). O que ela guardava — o armazém de
+   destino e a conferência produto a produto — passou para os Detalhes da
+   Compra: é lá que se olha a compra depois que ela chega, e era para lá que
+   se ia de qualquer jeito. O modal abaixo é o mesmo de sempre; quem o abre
+   agora é o botão "Conferir" de cada produto na ficha. */
 
 // ── Modal de conferência do produto ─────────────────────────────────
 function etpAbrirModal(produto,peso){
@@ -21723,6 +21763,7 @@ function etpAbrirModal(produto,peso){
 function etpFecharModal(){
   document.getElementById('etp-modal').style.display='none';
   _etpProdModal='';
+  if(_etpIdAntesDoModal!==null){ _etpId=_etpIdAntesDoModal; _etpIdAntesDoModal=null; }
 }
 function etpSalvarModal(){
   const a=_etpCompra(); if(!a||!_etpProdModal) return;
@@ -21745,7 +21786,9 @@ function etpSalvarModal(){
   };
   saveState(appState);
   etpFecharModal();
-  etpRenderEtapa3();
+  /* Quem chamou foi o botão "Conferir" da ficha — ela é que precisa mostrar
+     o "✓ conferido por" e liberar o lançamento. */
+  try{ if(document.getElementById('acp-ver-overlay').classList.contains('open')) _acpVerRender(); }catch(err){}
   showToast('Produto conferido','success');
 }
 /* dd/mm/aa enquanto se digita — a data de vencimento vem do rótulo do frasco,
@@ -21799,34 +21842,13 @@ function etpConfirmar(n){
     e.conf.travado=!e.conf.travado;
     if(!e.conf.travado) e.lanc.travado=false;
   }
-  if(n===3){
-    if(!e.conf.travado){ showToast('Confirme a conferência primeiro','warn'); return; }
-    if(!e.lanc.travado){
-      const c=_etpContas();
-      /* Sem armazém não há para onde lançar: a entrada iria para a fila e o
-         n8n não teria em qual warehouse da Base somar o saldo. */
-      if(!String(a.armazem||'').trim()){
-        showToast('Escolha o armazém de destino antes de lançar','warn');
-        const sel=document.getElementById('etp-armazem'); if(sel) sel.focus();
-        return;
-      }
-      const faltam=c.linhas.filter(l=>l.chegou>0 && !e.lanc.produtos[l.produto]);
-      if(faltam.length){
-        showToast(faltam.length+' produto(s) ainda sem conferência — abra o olho de cada linha','warn');
-        return;
-      }
-      _etpLancarNoEstoque(a,e,c);
-    }
-    e.lanc.travado=!e.lanc.travado;
-  }
   /* Confirmou, o trabalho seguinte é a etapa de baixo — a tela vai junto em
      vez de deixar a pessoa procurar onde continuar. Reabrir faz o contrário:
      fica onde está, que é onde ela quer mexer. */
   if(n===1 && e.orc.travado) _etpAba=2;
-  if(n===2 && e.conf.travado) _etpAba=3;
   saveState(appState);
   etpRender();
-  showToast(n===3?(e.lanc.travado?'Lote lançado no estoque':'Lançamento reaberto'):'Etapa confirmada','success');
+  showToast('Etapa confirmada','success');
 }
 
 /* O lançamento vira fila de entrada, e não gravação direta no estoque: quem
@@ -21893,15 +21915,14 @@ function etpRender(){
   etpRenderEtapa2();
   etpRenderTotais();
 
-  for(let i=1;i<=3;i++){
+  for(let i=1;i<=2;i++){
     const pg=document.getElementById('etp-p'+i);
     if(pg) pg.style.display=(i===_etpAba)?'':'none';
   }
 
   const passos=[
     {n:'Orçamento',            feito:e.orc.travado},
-    {n:'Chegada / Conferência',feito:e.conf.travado},
-    {n:'Lançamento em Estoque',feito:e.lanc.travado}
+    {n:'Chegada / Conferência',feito:e.conf.travado}
   ];
   document.getElementById('etp-passos').innerHTML=passos.map((p,i)=>{
     const n=i+1, livre=_etpLiberada(n,e);
