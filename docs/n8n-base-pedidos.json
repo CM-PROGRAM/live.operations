@@ -1,0 +1,346 @@
+{
+  "name": "LiveOps · Pedidos da Base (ao vivo + histórico)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "Começar agora",
+      "name": "Começar agora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -780,
+        60
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "A cada 15 minutos",
+      "name": "A cada 15 minutos",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -620,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrderSources"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Origens de venda",
+      "name": "Origens de venda",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -400,
+        20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrderStatusList"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({}) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Status da Base",
+      "name": "Status da Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -180,
+        20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/reg/pedidosBase.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "id": "O que já temos",
+      "name": "O que já temos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        40,
+        20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "LiveOps (chave do robô)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* De onde começar a varredura.\n\n   DOIS MODOS, o mesmo caminho depois daqui:\n\n     manual     → id_from 0. Varre tudo o que a API entrega, do primeiro\n                  pedido ao último. É a carga histórica.\n     agendado   → começa no menor id dos últimos DIAS_JANELA dias que já\n                  temos. Assim o pedido novo entra e o antigo que MUDOU de\n                  status é relido, sem varrer o catálogo inteiro de 15 em\n                  15 minutos.\n\n   Por que id e não data: a paginação da Base é por id_from, e misturar os\n   dois critérios numa chamada só é o tipo de coisa que ela aceita sem\n   reclamar e ignora em silêncio — foi assim que o filter_order_status_id\n   enganou a investigação de 22/08. */\nconst DIAS_JANELA = 7;\n\nconst _raiz = $getWorkflowStaticData('global');\nif (!_raiz.ped) _raiz.ped = {};\nconst est = _raiz.ped;\nest.iniciado = true;\nest.lidos = 0; est.gravados = 0; est.semMudanca = 0; est.paginas = 0;\nest.dataMaisAntiga = null; est.porOrigem = {};\n\n/* O nome de cada canal sai da própria Base. Fixar uma lista aqui faria o\n   pedido de uma loja nova aparecer com o código cru (melibr, shopeebr) até\n   alguém lembrar de vir editar — e \"todas as lojas\" de um marketplace é\n   justamente o que muda sem avisar. */\nconst fontes = {};\ntry {\n  const s = $('Origens de venda').first().json || {};\n  Object.entries(s.sources || {}).forEach(([tipo, lista]) => {\n    Object.entries(lista || {}).forEach(([id, nome]) => {\n      fontes[String(tipo).toLowerCase() + '/' + String(id)] = String(nome || '');\n    });\n  });\n} catch (e) { console.log('AVISO: não consegui ler as origens — o canal vai sair como código.'); }\n\nconst nomeStatus = {};\ntry {\n  ($('Status da Base').first().json.statuses || []).forEach(s => {\n    nomeStatus[String(s.id)] = s.name || s.name_for_customer || '';\n  });\n} catch (e) { /* sem a lista, mostra o número */ }\n\n/* O que já está gravado no LiveOps, para não regravar o que não mudou. */\nlet jaTemos = {};\ntry { jaTemos = $('O que já temos').first().json || {}; } catch (e) { jaTemos = {}; }\nif (jaTemos && jaTemos.error) jaTemos = {};\n\n/* Manual = carga completa. O gatilho de tempo não passa por \"Começar\n   agora\", e é isso que distingue os dois sem precisar de flag na tela. */\nlet manual = true;\ntry { manual = !!$('Começar agora').first(); } catch (e) { manual = false; }\n\nlet idDe = 0;\nif (!manual) {\n  const corte = Date.now() - DIAS_JANELA * 86400000;\n  let menor = null;\n  Object.values(jaTemos).forEach(p => {\n    if (!p || !p.data || !p.numero) return;\n    const t = Date.parse(p.data + 'T12:00:00Z');\n    if (!isFinite(t) || t < corte) return;\n    const n = Number(p.numero);\n    if (isFinite(n) && (menor === null || n < menor)) menor = n;\n  });\n  /* Sem nada na janela, varre tudo: é a primeira vez, ou a loja passou uma\n     semana sem vender. Nos dois casos ler demais é melhor que ler de menos. */\n  idDe = menor === null ? 0 : menor;\n}\n\nconsole.log('modo: ' + (manual ? 'carga completa' : 'janela de ' + DIAS_JANELA + ' dias')\n  + ' | começando no id ' + idDe\n  + ' | já temos ' + Object.keys(jaTemos).length + ' pedidos'\n  + ' | canais conhecidos: ' + Object.keys(fontes).length);\n\nreturn [{ json: { proximoId: idDe, fontes: fontes, nomeStatus: nomeStatus, jaTemos: jaTemos } }];"
+      },
+      "id": "De onde começar",
+      "name": "De onde começar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrders"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ id_from: $json.proximoId, get_unconfirmed_orders: true, include_custom_extra_fields: true }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Base · página de pedidos",
+      "name": "Base · página de pedidos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Uma página da Base vira registros do LiveOps.\n\n   TODOS os canais, sem filtro de origem. O fluxo antigo pedia só o\n   WhatsApp ao servidor; este lê tudo por dois motivos que já custaram caro\n   uma vez: filtro com id errado devolve lista vazia SEM ERRO, e a carga\n   terminaria \"com sucesso\" tendo importado zero; e lendo tudo o log mostra\n   o nome que a Base dá a cada origem, que é como se descobre uma loja nova.\n\n   O QUE ESTE FLUXO NÃO ALCANÇA — e nenhum outro alcança\n   A Base move o pedido para o Arquivo depois de 3 meses, e o Arquivo é um\n   BANCO SEPARADO, com busca própria. Nenhum parâmetro do getOrders chega\n   lá: medido em 22/08/2026, date_from de janeiro e id_from 1 devolvem o\n   mesmo pedido de 24/05. Os pedidos anteriores entram pela exportação em\n   CSV da tela do Arquivo, no botão \"Importar Arquivo\" da aba Pedidos. */\nconst inicio = $('De onde começar').first().json;\nconst r = $json || {};\nif (r.status && r.status !== 'SUCCESS') {\n  throw new Error('A Base recusou a leitura: ' + (r.error_message || r.error_code || JSON.stringify(r).slice(0, 200)));\n}\nconst pedidos = r.orders || [];\n\n/* Os contadores do laço vivem no staticData, que é o único lugar que\n   sobrevive de uma página para a outra. Mas ele NÃO chega aqui garantido:\n   numa execução manual o n8n não promete que o objeto que \"De onde começar\"\n   preencheu seja o mesmo que este nó recebe — e sem esta guarda a segunda\n   passagem morria em \"Cannot read properties of undefined\", com a página já\n   lida e jogada fora. Quem cria é quem usa. */\nconst _raiz = $getWorkflowStaticData('global') || {};\n/* Gaveta própria: o outro ramo deste fluxo usa a dele, e sem isto os dois\n   contadores somariam um no outro — o log mentiria num número que ninguém\n   tem como conferir depois. */\nif (!_raiz.ped) _raiz.ped = {};\nconst est = _raiz.ped;\nif (!est.porOrigem) {\n  est.iniciado = true;\n  est.lidos = 0; est.gravados = 0; est.semMudanca = 0; est.paginas = 0;\n  est.dataMaisAntiga = null; est.porOrigem = {};\n}\n\nif (!pedidos.length) {\n  console.log('── varredura terminada ──');\n  console.log(est.paginas + ' página(s) · ' + est.lidos + ' pedido(s) lidos · '\n    + est.gravados + ' gravados · ' + est.semMudanca + ' sem mudança');\n  console.log('pedido mais antigo alcançado: ' + (est.dataMaisAntiga || '—')\n    + '  (a Base arquiva depois de 3 meses e não devolve arquivado pela API)');\n  const ordem = Object.keys(est.porOrigem).sort((a, b) => est.porOrigem[b] - est.porOrigem[a]);\n  console.log('canais: ' + ordem.map(k => k + '=' + est.porOrigem[k]).join(' · '));\n  return [];\n}\n\nconst TZ = 'America/Sao_Paulo';\nfunction data(ts) {\n  if (!ts) return '';\n  return new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' })\n    .format(new Date(Number(ts) * 1000));\n}\nfunction hora(ts) {\n  if (!ts) return '';\n  return new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, hour: '2-digit', minute: '2-digit' })\n    .format(new Date(Number(ts) * 1000));\n}\n/* O total não vem pronto: a Base entrega produtos e frete separados. Somar\n   aqui evita a tela mostrar valor diferente do que a Base mostra. */\nfunction total(p) {\n  const itens = (p.products || []).reduce((a, i) =>\n    a + (Number(i.price_brutto) || 0) * (Number(i.quantity) || 0), 0);\n  return Math.round((itens + (Number(p.delivery_price) || 0)) * 100) / 100;\n}\nconst carimbo = new Date().toLocaleString('pt-BR', { timeZone: TZ,\n  day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });\n\nfunction igual(novo, antigo) {\n  if (!antigo) return false;\n  const campos = ['numero','externo','cliente','telefone','cpf','email','valor','itens','status','canal','data','hora','link'];\n  return campos.every(k => String(antigo[k] === undefined ? '' : antigo[k]) === String(novo[k] === undefined ? '' : novo[k]));\n}\n\nconst pagina = {};\nlet maiorId = inicio.proximoId;\nlet gravadosAqui = 0;\n\nfor (const p of pedidos) {\n  est.lidos++;\n  const id = Number(p.order_id) || 0;\n  if (id > maiorId) maiorId = id;\n\n  const fonte = String(p.order_source || '').toLowerCase();\n  const idFonte = String(p.order_source_id === undefined || p.order_source_id === null ? '' : p.order_source_id);\n  /* O nome da loja como a Base a chama — \"Mercado Livre Suplelive\", não\n     \"melibr\". Sem o nome, o código cru; sem nem isso, \"Outro\". */\n  const canal = inicio.fontes[fonte + '/' + idFonte] || inicio.fontes[fonte + '/'] || fonte || 'Outro';\n  est.porOrigem[canal] = (est.porOrigem[canal] || 0) + 1;\n\n  const quando = p.date_confirmed || p.date_add;\n  const dia = data(quando);\n  if (dia && (!est.dataMaisAntiga || dia < est.dataMaisAntiga)) est.dataMaisAntiga = dia;\n\n  const registro = {\n    id: 'base_' + p.order_id,\n    numero: String(p.order_id),\n    externo: String(p.external_order_id || p.shop_order_id || ''),\n    cliente: p.delivery_fullname || p.invoice_fullname || p.user_login || '',\n    telefone: String(p.phone || '').replace(/\\D/g, ''),\n    /* CPF/CNPJ é o invoice_nip na Base. É a primeira chave que a aba\n       Clientes usa para juntar os pedidos da mesma pessoa. */\n    cpf: String(p.invoice_nip || '').replace(/\\D/g, ''),\n    email: String(p.email || ''),\n    valor: total(p),\n    itens: (p.products || []).reduce((a, i) => a + (Number(i.quantity) || 0), 0),\n    status: inicio.nomeStatus[String(p.order_status_id)] || ('status ' + p.order_status_id),\n    canal: canal,\n    data: dia,\n    hora: hora(quando),\n    link: 'https://panel-u.baselinker.com/orders.php#order:' + p.order_id,\n    sincronizadoEm: carimbo,\n    _by: 'n8n'\n  };\n\n  /* Regravar o que não mudou é escrita de D1 à toa, e faz a tela piscar\n     sozinha. \"Mudou\" ignora o carimbo, senão todo pedido mudaria sempre. */\n  if (igual(registro, inicio.jaTemos['base_' + p.order_id])) { est.semMudanca++; continue; }\n  pagina['base_' + p.order_id] = registro;\n  gravadosAqui++;\n}\n\nest.gravados += gravadosAqui;\nest.paginas++;\nconsole.log('página ' + est.paginas + ': ' + pedidos.length + ' lidos · ' + gravadosAqui + ' para gravar');\n\n/* A Base entrega no máximo 100 por chamada. Página cheia significa que há\n   mais — a próxima começa no id seguinte ao maior desta. */\nreturn [{ json: { pagina: pagina, proximoId: maiorId + 1, temPagina: Object.keys(pagina).length > 0 } }];"
+      },
+      "id": "Página → registros",
+      "name": "Página → registros",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        700,
+        20
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/reg/pedidosBase.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.pagina) }}",
+        "options": {}
+      },
+      "id": "Gravar a página",
+      "name": "Gravar a página",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        -80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "LiveOps (chave do robô)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "id": "Pausa 1s",
+      "name": "Pausa 1s",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        120
+      ],
+      "webhookId": "pausa-pedidos"
+    }
+  ],
+  "connections": {
+    "A cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Origens de venda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Origens de venda": {
+      "main": [
+        [
+          {
+            "node": "Status da Base",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status da Base": {
+      "main": [
+        [
+          {
+            "node": "O que já temos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "O que já temos": {
+      "main": [
+        [
+          {
+            "node": "De onde começar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "De onde começar": {
+      "main": [
+        [
+          {
+            "node": "Base · página de pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · página de pedidos": {
+      "main": [
+        [
+          {
+            "node": "Página → registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Página → registros": {
+      "main": [
+        [
+          {
+            "node": "Gravar a página",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pausa 1s",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pausa 1s": {
+      "main": [
+        [
+          {
+            "node": "Base · página de pedidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Começar agora": {
+      "main": [
+        [
+          {
+            "node": "Origens de venda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}
