@@ -1456,6 +1456,16 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
   font-size:18px;font-weight:700;letter-spacing:-.02em;color:var(--lo-azul);margin:0 0 18px;}
 .etp-selo{font-size:11px;font-weight:600;color:var(--text-muted);font-family:var(--font-mono);}
+/* Campo obrigatório vazio, ao tentar confirmar a etapa. Marca o campo em si
+   em vez de só avisar no topo: numa etapa com trinta campos, "preencha tudo"
+   manda a pessoa procurar. */
+.etp-falta{border-color:#ef4444 !important; background:rgba(239,68,68,.10) !important;}
+.etp-falta::placeholder{color:#fca5a5;}
+.etp-aviso-falta{display:flex;align-items:center;gap:8px;margin:0 0 14px;padding:9px 12px;
+  border:1px solid rgba(239,68,68,.45);background:rgba(239,68,68,.10);border-radius:9px;
+  font-size:12px;font-weight:600;color:#ef4444;}
+:root[data-theme="light"] .etp-aviso-falta{color:#b91c1c;}
+.etp-aviso-falta .quantos{font-weight:400;color:var(--text-secondary);}
 .etp-selo.travado{color:#f0b429;}
 .etp-selo.pronto{color:var(--green);}
 .etp-seta{text-align:center;color:var(--text-muted);font-size:20px;margin:2px 0 10px;}
@@ -1852,6 +1862,26 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .dv-prod .n{font-size:13px;font-weight:700;color:var(--text-primary);}
 .dv-prod .d{font-size:12px;color:var(--text-secondary);margin-top:4px;}
 .dv-prod .d b{color:var(--text-primary);}
+/* ── Os dois estados do produto na ficha ────────────────────────────
+   Conferido em azul, no estoque em verde. A cor é o que se lê de longe:
+   percorrer dez produtos procurando qual falta conferir não deveria exigir
+   ler dez linhas de texto. */
+.dv-prod.conferido{border-color:rgba(37,99,235,.55);background:rgba(37,99,235,.07);}
+.dv-prod.conferido .marca{color:var(--lo-azul);}
+.dv-prod.estoque{border-color:rgba(34,197,94,.55);background:rgba(34,197,94,.09);}
+.dv-prod.estoque .marca{color:#15803d;}
+:root:not([data-theme="light"]) .dv-prod.estoque .marca{color:#86efac;}
+.dv-prod .marca{font-size:12px;font-weight:600;margin-top:4px;}
+.dv-prod .extra{font-size:12px;color:var(--text-secondary);margin-top:4px;}
+.dv-prod .extra b{color:var(--text-primary);}
+/* Selo do estado, no lugar onde antes ficava o botão. Não é clicável: o
+   estado é consequência do trabalho feito, não um botão a mais. */
+.dv-selo{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+  font-size:12px;font-weight:600;padding:8px 13px;border-radius:9px;}
+.dv-selo svg{width:15px;height:15px;stroke-width:1.9;}
+.dv-selo.conferido{color:var(--lo-azul);border:1px solid rgba(37,99,235,.45);background:rgba(37,99,235,.10);}
+.dv-selo.estoque{color:#15803d;border:1px solid rgba(34,197,94,.45);background:rgba(34,197,94,.12);}
+:root:not([data-theme="light"]) .dv-selo.estoque{color:#86efac;}
 .dv-taxa{font-size:12px;color:var(--text-muted);margin:12px 0 4px;padding-top:12px;border-top:1px solid var(--border);}
 .dv-total{font-size:15px;font-weight:800;color:var(--text-primary);}
 .dv-rodape{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
@@ -3865,17 +3895,17 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div class="input-group"><label>Número do orçamento</label>
               <input type="text" id="etp-numero" readonly></div>
             <div class="input-group"><label>Data do orçamento</label>
-              <input type="date" id="etp-data" onchange="etpMarcar()"></div>
+              <input type="date" id="etp-data" data-obrig="Data do orçamento" onchange="etpMarcar()"></div>
             <div class="input-group"><label>Nome da loja</label>
-              <input type="text" id="etp-loja" placeholder="Ex: Suplelive" oninput="etpMarcar()"></div>
+              <input type="text" id="etp-loja" data-obrig="Nome da loja" placeholder="Ex: Suplelive" oninput="etpMarcar()"></div>
             <div class="input-group"><label>Código rastreio EUA</label>
-              <input type="text" id="etp-rastreio-eua" placeholder="Ex: 1Z999AA10123456784" oninput="etpMarcar()"></div>
+              <input type="text" id="etp-rastreio-eua" data-obrig="Código rastreio EUA" placeholder="Ex: 1Z999AA10123456784" oninput="etpMarcar()"></div>
           </div>
           <div class="etp-cotacao">
             <span>Cotação do dólar</span>
             <!-- Texto, e não number: quem digita "5,40" num campo numérico vê o
                  campo esvaziar, porque o navegador recusa a vírgula. -->
-            <input type="text" id="etp-cotacao" inputmode="decimal" value="5,40" oninput="etpRecalcular()">
+            <input type="text" id="etp-cotacao" data-obrig="Cotação do dólar" inputmode="decimal" value="5,40" oninput="etpRecalcular()">
           </div>
           <div class="etp-prod-topo">
             <span class="etp-prod-tit">Produtos</span>
@@ -6683,7 +6713,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
       </div>
       <div class="acp-linha" id="acp-linha-edicao" style="display:none;">
         <label class="ent-campo"><span class="acp-rot" data-ic="caixa">Status <b>*</b></span>
-          <select id="acp-status"></select></label>
+          <select id="acp-status"></select>
+          <small id="acp-status-dica" style="display:none;font-size:11px;color:var(--text-muted);margin-top:4px;"></small></label>
         <label class="ent-campo"><span class="acp-rot" data-ic="calendario">Previsão de chegada</span>
           <input id="acp-previsao" type="date"></label>
       </div>
@@ -13728,7 +13759,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01f';
+const APP_VERSAO='2026.09.01g';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -20295,6 +20326,31 @@ const ACP_STATUS=[
   {v:'PROBLEMA - extraviado',              c:'parado'},
   {v:'Cancelado',                          c:'parado'}
 ];
+
+/* ── Status da COMPRA ────────────────────────────────────────────────
+   Lista própria porque a compra tem um ciclo que transferência não tem:
+   ela é conferida e depois lançada na Base. Transferência segue com a
+   ACP_STATUS de cima — mexer nela mudaria uma aba que ninguém pediu. */
+const ACP_STATUS_COMPRA=[
+  {v:'Em trânsito',         c:'andando'},
+  {v:'Aguardando',          c:'espera'},
+  {v:'Entregue',            c:'andando'},
+  {v:'Pausado/Problema',    c:'parado'},
+  {v:'Atraso',              c:'parado'},
+  {v:'Saiu para entrega',   c:'andando'},
+  {v:'Aguardando pagamento',c:'espera'}
+];
+/* Estes dois ninguém escolhe à mão: são fato, não opinião. O primeiro o
+   sistema escreve quando a conferência fecha; o segundo, quando o robô do
+   n8n confirma que a entrada caiu na Base. Deixá-los no menu permitiria
+   dizer "lançado em estoque" sem nada ter sido lançado. */
+const ACP_ST_CONFERIDO='Entregue e Conferido';
+const ACP_ST_LANCADO  ='Entregue, Conferido e Lançado em estoque';
+const ACP_STATUS_AUTO =[ACP_ST_CONFERIDO, ACP_ST_LANCADO];
+
+function _acpListaStatus(tipo){
+  return (tipo||_acpTipo)==='compra' ? ACP_STATUS_COMPRA : ACP_STATUS;
+}
 let _acpTipo='compra';
 /* Cada tipo pergunta o que lhe diz respeito. Devolução não tem taxa de
    entrega nem warehouse de destino — o que volta não entra em armazém pela
@@ -20351,7 +20407,8 @@ function _acpPodeMexer(){
   return currentUser && (currentUser.master || (currentUser.perms||[]).includes('envios'));
 }
 function _acpClasseStatus(v){
-  const s=ACP_STATUS.find(x=>x.v===v);
+  if(ACP_STATUS_AUTO.indexOf(v)>=0) return 'pronto';   // os dois do sistema, em verde
+  const s=ACP_STATUS_COMPRA.find(x=>x.v===v) || ACP_STATUS.find(x=>x.v===v);
   if(s) return s.c;
   /* A devolução tem status próprios e o master ainda pode criar outros.
      Sem esta leitura pelo texto, tudo que ele criasse sairia cinza. */
@@ -20613,7 +20670,23 @@ function acpAbrir(tipo,id){
       try{ renderCustomOpts('acp-status', DEV_STATUS_BASE, 'customStatusDev', a?a.status:''); }
       catch(e){ sel.innerHTML=DEV_STATUS_BASE.map(v=>`<option${a&&a.status===v?' selected':''}>${v}</option>`).join(''); }
     }else{
-      sel.innerHTML=ACP_STATUS.map(s=>`<option${a&&a.status===s.v?' selected':''}>${s.v}</option>`).join('');
+      /* O status que o registro já tem entra na lista mesmo não estando nela:
+         compra antiga guarda "Aguardando rastreamento", e sem esta linha abrir
+         a ficha trocaria o status dela sozinho, na calada. O mesmo vale para
+         os dois automáticos — aparecem para não sumir, e desabilitados para
+         ninguém escrever à mão que algo foi lançado na Base. */
+      const lista=_acpListaStatus(t).slice();
+      const atual=a?String(a.status||''):'';
+      const auto=ACP_STATUS_AUTO.indexOf(atual)>=0;
+      if(atual && !lista.some(s=>s.v===atual)) lista.unshift({v:atual,c:_acpClasseStatus(atual),fixo:auto});
+      sel.innerHTML=lista.map(s=>
+        `<option${s.v===atual?' selected':''}${s.fixo?' disabled':''}>${s.v}</option>`).join('');
+      sel.disabled=auto;
+      const dica=document.getElementById('acp-status-dica');
+      if(dica){
+        dica.style.display=auto?'':'none';
+        dica.textContent=auto?'Este status é escrito pelo sistema — pela conferência e pelo robô do estoque.':'';
+      }
     }
   }
   const st=document.getElementById('acp-transportadora');
@@ -20765,9 +20838,17 @@ function acpSalvar(){
   /* Na criação, status e previsão não estão na tela — não podem ser lidos de
      um campo escondido, senão o registro novo nasceria com o valor que
      sobrou da última edição aberta. */
-  if(existente){ campos.status=v('acp-status'); campos.previsao=v('acp-previsao'); }
+  /* Status que o sistema escreveu não se deixa sobrescrever pelo <select>:
+     ele está desabilitado na tela, e select desabilitado não devolve valor. */
+  if(existente){
+    campos.status = (ACP_STATUS_AUTO.indexOf(existente.status)>=0)
+      ? existente.status : v('acp-status');
+    campos.previsao=v('acp-previsao');
+  }
   else{
-    campos.status = (tipo==='devolucao') ? (DEV_STATUS_BASE[0]||'Em devolução') : 'Aguardando rastreamento';
+    campos.status = (tipo==='devolucao') ? (DEV_STATUS_BASE[0]||'Em devolução')
+                  : (tipo==='compra')    ? 'Aguardando'
+                                         : 'Aguardando rastreamento';
     campos.previsao='';
     if(tipo==='devolucao') campos.etapa='aberta';
   }
@@ -20950,6 +21031,17 @@ function acpVerAba(ab){ _acpVerAba=ab; _acpVerRender(); }
    A Etapa 3 existia para duas coisas: escolher o armazém e conferir cada
    produto (vencimento, preços, peso). As duas passaram para cá — os
    Detalhes da Compra, que é onde se olha a compra depois que ela chega. */
+/* O produto está na Base quando a entrada dele saiu da fila lançada. É o
+   robô do n8n que carimba isso; aqui só se lê. Sem entrada na fila a resposta
+   é não — conferido ainda não é lançado. */
+function _acpProdutoNaBase(a,nome){
+  if(!a || !nome) return false;
+  const alvo=String(nome).trim().toLowerCase();
+  const e=(appState.entradasEstoque||[]).find(x=>x && x.origemAcpId===a.id
+    && String(x.nome||'').trim().toLowerCase()===alvo);
+  return !!(e && e.status==='lancado');
+}
+
 function acpVerArmazem(v){
   const a=_acpVerReg(); if(!a) return;
   a.armazem=String(v||'');
@@ -20982,6 +21074,12 @@ function _acpVerPintarArmazem(){
 function acpConferirProduto(idCompra,produto){
   const a=(appState.acompanhamentos||[]).find(x=>x&&x.id===idCompra);
   if(!a){ showToast('Compra não encontrada','warn'); return; }
+  /* Conferido não reabre. O botão já nem aparece nesse estado; esta guarda é
+     para o caminho de teclado e para quem chamar a função de fora. */
+  if((((a.etapas||{}).lanc||{}).produtos||{})[produto]){
+    showToast('Produto já conferido — para corrigir, reabra a conferência na Etapa 2','warn');
+    return;
+  }
   _etpIdAntesDoModal=_etpId;
   _etpId=idCompra;
   const e=_etpDados(a);
@@ -21096,16 +21194,37 @@ function _acpVerRender(){
         const tot=(Number(p.qtd)||1)*(Number(p.custo)||0);
         const nome=String(p.nome||'');
         const conf=(lanc.produtos||{})[nome];
-        return `<div class="dv-prod">
+        /* Três estados, e cada um com uma cor: falta conferir (neutro),
+           conferido (azul) e já na Base (verde). O conferido não volta a
+           abrir o formulário — vencimento e preços viram custo lá na frente,
+           e reescrever depois mudaria número que já saiu daqui. Corrigir é
+           possível pelo caminho explícito: reabrir a conferência na Etapa 2. */
+        const naBase=_acpProdutoNaBase(a,nome);
+        const est=naBase?'estoque':(conf?'conferido':'');
+        const svgOk='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3"/><path d="m8.4 12.2 2.4 2.4 4.8-4.8"/></svg>';
+        const svgBase='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>';
+        /* Vencimento e preços só existem depois da conferência — mostrá-los
+           antes seria três traços ocupando linha. */
+        const extras=conf?[
+          conf.vencimento    ?`Vencimento: <b>${esc(conf.vencimento)}</b>`:'',
+          conf.precoPadrao   ?`Preço ML: <b>R$ ${esc(conf.precoPadrao)}</b>`:'',
+          conf.precoAtacado  ?`Preço Atacado: <b>R$ ${esc(conf.precoAtacado)}</b>`:'',
+          conf.precoSite     ?`Preço Site: <b>R$ ${esc(conf.precoSite)}</b>`:''
+        ].filter(Boolean):[];
+        return `<div class="dv-prod${est?' '+est:''}">
           <div style="min-width:0;">
             <div class="n">${esc(nome||'—')}${p.sku?(' - '+esc(p.sku)):''}</div>
-            <div class="d">Quantidade: <b>${p.qtd||1}</b> &nbsp; Custo: <b>${_pedFmt(p.custo||0)}</b> &nbsp; Total: <b>${_pedFmt(tot)}</b>
-              ${conf?`<br><span style="color:var(--tom-verde);">✓ conferido por ${esc(conf.conferidoPor||'—')}${conf.conferidoEm?(' · '+esc(conf.conferidoEm)):''}</span>`:''}</div>
+            <div class="d">Quantidade: <b>${p.qtd||1}</b> &nbsp; Custo: <b>${_pedFmt(p.custo||0)}</b> &nbsp; Total: <b>${_pedFmt(tot)}</b></div>
+            ${extras.length?`<div class="extra">${extras.join(' &nbsp; ')}</div>`:''}
+            ${conf?`<div class="marca">✓ ${naBase?'no estoque · conferido':'conferido'} por ${esc(conf.conferidoPor||'—')}${conf.conferidoEm?(' · '+esc(conf.conferidoEm)):''}</div>`:''}
           </div>
-          ${(pode&&a.tipo==='compra')?`<button type="button" class="btn-sec${conf?' dv-conferido':''}"
-              onclick="acpConferirProduto('${esc(a.id)}','${esc(nome).replace(/'/g,'&#39;')}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3.6" y="3.6" width="16.8" height="16.8" rx="3"/><path d="m8.4 12.2 2.4 2.4 4.8-4.8"/></svg>
-              ${conf?'Conferido':'Conferir'}</button>`:''}
+          ${naBase
+            ? `<span class="dv-selo estoque">${svgBase}No Estoque</span>`
+            : conf
+              ? `<span class="dv-selo conferido">${svgOk}Conferido</span>`
+              : ((pode&&a.tipo==='compra')?`<button type="button" class="btn-sec"
+                  onclick="acpConferirProduto('${esc(a.id)}','${esc(nome).replace(/'/g,'&#39;')}')">
+                  ${svgOk}Conferir</button>`:'')}
         </div>`;
       }).join(''):'<div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Nenhum produto listado neste registro.</div>'}
       <div class="dv-taxa">Taxa de Entrega: ${_pedFmt(taxa)}</div>
@@ -21139,11 +21258,17 @@ function _acpVerRender(){
     const rod=document.getElementById('acp-ver-rodape');
     const arqBtn=document.getElementById('acp-ver-arquivar');
     if(rod && a.tipo==='compra' && pode && cf.travado){
+      /* Três leituras diferentes, e o botão diz qual é: ainda por lançar,
+         na fila esperando o robô, e já na Base. "Lançado" enquanto a fila não
+         foi lida diria que o estoque subiu quando ninguém somou nada. */
+      const naBase=itens.length && itens.every(p=>_acpProdutoNaBase(a,String(p.nome||'')));
       const b=document.createElement('button');
       b.id='acp-ver-lancar';
       b.className='btn btn-sm';
       b.style.cssText='width:auto;';
-      b.textContent=lc.travado?'✓ Lançado no estoque':'Lançar no estoque';
+      b.textContent=naBase?'✓ Compra em Estoque'
+                  :lc.travado?'Na fila do estoque…'
+                  :'Lançar no estoque';
       b.disabled=!!lc.travado;
       b.onclick=()=>acpLancarEstoque();
       rod.insertBefore(b, arqBtn||null);
@@ -21487,7 +21612,7 @@ function etpRenderEtapa1(){
   box.innerHTML=e.orc.itens.map((it,i)=>
     `<div class="acp-prod etp-prod-card">
       <label class="acp-sug-wrap etp-prod"><span>Nome do Produto <b style="color:var(--lo-azul);">*</b></span>
-        <input type="text" value="${_etpEsc(it.produto)}" placeholder="Digite o nome — o SKU vem do catálogo" ${trav?'disabled':''}
+        <input type="text" data-obrig="Nome do produto" value="${_etpEsc(it.produto)}" placeholder="Digite o nome — o SKU vem do catálogo" ${trav?'disabled':''}
           autocomplete="off"
           oninput="etpCampoItem(${i},'produto',this.value);etpSugerir(this,${i})"
           onfocus="etpSugerir(this,${i})" onblur="etpFecharSug(this)">
@@ -21495,10 +21620,10 @@ function etpRenderEtapa1(){
       <label><span>SKU</span>
         <input type="text" id="etp-sku-${i}" value="${_etpEsc(it.sku)}" placeholder="do catálogo" readonly></label>
       <label><span>Quantidade <b style="color:var(--lo-azul);">*</b></span>
-        <input type="text" inputmode="numeric" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
+        <input type="text" inputmode="numeric" data-obrig="Quantidade" value="${_etpEsc(it.compra)}" placeholder="0" ${trav?'disabled':''}
           oninput="etpCampoItem(${i},'compra',this.value)"></label>
       <label><span>Preço unitário $ <b style="color:var(--lo-azul);">*</b></span>
-        <input type="text" inputmode="decimal" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
+        <input type="text" inputmode="decimal" data-obrig="Preço unitário" value="${_etpEsc(it.preco)}" placeholder="0,00" ${trav?'disabled':''}
           oninput="etpCampoItem(${i},'preco',this.value)"></label>
       ${trav?'<span></span>':`<button class="acp-prod-x" title="Remover produto" onclick="etpRemoverProduto(${i})">&#10005;</button>`}
     </div>`).join('')
@@ -21630,9 +21755,9 @@ function etpRenderEtapa2(){
   document.getElementById('etp-rastreios').innerHTML=e.conf.rastreios.map((r,i)=>
     `<div class="etp-rt">
       <span class="n">Rastreio ${i+1}</span>
-      <input type="text" value="${_etpEsc(r.codigo)}" placeholder="código" ${trav?'disabled':''}
+      <input type="text" data-obrig="Código do rastreio ${i+1}" value="${_etpEsc(r.codigo)}" placeholder="código" ${trav?'disabled':''}
         oninput="etpCampoRastreio(${i},'codigo',this.value)">
-      <input type="text" inputmode="decimal" value="${_etpEsc(r.valor)}" placeholder="0,00" ${trav?'disabled':''}
+      <input type="text" inputmode="decimal" data-obrig="Valor do rastreio ${i+1}" value="${_etpEsc(r.valor)}" placeholder="0,00" ${trav?'disabled':''}
         oninput="etpCampoRastreio(${i},'valor',this.value)">
       ${(i>0&&!trav)?`<button class="etp-x" title="Remover" onclick="etpRemoverRastreio(${i})">×</button>`:'<span></span>'}
     </div>`).join('');
@@ -21658,11 +21783,14 @@ function etpRenderEtapa2(){
       <div class="etp-lido" title="${_etpEsc(l.produto)}" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${_etpEsc(l.produto)||'—'}</div>
       <div class="etp-lido">${_etpEsc(l.sku)||'—'}</div>
       <div class="etp-lido">${l.preco?_etpBR(l.preco):'—'}</div>
-      <div><input type="text" inputmode="decimal" value="${_etpEsc((e.conf.linhas[l.i]||{}).peso)}" placeholder="0,00"
+      <div><input type="text" inputmode="decimal" data-obrig="Peso de ${_etpEsc(l.produto)||('produto '+(l.i+1))}"
+        value="${_etpEsc((e.conf.linhas[l.i]||{}).peso)}" placeholder="0,00"
         ${trav?'disabled':''} oninput="etpCampoLinha(${l.i},'peso',this.value)"></div>
       <div class="etp-lido" data-etp="pesotot-${l.i}">${_etpBR(l.pesoTotal)}</div>
       <div class="etp-lido" data-etp="custo-${l.i}">${_etpBR(l.custo)}</div>
-      ${e.conf.rastreios.map((r,k)=>`<div><input type="text" inputmode="numeric" value="${_etpEsc(l.caixas[k])}" placeholder="0"
+      ${e.conf.rastreios.map((r,k)=>`<div><input type="text" inputmode="numeric" placeholder="0"
+        data-obrig="Rastreio ${k+1} de ${_etpEsc(l.produto)||('produto '+(l.i+1))}"
+        value="${_etpEsc(l.caixas[k])}"
         ${trav?'disabled':''} oninput="etpCampoLinha(${l.i},'caixa',this.value,${k})"></div>`).join('')}
     </div>`;
   }).join('') || '<div class="etp-lido" style="padding:16px;text-align:center;">Confirme o orçamento para a conferência aparecer aqui.</div>';
@@ -21806,20 +21934,71 @@ function etpCalc(){
   document.getElementById('etp-calc-nf').textContent='R$ '+_etpBR(nf);
 }
 
+/* ── PREENCHIMENTO OBRIGATÓRIO ───────────────────────────────────────
+   Nenhuma etapa fecha com campo em branco. O que sobra em branco fica
+   vermelho e a etapa avisa quantos faltam — em vez de um toast genérico que
+   manda procurar numa tela de trinta campos.
+
+   As exceções são os custos que nem sempre existem numa compra: o kg cobrado
+   pela transportadora e as cinco linhas de frete. Compra que veio sem Frete
+   Usa 2 não tem Frete Usa 2, e exigir zero ali seria pedir para inventar
+   número. Correios e Extravio não entram na conta porque são calculados —
+   ninguém digita neles.
+
+   O SKU também fica de fora: ele é readonly e vem do catálogo da Base.
+   Exigi-lo impediria de registrar produto que ainda não está lá, que é
+   justamente o caso em que a compra precisa gerar o cadastro. */
+const ETP_CUSTOS_OPCIONAIS=['Frete Usa 1','Frete Usa 2','Transportadora','Frete Azul','Taxa SP','Correios','Extravio'];
+
+function _etpCamposFaltando(n){
+  const pag=document.getElementById('etp-p'+n);
+  if(!pag) return [];
+  return [...pag.querySelectorAll('[data-obrig]')].filter(el=>{
+    if(el.disabled || el.readOnly) return false;
+    return !String(el.value||'').trim();
+  });
+}
+
+function _etpLimparFalta(n){
+  const pag=document.getElementById('etp-p'+n); if(!pag) return;
+  pag.querySelectorAll('.etp-falta').forEach(el=>el.classList.remove('etp-falta'));
+  const av=pag.querySelector('.etp-aviso-falta'); if(av) av.remove();
+}
+
+/* Devolve true quando pode seguir. Quando não pode, pinta e explica. */
+function _etpValidarEtapa(n){
+  _etpLimparFalta(n);
+  const faltam=_etpCamposFaltando(n);
+  if(!faltam.length) return true;
+
+  faltam.forEach(el=>el.classList.add('etp-falta'));
+  const pag=document.getElementById('etp-p'+n);
+  const av=document.createElement('div');
+  av.className='etp-aviso-falta';
+  const nomes=faltam.map(el=>el.dataset.obrig).filter(Boolean);
+  const amostra=nomes.slice(0,3).join(', ')+(nomes.length>3?` e mais ${nomes.length-3}`:'');
+  av.innerHTML='<span>Preenchimento Obrigatório</span>'
+    +`<span class="quantos">— ${faltam.length} campo${faltam.length>1?'s':''} em branco: ${_etpEsc(amostra)}</span>`;
+  const titulo=pag.querySelector('.etp-h');
+  if(titulo && titulo.nextSibling) pag.insertBefore(av, titulo.nextSibling);
+  else pag.insertBefore(av, pag.firstChild);
+
+  faltam[0].scrollIntoView({block:'center', behavior:'smooth'});
+  try{ faltam[0].focus({preventScroll:true}); }catch(err){}
+  showToast('Preenchimento Obrigatório — '+faltam.length+' campo(s) em branco','warn');
+  return false;
+}
+
 // ── Confirmar / reabrir cada etapa ──────────────────────────────────
 function etpConfirmar(n){
   const a=_etpCompra(); if(!a) return;
   const e=_etpDados(a);
   if(n===1){
     if(!e.orc.travado){
-      const semNome=e.orc.itens.some(it=>!String(it.produto||'').trim());
-      if(!String(e.orc.loja||'').trim()){
-        showToast('Informe o nome da loja','warn');
-        const el=document.getElementById('etp-loja'); if(el) el.focus();
-        return;
-      }
+      /* Sem produto nenhum não há o que validar campo a campo — a caixa
+         pontilhada é que precisa ser respondida. */
       if(!e.orc.itens.length){ showToast('Adicione ao menos um produto','warn'); return; }
-      if(semNome){ showToast('Há produto sem nome no orçamento','warn'); return; }
+      if(!_etpValidarEtapa(1)) return;
       /* Rastreio repetido entre compras quase sempre é a mesma caixa
          cadastrada duas vezes — e duas linhas para a mesma caixa fazem a
          conferência ser feita duas vezes, ou nenhuma. */
@@ -21838,15 +22017,28 @@ function etpConfirmar(n){
   }
   if(n===2){
     if(!e.orc.travado){ showToast('Confirme o orçamento primeiro','warn'); return; }
+    if(!e.conf.travado && !_etpValidarEtapa(2)) return;
     e.conf.travado=!e.conf.travado;
     if(!e.conf.travado) e.lanc.travado=false;
+    /* Fechou a conferência: a compra chegou e foi conferida, e é isso que a
+       tabela passa a dizer, em verde. Reabrir desfaz — o status volta a ser
+       escolha de quem toca a compra, e "Entregue" é onde ela estava. */
+    if(e.conf.travado){
+      a.status=ACP_ST_CONFERIDO;
+      a.atualizadoEm=_agoraCarimbo();
+    }else if(ACP_STATUS_AUTO.indexOf(a.status)>=0){
+      a.status='Entregue';
+      a.atualizadoEm=_agoraCarimbo();
+    }
   }
   /* Confirmou, o trabalho seguinte é a etapa de baixo — a tela vai junto em
      vez de deixar a pessoa procurar onde continuar. Reabrir faz o contrário:
      fica onde está, que é onde ela quer mexer. */
   if(n===1 && e.orc.travado) _etpAba=2;
+  _etpLimparFalta(n);
   saveState(appState);
   etpRender();
+  try{ renderAcompanhamento(); }catch(err){}
   showToast('Etapa confirmada','success');
 }
 
@@ -21872,8 +22064,41 @@ function _etpLancarNoEstoque(a,e,c){
       criadoPor:currentUser?currentUser.name:'', criadoPorKey:currentUser?currentUser.key:''
     });
   });
-  a.status='Lançado no estoque';
+  /* Lançar aqui é entrar na fila, não estar na Base. O status só vira
+     "Lançado em estoque" quando o robô do n8n confirmar que a entrada caiu —
+     escrever antes seria a tela dizer que o estoque subiu enquanto a fila
+     ainda nem foi lida. Quem faz a virada é _acpReconciliarLancamentos(). */
   a.atualizadoEm=carimbo;
+}
+
+/* ── O QUE O ROBÔ DEVOLVE ────────────────────────────────────────────
+   O n8n marca cada entrada da fila como 'lancado' depois de somar o saldo na
+   Base. Quando todas as entradas de uma compra chegam nesse ponto, a compra
+   terminou: ganha o status final, em verde, e vai para os arquivados — não há
+   mais nada a fazer com ela, e deixá-la na lista ativa só empurra para baixo
+   as compras que ainda pedem trabalho.
+
+   Roda no desenho da lista, e não num gatilho: o robô escreve na Base e o
+   estado volta pela nuvem, sem passar por nenhum clique daqui. */
+function _acpReconciliarLancamentos(){
+  const fila=appState.entradasEstoque;
+  if(!Array.isArray(fila) || !fila.length) return false;
+  let mudou=false;
+  (appState.acompanhamentos||[]).forEach(a=>{
+    if(!a || a.tipo!=='compra' || a.arquivado) return;
+    if(!((a.etapas||{}).lanc||{}).travado) return;
+    if(a.status===ACP_ST_LANCADO) return;
+    const minhas=fila.filter(x=>x && x.origemAcpId===a.id);
+    if(!minhas.length) return;
+    if(!minhas.every(x=>x.status==='lancado')) return;
+    a.status=ACP_ST_LANCADO;
+    a.arquivado=true;
+    a.arquivadoEm=_agoraCarimbo();
+    a.atualizadoEm=a.arquivadoEm;
+    mudou=true;
+  });
+  if(mudou){ try{ saveState(appState); }catch(err){} }
+  return mudou;
 }
 
 // ── Desenho geral ───────────────────────────────────────────────────
@@ -21935,11 +22160,14 @@ function etpRender(){
 }
 
 const ACP_COLUNAS={
+  /* Compra não tem "Previsão": a data que valia era a do rastreio, que já
+     mora na coluna ao lado, e quem compra dos EUA não recebe previsão de
+     ninguém — a coluna vivia em N/A. E quem vende para nós é fornecedor. */
   compra:[
-    {c:'data',rot:'Data',ord:1},{c:'loja',rot:'Loja/Cliente',ord:1},
+    {c:'data',rot:'Data',ord:1},{c:'loja',rot:'Fornecedor',ord:1},
     {c:'rastreio',rot:'Rastreio',ord:1},{c:'itens',rot:'Produtos',ord:1},
     {c:'status',rot:'Status',ord:1},{c:'atualizado',rot:'Última Atualização',ord:1},
-    {c:'previsao',rot:'Previsão',ord:1},{c:'acoes',rot:'Ações',dir:1}
+    {c:'acoes',rot:'Ações',dir:1}
   ],
   transferencia:[
     {c:'data',rot:'Data',ord:1},{c:'loja',rot:'Origem → Destino',ord:1},
@@ -22070,6 +22298,9 @@ function _acpStatusAntigo(d){
 }
 
 function renderAcompanhamento(){
+  /* Antes de desenhar: o robô pode ter lançado na Base desde a última vez,
+     e a compra que terminou não deve reaparecer na lista de trabalho. */
+  try{ _acpReconciliarLancamentos(); }catch(err){}
   const seg=document.querySelectorAll('#acp-seg .etp-passo');
   seg.forEach(b=>b.classList.toggle('ativo', b.dataset.t===_acpTipo));
   const btnAdd=document.getElementById('acp-btn-add');
