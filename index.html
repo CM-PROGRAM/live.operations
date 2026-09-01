@@ -10993,6 +10993,50 @@ function _estadoSemColecoes(s){
   return copia;
 }
 
+/* ── O QUE FOI DIGITADO À MÃO NÃO SE APAGA SOZINHO ───────────────────
+   A agenda do WhatsLive é escrita por duas mãos: a varredura do Chatwoot,
+   que traz milhares de contatos com nome genérico e sem CPF, e a pessoa que
+   abre a conversa e preenche nome, sobrenome e CPF.
+
+   Como o registro que chega da nuvem substitui o daqui por inteiro, a
+   varredura seguinte devolvia o mesmo contato com "Contato" e sem CPF — e
+   o cadastro feito na tela sumia de todas as sessões, sem ninguém tocar em
+   nada. Foi o que aconteceu com os contatos do Gustavo em 01/09.
+
+   A regra aqui é estreita de propósito: campo digitado à mão só é
+   substituído por outro campo digitado à mão. Registro que chega sem o
+   dado não apaga o que existe, e o mais recente ganha quando os dois têm.
+   Vale só para a agenda — as outras coleções continuam com a regra antiga,
+   que é a certa para dado que só o robô escreve. */
+const _CAMPOS_DIGITADOS={ waContatos:['nome','sobrenome','cpf'] };
+
+function _preservarDigitados(nome,reg,daqui){
+  const campos=_CAMPOS_DIGITADOS[nome];
+  if(!campos || !daqui) return reg;
+  const tsDaqui=Number(daqui.atualizadoEm)||0;
+  const tsNovo =Number(reg.atualizadoEm)||0;
+  /* "Contato" é o nome que a varredura inventa quando não sabe o nome. Vale
+     tanto quanto vazio dos DOIS lados: como valor que chega, não derruba o
+     que está aqui; como valor que está aqui, não segura o que chega. Sem a
+     segunda metade, um contato já apagado ficaria preso em "Contato" para
+     sempre — e é justamente pela varredura que o nome volta, porque o
+     cadastro da tela também é enviado ao Chatwoot. */
+  const generico=(k,v)=>k==='nome' && String(v||'').trim()==='Contato';
+  campos.forEach(k=>{
+    const vemVazio=!String(reg[k]==null?'':reg[k]).trim() || generico(k,reg[k]);
+    const temAqui = !!String(daqui[k]==null?'':daqui[k]).trim() && !generico(k,daqui[k]);
+    if(!temAqui) return;
+    if(vemVazio || tsNovo<tsDaqui){ reg[k]=daqui[k]; }
+  });
+  /* O carimbo acompanha o dado: senão a próxima chegada acharia que o de
+     lá é mais novo e desfaria isto na volta seguinte. */
+  if(tsDaqui>tsNovo){
+    reg.atualizadoEm=daqui.atualizadoEm;
+    if(daqui.atualizadoPor) reg.atualizadoPor=daqui.atualizadoPor;
+  }
+  return reg;
+}
+
 // Aplica um registro recebido de outro usuário
 function _aplicarRegistroRemoto(nome,acc,chave,valor){
   if(!valor || valor._by===_sessionId) return false;   // eco da própria sessão
@@ -11019,6 +11063,7 @@ function _aplicarRegistroRemoto(nome,acc,chave,valor){
       const juntos=_fundirComentarios(reg.comentarios,_listaComentarios(daqui));
       if(juntos.length) reg.comentarios=juntos;
     }
+    _preservarDigitados(nome,reg,daqui);
     alvo[i]=reg;
   } else alvo.push(reg);
   _regEnviado[nome]=_regEnviado[nome]||{};
@@ -13813,7 +13858,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01m';
+const APP_VERSAO='2026.09.01n';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
