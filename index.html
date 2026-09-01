@@ -2600,7 +2600,9 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .sd-linha span{font-family:var(--font-mono);font-size:11.5px;color:var(--text-secondary);}
 .sd-linha i{font-style:normal;font-family:var(--font-mono);font-size:10.5px;color:var(--text-muted);min-width:74px;text-align:right;}
 
-/* Registros excluídos: ver e apagar, um botão redondo cada */
+/* Ver e apagar, um botão redondo cada. A tela de Registros excluídos saiu
+   em 31/08 a pedido do master; as classes ficam porque o mesmo par de
+   botões serve a qualquer lista que venha a precisar dele. */
 .rx-acao{width:30px;height:30px;border-radius:50%;border:1px solid var(--lo-azul);background:var(--lo-azul);color:#fff;
   cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;transition:filter .15s;}
 .rx-acao:hover{filter:brightness(1.12);}
@@ -2639,6 +2641,51 @@ body.menu-oculto .sb-atu-txt{display:none;}
   .conf-cab{display:none;}
 }
 .users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
+/* ── EQUIPE ─────────────────────────────────────────────────────────
+   Mesmo desenho de Desempenho Equipe e Dados & Backup: cartão em
+   relevo, azul da casa no que é título, e o interruptor onde ele
+   pertence. Nada de cor nova. */
+.eq-online{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+.eq-pessoa{position:relative;display:flex;align-items:center;gap:12px;border-radius:14px;padding:13px 15px;
+  background:linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-card) 65%, var(--bg-active) 100%);
+  border:1px solid var(--glass-border);
+  box-shadow:0 8px 20px rgba(15,23,42,.09), 0 1px 0 rgba(255,255,255,.5) inset;}
+:root:not([data-theme="light"]) .eq-pessoa{box-shadow:0 10px 24px rgba(0,0,0,.38), 0 1px 0 rgba(255,255,255,.05) inset;}
+.eq-pessoa.fora{opacity:.62;}
+.eq-selo{position:absolute;right:-2px;bottom:-2px;width:11px;height:11px;border-radius:50%;border:2px solid var(--bg-card);}
+.eq-selo.on{background:#22c55e;box-shadow:0 0 8px rgba(34,197,94,.9);animation:pulse 2s infinite;}
+.eq-selo.off{background:#94a3b8;}
+.eq-nome{font-size:14px;font-weight:700;color:var(--text-primary);letter-spacing:-.01em;}
+.eq-quando{font-size:11px;color:var(--text-muted);margin-top:2px;line-height:1.45;}
+.eq-tag{display:inline-block;font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;
+  font-family:var(--font-mono);color:var(--lo-azul);background:rgba(37,99,235,.10);
+  border:1px solid rgba(37,99,235,.32);border-radius:999px;padding:1px 7px;margin-left:6px;vertical-align:1px;}
+
+/* O cartão de cada pessoa nas permissões */
+.eq-grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px;}
+.eq-card{border-radius:16px;padding:16px 18px;background:var(--bg-surface);
+  border:1px solid var(--glass-border);box-shadow:0 8px 22px rgba(15,23,42,.08);}
+:root:not([data-theme="light"]) .eq-card{box-shadow:0 10px 26px rgba(0,0,0,.34);}
+.eq-card-topo{display:flex;align-items:center;gap:11px;padding-bottom:13px;border-bottom:1px solid var(--border);}
+.eq-dados{margin:12px 0;display:flex;flex-direction:column;gap:9px;}
+.eq-campo{display:flex;align-items:center;gap:9px;font-size:12px;min-width:0;}
+.eq-campo>span:first-child{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;
+  color:var(--text-muted);font-family:var(--font-mono);min-width:52px;flex-shrink:0;}
+.eq-campo .valor{color:var(--text-primary);font-weight:600;word-break:break-all;flex:1;min-width:0;}
+.eq-campo .valor.falta{color:#f59e0b;}
+.eq-mini{background:none;border:1px solid var(--lo-azul);color:var(--lo-azul);border-radius:7px;
+  font-size:10.5px;font-weight:700;padding:3px 9px;cursor:pointer;flex-shrink:0;transition:background .15s,color .15s;}
+.eq-mini:hover{background:var(--lo-azul);color:#fff;}
+.eq-secao{font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text-muted);
+  font-family:var(--font-mono);margin:14px 0 7px;}
+
+/* Novo usuário: um formulário que cabe, com os campos em coluna e o
+   botão embaixo — antes eram três caixas espremidas numa linha só. */
+.eq-novo{border-radius:16px;padding:18px 20px;margin-top:16px;
+  background:linear-gradient(145deg, var(--bg-surface), var(--bg-active));
+  border:1px dashed var(--glass-border);}
+.eq-novo-grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:12px 0 14px;}
+.eq-novo .input-group{margin:0;}
 .user-card{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:13px;}
 .user-card-header{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
 .user-card-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;font-family:var(--font-mono);position:relative;text-shadow:0 1px 3px rgba(0,0,0,.6);}
@@ -2648,13 +2695,24 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .perm-row{display:flex;align-items:center;justify-content:space-between;font-size:12px;color:var(--text-secondary);}
 .perm-toggle{position:relative;width:36px;height:19px;flex-shrink:0;}
 .perm-toggle input{display:none;}
-.perm-toggle-track{position:absolute;inset:0;background:linear-gradient(180deg,#3f3838,#26201f);border:1px solid rgba(0,0,0,.6);border-radius:10px;cursor:pointer;transition:all .25s;box-shadow:inset 0 2px 4px rgba(0,0,0,.6);overflow:hidden;}
-.perm-toggle input:checked+.perm-toggle-track{background:linear-gradient(180deg,#3f5c49,#2b4536);border-color:#5a8067;box-shadow:inset 0 2px 4px rgba(0,0,0,.35),0 0 6px rgba(74,157,105,.35);}
-.perm-toggle-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;background:radial-gradient(circle at 35% 30%,#a97e7e,#5f3838);border-radius:50%;transition:all .25s;pointer-events:none;box-shadow:0 2px 3px rgba(0,0,0,.7),inset 0 1px 1px rgba(255,255,255,.18);z-index:2;}
-.perm-toggle input:checked+.perm-toggle-track+.perm-toggle-thumb{left:21px;background:radial-gradient(circle at 35% 30%,#d6e8da,#8fae9a);}
+/* O interruptor era marrom e verde-musgo — as duas únicas cores do
+   sistema que não existem em lugar nenhum além daqui. Agora é cinza
+   quando desligado e o azul da casa quando ligado. */
+.perm-toggle-track{position:absolute;inset:0;background:linear-gradient(180deg,#cbd5e1,#94a3b8);
+  border:1px solid rgba(20,30,55,.18);border-radius:10px;cursor:pointer;transition:all .25s;
+  box-shadow:inset 0 2px 3px rgba(15,23,42,.28);overflow:hidden;}
+:root:not([data-theme="light"]) .perm-toggle-track{background:linear-gradient(180deg,#3a4356,#242c3b);border-color:rgba(0,0,0,.5);}
+.perm-toggle input:checked+.perm-toggle-track{background:linear-gradient(180deg,#3b82f6,var(--lo-azul));
+  border-color:var(--lo-azul);box-shadow:inset 0 2px 3px rgba(15,23,42,.22),0 0 7px rgba(37,99,235,.42);}
+.perm-toggle-thumb{position:absolute;top:2px;left:2px;width:13px;height:13px;
+  background:radial-gradient(circle at 35% 30%,#ffffff,#e2e8f0);border-radius:50%;transition:all .25s;
+  pointer-events:none;box-shadow:0 2px 3px rgba(15,23,42,.45),inset 0 1px 1px rgba(255,255,255,.9);z-index:2;}
+.perm-toggle input:checked+.perm-toggle-track+.perm-toggle-thumb{left:21px;
+  background:radial-gradient(circle at 35% 30%,#ffffff,#dbeafe);}
+.perm-toggle input:disabled+.perm-toggle-track{opacity:.45;cursor:default;}
 .perm-toggle-label{position:absolute;top:0;height:100%;display:flex;align-items:center;font-size:6.5px;font-weight:800;letter-spacing:.3px;pointer-events:none;transition:opacity .2s;font-family:var(--font-mono);z-index:1;}
 .perm-toggle-label.pt-on{left:5px;opacity:0;color:#fff;}
-.perm-toggle-label.pt-off{right:5px;opacity:1;color:rgba(255,255,255,.45);}
+.perm-toggle-label.pt-off{right:5px;opacity:1;color:rgba(255,255,255,.75);}
 .perm-toggle input:checked~.perm-toggle-label.pt-on{opacity:1;}
 .perm-toggle input:checked~.perm-toggle-label.pt-off{opacity:0;}
 .new-user-form{background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:end;margin-top:14px;}
@@ -5338,7 +5396,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                   antigos em memória e regrava por cima do que você acabou de arrumar. Você continua
                   conectado.<br>
                   <b>Excluir solicitações sem responsável</b> apaga as que ficaram sem colaborador — elas
-                  nunca notificaram ninguém. Tudo vai para Registros excluídos e pode voltar de lá.
+                  nunca notificaram ninguém. Uma cópia inteira de cada uma fica guardada na nuvem —
+                  a tela que a mostrava saiu, mas o registro continua lá e pode ser recuperado.
                 </div>
               </div>
             </div>
@@ -5346,40 +5405,21 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
-      <!-- ═══ REGISTROS EXCLUÍDOS ═══
-           Nada some de verdade: o registro inteiro vem para cá com quem
-           excluiu e quando. Sem prazo de validade — quem decide o que sai
-           é o master, pela lixeira. -->
-      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="arquivo-panel">
+      <!-- ═══ LINKS DAS TAREFAS ═══
+           Veio de Equipe (31/08): não é permissão de ninguém — é
+           configuração do sistema, que é o que esta seção guarda. -->
+      <div class="admin-panel adm-sec" data-sec="dados" style="display:none;" id="links-panel">
         <div class="conf-topo">
-          <button type="button" class="conf-sanfona" onclick="pnlSanfona('arquivo')" title="Recolher ou abrir">
-            <span class="conf-chevron" id="pnl-chevron-arquivo">▾</span>
+          <button type="button" class="conf-sanfona" onclick="pnlSanfona('links')" title="Recolher ou abrir">
+            <span class="conf-chevron" id="pnl-chevron-links">▾</span>
             <span>
-              <span class="conf-titulo">Registros excluídos
-                <span id="arq-count" style="font-size:15px;font-weight:700;color:var(--text-muted);font-family:var(--font-mono);">0</span>
-              </span>
-              <span class="conf-sub">Tudo o que foi excluído fica aqui. O olho abre o registro inteiro; a lixeira apaga de vez.</span>
+              <span class="conf-titulo">Links das tarefas</span>
+              <span class="conf-sub">O endereço que cada tarefa abre. Quem faz a tarefa é decidido no cartão da pessoa, em Permissões LiveOps.</span>
             </span>
           </button>
-          <button class="btn btn-sm" onclick="event.stopPropagation();carregarArquivo()">↻ Atualizar</button>
         </div>
-        <div id="pnl-corpo-arquivo">
-          <div class="conf-filtros">
-            <select id="arq-area" onchange="renderArquivo()">
-              <option value="">Todas as áreas</option>
-              <option value="tarefa">Tarefas</option>
-              <option value="devolucao">Devoluções</option>
-              <option value="atendimento">Atendimentos</option>
-              <option value="integracao">Integração</option>
-              <option value="excluirintbase">Exclusão Integração</option>
-              <option value="atualizacaocatalogo">Atualização Catálogo</option>
-              <option value="entrada">Entrada</option>
-              <option value="imagens">Imagens</option>
-              <option value="projeto">Projetos</option>
-            </select>
-            <input type="text" id="arq-busca" oninput="renderArquivo()" placeholder="🔎 Buscar por conteúdo, quem excluiu...">
-          </div>
-          <div id="arq-lista" class="conf-tabela"></div>
+        <div id="pnl-corpo-links">
+          <div id="task-assign-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
         </div>
       </div>
 
@@ -5438,36 +5478,57 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
       </div>
 
+      <!-- ═══ USUÁRIOS ONLINE ═══ -->
       <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div class="admin-title" style="margin-bottom:0;">🟢 Quem está no sistema
-            <span id="online-count" style="background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.4);border-radius:10px;color:var(--tom-verde);font-size:11px;font-family:var(--font-mono);font-weight:700;padding:1px 9px;margin-left:6px;">0</span>
-          </div>
-          <span style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);">atualiza sozinho</span>
+        <div class="conf-topo">
+          <button type="button" class="conf-sanfona" onclick="pnlSanfona('online')" title="Recolher ou abrir">
+            <span class="conf-chevron" id="pnl-chevron-online">▾</span>
+            <span>
+              <span class="conf-titulo">Usuários online
+                <span id="online-count" class="eq-tag">0</span>
+              </span>
+              <span class="conf-sub">Quem está com o sistema aberto agora. A lista se atualiza sozinha, pela sala de tempo real.</span>
+            </span>
+          </button>
         </div>
-        <div id="online-lista" style="border:1px solid var(--border-light);border-radius:var(--radius);overflow:hidden;"></div>
+        <div id="pnl-corpo-online">
+          <div id="online-lista" class="eq-online"></div>
+        </div>
       </div>
 
+      <!-- ═══ PERMISSÕES LIVEOPS ═══ -->
       <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
-          <div class="admin-title" style="margin-bottom:0;">⬡ Usuários &amp; Permissões</div>
-          <button class="btn-sec" style="width:auto;white-space:nowrap;" onclick="pedirNovaSenhaATodos()"
+        <div class="conf-topo">
+          <button type="button" class="conf-sanfona" onclick="pnlSanfona('perms')" title="Recolher ou abrir">
+            <span class="conf-chevron" id="pnl-chevron-perms">▾</span>
+            <span>
+              <span class="conf-titulo">Permissões LiveOps</span>
+              <span class="conf-sub">Quem entra e quais abas cada um enxerga. O que está ligado aqui é o que monta o menu da pessoa.</span>
+            </span>
+          </button>
+          <button class="btn btn-sm" onclick="event.stopPropagation();pedirNovaSenhaATodos()"
             title="Envia a cada um o e-mail para criar a própria senha">📧 Pedir nova senha a todos</button>
         </div>
-        <div class="users-grid" id="users-grid"></div>
-        <div class="new-user-form">
-          <div class="input-group"><label>Nome completo</label><input type="text" id="new-user-name" placeholder="Ex: João Silva"></div>
-          <div class="input-group"><label>E-mail</label><input type="email" id="new-user-email" placeholder="joao@empresa.com.br"></div>
-          <div class="input-group"><label>Senha inicial</label><input type="password" id="new-user-pass" placeholder="mínimo 6 caracteres"></div>
-          <button class="btn btn-sm" style="white-space:nowrap" onclick="addUser()">+ Adicionar</button>
+        <div id="pnl-corpo-perms">
+          <div class="eq-grade" id="users-grid"></div>
+
+          <div class="eq-novo">
+            <div class="conf-titulo" style="font-size:17px;">Novo usuário</div>
+            <div class="conf-sub">Nome e e-mail entram agora; a senha é definida pela própria pessoa,
+              pelo e-mail que ela receber. As permissões você liga no cartão dela, logo acima.</div>
+            <div class="eq-novo-grade">
+              <div class="input-group"><label>Nome completo</label>
+                <input type="text" id="new-user-name" placeholder="Ex.: João Silva"></div>
+              <div class="input-group"><label>E-mail de acesso</label>
+                <input type="email" id="new-user-email" placeholder="joao@suplelive.com.br"></div>
+              <div class="input-group"><label>Senha inicial</label>
+                <input type="password" id="new-user-pass" placeholder="mínimo 6 caracteres"></div>
+            </div>
+            <button class="btn" style="width:auto;" onclick="addUser()">+ Adicionar ao LiveOps</button>
+          </div>
         </div>
       </div>
 
-      <div class="admin-panel adm-sec" data-sec="equipe" style="display:none;">
-        <div class="admin-title">🔗 Links das Tarefas</div>
-        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-mono);margin-bottom:14px;letter-spacing:0.5px;">A atribuição de responsáveis agora é feita direto no card de cada usuário acima. Aqui você só edita os links de cada tarefa.</div>
-        <div id="task-assign-grid" style="display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
     </div>
 
 
@@ -9320,11 +9381,12 @@ function admAbrirSecao(sec){
   const carregar={
     inicio:()=>{ try{renderAdmHub();}catch(e){} try{renderVisaoGeral();}catch(e){} },
     desempenho:()=>{ try{renderAdmin();}catch(e){} try{renderConferencias();}catch(e){} },
-    equipe:()=>{ try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
+    equipe:()=>{ ['online','perms'].forEach(n=>{ try{pnlSanfonaRestaurar(n);}catch(e){} });
+                 try{renderUsersGrid();}catch(e){} try{ouvirPresenca();}catch(e){} },
     seguranca:()=>{ try{renderSeguranca();}catch(e){} try{renderParceirosApi();}catch(e){} },
-    dados:()=>{ ['saude','arquivo','backup'].forEach(n=>{ try{pnlSanfonaRestaurar(n);}catch(e){} });
+    dados:()=>{ ['saude','links','backup'].forEach(n=>{ try{pnlSanfonaRestaurar(n);}catch(e){} });
                 try{renderSaudeDados();}catch(e){} try{carregarBackups();}catch(e){}
-                try{renderAvisoBackupZip();}catch(e){} try{carregarArquivo();}catch(e){}
+                try{renderAvisoBackupZip();}catch(e){} try{renderTaskAssign();}catch(e){}
                 try{diagnosticarReparos();}catch(e){} }
   }[_admSecao];
   if(carregar) carregar();
@@ -13651,7 +13713,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.08.31y';
+const APP_VERSAO='2026.08.31z';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -27404,30 +27466,27 @@ function _renderPresenca(presenca){
     return 'há '+h+'h'+(min%60?(' '+(min%60)+'min'):'');
   };
 
-  const linha=(k,u,ativo)=>{
+  /* Um cartão por pessoa, em relevo, no desenho das outras seções. A
+     lista corrida de antes servia para conferir nomes; esta responde de
+     relance a pergunta real — quem está aí agora. */
+  const cartao=(k,u,ativo)=>{
     const p=porUsuario[k];
-    return `<div style="display:flex;align-items:center;gap:11px;padding:10px 12px;border-bottom:1px solid var(--border-light);">
-      <span style="position:relative;flex-shrink:0;">${userAvatarHTML(u,30)}
-        <span style="position:absolute;right:-1px;bottom:-1px;width:10px;height:10px;border-radius:50%;
-          border:2px solid var(--bg-card);background:${ativo?'#4ade80':'#6b7280'};
-          ${ativo?'box-shadow:0 0 7px rgba(74,222,128,.85);animation:pulse 2s infinite;':''}"></span>
+    return `<div class="eq-pessoa${ativo?'':' fora'}">
+      <span style="position:relative;flex-shrink:0;">${userAvatarHTML(u,38)}
+        <span class="eq-selo ${ativo?'on':'off'}"></span>
       </span>
       <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;color:${ativo?'var(--text-primary)':'var(--text-muted)'};">${u.name||k}</div>
-        <div style="font-size:10.5px;color:var(--text-muted);font-family:var(--font-mono);margin-top:2px;">
-          ${ativo ? ('No sistema desde '+desdeTxt(p.desde)+(p.sessoes>1?(' · '+p.sessoes+' acessos abertos'):'')) : 'Fora do sistema'}
-        </div>
+        <div class="eq-nome">${esc(u.name||k)}${u.master?'<span class="eq-tag">master</span>':''}</div>
+        <div class="eq-quando">${ativo
+          ? ('Desde '+desdeTxt(p.desde)+(p.sessoes>1?(' · '+p.sessoes+' acessos abertos'):''))
+          : 'Fora do sistema'}</div>
       </div>
-      <span style="flex-shrink:0;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;font-family:var(--font-mono);
-        color:${ativo?'#4ade80':'var(--text-muted)'};background:${ativo?'rgba(74,222,128,.10)':'rgba(255,255,255,.04)'};
-        border:1px solid ${ativo?'rgba(74,222,128,.35)':'var(--glass-border)'};border-radius:999px;padding:3px 10px;">
-        ${ativo?'Online':'Offline'}</span>
     </div>`;
   };
 
-  alvo.innerHTML = online.map(([k,u])=>linha(k,u,true)).join('')
-                 + offline.map(([k,u])=>linha(k,u,false)).join('')
-                 || '<div style="padding:16px;color:var(--text-muted);font-size:12px;font-family:var(--font-mono);">Nenhum usuário cadastrado.</div>';
+  alvo.innerHTML = online.map(([k,u])=>cartao(k,u,true)).join('')
+                 + offline.map(([k,u])=>cartao(k,u,false)).join('')
+                 || '<div class="conf-vazio">Nenhum usuário cadastrado.</div>';
 }
 
 function countTodayTasks(){
@@ -27519,37 +27578,35 @@ function renderUsersGrid(){
   }
 
   users.forEach(([key,user])=>{
-    const card=document.createElement('div');card.className='user-card';
-    const initials = getUserInitials(user);
-    const color = user.color||'#888';
-    const roleLabel = user.master?'MASTER':'Colaborador';
-    const roleColor = user.master?'#8fa8d8':'var(--text-muted)';
+    const card=document.createElement('div');card.className='eq-card';
+    /* Os três dados de identidade em cima, cada um com o próprio botão de
+       ação ao lado — antes eram três linhas de largura fixa em fonte
+       monoespaçada, e o e-mail comprido estourava a caixa. */
     card.innerHTML=`
-      <div class="user-card-header">
-        ${userAvatarHTML(user,32)}
-        <div>
-          <div class="user-card-name">${user.name}</div>
-          <div class="user-card-role"><span style="color:${roleColor};font-weight:${user.master?700:400};">${roleLabel}</span> · @${key}</div>
+      <div class="eq-card-topo">
+        ${userAvatarHTML(user,40)}
+        <div style="min-width:0;">
+          <div class="eq-nome">${esc(user.name||key)}${user.master?'<span class="eq-tag">master</span>':''}</div>
+          <div class="eq-quando">@${esc(key)}${user.master?'':' · colaborador'}</div>
         </div>
       </div>
-      <div style="background:var(--bg-active);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin:10px 0;display:flex;flex-direction:column;gap:5px;">
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
-          <span style="color:var(--text-muted);min-width:42px;">E-mail:</span>
-          <span style="color:${user.email?'var(--text-primary)':'#f59e0b'};font-weight:600;word-break:break-all;">${user.email||'não cadastrado'}</span>
-          <button class="btn-link btn-sm" style="margin-left:4px;flex-shrink:0;" onclick="definirEmail('${key}')" title="Definir o e-mail de login">${user.email?'Alterar':'Definir'}</button>
+      <div class="eq-dados">
+        <div class="eq-campo">
+          <span>E-mail</span>
+          <span class="valor${user.email?'':' falta'}">${esc(user.email||'não cadastrado')}</span>
+          <button class="eq-mini" onclick="definirEmail('${esc(key)}')" title="Definir o e-mail de login">${user.email?'Alterar':'Definir'}</button>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
-          <span style="color:var(--text-muted);min-width:42px;">Usuário:</span>
-          <span style="color:var(--text-muted);font-weight:600;">${key}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-family:var(--font-mono);">
-          <span style="color:var(--text-muted);min-width:42px;">Senha:</span>
-          <span style="color:var(--text-muted);font-weight:600;user-select:none;" title="Nem o master vê a senha — o colaborador define a dele pelo e-mail">••••••••</span>
-          <button class="btn-link btn-sm" style="margin-left:6px;" onclick="enviarRedefinicaoSenha('${key}')" title="Envia um e-mail para o colaborador definir a própria senha">📧 Redefinir por e-mail</button>
+        <div class="eq-campo">
+          <span>Senha</span>
+          <span class="valor" style="letter-spacing:2px;user-select:none;"
+            title="Nem o master vê a senha — quem define é a própria pessoa">••••••••</span>
+          <button class="eq-mini" onclick="enviarRedefinicaoSenha('${esc(key)}')"
+            title="Envia à pessoa o e-mail para ela definir a própria senha">Redefinir</button>
         </div>
       </div>
+      <div class="eq-secao">Abas que esta pessoa enxerga</div>
       <div class="permissions-list" id="perms-${key}"></div>
-      ${!user.master?`<button class="btn btn-danger btn-sm" style="margin-top:10px;width:100%" onclick="removeUser('${key}')">Remover usuário</button>`:''}
+      ${!user.master?`<button class="btn btn-danger btn-sm" style="margin-top:14px;width:100%;" onclick="removeUser('${esc(key)}')">Remover do LiveOps</button>`:''}
     `;
     const pl=card.querySelector(`#perms-${key}`);
     const ASSIGNABLE_TABS=['whatsapp','plataformas','anuncios','envios'];
