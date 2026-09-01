@@ -17,5 +17,15 @@ if [ -z "$versao" ]; then
   exit 1
 fi
 
+# Antes de carimbar a versão, conferir se a página ainda fecha as tags que abre.
+# Em 01/09/2026 um </div> apagado a mais deixou o JS válido, os ids únicos e a
+# tela inteira em branco: tudo o que vinha depois virou filho de um bloco
+# display:none. Publicar isso custou uma reunião do master.
+node scripts/checar-estrutura.js || {
+  echo "" >&2
+  echo "NÃO vou sincronizar a versão com a estrutura quebrada." >&2
+  exit 1
+}
+
 printf '{"versao": "%s"}\n' "$versao" > versao.json
 echo "versao.json → $versao"
