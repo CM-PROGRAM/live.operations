@@ -13858,7 +13858,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01o';
+const APP_VERSAO='2026.09.01p';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -23702,7 +23702,9 @@ function renderPedidosBase(){
         ${p.link?`<a href="${p.link}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;">#${p.numero||'—'} ↗</a>`
                 :`<span style="color:var(--text-primary);">#${p.numero||'—'}</span>`}
         ${p.externo?`<div style="font-size:9.5px;font-weight:400;color:var(--text-muted);">nº na loja: ${esc(p.externo)}</div>`:''}
-        ${p.doArquivo?`<div style="font-size:9px;font-weight:400;color:var(--text-muted);" title="Veio do Arquivo da Base — não é mais relido pela integração">arquivo</div>`:''}
+        ${p.doArquivo?`<div style="font-size:9px;font-weight:400;color:var(--text-muted);" title="${p.deNotaFiscal
+            ? 'Reconstruído da nota fiscal '+esc(p.notaFiscal||'')+' — a API de pedidos não alcança o Arquivo. Telefone, canal e status não existem na nota.'
+            : 'Veio do Arquivo da Base — não é mais relido pela integração'}">${p.deNotaFiscal?'da nota fiscal':'arquivo'}</div>`:''}
       </td>
       <td style="color:var(--text-primary);white-space:normal;max-width:280px;">${p.cliente||'—'}
         ${fone?`<div style="font-size:9.5px;color:var(--text-muted);font-family:var(--font-mono);">${_fmtFoneVis(fone)}</div>`:''}
