@@ -1885,6 +1885,19 @@ header{background:linear-gradient(135deg,rgba(16,20,31,0.95) 0%,rgba(10,13,21,0.
 .dv-taxa{font-size:12px;color:var(--text-muted);margin:12px 0 4px;padding-top:12px;border-top:1px solid var(--border);}
 .dv-total{font-size:15px;font-weight:800;color:var(--text-primary);}
 .dv-rodape{display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);}
+/* O "Desfazer lançamento" e o cadeado andam juntos: o cadeado sozinho, longe
+   do que ele tranca, não diz o que faz. */
+.acp-desfazer-grupo{display:inline-flex;align-items:center;gap:6px;}
+.acp-desfazer-grupo .btn-sec[disabled]{opacity:.45;cursor:not-allowed;}
+.acp-cadeado{display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;padding:0;border-radius:9px;cursor:pointer;
+  border:1px solid var(--glass-border);background:var(--grad-vidro);
+  color:var(--text-muted);transition:color .15s,border-color .15s,background .15s;}
+.acp-cadeado svg{width:16px;height:16px;stroke-width:1.9;}
+.acp-cadeado:hover{color:var(--text-secondary);border-color:var(--text-muted);}
+/* Aberto é âmbar, não verde: é um estado de atenção, não de tudo certo. */
+.acp-cadeado.solto{color:#f59e0b;border-color:rgba(240,180,41,.55);background:rgba(240,180,41,.12);}
+.acp-cadeado.solto:hover{color:#f59e0b;border-color:rgba(240,180,41,.8);}
 .btn.dv-arquivar{--bc:220,38,38;width:auto;}
 .btn.dv-arquivar:hover{background:#b91c1c;border-color:#b91c1c;}
 
@@ -13759,7 +13772,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01h';
+const APP_VERSAO='2026.09.01i';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21132,9 +21145,39 @@ function acpLancarEstoque(){
    é o n8n, e subtrair daqui seria a segunda mão no mesmo número. Por isso a
    confirmação diz, com todas as letras, quando alguma entrada já foi
    processada: aí a correção é na Base, não aqui. */
+/* A trava do "Desfazer lançamento".
+
+   Mora no aparelho, não no estado compartilhado: é um guarda de gatilho, e
+   guarda de gatilho é de quem está com a arma na mão. Assim abrir o cadeado
+   no computador do master não deixa o botão solto no celular de outra
+   pessoa — e nasce travado toda vez que o LiveOps é instalado de novo. */
+const ACP_DESFAZER_CHAVE='liveops_acp_desfazer_solto';
+
+function _acpDesfazerSolto(){
+  try{ return localStorage.getItem(ACP_DESFAZER_CHAVE)==='1'; }catch(e){ return false; }
+}
+
+function acpDesfazerCadeado(){
+  if(!(currentUser && currentUser.master)){
+    showToast('Só o master abre este cadeado','warn');
+    return;
+  }
+  const solto=!_acpDesfazerSolto();
+  try{ localStorage.setItem(ACP_DESFAZER_CHAVE, solto?'1':'0'); }
+  catch(e){ showToast('Não consegui guardar a trava neste aparelho','warn'); return; }
+  _acpVerRender();
+  showToast(solto?'Desfazer liberado neste aparelho':'Desfazer travado','success');
+}
+
 function acpDesfazerLancamento(){
   const a=_acpVerReg(); if(!a) return;
   if(!_acpPodeMexer()){ showToast('Sem permissão','warn'); return; }
+  /* O botão já vem desabilitado quando travado; esta guarda pega o caminho
+     de teclado e quem chamar a função de fora. */
+  if(!_acpDesfazerSolto()){
+    showToast('O "Desfazer lançamento" está travado — o master precisa abrir o cadeado','warn');
+    return;
+  }
   const e=_etpDados(a);
   const minhas=(appState.entradasEstoque||[]).filter(x=>x && x.origemAcpId===a.id);
   const jaNaBase=minhas.filter(x=>x.status==='lancado').length;
@@ -21299,25 +21342,57 @@ function _acpVerRender(){
      aparece quando faz sentido: compra conferida e ainda não lançada. */
   try{
     const antigo=document.getElementById('acp-ver-lancar'); if(antigo) antigo.remove();
-    const desf=document.getElementById('acp-ver-desfazer'); if(desf) desf.remove();
+    document.querySelectorAll('#acp-ver-rodape .acp-desfazer-grupo').forEach(x=>x.remove());
     const e2=(a.etapas||{}), cf=e2.conf||{}, lc=e2.lanc||{};
     const rod=document.getElementById('acp-ver-rodape');
     const arqBtn=document.getElementById('acp-ver-arquivar');
     /* Lançou sem querer? Enquanto a compra estiver lançada, existe volta.
        O status antigo "Lançado no estoque" também conta: compra lançada antes
-       de 01/09 tem esse texto e precisa da mesma saída. */
+       de 01/09 tem esse texto e precisa da mesma saída.
+
+       Mas o botão nasce TRAVADO, atrás de um cadeado que só o master abre.
+       Desfazer é o oposto de lançar, e os dois ficam lado a lado no mesmo
+       rodapé: sem a trava, o escorregão de dedo que criou este botão poderia
+       acontecer de novo, agora no sentido contrário. */
     const estaLancada = lc.travado
       || a.status===ACP_ST_LANCADO || a.status==='Lançado no estoque';
     if(rod && a.tipo==='compra' && pode && estaLancada){
+      const ehMaster=!!(currentUser && currentUser.master);
+      const solto=_acpDesfazerSolto();
+      const g=document.createElement('span');
+      g.className='acp-desfazer-grupo';
+
       const d=document.createElement('button');
       d.id='acp-ver-desfazer';
       d.type='button';
       d.className='btn-sec';
       d.style.cssText='width:auto;';
       d.textContent='Desfazer lançamento';
-      d.title='Tira as entradas da fila e devolve a compra para Entregue e Conferido';
+      d.disabled=!solto;
+      d.title=solto
+        ? 'Tira as entradas da fila e devolve a compra para Entregue e Conferido'
+        : (ehMaster ? 'Travado — abra o cadeado ao lado para liberar'
+                    : 'Travado — só o master libera este botão');
       d.onclick=()=>acpDesfazerLancamento();
-      rod.insertBefore(d, arqBtn||null);
+      g.appendChild(d);
+
+      /* O cadeado só existe para o master. Para os outros o botão fica
+         cinza e o title diz por quê — um cadeado que não abre seria um
+         convite a clicar e não entender o que aconteceu. */
+      if(ehMaster){
+        const c=document.createElement('button');
+        c.id='acp-ver-cadeado';
+        c.type='button';
+        c.className='acp-cadeado'+(solto?' solto':'');
+        c.title=solto?'Travar o "Desfazer lançamento"':'Liberar o "Desfazer lançamento"';
+        c.setAttribute('aria-label',c.title);
+        c.innerHTML=solto
+          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2.4"/><path d="M8 10.5V7a4 4 0 0 1 7.5-1.9"/></svg>'
+          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10.5" width="16" height="10.5" rx="2.4"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>';
+        c.onclick=()=>acpDesfazerCadeado();
+        g.appendChild(c);
+      }
+      rod.insertBefore(g, arqBtn||null);
     }
     if(rod && a.tipo==='compra' && pode && cf.travado){
       /* Três leituras diferentes, e o botão diz qual é: ainda por lançar,
