@@ -1,0 +1,215 @@
+{
+  "name": "Sonda 3 · as portas que faltaram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "Rodar as sondas",
+      "name": "Rodar as sondas",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -560,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "/* SONDA 3 — as duas portas que ficaram mal testadas.\n\n   Na sonda 2 o diário RECUSOU por erro meu: mandei last_log_id 0 e a Base\n   exige maior que zero. E a busca por telefone ficou PULADA, porque o campo\n   estava vazio. Nenhuma das duas chegou a ser respondida.\n\n   Elas importam agora porque a nota fiscal cobriu só 3.668 dos ~13.800\n   arquivados (27%): pedido de WhatsApp e boa parte do marketplace não gera\n   NF, e para esses a nota não serve.\n\n   PREENCHA O TELEFONE: abra um pedido do Arquivo na Base — de preferência um\n   SEM nota fiscal, que é o caso que interessa — e copie o telefone e o\n   número do pedido. Sem isso a porta do telefone fica sem resposta de novo. */\nreturn [{ json: {\n  numeroArquivado: '37136684',   // troque por um pedido arquivado SEM NF\n  telefone: '',                  // telefone do cliente desse pedido\n  email: ''                      // e-mail dele, se souber\n} }];"
+      },
+      "id": "Dados da sonda",
+      "name": "Dados da sonda",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrdersByPhone"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ phone: String($json.telefone || \"0\") }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Base · pedidos por telefone",
+      "name": "Base · pedidos por telefone",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -120,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getOrdersByEmail"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ email: String($(\"Dados da sonda\").first().json.email || \"x@x\") }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Base · pedidos por e-mail",
+      "name": "Base · pedidos por e-mail",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        100,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.baselinker.com/connector.php",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "method",
+              "value": "getJournalList"
+            },
+            {
+              "name": "parameters",
+              "value": "={{ JSON.stringify({ last_log_id: 1, logs_types: [] }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "Base · diário (last_log_id 1)",
+      "name": "Base · diário (last_log_id 1)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        320,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Base (BaseLinker)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "/* Duas portas, e o que cada uma compraria.\n\n   telefone/e-mail  se a busca alcançar o Arquivo, dá para varrer usando os\n                    CPFs e telefones que já temos e recuperar os pedidos\n                    daqueles clientes — não tudo, mas o histórico de quem\n                    interessa: quem já é cliente.\n\n   diário           se ele listar eventos de pedido arquivado, temos ao menos\n                    a LISTA de números e as datas. Sem cliente e sem valor,\n                    mas é o esqueleto — e talvez o caminho para saber quantos\n                    e quais faltam.\n\n   A regra do veredito é a de sempre: só conta se vier O PEDIDO PEDIDO.\n   Parâmetro que a BaseLinker não reconhece não dá erro, ela devolve dados\n   como se o filtro tivesse funcionado. */\nconst d = $('Dados da sonda').first().json;\nconst alvo = String(d.numeroArquivado || '');\nconst out = { pedidoArquivado: alvo };\nconst resp = (no) => { try { return $(no).first().json || {}; } catch (e) { return { _naoRodou: true }; } };\n\nfunction porBusca(no, rotulo, preenchido) {\n  const r = resp(no);\n  if (!preenchido) return 'PULADO — preencha ' + rotulo + ' em \"Dados da sonda\"';\n  if (r.status !== 'SUCCESS') return 'RECUSOU — ' + (r.error_message || r.error_code || '');\n  const lista = r.orders || [];\n  return lista.some(p => String(p.order_id) === alvo)\n    ? 'ALCANÇA — a busca por ' + rotulo + ' devolve pedido do Arquivo'\n    : 'não alcança (' + lista.length + ' pedido(s), nenhum é o arquivado)';\n}\n\nout.porTelefone = porBusca('Base · pedidos por telefone', 'telefone', !!String(d.telefone || '').trim());\nout.porEmail    = porBusca('Base · pedidos por e-mail',   'e-mail',   !!String(d.email || '').trim());\n\nconst jr = resp('Base · diário (last_log_id 1)');\nif (jr.status !== 'SUCCESS') {\n  out.porDiario = 'RECUSOU — ' + (jr.error_message || jr.error_code || '');\n} else {\n  const logs = jr.logs || [];\n  const ids = [...new Set(logs.map(l => String(l.order_id || '')).filter(Boolean))];\n  const temAlvo = ids.indexOf(alvo) >= 0;\n  /* Id de pedido arquivado é bem menor que o dos ativos — os da tela estão\n     em 37 milhões, os ativos passam de 47. Se o diário trouxer ids baixos,\n     ele enxerga o Arquivo mesmo sem trazer o pedido exato. */\n  const baixos = ids.filter(x => Number(x) > 0 && Number(x) < 45000000).length;\n  out.porDiario = temAlvo\n    ? 'ALCANÇA — o diário traz eventos do pedido arquivado'\n    : (baixos\n        ? 'PARCIAL — ' + baixos + ' de ' + ids.length + ' pedidos do diário têm id de faixa arquivada'\n        : 'não alcança (' + ids.length + ' pedido(s) no diário, todos da faixa ativa)');\n  out.diarioAmostra = ids.slice(0, 5).join(', ');\n}\n\nconst abriu = /ALCANÇA/.test(out.porTelefone) || /ALCANÇA/.test(out.porEmail) || /ALCANÇA|PARCIAL/.test(out.porDiario);\nout.conclusao = abriu\n  ? 'Abriu — me manda esta saída que eu uso para alcançar os pedidos sem nota.'\n  : 'Fechou. Para os ~10.100 sem nota fiscal, só o CSV da tela da Base.';\nreturn [{ json: out }];"
+      },
+      "id": "Veredito",
+      "name": "Veredito",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Rodar as sondas": {
+      "main": [
+        [
+          {
+            "node": "Dados da sonda",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dados da sonda": {
+      "main": [
+        [
+          {
+            "node": "Base · pedidos por telefone",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · pedidos por telefone": {
+      "main": [
+        [
+          {
+            "node": "Base · pedidos por e-mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · pedidos por e-mail": {
+      "main": [
+        [
+          {
+            "node": "Base · diário (last_log_id 1)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base · diário (last_log_id 1)": {
+      "main": [
+        [
+          {
+            "node": "Veredito",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false,
+  "pinData": {}
+}
