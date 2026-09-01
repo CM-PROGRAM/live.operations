@@ -7223,9 +7223,22 @@ function patchUsers(s){
     if(novo){
       def.perms.forEach(p=>{ if(!s.users[key].perms) s.users[key].perms=[]; if(!s.users[key].perms.includes(p)) s.users[key].perms.push(p); });
     } else if(!Array.isArray(s.users[key].perms)){
+      /* A lista chegou torta (a nuvem devolve array vazio como objeto, e
+         objeto nenhum passa no Array.isArray). Zerar aqui era apagar as
+         permissões de quem já existia. Com o livro isso deixou de ser um
+         chute: a lista é remontada a partir dos lançamentos. */
       s.users[key].perms=[];
+      if(typeof _permsEfetivar==='function'){ try{ _permsEfetivar(s.users[key]); }catch(e){} }
     }
   });
+  /* Toda cópia que passa por aqui sai com o livro em dia e a lista lida
+     dele — é o que garante que os onze caminhos de gravação enxerguem
+     sempre a mesma verdade. */
+  if(typeof _permsAbsorver==='function'){
+    Object.keys(s.users).forEach(k=>{
+      try{ _permsAbsorver(s.users[k]); _permsEfetivar(s.users[k]); }catch(e){}
+    });
+  }
   return s;
 }
 
@@ -7388,7 +7401,7 @@ function loadLocal(){
         || s.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.items?.some(i=>i.text==='Registro Imagem Comprovante'||i.text==='Registro Venda Planilha'||i.linkLabel==='Daniel Sup'||i.linkLabel==='Planilha Comprovantes'))
         || s.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.items?.some(i=>i.linkLabel==='Base'));
-      if(needsMigration) s.tasks.whatsapp=initWpp();
+      if(needsMigration) s.tasks.whatsapp=_preservarConclusoes(s.tasks.whatsapp, initWpp());
     }
     // Migrate envios if old tasks still present
     if(s.tasks&&s.tasks.envios&&Array.isArray(s.tasks.envios)){
@@ -7396,7 +7409,7 @@ function loadLocal(){
         ||s.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Pedidos:'))
         ||s.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Status:'))
         ||s.tasks.envios.some(i=>i.text.startsWith('BASE')))
-        s.tasks.envios=initEnv();
+        s.tasks.envios=_preservarConclusoes(s.tasks.envios, initEnv());
     }
     // Migrate anuncios if old Conferir group still present
     if(s.tasks&&s.tasks.anuncios&&Array.isArray(s.tasks.anuncios)){
@@ -7420,7 +7433,7 @@ function loadLocal(){
            || (i.id==='anu_rd'&&(!!i.btns||i.linkLabel!=='Anúncios'))
            || (['anu_vl','anu_vx'].includes(i.id)&&!i.btns?.some(b=>b.label==='Anúncios'))
          )))
-        s.tasks.anuncios=initAnu();
+        s.tasks.anuncios=_preservarConclusoes(s.tasks.anuncios, initAnu());
     }
     // Migrate plataformas if structure is outdated
     if(s.tasks&&s.tasks.plataformas&&Array.isArray(s.tasks.plataformas)){
@@ -7472,7 +7485,7 @@ function loadLocal(){
         || s.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp4'))
         || s.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp5'))
         || s.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp5'));
-      if(needsPltMigration) s.tasks.plataformas=initPlt();
+      if(needsPltMigration) s.tasks.plataformas=_preservarConclusoes(s.tasks.plataformas, initPlt());
     }
     patchTaskOwners(s);
     patchDpspBaixas(s);
@@ -11278,6 +11291,131 @@ function _migrarParaRegistros(){
   });
 }
 
+/* ═══════════ TAREFA CONCLUÍDA NÃO VOLTA ATRÁS ═══════════════════════
+   As quatro listas do dia — WhatsApp, Marketplaces, Pedidos, Anúncios —
+   viajam dentro do pacote, e o pacote sobe inteiro: a última sessão a
+   gravar substitui a lista das outras. Quem concluiu continuava vendo o
+   "concluído" na própria tela e mais ninguém via — ou pior, a tarefa
+   voltava para "A Fazer" quando o pacote de outra máquina chegava.
+
+   Não havia como resolver isso: o item guardava `doneAt:"14:32"`, uma hora
+   sem dia e sem minuto exato, que não serve para comparar duas versões.
+   Agora cada item ganha `doneTs` (milissegundos) e a fusão passa a ter
+   critério — vale a marcação mais recente.
+
+   E vale uma regra a mais, que é a que o master exigiu: uma cópia que
+   NÃO SABE de uma conclusão não consegue desfazê-la. Só um doneTs mais
+   novo desmarca. Cópia velha, a partir daqui, é inofensiva. */
+const _TAREFAS_DIARIAS=['whatsapp','plataformas','envios','anuncios'];
+
+/* As quatro listas não têm o mesmo formato: três são grupos com items
+   dentro, e Pedidos é uma lista de tarefas direto. Esta função devolve os
+   itens de qualquer uma delas, com a chave que os identifica. */
+/* Quando a ESTRUTURA de um quadro muda (uma tarefa nova, um grupo
+   renomeado), o sistema o reconstrói do zero — e jogava fora, junto, tudo
+   o que já tinha sido concluído no dia. Oito lugares fazem isso. Agora a
+   reconstrução leva as conclusões consigo: item que continua existindo
+   continua concluído, por quem concluiu e na hora em que concluiu. */
+function _preservarConclusoes(antigo, novo){
+  try{
+    const feitos={};
+    _tarefasItens(antigo).forEach(({it})=>{
+      if(!it || !it.id) return;
+      if(it.done || it.doneTs || (Array.isArray(it.execs)&&it.execs.length)) feitos[it.id]=it;
+    });
+    if(!Object.keys(feitos).length) return novo;
+    _tarefasItens(novo).forEach(({it})=>{
+      const v=it && it.id && feitos[it.id];
+      if(!v) return;
+      it.done=v.done; it.doneBy=v.doneBy; it.doneAt=v.doneAt;
+      if(v.doneTs) it.doneTs=v.doneTs;
+      if(Array.isArray(v.execs)) it.execs=v.execs.slice();
+    });
+  }catch(e){ console.warn('[tarefas] preservar conclusões:',e); }
+  return novo;
+}
+
+function _tarefasItens(lista){
+  const fora=[];
+  if(!Array.isArray(lista)) return fora;
+  lista.forEach((x,gi)=>{
+    if(x && Array.isArray(x.items)){
+      x.items.forEach(it=>{ if(it) fora.push({chave:(x.id||gi)+'|'+(it.id||''), it}); });
+    } else if(x){
+      fora.push({chave:'|'+(x.id||gi), it:x});
+    }
+  });
+  return fora;
+}
+
+/* Carimba o que MUDOU desde a última gravação. Feito por comparação, e não
+   dentro de cada botão, de propósito: são doze lugares diferentes que
+   escrevem `done` (dois deles dentro de makeCompleteBtn, inline), e um
+   décimo-terceiro apareceria amanhã. Aqui nenhum escapa. */
+let _tarefasVistas=null;
+function _carimbarTarefas(s){
+  try{
+    const tasks=(s&&s.tasks)||{};
+    const primeira=(_tarefasVistas===null);
+    if(primeira) _tarefasVistas={};
+    const agora=Date.now();
+    _TAREFAS_DIARIAS.forEach(aba=>{
+      _tarefasItens(tasks[aba]).forEach(({chave,it})=>{
+        const id=aba+'|'+chave;
+        const feito=!!it.done;
+        const antes=_tarefasVistas[id];
+        if(!primeira && antes!==undefined && antes!==feito) it.doneTs=agora;
+        _tarefasVistas[id]=feito;
+      });
+    });
+  }catch(e){ console.warn('[tarefas] carimbo:',e); }
+}
+
+// Depois de receber a nuvem, o que chegou passa a ser o "visto" — senão a
+// próxima gravação carimbaria a mudança dos outros como se fosse desta sessão
+function _tarefasAnotarVistas(s){ _tarefasVistas=null; _carimbarTarefas(s); }
+
+/* A fusão das quatro listas. Item a item, pela chave grupo|item. */
+function _fundirTarefasDiarias(vindo, daqui){
+  if(!vindo || !daqui) return vindo;
+  const diaDaqui=String(daqui.lastReset||''), diaVindo=String(vindo.lastReset||'');
+  const hoje=todayStr();
+  /* Dias diferentes não se fundem. Se o que chega ficou num dia anterior,
+     ele é uma cópia velha por inteiro: as conclusões dele são de ontem e
+     ressuscitá-las encheria o quadro de hoje com o trabalho de ontem. */
+  if(diaDaqui===hoje && diaVindo && diaVindo!==hoje){
+    _TAREFAS_DIARIAS.forEach(aba=>{
+      if((daqui.tasks||{})[aba]!==undefined) (vindo.tasks=vindo.tasks||{})[aba]=daqui.tasks[aba];
+    });
+    vindo.lastReset=daqui.lastReset;
+    return vindo;
+  }
+  if(diaVindo && diaDaqui && diaVindo!==diaDaqui) return vindo;   // o de lá já virou o dia
+  _TAREFAS_DIARIAS.forEach(aba=>{
+    const meus={};
+    _tarefasItens((daqui.tasks||{})[aba]).forEach(({chave,it})=>{ meus[chave]=it; });
+    _tarefasItens((vindo.tasks||{})[aba]).forEach(({chave,it})=>{
+      const meu=meus[chave];
+      if(!meu) return;
+      const tL=Number(meu.doneTs)||0, tR=Number(it.doneTs)||0;
+      /* Quem tem o carimbo mais novo manda. Sem carimbo dos dois lados,
+         CONCLUÍDO vence: não saber de uma conclusão nunca desfaz uma. */
+      const daquiManda = tL>tR || (tL===tR && !!meu.done && !it.done);
+      if(!daquiManda) return;
+      it.done=meu.done; it.doneBy=meu.doneBy; it.doneAt=meu.doneAt;
+      if(meu.doneTs) it.doneTs=meu.doneTs;
+      // As execuções (tarefas com repetição) se somam, nunca se substituem
+      if(Array.isArray(meu.execs)||Array.isArray(it.execs)){
+        const vistos={}, juntos=[];
+        [].concat(Array.isArray(it.execs)?it.execs:[], Array.isArray(meu.execs)?meu.execs:[])
+          .forEach(e=>{ const c=(e&&e.by||'')+'|'+(e&&e.at||''); if(!vistos[c]){ vistos[c]=1; juntos.push(e); } });
+        it.execs=juntos.slice(0,Number(meu.repeats||it.repeats||juntos.length)||juntos.length);
+      }
+    });
+  });
+  return vindo;
+}
+
 /* Antes de publicar qualquer coisa, esta sessão precisa ter LIDO a nuvem —
    as DUAS pontas dela: o pacote (configurações, usuários) e os registros
    (tarefas, solicitações, devoluções...).
@@ -11318,6 +11456,10 @@ function saveState(s){
   // Antes de gravar, elimina tarefas órfãs (origem excluída) para não
   // "ressuscitar" tarefas fantasma no blob compartilhado.
   reconcileAutoTasks(s);
+  /* Carimba a hora do que foi concluído ou desmarcado agora. Sem este
+     carimbo a fusão não tem como saber qual das duas versões é a boa — e
+     era assim que a tarefa do colega voltava para "A Fazer". */
+  _carimbarTarefas(s);
   _padronizarCoresUsuarios(s);
   try{ auditarMudancas(s); }catch(e){ console.warn('[auditoria]',e); }
   _localVersion=Date.now();
@@ -11642,6 +11784,26 @@ function _fundirListasDeOpcoes(novo, atual){
 
 function applyRemoteState(data){
   if(!data) return;
+  /* A VIRADA DO DIA — o único lugar que pode desfazer conclusões.
+     Ela roda sobre a cópia que CHEGA, e é aí que estava o perigo: um
+     pacote atrasado, ainda marcado com o dia anterior, fazia a sessão
+     arquivar e zerar o quadro que já tinha virado — apagando o que a
+     equipe concluiu hoje, e publicando o quadro zerado por cima.
+     Se aqui já é hoje, o que chegou é cópia velha e não vira dia nenhum. */
+  const _jaVirouAqui = (typeof appState!=='undefined' && appState
+                        && String(appState.lastReset||'')===todayStr());
+  if(data.lastReset !== todayStr() && _jaVirouAqui){
+    data.lastReset = appState.lastReset;
+    /* As quatro listas do dia vêm inteiras daqui. Fundir item a item com
+       uma cópia de ontem ressuscitaria as conclusões de ontem — no quadro
+       de hoje, com o nome de quem fez ontem. */
+    data.tasks = data.tasks || {};
+    _TAREFAS_DIARIAS.forEach(aba=>{
+      const meu=(appState.tasks||{})[aba];
+      if(meu!==undefined){ try{ data.tasks[aba]=JSON.parse(JSON.stringify(meu)); }catch(e){ data.tasks[aba]=meu; } }
+    });
+    console.warn('[dia] pacote com o dia anterior ignorado na virada — o quadro de hoje fica');
+  }
   // Verifica novo dia
   if(data.lastReset !== todayStr()){
     archiveDay(data);
@@ -11773,14 +11935,14 @@ function applyRemoteState(data){
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_atend'&&g.items?.some(i=>i.btns?.some(b=>b.label==='Site Suplelive'||b.label==='Link Pagamento')))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_comp'&&g.items?.some(i=>i.text==='Registro Imagem Comprovante'||i.text==='Registro Venda Planilha'||i.linkLabel==='Daniel Sup'||i.linkLabel==='Planilha Comprovantes'))
       ||data.tasks.whatsapp.some(g=>g.id==='wpp_pedido'&&g.items?.some(i=>i.linkLabel==='Base'));
-    if(nm) data.tasks.whatsapp=initWpp();
+    if(nm) data.tasks.whatsapp=_preservarConclusoes(data.tasks.whatsapp, initWpp());
   }
   if(data.tasks.envios&&Array.isArray(data.tasks.envios)){
     if(data.tasks.envios.some(i=>i.id==='env3'||i.id==='env4'||i.id==='env5'||!i.link)
       ||data.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Pedidos:'))
       ||data.tasks.envios.some(i=>i.id==='env1'&&i.text.startsWith('Status:'))
       ||data.tasks.envios.some(i=>i.text.startsWith('BASE')))
-      data.tasks.envios=initEnv();
+      data.tasks.envios=_preservarConclusoes(data.tasks.envios, initEnv());
   }
   if(data.tasks.anuncios&&Array.isArray(data.tasks.anuncios)){
     if(!data.tasks.anuncios.some(g=>g.id==='anu_geral')
@@ -11803,7 +11965,7 @@ function applyRemoteState(data){
          || (i.id==='anu_rd'&&(!!i.btns||i.linkLabel!=='Anúncios'))
          || (['anu_vl','anu_vx'].includes(i.id)&&!i.btns?.some(b=>b.label==='Anúncios'))
        )))
-      data.tasks.anuncios=initAnu();
+      data.tasks.anuncios=_preservarConclusoes(data.tasks.anuncios, initAnu());
   }
   if(data.tasks.plataformas&&Array.isArray(data.tasks.plataformas)){
     const np=data.tasks.plataformas.some(g=>!g.id)
@@ -11854,7 +12016,7 @@ function applyRemoteState(data){
       || data.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp4'))
       || data.tasks.plataformas.some(g=>g.id==='plt_dp'&&g.items?.some(i=>i.id==='plt_dp5'))
       || data.tasks.plataformas.some(g=>g.id==='plt_dsp'&&g.items?.some(i=>i.id==='plt_dsp5'));
-    if(np) data.tasks.plataformas=initPlt();
+    if(np) data.tasks.plataformas=_preservarConclusoes(data.tasks.plataformas, initPlt());
   }
   patchTaskOwners(data);
   patchDpspBaixas(data);
@@ -12715,18 +12877,12 @@ function _aplicarPacoteDaNuvem(data){
        ter sido salvo lá, o daqui vence. Vale também para usuário criado
        agora, que um pacote velho não conhece e apagaria. */
     try{
-      const versaoRemota=Number(data._version)||0;
-      const daqui=appState.users||{}, vindo=patched.users||{};
-      Object.keys(daqui).forEach(k=>{
-        const meu=daqui[k]; if(!meu) return;
-        const quando=Number(meu.permsAtualizadoEm)||0;
-        if(!quando || quando<=versaoRemota) return;   // o pacote é mais novo: ele manda
-        if(!vindo[k]){ vindo[k]=meu; return; }        // criado aqui depois: não some
-        vindo[k]={...vindo[k], perms:Array.isArray(meu.perms)?meu.perms.slice():vindo[k].perms,
-                  permsAtualizadoEm:meu.permsAtualizadoEm};
-      });
-      patched.users=vindo;
+      patched.users=_permsReconciliar(patched.users||{}, appState.users||{}, data._version);
     }catch(e){ console.warn('[SYNC] permissões:',e); }
+
+    /* O que já foi concluído aqui não volta atrás por causa de um pacote
+       que não sabe disso. Item a item, vale a marcação mais recente. */
+    try{ _fundirTarefasDiarias(patched, appState); }catch(e){ console.warn('[SYNC] tarefas:',e); }
 
     // Antes de trocar o estado: as listas de opções se somam, não se
     // substituem — ver _fundirListasDeOpcoes
@@ -12735,6 +12891,8 @@ function _aplicarPacoteDaNuvem(data){
     appState = patched;
     // O que acabou de chegar já está na nuvem: não precisa voltar para lá
     try{ _marcarPacoteRecebido(data); }catch(e){}
+    // A marcação dos outros não pode ser carimbada como se fosse desta sessão
+    try{ _tarefasAnotarVistas(appState); }catch(e){}
     // Estado veio de outro usuário: só atualiza a referência da auditoria,
     // sem gravar log (quem alterou já registrou na própria sessão)
     try{ logSincronizarSnapshot(appState); }catch(e){}
@@ -13831,6 +13989,7 @@ function doLogin(){
         appState.users=cloudUsers;
         // A cópia deste navegador pode conhecer concessões mais novas que a
         // nuvem (a nuvem foi revertida por uma sessão velha): elas valem.
+        try{ _permsReconciliar(appState.users, locais, 0); }catch(e){ console.warn('[perms] livro:',e); }
         try{ _protegerPermissoes(appState.users, locais); }catch(e){ console.warn('[perms]',e); }
         try{ _permsAplicarOficiais(appState.users); }catch(e){ console.warn('[perms] oficiais:',e); }
       }
@@ -13983,7 +14142,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01r';
+const APP_VERSAO='2026.09.01s';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -14334,6 +14493,12 @@ function _expandirPermsFinas(s){
       ['dashboard','consultacpf'].forEach(p=>{ if(u.perms.indexOf(p)<0) u.perms.push(p); });
       u.permsV3=true;
     });
+
+    /* As duas migrações acima mexem na LISTA. Sem passar pelo livro, a
+       próxima leitura do livro as apagaria — a lista é só o resultado. */
+    if(typeof _permsAbsorver==='function'){
+      Object.values(users).forEach(u=>{ if(u){ _permsAbsorver(u); _permsEfetivar(u); } });
+    }
   }catch(e){ console.warn('[perms] expansão:',e); }
 }
 
@@ -28599,6 +28764,110 @@ function toggleAtvArea(key,areaId,checked){
 const FB_PERMS='suplelive/permissoes';
 let _permsOficiais=null;   // key -> {perms, atvAreasVisiveis?, atvTabsVisiveis?, ts, por}
 
+/* ═══════════════ O LIVRO DAS PERMISSÕES ═══════════════════════════════
+   POR QUE ISTO EXISTE, e por que não é mais uma remenda.
+
+   A permissão era uma LISTA de textos dentro do usuário. Onze caminhos
+   diferentes deste sistema conseguem escrever essa lista — o login, a
+   leitura da nuvem, o pacote de outra sessão, o nó oficial, a semente dos
+   quatro usuários, a expansão das abas novas, a fila do espelho... — e só
+   UM deles é o clique do master. Todos os outros são cópias.
+
+   Com uma lista, cópia velha e recusa são a mesma coisa: "não está aqui".
+   Então qualquer cópia atrasada, vinda de qualquer um desses onze
+   caminhos, apagava a concessão sem querer. Cada correção fechava um
+   caminho e o décimo-segundo aparecia depois. Não dá para vencer assim.
+
+   Agora a permissão é um LANÇAMENTO, com hora e autor:
+
+       permsLog: { tarefas:{v:true, ts:1756...}, envios:{v:false, ts:1756...} }
+
+   e a lista `perms` passa a ser só o resultado da leitura do livro.
+
+   A regra, inteira, é esta: para cada permissão vale o lançamento mais
+   recente. E a consequência é a que o master pediu — uma cópia que NÃO
+   CONHECE uma permissão não consegue tirá-la, porque não trazer não é
+   lançamento nenhum. Sair do livro exige um v:false, e v:false só nasce
+   de um lugar: o clique do master em togglePerm.
+
+   Em resumo: dar permissão continua fácil; tirar só acontece de propósito. */
+
+/* O livro do usuário, criando-o a partir da lista quando ele ainda não
+   existe. A migração é só de concessões: o que NÃO está na lista não vira
+   recusa, vira ausência — do contrário a própria migração apagaria o que
+   o master deu numa sessão que ainda não tinha lido a nuvem. */
+function _permsLivro(u){
+  if(!u) return {};
+  if(!u.permsLog || typeof u.permsLog!=='object' || Array.isArray(u.permsLog)) u.permsLog={};
+  return u.permsLog;
+}
+
+/* Lista → livro. Só acrescenta. Serve para as cópias antigas (sem livro) e
+   para as migrações que mexem na lista direto (_expandirPermsFinas). */
+function _permsAbsorver(u){
+  if(!u) return;
+  const livro=_permsLivro(u);
+  const ts=Number(u.permsAtualizadoEm)||1;
+  (Array.isArray(u.perms)?u.perms:[]).forEach(p=>{
+    if(!p) return;
+    if(!livro[p] || typeof livro[p].v!=='boolean') livro[p]={v:true, ts, por:''};
+  });
+}
+
+// Livro → lista. É o que as telas leem.
+function _permsEfetivar(u){
+  if(!u) return;
+  const livro=_permsLivro(u);
+  u.perms=Object.keys(livro).filter(p=>livro[p] && livro[p].v===true);
+}
+
+/* Junta dois livros: para cada permissão vale o lançamento mais recente.
+   Empate mantém o que já estava — o que chega precisa ser mais novo para
+   mudar alguma coisa. */
+function _permsFundirLivro(destino, origem){
+  let mudou=false;
+  Object.keys(origem||{}).forEach(p=>{
+    const b=origem[p];
+    if(!b || typeof b.v!=='boolean') return;
+    const a=destino[p];
+    const novo={v:b.v, ts:Number(b.ts)||0, por:b.por||''};
+    if(!a || typeof a.v!=='boolean'){ destino[p]=novo; mudou=true; return; }
+    if(novo.ts > (Number(a.ts)||0)){ destino[p]=novo; mudou=true; }
+  });
+  return mudou;
+}
+
+/* A porta única por onde toda cópia de usuários passa.
+   `vindo` é a cópia que vai valer; `daqui` é a que já estava em memória.
+   Presença de usuário segue a regra de sempre (quem foi removido lá
+   continua removido aqui; quem nasceu aqui depois do pacote não some).
+   As PERMISSÕES, essas, são sempre fundidas — nunca substituídas. */
+function _permsReconciliar(vindo, daqui, versaoRemota){
+  if(!vindo || typeof vindo!=='object') return vindo;
+  const antes=Number(versaoRemota)||0;
+  Object.keys(daqui||{}).forEach(k=>{
+    const meu=daqui[k];
+    if(!meu || typeof meu!=='object') return;
+    _permsAbsorver(meu);
+    if(!vindo[k]){
+      // Usuário que só existe aqui: entra se nasceu/mudou depois do pacote
+      const quando=Number(meu.permsAtualizadoEm)||0;
+      if(quando && quando>antes) vindo[k]=meu;
+      return;
+    }
+    _permsAbsorver(vindo[k]);
+    _permsFundirLivro(_permsLivro(vindo[k]), _permsLivro(meu));
+    const t=Math.max(Number(vindo[k].permsAtualizadoEm)||0, Number(meu.permsAtualizadoEm)||0);
+    if(t) vindo[k].permsAtualizadoEm=t;
+  });
+  Object.keys(vindo).forEach(k=>{
+    if(!vindo[k] || typeof vindo[k]!=='object') return;
+    _permsAbsorver(vindo[k]);
+    _permsEfetivar(vindo[k]);
+  });
+  return vindo;
+}
+
 /* O nó oficial manda — MAS SÓ ENQUANTO FOR O MAIS NOVO ─────────────────
    Esta função aplicava o nó por cima de tudo, sem olhar a hora. Parece
    seguro (é "a fonte da verdade"), e é justamente o que fazia as permissões
@@ -28623,12 +28892,20 @@ function _permsAplicarOficiais(users){
     if(!u || !g || u.master) return;
     const ts=Number(g.ts)||0;
     const meu=Number(u.permsAtualizadoEm)||0;
-    if(meu>ts){ curar.push(k); return; }   // a concessão daqui é mais nova
-    if(Array.isArray(g.perms)) u.perms=g.perms.slice();
+    /* O nó também é uma cópia: ele FUNDE o livro, não substitui a lista.
+       Um nó que ficou para trás (a gravação se perdeu) deixou de conseguir
+       desfazer a concessão nova — e o master o regrava logo abaixo. */
+    _permsAbsorver(u);
+    const livroDoNo=(g.permsLog && typeof g.permsLog==='object' && !Array.isArray(g.permsLog))
+      ? g.permsLog
+      : (Array.isArray(g.perms) ? g.perms.reduce((o,p)=>{ if(p) o[p]={v:true,ts}; return o; },{}) : {});
+    _permsFundirLivro(_permsLivro(u), livroDoNo);
+    _permsEfetivar(u);
+    if(meu>ts){ curar.push(k); }   // o nó está atrasado: o master o reescreve
     if(g.atvAreasVisiveis!==undefined && g.atvAreasVisiveis!==null) u.atvAreasVisiveis=JSON.parse(JSON.stringify(g.atvAreasVisiveis));
-    else delete u.atvAreasVisiveis;
+    else if(ts>=meu) delete u.atvAreasVisiveis;
     if(g.atvTabsVisiveis!==undefined && g.atvTabsVisiveis!==null) u.atvTabsVisiveis=JSON.parse(JSON.stringify(g.atvTabsVisiveis));
-    else delete u.atvTabsVisiveis;
+    else if(ts>=meu) delete u.atvTabsVisiveis;
     if(ts>meu) u.permsAtualizadoEm=ts;
   });
   /* Só o master reescreve: a sessão do colaborador pode estar com cópia
@@ -28643,7 +28920,14 @@ function _permsAplicarOficiais(users){
 function _permsGravarOficial(k){
   const u=appState.users&&appState.users[k];
   if(!u || u.master) return;
-  const g={perms:Array.isArray(u.perms)?u.perms.slice():[], ts:Date.now(), por:(currentUser&&currentUser.name)||''};
+  _permsAbsorver(u);
+  /* O livro viaja junto: é ele que carrega as RECUSAS. Sem isso o nó
+     oficial só saberia dizer o que existe, e tirar uma permissão voltaria
+     a depender de todas as cópias concordarem — que é o que nunca
+     aconteceu. A lista continua indo, para as versões antigas. */
+  const g={perms:Array.isArray(u.perms)?u.perms.slice():[],
+           permsLog:JSON.parse(JSON.stringify(_permsLivro(u))),
+           ts:Date.now(), por:(currentUser&&currentUser.name)||''};
   if(u.atvAreasVisiveis!==undefined) g.atvAreasVisiveis=u.atvAreasVisiveis;
   if(u.atvTabsVisiveis!==undefined) g.atvTabsVisiveis=u.atvTabsVisiveis;
   (_permsOficiais=_permsOficiais||{})[k]=JSON.parse(JSON.stringify(g));
@@ -28756,7 +29040,13 @@ function _protegerPermissoes(novos, antigos){
     if(!a || !n) return;
     const tsA=Number(a.permsAtualizadoEm||0), tsN=Number(n.permsAtualizadoEm||0);
     if(tsA<=tsN) return;
-    n.perms=Array.isArray(a.perms)?a.perms.slice():[];
+    /* Antes esta linha era `n.perms = a.perms.slice()` — trocava a lista
+       inteira pela daqui. Trocar lista por lista é justamente o que fazia
+       uma cópia apagar a permissão da outra; aqui os dois livros se somam
+       e cada permissão fica com o lançamento mais recente. */
+    _permsAbsorver(a); _permsAbsorver(n);
+    _permsFundirLivro(_permsLivro(n), _permsLivro(a));
+    _permsEfetivar(n);
     if(a.atvAreasVisiveis!==undefined) n.atvAreasVisiveis=JSON.parse(JSON.stringify(a.atvAreasVisiveis));
     else delete n.atvAreasVisiveis;
     if(a.atvTabsVisiveis!==undefined) n.atvTabsVisiveis=JSON.parse(JSON.stringify(a.atvTabsVisiveis));
@@ -28809,9 +29099,15 @@ document.addEventListener('click', function(e){
 function togglePerm(k,perm,granted){
 
   const user=appState.users[k];if(!user||user.master)return;
-  if(granted){if(!user.perms.includes(perm))user.perms.push(perm);}
-  else user.perms=user.perms.filter(p=>p!==perm);
-  user.permsAtualizadoEm=Date.now();
+  /* ESTE é o único lugar do sistema que consegue TIRAR uma permissão.
+     O clique vira um lançamento no livro — com hora e autor — e a lista
+     `perms` passa a ser só a leitura dele. Nenhuma cópia, de nenhum dos
+     caminhos de sincronização, remove nada sem um lançamento destes. */
+  const agora=Date.now();
+  _permsAbsorver(user);
+  _permsLivro(user)[perm]={v:!!granted, ts:agora, por:(currentUser&&currentUser.name)||''};
+  _permsEfetivar(user);
+  user.permsAtualizadoEm=agora;
 
   // Ao conceder/revogar a permissão de uma aba, atribui/remove o usuário como
   // responsável de todas as tarefas dessa aba automaticamente
