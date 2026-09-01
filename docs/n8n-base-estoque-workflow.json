@@ -17,8 +17,8 @@
         "rule": {
           "interval": [
             {
-              "field": "hours",
-              "hoursInterval": 4
+              "field": "minutes",
+              "minutesInterval": 15
             }
           ]
         }
@@ -29,8 +29,8 @@
         -460,
         140
       ],
-      "id": "A cada 4 horas",
-      "name": "A cada 4 horas"
+      "id": "A cada 15 minutos",
+      "name": "A cada 15 minutos"
     },
     {
       "parameters": {
@@ -350,17 +350,6 @@
         ]
       ]
     },
-    "A cada 4 horas": {
-      "main": [
-        [
-          {
-            "node": "Base · armazéns",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Base · armazéns": {
       "main": [
         [
@@ -470,6 +459,17 @@
         [
           {
             "node": "De onde começar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "A cada 15 minutos": {
+      "main": [
+        [
+          {
+            "node": "Base · armazéns",
             "type": "main",
             "index": 0
           }
