@@ -226,9 +226,9 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "https://suplelive-8a700-default-rtdb.firebaseio.com/suplelive/reg/produtos.json",
-        "authentication": "predefinedCredentialType",
-        "nodeCredentialType": "googleApi",
+        "url": "https://liveops-imagens.carlosmagnoav94.workers.dev/robo/reg/produtos.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.pagina) }}",
@@ -243,9 +243,9 @@
       "id": "Gravar a página",
       "name": "Gravar a página",
       "credentials": {
-        "googleApi": {
+        "httpHeaderAuth": {
           "id": "",
-          "name": "Firebase (conta de serviço)"
+          "name": "LiveOps (chave do robô)"
         }
       }
     },
