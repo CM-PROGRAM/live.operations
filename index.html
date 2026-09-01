@@ -5496,6 +5496,44 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
         </div>
         <div id="pnl-corpo-backup">
           <div id="bkp-aviso" style="margin-bottom:12px;"></div>
+
+          <!-- Resgate de UMA lista. Restaurar a cópia inteira devolve junto
+               tudo o que mudou desde então, e por isso ninguém usa. Aqui só
+               a lista escolhida volta: varre todas as cópias, recoloca o que
+               falta e não encosta no que está na tela. Clicar duas vezes não
+               duplica nada. -->
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;
+                      padding:10px 12px;border:1px solid var(--glass-border);border-radius:10px;
+                      background:var(--grad-vidro);">
+            <span style="font-size:11.5px;color:var(--text-secondary);font-family:var(--font-sans);">
+              Sumiu alguma coisa? Traga de volta só ela:
+            </span>
+            <select id="bkp-rec-lista"
+              style="width:auto;min-width:190px;background:var(--grad-vidro);border:1px solid var(--glass-border);
+                     border-radius:50px;color:var(--text-primary);font-size:11.5px;font-family:var(--font-sans);
+                     padding:6px 12px;cursor:pointer;outline:none;">
+              <option value="devolucoes">Devoluções</option>
+              <option value="atendimentos">Atendimentos</option>
+              <option value="rastreios">Rastreios</option>
+              <option value="acompanhamentos">Compras</option>
+              <option value="pedidosWpp">Vendas do WhatsApp</option>
+              <option value="atividades">Tarefas</option>
+              <option value="leads">Clientes</option>
+              <option value="baseInfo">Base Conhecimento</option>
+              <option value="entradas">Entradas</option>
+              <option value="entradasEstoque">Entradas de estoque</option>
+              <option value="canceladas">Cancelamentos</option>
+              <option value="canceladasNF">Cancelamentos com NF</option>
+              <option value="imagensReq">Pedidos de imagem</option>
+              <option value="projetos">Projetos</option>
+              <option value="waContatos">Contatos do WhatsLive</option>
+              <option value="tplMsgs">Modelos de mensagem</option>
+            </select>
+            <button class="btn btn-sm" style="width:auto;" onclick="bkpResgatar()">↩ Recuperar</button>
+            <div id="bkp-rec-msg" style="flex:1 1 100%;font-size:11px;font-family:var(--font-mono);
+                 color:var(--text-secondary);line-height:1.6;"></div>
+          </div>
+
           <div id="bkp-lista" class="conf-tabela"></div>
         </div>
       </div>
@@ -8667,6 +8705,90 @@ function _autoRecuperarBaseInfo(){
   recuperarBaseConhecimento();
 }
 
+/* ── RESGATE DE UMA LISTA, SEM DESFAZER O RESTO ────────────────────────
+   Restaurar a cópia inteira de um dia devolve junto tudo o que mudou
+   desde então — na prática ninguém usa, porque o preço é alto demais.
+   Foi por isso que a Base Conhecimento ganhou um resgate só dela.
+
+   Em 01/09/2026 as devoluções já lançadas sumiram e o mesmo problema
+   apareceu de novo: existia o caminho de volta, mas só para UMA lista.
+   Aqui ele vale para as 25 — os acessores de COLECOES_REG já sabem
+   pegar e pôr cada uma, inclusive as que moram dentro de tasks
+   (devoluções, atendimentos, rastreios).
+
+   A regra é sempre a mesma, e é o que torna seguro clicar duas vezes:
+   varre as cópias da mais recente para a mais antiga, junta por id, e
+   RECOLOCA só o que não está aqui hoje. Nada que está na tela é tocado,
+   nada é duplicado, nada é apagado. */
+const _ROTULO_LISTA={
+  devolucoes:'devoluções', atendimentos:'atendimentos', rastreios:'rastreios',
+  acompanhamentos:'compras', pedidosWpp:'vendas do WhatsApp', leads:'clientes',
+  baseInfo:'cards da Base Conhecimento', atividades:'tarefas',
+  entradas:'entradas', imagensReq:'pedidos de imagem', projetos:'projetos',
+  waContatos:'contatos do WhatsLive', tplMsgs:'modelos de mensagem',
+  entradasEstoque:'entradas de estoque', canceladas:'cancelamentos',
+  canceladasNF:'cancelamentos com NF'
+};
+
+function recuperarListaDoBackup(nome, aoTerminar){
+  const acc=COLECOES_REG[nome];
+  const rotulo=_ROTULO_LISTA[nome]||nome;
+  const diz=(t,cor)=>{
+    const msg=document.getElementById('bkp-rec-msg');
+    if(msg){ msg.textContent=t; msg.style.color=cor||'var(--text-secondary)'; }
+    console.log('[resgate]',t);
+  };
+  if(!acc){ diz('Lista desconhecida: '+nome,'var(--tom-vermelho)'); return Promise.resolve(0); }
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode recuperar','warn'); return Promise.resolve(0); }
+  if(!temNuvemLeitura()){ diz('Sem conexão com a nuvem.','var(--tom-vermelho)'); return Promise.resolve(0); }
+  diz('Procurando '+rotulo+' nas cópias…');
+
+  return _lerRamoSnapshot(FB_BACKUPS_IDX).then(snap=>{
+    const dias=Object.keys(snap.val()||{}).sort().reverse();
+    if(!dias.length){ diz('Nenhuma cópia de segurança encontrada.','var(--tom-vermelho)'); return 0; }
+    const achados=new Map();
+    const varrer=i=>{
+      if(i>=dias.length) return Promise.resolve();
+      return _lerRegistroSnapshot('backups/'+dias[i], 'estado').then(s2=>{
+        const est=s2.val();
+        const lista=est?acc.get(est):null;
+        // Dias vêm do mais novo para o mais antigo: o primeiro que trouxer
+        // um id é a versão mais recente dele, e é a que fica.
+        if(Array.isArray(lista)) lista.forEach(x=>{
+          if(x && x.id && !achados.has(String(x.id))) achados.set(String(x.id), x);
+        });
+        return varrer(i+1);
+      }).catch(()=>varrer(i+1));   // uma cópia ilegível não interrompe a varredura
+    };
+    return varrer(0).then(()=>{
+      if(!achados.size){ diz('Nenhuma cópia tinha '+rotulo+'.','var(--tom-vermelho)'); return 0; }
+      let atual=acc.get(appState);
+      if(!Array.isArray(atual)){ atual=[]; acc.set(appState,atual); }
+      const tenho=new Set(atual.filter(Boolean).map(x=>String(x.id)));
+      const voltaram=[...achados.values()].filter(x=>!tenho.has(String(x.id)));
+      if(!voltaram.length){
+        diz('As cópias não trouxeram nada novo — os '+rotulo+' de lá já estão aqui.');
+        return 0;
+      }
+      acc.set(appState, voltaram.concat(atual));
+      saveState(appState);
+      ['renderDev','renderAte','renderAll','renderBaseInfo','renderAcompanhamento',
+       'renderAtividades','renderEntradas','renderImagens','renderProjetos']
+        .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+      if(typeof aoTerminar==='function'){ try{ aoTerminar(voltaram); }catch(e){} }
+      diz('✓ '+voltaram.length+' '+rotulo+' de volta, varrendo '+dias.length+' cópia(s).','var(--tom-verde)');
+      showToast('✓ '+voltaram.length+' '+rotulo+' recuperados','success');
+      return voltaram.length;
+    });
+  }).catch(err=>{ diz('Falha: '+err.message,'var(--tom-vermelho)'); return 0; });
+}
+
+// O botão da tela: pega a lista escolhida no seletor
+function bkpResgatar(){
+  const sel=document.getElementById('bkp-rec-lista');
+  recuperarListaDoBackup((sel&&sel.value)||'devolucoes');
+}
+
 function recuperarBaseConhecimento(){
   const msg=document.getElementById('bkp-rec-msg');
   const diz=(t,cor)=>{ if(msg){ msg.textContent=t; msg.style.color=cor||'var(--text-secondary)'; } };
@@ -10753,6 +10875,21 @@ const COLECOES_REG={
 };
 let _regAtivo=false;               // ligado depois que a sincronização inicia
 const _regEnviado={};              // lista -> {chaveRegistro: json} do que já subiu
+/* Quais listas esta sessão REALMENTE leu da nuvem. Só elas podem ter
+   registro apagado por ausência — ver _gravarRegistrosAlterados. Sessão
+   que abriu com a cópia do navegador não tem como saber o que existe lá,
+   e portanto não tem autoridade para remover nada. */
+const _regLido={};
+let _avisoRemocaoTs=0;
+function _avisarRemocaoAdiada(nome,quantos){
+  if(Date.now()-_avisoRemocaoTs < 20000) return;
+  _avisoRemocaoTs=Date.now();
+  const rotulo=(typeof _ROTULO_LISTA!=='undefined' && _ROTULO_LISTA[nome]) || nome;
+  try{
+    showToast('⚠ '+quantos+' '+rotulo+' saíram da tela, mas esta sessão está sem ler a nuvem — '
+      +'não apaguei nada lá. Recarregue a página: se foi engano, eles voltam.','warn');
+  }catch(e){}
+}
 function _regChave(id){ return String(id).replace(/[.#$/\[\]]/g,'_'); }
 
 // Grava apenas os registros que mudaram, em uma única operação
@@ -10821,9 +10958,40 @@ function _gravarRegistrosAlterados(s){
       agora[k]=json;
       if(antes[k]!==json){ updates[FB_REG+'/'+nome+'/'+k]={...r,_by:_sessionId}; marcar(k,antes[k]); alterados++; }
     });
-    Object.keys(antes).forEach(k=>{
-      if(agora[k]===undefined){ updates[FB_REG+'/'+nome+'/'+k]=null; marcar(k,antes[k]); removidos++; }
-    });
+    /* ── AUSÊNCIA NÃO É EXCLUSÃO SE ESTA SESSÃO NUNCA LEU A LISTA ──────
+       Aqui a falta de um registro na memória virava um null na nuvem. É
+       a regra certa para quem clicou em Excluir — e é uma armadilha para
+       quem nunca chegou a ler a lista.
+
+       O caso real: a abertura pela Cloudflare falha numa lista (uma
+       requisição perdida basta), a sessão segue com a cópia do
+       localStorage daquele computador, e a primeira gravação apaga da
+       nuvem tudo o que existia e não estava naquela cópia. Some sem
+       clique, sem erro e sem passar pelo Arquivo — que é justamente por
+       onde uma exclusão de verdade passa. Foi assim que as devoluções já
+       lançadas sumiram em 01/09/2026.
+
+       A regra nova é curta: só apaga quem leu. Sessão que não recebeu a
+       lista da nuvem pode criar e alterar, nunca remover. */
+    if(_regLido[nome]){
+      Object.keys(antes).forEach(k=>{
+        if(agora[k]===undefined){ updates[FB_REG+'/'+nome+'/'+k]=null; marcar(k,antes[k]); removidos++; }
+      });
+    } else {
+      const sumiram=Object.keys(antes).filter(k=>agora[k]===undefined);
+      if(sumiram.length){
+        console.warn('[reg] '+nome+': '+sumiram.length+' registro(s) sumiram da memória, mas esta sessão '
+          +'nunca leu esta lista da nuvem — NÃO vou apagar nada lá.');
+        // O que não foi apagado continua valendo como enviado: senão a
+        // próxima gravação tentaria apagar de novo, com o mesmo engano.
+        sumiram.forEach(k=>{ agora[k]=antes[k]; });
+        /* E o usuário fica sabendo. Se a ausência era bug, este aviso é a
+           primeira notícia de que algo sumiu — antes ele não existia e o
+           estrago só aparecia dias depois. Se era um Excluir de verdade,
+           ele explica por que o item volta: a sessão está sem a nuvem. */
+        _avisarRemocaoAdiada(nome, sumiram.length);
+      }
+    }
     _regEnviado[nome]=agora;
   });
   /* Trava contra apagamento em massa.
@@ -12560,6 +12728,7 @@ function _cfRessincronizar(){
           lista.push(reg);
         });
         acc.set(appState,lista);
+        _regLido[nome]=true;
         registros+=lista.length;
       });
       if(pacote) _aplicarPacoteDaNuvem(pacote);
@@ -12594,6 +12763,7 @@ function cfBootLeitura(){
         if(!Array.isArray(linhas)){ faltou++; return; }  // erro de leitura: não mexe
         if(retomando){
           linhas.forEach(l=>{ if(l && l.dados) _aplicarRegistroRemoto(nome,acc,l.chave,l.dados); });
+          _regLido[nome]=true;
           registros+=linhas.length; listas++;
           return;
         }
@@ -12607,6 +12777,7 @@ function cfBootLeitura(){
           lista.push(reg);
         });
         acc.set(appState,lista);
+        _regLido[nome]=true;              // leu: a partir daqui pode remover
         registros+=lista.length; listas++;
       });
       if(faltou) throw new Error(faltou+' lista(s) não vieram');
@@ -14142,7 +14313,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01s';
+const APP_VERSAO='2026.09.01t';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
