@@ -3796,7 +3796,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
           <select id="acp-f-status" onchange="renderAcompanhamento()"
             style="width:auto;min-width:165px;background:var(--grad-vidro);border:1px solid var(--glass-border);border-radius:50px;color:var(--text-secondary);font-size:11.5px;font-family:var(--font-sans);padding:7px 14px;cursor:pointer;outline:none;"></select>
           <label style="display:flex;align-items:center;gap:9px;font-size:11.5px;color:var(--text-secondary);cursor:pointer;white-space:nowrap;">
-            Mostrar arquivados
+            Ver arquivados
             <span class="sw"><input type="checkbox" id="acp-f-arquivados" onchange="renderAcompanhamento()"><span class="tr"></span><span class="kn"></span></span>
           </label>
         </div>
@@ -13734,7 +13734,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01b';
+const APP_VERSAO='2026.09.01c';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -22056,13 +22056,19 @@ function renderAcompanhamento(){
   const fst=((document.getElementById('acp-f-status')||{}).value||'');
   const verArq=!!((document.getElementById('acp-f-arquivados')||{}).checked);
 
+  /* "Mostrar arquivados" TROCA a lista, não acrescenta a ela. Somando os
+     dois conjuntos, o arquivado ficava perdido no meio do que está em
+     andamento — e ligar o botão parecia não ter feito nada. Ligado, a
+     tela é a do arquivo; desligado, a do trabalho de hoje. */
+  const naFila=a=>verArq ? !!a.arquivado : !a.arquivado;
+
   /* A barra conta em cima de tudo que está visível na aba, e não do que
      sobrou do filtro — número que muda quando alguém digita na busca não
      serve para escolher em qual fila trabalhar. */
-  _acpRenderBarraEtapas(todos.filter(a=>verArq || !a.arquivado));
+  _acpRenderBarraEtapas(todos.filter(naFila));
 
   const lista=todos.filter(a=>{
-    if(!verArq && a.arquivado) return false;
+    if(!naFila(a)) return false;
     /* Em Compras a listagem é a da fila escolhida na barra de etapas. */
     if(_acpTipo==='compra' && _acpEtapaFila && _acpEtapaDe(a)!==_acpEtapaFila) return false;
     if(fst && a.status!==fst) return false;
