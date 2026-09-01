@@ -1421,6 +1421,15 @@ select option,select optgroup{background:var(--bg-surface);color:var(--text-prim
 .etp-passo.feito{border-color:rgba(34,197,94,.45);color:#16a34a;}
 .etp-passo.feito.ativo{background:#16a34a;border-color:#16a34a;color:#fff;box-shadow:0 5px 14px rgba(22,163,74,.3);}
 
+/* A fileira de tipos herda a pílula das etapas; só o espaçamento é dela */
+.acp-tipos{display:flex;gap:9px;flex-wrap:wrap;}
+/* Contador dentro do segmentado: discreto, do tamanho do texto */
+.seg-n{display:inline-block;min-width:17px;padding:0 5px;border-radius:999px;
+  background:var(--veu-medio);font-size:10px;font-weight:800;font-family:var(--font-mono);
+  color:var(--text-muted);line-height:16px;text-align:center;vertical-align:1px;}
+.seg-btn.active .seg-n{background:var(--lo-azul);color:#fff;}
+.acp-fila{margin-bottom:16px;}
+
 /* O cabeçalho da compra aberta, com o X no canto */
 .etp-cab-compra{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;}
 .etp-fechar{width:32px;height:32px;border-radius:50%;flex-shrink:0;cursor:pointer;
@@ -3783,11 +3792,14 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            tabela; "Enviados" é o Live Track dos envios ao cliente, que o n8n
            alimenta e que tem tela própria desde antes. -->
       <div style="display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:14px;">
-        <div class="seg" id="acp-seg">
-          <button class="seg-btn active" data-t="compra"        onclick="acpSetTipo('compra')">Compras</button>
-          <button class="seg-btn"        data-t="devolucao"     onclick="acpSetTipo('devolucao')">Devoluções</button>
-          <button class="seg-btn"        data-t="transferencia" onclick="acpSetTipo('transferencia')">Transferências</button>
-          <button class="seg-btn"        data-t="envio"         onclick="acpSetTipo('envio')">Enviados</button>
+        <!-- Os dois desenhos trocaram de lugar (31/08): o TIPO é a escolha
+             maior — decide a tela inteira — e ganhou a pílula azul; a etapa,
+             que é filtro dentro do tipo, ficou com o segmentado discreto. -->
+        <div class="acp-tipos" id="acp-seg">
+          <button class="etp-passo ativo" data-t="compra"        onclick="acpSetTipo('compra')">Compras</button>
+          <button class="etp-passo"       data-t="devolucao"     onclick="acpSetTipo('devolucao')">Devoluções</button>
+          <button class="etp-passo"       data-t="transferencia" onclick="acpSetTipo('transferencia')">Transferências</button>
+          <button class="etp-passo"       data-t="envio"         onclick="acpSetTipo('envio')">Enviados</button>
         </div>
         <div id="acp-filtros" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-left:auto;">
           <!-- Uma busca só: procura no rastreio E no produto ao mesmo tempo. -->
@@ -3807,7 +3819,7 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
            espera conferência, e o que está conferido e falta lançar. A
            listagem abaixo é a daquela fila, e o olho na linha abre a etapa
            que aquela compra precisa preencher em seguida. -->
-      <div class="etp-passos" id="acp-etapas-barra" style="display:none;"></div>
+      <div class="seg acp-fila" id="acp-etapas-barra" style="display:none;"></div>
 
       <div id="acp-aviso-antigas" style="display:none;align-items:center;gap:12px;flex-wrap:wrap;
         background:rgba(240,180,41,.10);border:1px solid rgba(240,180,41,.4);border-radius:var(--radius-lg);
@@ -3912,9 +3924,11 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
               <div class="etp-frete-total"><span>Total</span><span id="etp-frete-total-val">R$ 0,00</span></div>
             </div>
           </div>
+          <!-- A ação principal à esquerda, o voltar à direita: é como a
+               Etapa 1 sempre foi, e as três agora concordam. -->
           <div class="etp-confirmar">
-            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(1)">← Voltar para Orçamento</button>
             <button class="btn" id="etp-btn-2" style="width:auto;" onclick="etpConfirmar(2)">Confirmar conferência →</button>
+            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(1)">← Voltar para Orçamento</button>
           </div>
         </div>
 
@@ -3942,8 +3956,8 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
             <div></div>
           </div>
           <div class="etp-confirmar">
-            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(2)">← Voltar para Conferência</button>
             <button class="btn" id="etp-btn-3" style="width:auto;" onclick="etpConfirmar(3)" disabled>Lançar no estoque</button>
+            <button class="btn-sec etp-voltar-passo" onclick="etpIrPara(2)">← Voltar para Conferência</button>
           </div>
         </div>
       </div>
@@ -13734,7 +13748,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01c';
+const APP_VERSAO='2026.09.01d';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21086,19 +21100,20 @@ function _acpRenderBarraEtapas(lista){
   const barra=document.getElementById('acp-etapas-barra');
   if(!barra) return;
   if(_acpTipo!=='compra'){ barra.style.display='none'; return; }
-  barra.style.display='flex';
+  /* inline-flex, e não flex: o segmentado tem largura de conteúdo — em
+     flex ele esticava de ponta a ponta da tela. */
+  barra.style.display='inline-flex';
   const nomes=['Orçamento','Chegada / Conferência','Lançamento em Estoque'];
   const cont=[0,0,0];
   (lista||[]).forEach(a=>{ cont[_acpEtapaDe(a)-1]++; });
   const total=cont[0]+cont[1]+cont[2];
   barra.innerHTML=
-    `<button type="button" class="etp-passo${_acpEtapaFila?'':' ativo'}" onclick="acpFila(0)">`
-    +`Todas<span class="etp-passo-n">${total}</span></button>`
+    `<button type="button" class="seg-btn${_acpEtapaFila?'':' active'}" onclick="acpFila(0)">`
+    +`Todas <span class="seg-n">${total}</span></button>`
     + nomes.map((nome,i)=>{
       const n=i+1;
-      return `<button type="button" class="etp-passo${n===_acpEtapaFila?' ativo':''}" onclick="acpFila(${n})">`
-        +`${n}. ${nome}`
-        +`<span class="etp-passo-n">${cont[i]}</span></button>`;
+      return `<button type="button" class="seg-btn${n===_acpEtapaFila?' active':''}" onclick="acpFila(${n})">`
+        +`${n}. ${nome} <span class="seg-n">${cont[i]}</span></button>`;
     }).join('');
 }
 
@@ -22018,8 +22033,8 @@ function _acpStatusAntigo(d){
 }
 
 function renderAcompanhamento(){
-  const seg=document.querySelectorAll('#acp-seg .seg-btn');
-  seg.forEach(b=>b.classList.toggle('active', b.dataset.t===_acpTipo));
+  const seg=document.querySelectorAll('#acp-seg .etp-passo');
+  seg.forEach(b=>b.classList.toggle('ativo', b.dataset.t===_acpTipo));
   const btnAdd=document.getElementById('acp-btn-add');
   if(btnAdd) btnAdd.style.display=_acpPodeMexer()?'':'none';
 
