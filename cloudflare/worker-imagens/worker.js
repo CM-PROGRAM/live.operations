@@ -55,7 +55,7 @@
 /* Muda a cada versão colada no painel. O /saude devolve este número, e é
    assim que se sabe, em dois segundos, se o que está no ar é o código
    novo ou o antigo — dúvida que já custou uma hora de caça a fantasma. */
-const VERSAO_WORKER = 'v20';
+const VERSAO_WORKER = 'v21';
 
 // As chaves seguem o formato do imgChave()/push do sistema: letras,
 // números, _ e -. Recusar o resto evita chave torta virando lixo.
@@ -1326,7 +1326,59 @@ async function _atender(req, env, ctx) {
           const texto = await req.text();
           if (!texto) return respostaJson(400, { erro: 'corpo-vazio' });
           if (texto.length > TAMANHO_MAX) return respostaJson(413, { erro: 'grande-demais' });
-          await env.IMAGENS.put('_dados/' + nome + '.json', texto, {
+
+          /* ── IDENTIDADE NAO VIAJA NO PACOTE DE QUEM NAO E MASTER ──────
+             A colecao `users` ja era protegida — mas so na rota irmã,
+             /dados/lote (ver COLECOES_PROTEGIDAS). Esta aqui aceitava o
+             pacote INTEIRO de qualquer pessoa logada, e `users` viaja
+             dentro dele. Eram duas portas para o mesmo cofre, e uma
+             estava destrancada.
+
+             O que passava por ela:
+               appState.users.<eu>.master = true; saveState(appState);
+             — e a pessoa virava master em todas as sessoes. Pior: `users`
+             guarda `passHash`, e o login libera com `senha local confere
+             OU o cofre aceitou`. Escrevendo o passHash de outra pessoa,
+             entra-se na conta dela sempre que a nuvem nao responder.
+
+             A regra agora: quem nao e master grava tudo do pacote —
+             tarefas, vendas, compras, configuracoes — MENOS o bloco de
+             identidade, que e devolvido ao que ja estava guardado. Nao
+             existe tela onde alguem edite o proprio cadastro (conferido:
+             toda escrita em users mora no Administrador, que ja e so do
+             master), e troca de senha nao passa por aqui: passa pelo
+             cofre, em /auth/definir e /auth/semear.
+
+             Custo: uma leitura do pacote guardado a cada gravacao de quem
+             nao e master. O pacote sobe no maximo uma vez a cada 4s por
+             sessao, entao e barato. */
+          let corpoFinal = texto;
+          if (!_ehMestre(env, quem)) {
+            let entrando;
+            try { entrando = JSON.parse(texto); } catch (e) { entrando = null; }
+            if (!entrando || typeof entrando !== 'object' || Array.isArray(entrando)) {
+              return respostaJson(400, { erro: 'pacote-invalido' });
+            }
+            if ('users' in entrando) {
+              const guardadoObj = await env.IMAGENS.get('_dados/' + nome + '.json');
+              let guardado = null;
+              if (guardadoObj) {
+                try { guardado = JSON.parse(await guardadoObj.text()); } catch (e) { guardado = null; }
+              }
+              if (guardado && typeof guardado === 'object' && 'users' in guardado) {
+                entrando.users = guardado.users;
+                corpoFinal = JSON.stringify(entrando);
+                console.log('[dados] users do pacote devolvido ao guardado — quem gravou nao e master');
+              } else {
+                /* Nao ha pacote guardado (ou ele nao tem users): e a
+                   primeira gravacao. Nao ha o que preservar, e recusar
+                   deixaria a pessoa sem conseguir salvar. Fica o registro. */
+                console.warn('[dados] pacote sem users guardado — aceitando os de quem gravou');
+              }
+            }
+          }
+
+          await env.IMAGENS.put('_dados/' + nome + '.json', corpoFinal, {
             httpMetadata: { contentType: 'application/json' },
             customMetadata: { por: quem.sub, ts: String(Date.now()) },
           });
