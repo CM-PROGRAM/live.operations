@@ -7616,6 +7616,35 @@ function imgChaveMedia(chave){ return chave ? (chave+IMG_MEDIO_SUFIXO) : ''; }
 const _imgCache={};       // chave -> dataUrl original já baixado
 const _imgCarregando={};  // chave -> Promise em andamento
 
+/* ═══ A IMAGEM SOME DA TELA, MAS NÃO DO R2 ══════════════════════════
+   Toda imagem do sistema vive em DUAS partes: a miniatura, dentro do
+   registro, e a original, no R2, apontada pelo campo `...Ref`. A
+   miniatura é descartável de propósito — ela é só o borrão de meio
+   segundo até o médio chegar do R2.
+
+   Só que a tela inteira decidia MOSTRAR olhando a miniatura:
+
+       if (src) mostra          ← em _confFotos, no card, no modal…
+
+   E a miniatura se perde com facilidade, por um caminho que o próprio
+   sistema cria: quando o estado não cabe no cache do navegador,
+   saveLocal grava sem as miniaturas (_cacheLocalSemImagens). Se a
+   sessão seguinte abrir com essa cópia e regravar o registro antes de
+   a nuvem chegar, a miniatura some do registro — e a tela passa a se
+   comportar como se a foto não existisse.
+
+   Mas ela existe. Está no R2, inteira, apontada pelo Ref. Em 03/09/2026
+   a Central de Tarefas aparecia com TODOS os cards sem imagem por causa
+   disso: o print da conclusão estava guardado e a tela não o pedia.
+
+   A regra correta é: existe imagem se houver miniatura OU referência.
+   Sem miniatura, entra um pixel transparente e o observador de imagens
+   troca pelo médio assim que o card chega perto da tela — o mesmo
+   caminho que já funcionava para todas as outras. */
+const IMG_VAZIA='data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+function imgTemAlgo(src,ref){ return !!(src || ref); }
+function imgFonte(src,ref){ return src || (ref ? IMG_VAZIA : ''); }
+
 function imgChave(registroId,campo,indice){
   return String(registroId||'x').replace(/[.#$/\[\]]/g,'_')
     + '__' + String(campo||'img').replace(/[.#$/\[\]]/g,'_')
@@ -10464,14 +10493,40 @@ function compactarImagensDoEstado(){
 // ficar no cache. Só as imagens ainda embutidas (formato antigo, acima do
 // limite) são retiradas, uma a uma.
 const _LIMITE_IMG_LOCAL = 40 * 1024; // acima disso não é miniatura
+/* ── POR QUE ISTO DEIXOU DE CLONAR O ESTADO ────────────────────────
+   Este era o trecho mais caro do sistema, e ele roda a CADA gravação —
+   ou seja, a cada clique que salva alguma coisa.
+
+   Fazia três passagens sobre um estado que o comentário logo abaixo
+   estima em 5,30 MB: `JSON.stringify` para clonar, `JSON.parse` para
+   montar a cópia, o varredor de imagens percorrendo a cópia inteira, e
+   então mais um `JSON.stringify` para gravar. Quatro travessias de
+   megabytes travando a tela principal, sem que nada disso chegue à
+   nuvem — é só o cache do navegador.
+
+   Agora é UMA passagem. O `replacer` do JSON.stringify recebe cada
+   valor enquanto ele é serializado, e é ali mesmo que a imagem é
+   trocada por vazio — sem cópia intermediária e sem varredor. De
+   quebra, a regra ficou mais abrangente do que a lista de campos:
+   qualquer texto que comece com `data:image` é imagem, esteja onde
+   estiver, inclusive em listas e campos que ainda não existem.
+
+   O estado em memória não é tocado: o replacer só muda o que sai na
+   string, nunca o objeto. */
+function _jsonLocal(s, semImagens){
+  return JSON.stringify(s, (chave, valor)=>{
+    if(typeof valor==='string' && valor.length>96 && valor.startsWith('data:image')){
+      return (semImagens || valor.length>_LIMITE_IMG_LOCAL) ? '' : valor;
+    }
+    return valor;
+  });
+}
+
+/* Mantida porque o diagnóstico do master ainda usa a forma de objeto.
+   Fora dali, quem grava o cache usa _jsonLocal. */
 function _stripHeavyForLocal(s, semImagens){
   try{
-    const copy = JSON.parse(JSON.stringify(s));
-    _percorrerImagensDoEstado(copy,(obj,chave)=>{
-      const v=obj[chave];
-      if(typeof v==='string' && (semImagens || v.length>_LIMITE_IMG_LOCAL)) obj[chave]='';
-    });
-    return copy;
+    return JSON.parse(_jsonLocal(s, semImagens));
   }catch(e){
     return s;
   }
@@ -10492,7 +10547,7 @@ function _ehCotaEstourada(e){
   return !!(e && (e.name==='QuotaExceededError' || e.code===22 || e.code===1014));
 }
 function saveLocal(s){
-  const gravar=semImagens=>localStorage.setItem(SK, JSON.stringify(_stripHeavyForLocal(s,semImagens)));
+  const gravar=semImagens=>localStorage.setItem(SK, _jsonLocal(s,semImagens));
   if(!_cacheLocalSemImagens){
     try{ gravar(false); return; }
     catch(e){
@@ -14313,7 +14368,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.01t';
+const APP_VERSAO='2026.09.03a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
@@ -21966,7 +22021,7 @@ function _acpVerRender(){
       </div>
       ${(Array.isArray(a.fotos)&&a.fotos.length)
         ? `<div class="dv-sec">Fotos</div><div class="acp-fotos">`
-          + a.fotos.map((f,i)=>`<div class="fo"><img src="${f}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
+          + a.fotos.map((f,i)=>imgTemAlgo(f,_acpRefFoto(a,i))?`<div class="fo"><img src="${imgFonte(f,_acpRefFoto(a,i))}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`:'').join('')
           + '</div>'
         : ''}`;
   }
@@ -23520,7 +23575,7 @@ function _estornoRender(){
   if(fotos.length){
     fw.style.display='';
     document.getElementById('estorno-fotos').innerHTML=fotos.map((f,i)=>
-      `<div class="fo"><img src="${f}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('');
+      (imgTemAlgo(f,_acpRefFoto(a,i))?`<div class="fo"><img src="${imgFonte(f,_acpRefFoto(a,i))}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`:'')).join('');
   } else fw.style.display='none';
 
   // Comentários
@@ -23729,7 +23784,7 @@ function acpVerFotos(id){
   document.getElementById('acp-ver-titulo').textContent='Fotos · '+(a.cliente||a.loja||'devolução');
   document.getElementById('acp-ver-corpo').innerHTML=
     '<div class="acp-fotos" style="gap:10px;">'
-    + fotos.map((f,i)=>`<div class="fo" style="width:150px;height:150px;"><img src="${f}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`).join('')
+    + fotos.map((f,i)=>imgTemAlgo(f,_acpRefFoto(a,i))?`<div class="fo" style="width:150px;height:150px;"><img src="${imgFonte(f,_acpRefFoto(a,i))}" data-ref="${_acpRefFoto(a,i)}" alt="foto ${i+1}" onclick="acpAmpliar(${i},'${a.id}')"></div>`:'').join('')
     + '</div><div style="margin-top:10px;font-size:11px;color:var(--text-muted);">Clique numa foto para abrir em tamanho cheio.</div>';
   ov.classList.add('open');
 }
@@ -31814,7 +31869,9 @@ function _confQuando(a){
 
 function _confFotos(a){
   const fotos=[];
-  const juntar=(src,ref)=>{ if(src) fotos.push({src, ref:ref||''}); };
+  /* Existe foto se houver miniatura OU referência: sem a miniatura entra
+     o pixel transparente e o observador busca o médio no R2. */
+  const juntar=(src,ref)=>{ if(imgTemAlgo(src,ref)) fotos.push({src:imgFonte(src,ref), ref:ref||''}); };
   juntar(a.provaConclusao, a.provaConclusaoRef);
   juntar(a.provaAtualizacao, a.provaAtualizacaoRef);
   juntar(a.ultimaFoto, a.ultimaFotoRef);
@@ -32047,6 +32104,8 @@ function renderAteComentarioHistorico(lista){
   wrap.innerHTML=lista.map(c=>{
     const fotosHtml=(c.fotos||[]).map((src,fi)=>{
       const ref=String((c.fotosRef||[])[fi]||'').replace(/'/g,"\\'");
+      if(!imgTemAlgo(src,ref)) return '';
+      src=imgFonte(src,ref);
       return `<img src="${src}" data-ref="${ref}" style="width:56px;height:56px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${src.replace(/'/g,"\\'")}','print-atendimento','${ref}')">`;
     }).join('');
     return `<div>
@@ -36953,10 +37012,11 @@ function openAtvModal(id,forcarSomenteLeitura){
     const provaInfo=document.getElementById('atv-prova-info');
     const provaThumb=document.getElementById('atv-prova-thumb');
     const provaRemoveBtn=document.getElementById('atv-prova-remove-btn');
-    if(a.provaConclusao && provaWrap && provaThumb){
+    if(imgTemAlgo(a.provaConclusao,a.provaConclusaoRef) && provaWrap && provaThumb){
       provaWrap.style.display='block';
       if(provaInfo) provaInfo.textContent='Enviado por '+(a.provaConclusaoPor||a.concluidoPor||'—')+(a.provaConclusaoEm?(' em '+a.provaConclusaoEm):'');
-      provaThumb.src=a.provaConclusao;
+      provaThumb.src=imgFonte(a.provaConclusao,a.provaConclusaoRef);
+      provaThumb.removeAttribute('data-med');   // deixa o observador buscar de novo
       provaThumb.dataset.ref=a.provaConclusaoRef||'';
       provaThumb.style.display='block';
       if(provaRemoveBtn) provaRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
@@ -36970,10 +37030,11 @@ function openAtvModal(id,forcarSomenteLeitura){
     // Se for exatamente a mesma imagem do print de conclusão, não repete o bloco
     // (protege registros gravados antes da correção da duplicidade)
     const provaUpdDuplicada = !!(a.provaAtualizacao && a.provaAtualizacao===a.provaConclusao);
-    if(a.provaAtualizacao && !provaUpdDuplicada && provaUpdWrap && provaUpdThumb){
+    if(imgTemAlgo(a.provaAtualizacao,a.provaAtualizacaoRef) && !provaUpdDuplicada && provaUpdWrap && provaUpdThumb){
       provaUpdWrap.style.display='block';
       if(provaUpdInfo) provaUpdInfo.textContent='Enviado por '+(a.provaAtualizacaoPor||'—')+(a.provaAtualizacaoEm?(' em '+a.provaAtualizacaoEm):'');
-      provaUpdThumb.src=a.provaAtualizacao;
+      provaUpdThumb.src=imgFonte(a.provaAtualizacao,a.provaAtualizacaoRef);
+      provaUpdThumb.removeAttribute('data-med');
       provaUpdThumb.dataset.ref=a.provaAtualizacaoRef||'';
       provaUpdThumb.style.display='block';
       if(provaUpdRemoveBtn) provaUpdRemoveBtn.style.display=podeEditarResp?'inline-flex':'none';
@@ -37445,6 +37506,8 @@ function _atvRenderComentarios(a){
   wrap.innerHTML=lista.map(c=>{
     const fotos=(c.fotos||[]).map((src,fi)=>{
       const ref=String((c.fotosRef||[])[fi]||'').replace(/'/g,"\\'");
+      if(!imgTemAlgo(src,ref)) return '';
+      src=imgFonte(src,ref);
       return `<img src="${src}" data-ref="${ref}" style="width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid var(--border-light);cursor:pointer;" onclick="atvVerProva('${String(src).replace(/'/g,"\\'")}','print-comentario','${ref}')">`;
     }).join('');
     return `<div>
