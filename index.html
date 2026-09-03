@@ -3011,6 +3011,25 @@ body.menu-oculto .sb-atu-txt{display:none;}
 .atv-colhead[data-c="andamento"]{--hc-border:rgba(79,82,214,.4);--hc-bg:rgba(79,82,214,.10);--hc-bg2:rgba(79,82,214,.20);--hc-text:#a5b4fc;}
 .atv-colhead[data-c="concluida"]{--hc-border:rgba(143,168,216,.4);--hc-bg:rgba(143,168,216,.10);--hc-bg2:rgba(143,168,216,.20);--hc-text:#b8ccee;}
 .atv-colhead[data-c="finalizada"]{--hc-border:rgba(34,197,94,.45);--hc-bg:rgba(34,197,94,.10);--hc-bg2:rgba(34,197,94,.20);--hc-text:#6ee7a0;}
+/* ── O LUGAR DA FOTO ENQUANTO ELA VEM DO R2 ────────────────────────
+   Desde 03/09 a miniatura não viaja mais dentro do registro: a imagem
+   é buscada no R2 quando o card chega perto da tela. O intervalo entre
+   uma coisa e outra é de frações de segundo, mas um <img> vazio nesse
+   instante parece defeito — e "parece defeito" custa um chamado.
+
+   Então o quadro fica marcado enquanto espera. O observador de imagens
+   limpa este fundo assim que a foto de verdade entra (ver
+   _imgMediaObservar), para não tingir imagem com transparência. */
+img[data-ref]:not([data-ref=""]){
+  background-color:rgba(130,142,170,.16);
+  background-image:linear-gradient(110deg,
+    rgba(130,142,170,0) 30%, rgba(130,142,170,.22) 50%, rgba(130,142,170,0) 70%);
+  background-size:220% 100%;
+  animation:lo-foto-vindo 1.4s ease-in-out infinite;
+}
+@keyframes lo-foto-vindo{ to{ background-position:-220% 0; } }
+@media (prefers-reduced-motion:reduce){ img[data-ref]:not([data-ref=""]){ animation:none; } }
+
 </style>
 
 <!-- Firebase SDK -->
@@ -5432,6 +5451,15 @@ document.addEventListener('DOMContentLoaded',_loThemeIcon);
                 <button class="btn" id="btn-encolher" onclick="encolherMiniaturas()" style="width:auto;">
                   🪶 Encolher miniaturas
                 </button>
+                <button class="btn" id="btn-aliviar" onclick="aliviarListas()" style="width:auto;--bc: var(--rgb-teal);">
+                  🪽 Tirar miniaturas dos registros
+                </button>
+              </div>
+              <div style="font-size:10.5px;color:var(--text-muted);line-height:1.7;margin-top:10px;">
+                <b>Tirar miniaturas dos registros</b> é o que faz o sistema abrir rápido: as listas
+                deixam de carregar a cópia pequena de cada foto, que hoje vem inteira em toda abertura.
+                Cada imagem é conferida contra a lista do R2 antes — a que não tiver original guardada
+                fica exatamente como está. Nenhuma foto é apagada.
               </div>
               <div style="font-size:10.5px;color:var(--text-muted);line-height:1.7;margin-top:10px;">
                 Os três últimos existem para um caso só: o pacote passar do teto de 15 MB por gravação
@@ -8094,7 +8122,13 @@ function _imgMediaObservar(){
         const ref=el.getAttribute('data-ref');
         if(!ref) return;
         imgCarregarMedia(ref).then(url=>{
-          if(url && el.isConnected) el.src=url;
+          if(!url || !el.isConnected) return;
+          el.src=url;
+          /* Chegou: tira o quadro de espera. Sem isto, o fundo ficaria
+             atrás da foto para sempre — invisível numa foto opaca, mas
+             tingindo qualquer print com transparência. */
+          el.style.background='none';
+          el.style.animation='none';
         });
       });
     },{rootMargin:'200px'});
@@ -8317,7 +8351,21 @@ function imgPreparar(registroId,campo,indice,dataUrl){
     const chave=imgChave(registroId,campo,indice);
     imgGuardarOriginal(chave,dataUrl).then(chaveOk=>{
       if(!chaveOk){ resolve({thumb:dataUrl,chave:''}); return; } // offline: mantém inteira
-      imgGerarThumb(dataUrl,thumb=>resolve({thumb,chave:chaveOk}));
+      /* ── A MINIATURA NÃO VIAJA MAIS DENTRO DO REGISTRO ──────────────
+         Ela custava ~3 KB por imagem, e esse custo é pago em TODA
+         abertura do sistema, por TODA pessoa: as listas vêm inteiras da
+         nuvem antes de a tela mostrar qualquer coisa. Com 1.600 tarefas
+         concluídas com print, davam quase 5 MB por abertura.
+
+         Em troca do quê? De encobrir meio segundo na primeira vez que
+         cada card é olhado. O médio vem do R2 sob demanda, só para o
+         que está perto da tela, e o navegador o guarda por um dia.
+
+         Então ela sai. A referência é o que importa, e ela fica. A rede
+         de segurança acima continua valendo: se a original NÃO subiu,
+         a imagem inteira permanece no registro — nada se perde por
+         causa de uma falha de rede. */
+      resolve({thumb:'', chave:chaveOk});
     });
   });
 }
@@ -10449,6 +10497,89 @@ function encolherMiniaturas(){
     });
   };
   proximo();
+}
+
+/* ═══ TIRAR AS MINIATURAS DOS REGISTROS ═══════════════════════════════
+   O passo seguinte ao "encolher", e o que resolve de verdade a demora
+   para abrir.
+
+   Toda lista vem INTEIRA da nuvem antes de a tela mostrar qualquer
+   coisa. Com 1.600 tarefas concluídas com print, as miniaturas somam
+   quase 5 MB baixados em toda abertura, por toda pessoa, todo dia —
+   para encobrir meio segundo na primeira vez que cada card é olhado.
+   Desde 03/09 a tela sabe montar a foto só com a referência, então esse
+   pedaço deixou de ter função.
+
+   A DIFERENÇA PARA O "ENCOLHER": aqui não basta o campo `...Ref` estar
+   preenchido. Uma referência apontando para uma imagem que não está no
+   R2 é uma referência quebrada — apagar a miniatura nesse caso apagaria
+   a ÚNICA cópia que existe, para sempre. Então a lista real do R2 é
+   consultada e cada imagem é conferida contra ela, uma por uma. O que
+   não for encontrado fica exatamente como está, e é contado no relatório
+   para você saber que existe.
+
+   Nada aqui apaga imagem do R2. Só para de carregar o duplicado. */
+function aliviarListas(){
+  if(!currentUser || !currentUser.master){ showToast('Apenas o master pode fazer isso','warn'); return; }
+  if(!temNuvemLeitura()){ showToast('Preciso da nuvem para conferir as imagens antes','error'); return; }
+  const btn=document.getElementById('btn-aliviar');
+  const soltar=()=>{ if(btn){ btn.disabled=false; btn.textContent='🪽 Tirar miniaturas dos registros'; } };
+  if(btn){ btn.disabled=true; btn.textContent='Lendo a lista do R2…'; }
+
+  /* Devolve a promessa: é o que permite testar isto de fora e, mais
+     tarde, encadear no "Reparar tudo" sem adivinhar quando terminou. */
+  return cfListarImagens().then(chaves=>{
+    const noR2=new Set((chaves||[]).map(String));
+    if(!noR2.size){
+      soltar();
+      showToast('A lista de imagens do R2 voltou vazia — não vou mexer em nada','error');
+      return;
+    }
+    const alvos=[]; let semRef=0, semOriginal=0;
+    _percorrerImagensDoEstado(appState,(obj,chave,rotulo,dono,campo,indice)=>{
+      if(!_temReferencia(dono,campo,indice)){ semRef++; return; }
+      const refs=dono[campo+'Ref'];
+      const ref=String((indice==null ? refs : (Array.isArray(refs)?refs[indice]:'')) || '');
+      // A prova de que dá para soltar: a original está mesmo lá.
+      if(!ref || !noR2.has(ref)){ semOriginal++; return; }
+      alvos.push({obj,chave});
+    });
+
+    const ficam=semRef+semOriginal;
+    if(!alvos.length){
+      soltar();
+      showToast(ficam
+        ? ('Nada a tirar — '+ficam+' imagem(ns) são a única cópia e ficam onde estão')
+        : 'As listas já estão sem miniatura','warn');
+      return;
+    }
+    const antes=JSON.stringify(appState).length;
+    const aviso=ficam
+      ? `\n\n${ficam} imagem(ns) NÃO serão tocadas: não achei a original no R2, então elas são a única cópia que existe.`
+      : '';
+    soltar();
+    if(!confirmar(()=>aliviarListas(),
+        `Tirar ${alvos.length} miniatura(s) de dentro dos registros?\n\n`
+        +`Cada uma foi conferida contra a lista do R2 — todas têm a original guardada lá. `
+        +`Nenhuma imagem é apagada; elas passam a ser buscadas quando o card aparece na tela.\n\n`
+        +`Os dados hoje ocupam ${(antes/1048576).toFixed(2)} MB.`+aviso)) return;
+
+    alvos.forEach(({obj,chave})=>{ obj[chave]=''; });
+    const depois=JSON.stringify(appState).length;
+    saveState(appState);
+    const msg=`✓ ${alvos.length} miniatura(s) fora dos registros: `
+      +`${(antes/1048576).toFixed(2)} MB → ${(depois/1048576).toFixed(2)} MB`
+      +(ficam?` · ${ficam} mantida(s) por serem a única cópia`:'');
+    console.log('[miniaturas] '+msg);
+    showToast(msg,'success');
+    try{ renderSaudeDados(); }catch(e){}
+    ['renderAtividades','renderDev','renderAte','renderAcompanhamento','renderAll']
+      .forEach(f=>{ try{ window[f] && window[f](); }catch(e){} });
+  }).catch(err=>{
+    soltar();
+    console.error('[miniaturas]',err);
+    showToast('Não consegui ler a lista do R2: '+err.message+' — nada foi alterado','error');
+  });
 }
 
 // Recomprime as imagens já gravadas. Uso pontual (apenas master), para
@@ -14368,7 +14499,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.03a';
+const APP_VERSAO='2026.09.03b';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina
