@@ -11,6 +11,7 @@ branch `main`.
 | Worker `liveops-imagens` | Painel da Cloudflare | **CM Andrade**, à mão: *Edit code* → colar → *Deploy* |
 | Variáveis e secrets do worker | Painel da Cloudflare | **CM Andrade**, à mão |
 | Fluxos do n8n | Painel do n8n | **CM Andrade**, à mão: importar o JSON ou colar o código do nó |
+| `web/` (o sistema novo, Next.js) | Vercel, *Root Directory* `web` | **Automático** depois de ligado na Vercel — ver [`web/README.md`](web/README.md) |
 
 Ou seja: quando uma versão nova do sistema é commitada e enviada para o
 `main`, ela **já está no ar**. Não existe passo "publicar o `index.html`" —
