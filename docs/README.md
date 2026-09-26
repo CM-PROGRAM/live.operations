@@ -59,6 +59,7 @@ achando que está limpando código morto.
 | Compras | — | **a escrever** |
 | Devoluções e atendimento | — | **a escrever** |
 | WhatsLive | [`chatwoot-historico.md`](chatwoot-historico.md) | parcial |
+| **Sistema novo** (Next.js + Neon: login e tarefas) | [`../web/README.md`](../web/README.md) | em migração |
 
 ---
 

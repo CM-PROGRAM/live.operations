@@ -1,0 +1,85 @@
+/* Serviço de tarefas contra um Postgres de verdade (TESTE_DATABASE_URL).
+   Sem a variável, os testes são pulados — não há banco falso aqui. */
+import { after, before, test } from "node:test"
+import assert from "node:assert/strict"
+
+const url = process.env.TESTE_DATABASE_URL
+const opcoes = { skip: url ? false : "sem TESTE_DATABASE_URL" }
+process.env.DATABASE_URL = url
+
+let s: typeof import("../src/backend/tarefas/servico")
+let db: typeof import("../src/backend/db")
+const autor = { id: 0, chave: "cmandrade", nome: "CM Andrade", email: "", master: true, cor: "", iniciais: "CM", permissoes: [] }
+
+before(async () => {
+  if (!url) return
+  s = await import("../src/backend/tarefas/servico")
+  db = await import("../src/backend/db")
+  await db.consultar("TRUNCATE tarefas, comentarios, auditoria RESTART IDENTITY CASCADE")
+  const [u] = await db.consultar<{ id: number }>("SELECT id::int AS id FROM usuarios WHERE chave = 'cmandrade'")
+  autor.id = u.id
+})
+
+test("criar, concluir, reabrir: tudo auditado com autor", opcoes, async () => {
+  const id = await s.criarTarefa({ titulo: "Conferir estoque", descricao: "", prioridade: "alta", vencimento: null, responsaveis: ["gustavo", "matheusm"] }, autor)
+  await s.editarTarefa(id, { status: "concluida" }, autor)
+  let t = await s.obterTarefa(id)
+  assert.equal(t?.status, "concluida")
+  assert.equal(t?.concluido_por, "CM Andrade")
+  assert.ok(t?.concluido_em)
+  assert.deepEqual(t?.responsaveis.map((r) => r.chave), ["gustavo", "matheusm"])
+
+  await s.editarTarefa(id, { status: "aberta" }, autor)
+  t = await s.obterTarefa(id)
+  assert.equal(t?.concluido_em, null)
+  const eventos = t!.historico.map((h) => `${h.evento}:${h.campo ?? ""}:${h.para ?? ""}`)
+  assert.deepEqual(eventos, ["editado:status:aberta", "editado:status:concluida", "criado::"])
+  assert.ok(t!.historico.every((h) => h.autor === "CM Andrade"))
+})
+
+test("editar sem mudar nada não gera auditoria", opcoes, async () => {
+  const id = await s.criarTarefa({ titulo: "X", descricao: "", prioridade: "normal", vencimento: "2026-10-01", responsaveis: ["gustavo"] }, autor)
+  await s.editarTarefa(id, { titulo: "X", prioridade: "normal", vencimento: "2026-10-01", responsaveis: ["gustavo"] }, autor)
+  assert.equal((await s.obterTarefa(id))!.historico.length, 1)
+})
+
+test("excluir é lógico: some da lista, fica no banco, com quem excluiu", opcoes, async () => {
+  const id = await s.criarTarefa({ titulo: "Apagar", descricao: "", prioridade: "normal", vencimento: null, responsaveis: ["carlosred"] }, autor)
+  await s.excluirTarefa(id, autor)
+  assert.equal(await s.obterTarefa(id), null)
+  assert.ok(!(await s.listarTarefas({ status: "todas" })).some((t) => t.id === id))
+  const [linha] = await db.consultar<{ excluido: boolean }>("SELECT excluido_em IS NOT NULL AS excluido FROM tarefas WHERE id = $1", [id])
+  assert.equal(linha.excluido, true)
+  const [a] = await db.consultar<{ evento: string }>("SELECT evento FROM auditoria WHERE entidade_id = $1 ORDER BY id DESC LIMIT 1", [id])
+  assert.equal(a.evento, "excluido")
+  await assert.rejects(s.excluirTarefa(id, autor), /não encontrada/)
+})
+
+test("atrasada usa o dia de Brasília e filtros combinam", opcoes, async () => {
+  const ontem = new Date(Date.now() - 86400_000 - 3 * 3600_000).toISOString().slice(0, 10)
+  const id = await s.criarTarefa({ titulo: "Vencida urgente", descricao: "", prioridade: "urgente", vencimento: ontem, responsaveis: ["carlosred"] }, autor)
+  const atrasadas = await s.listarTarefas({ status: "atrasada", responsavel: "carlosred" })
+  assert.deepEqual(atrasadas.map((t) => t.id), [id])
+  assert.equal(atrasadas[0].atrasada, true)
+  assert.equal((await s.listarTarefas({ status: "todas", busca: "urgente" }))[0].id, id)
+  const c = await s.contarPorStatus()
+  assert.equal(c.atrasada, 1)
+  assert.equal(c.todas, c.aberta + c.andamento + c.concluida + c.finalizada)
+})
+
+test("responsável desconhecido é recusado sem deixar lixo", opcoes, async () => {
+  const antes = (await s.contarPorStatus()).todas
+  await assert.rejects(s.criarTarefa({ titulo: "Y", descricao: "", prioridade: "normal", vencimento: null, responsaveis: ["ninguem"] }, autor), /Responsável desconhecido/)
+  assert.equal((await s.contarPorStatus()).todas, antes)
+})
+
+test("comentários ficam em ordem e com autor", opcoes, async () => {
+  const id = await s.criarTarefa({ titulo: "Com conversa", descricao: "", prioridade: "normal", vencimento: null, responsaveis: ["gustavo"] }, autor)
+  await s.comentarTarefa(id, "primeiro", autor)
+  await s.comentarTarefa(id, "segundo", autor)
+  const t = await s.obterTarefa(id)
+  assert.deepEqual(t!.comentariosLista.map((c) => c.texto), ["primeiro", "segundo"])
+  assert.equal(t!.comentarios, 2)
+})
+
+after(async () => { if (url) await db.encerrarConexoes() })
