@@ -10985,9 +10985,19 @@ function auditarMudancas(novo){
       const campos=_logDiffRegistro(entidade,antes[id].campos,agora[id].campos);
       if(campos.length) _logGravar(entidade,id,'editado',campos,agora[id].resumo);
     });
-    Object.keys(antes).forEach(id=>{
-      if(!agora[id] && !antes[id].campos.rotinaMkt) _logGravar(entidade,id,'excluido',[],antes[id].resumo);
-    });
+    const sumidos=Object.keys(antes).filter(id=>!agora[id] && !antes[id].campos.rotinaMkt);
+    /* Mesma régua da trava de _gravarRegistrosAlterados: nenhuma ação de
+       tela exclui mais do que isso de uma vez. Quando "some" a lista
+       inteira, o que sumiu foi o estado em memória, não os registros — e
+       registrar cada um como excluído enterrava o histórico verdadeiro. */
+    if(sumidos.length>LIMITE_APAGAR_DE_UMA_VEZ){
+      console.warn('[auditoria] '+entidade+': '+sumidos.length+' registro(s) sumiram de uma vez — '
+        +'não é exclusão de tela, o histórico não vai registrar');
+      // A referência guarda os sumidos: quando voltarem, não viram "criado"
+      sumidos.forEach(id=>{ agora[id]=antes[id]; });
+    } else {
+      sumidos.forEach(id=>_logGravar(entidade,id,'excluido',[],antes[id].resumo));
+    }
     _logSnapshot[entidade]=agora;
   });
 }
@@ -13300,18 +13310,38 @@ function startLocalSync(){
     return;
   }
   _localSyncStarted = true;
+  /* O CACHE DO NAVEGADOR NÃO MANDA ENQUANTO HOUVER NUVEM ──────────────
+     Este modo nasceu para quando não existe banco nenhum. A trava antiga
+     olhava só para o Firebase — e desde a aposentadoria (31/08) `db` é nulo
+     sempre, então a trava nunca mais segurou nada: TODA sessão passou a
+     trocar, a cada 3 segundos, o estado em memória pela foto do
+     localStorage. Essa foto é gravada no máximo a cada 10s, às vezes sem as
+     miniaturas, e some inteira quando a cota estoura.
+
+     Medido no D1 em 26/09: 741 mil lançamentos "excluido" no histórico
+     (99% de todos os logs desde 04/09), a mesma cancelada "excluída" 162
+     vezes. Era a auditoria comparando a memória boa com a foto vazia. Na
+     tela era a instabilidade: card que some e volta, conclusão que
+     desfaz, imagem que desaparece — e até 4 registros por vez apagados de
+     verdade, que é o que a trava contra apagamento em massa deixa passar. */
+  const nuvemDePe = () => (db && fbConnected) || _cfLeituraAtiva || CF_DADOS_ATIVO;
   // Fallback para localStorage (mesma máquina)
   window.addEventListener('storage', e => {
-    if(e.key === SK){ appState = loadLocal(); renderAll(); try{ _aplicarPermissoesNaBarra(); }catch(_e){} }
+    if(e.key !== SK || nuvemDePe()) return;
+    appState = loadLocal();
+    try{ logSincronizarSnapshot(appState); }catch(_e){}
+    renderAll(); try{ _aplicarPermissoesNaBarra(); }catch(_e){}
   });
   syncTimer = setInterval(() => {
-    // Não sobrescreve se Firebase está ativo (evita conflito de fontes)
-    if(db && fbConnected) return;
+    if(nuvemDePe()) return;
     const fresh = loadLocal();
     if(JSON.stringify(fresh.tasks) !== JSON.stringify(appState.tasks)
        || JSON.stringify(fresh.conferencia) !== JSON.stringify(appState.conferencia)
        || JSON.stringify(fresh.drogData) !== JSON.stringify(appState.drogData)){
-      appState = fresh; renderAll();
+      appState = fresh;
+      // Estado trocado por fora da tela: a auditoria só atualiza a referência
+      try{ logSincronizarSnapshot(appState); }catch(_e){}
+      renderAll();
     }
   }, 3000);
 }
@@ -14499,7 +14529,7 @@ let _navGroupOpen = new Set(['grp-tarefas']);
    sistema é um arquivo só, então a única forma de atualizar é recarregar a
    página, e até aqui não havia como saber se isso tinha acontecido.
    Trocar esta data a cada publicação. */
-const APP_VERSAO='2026.09.03b';
+const APP_VERSAO='2026.09.26a';
 
 /* ── Atualização automática do sistema ──
    O LiveOps é um arquivo só: publicar uma correção não basta, cada máquina

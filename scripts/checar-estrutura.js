@@ -4,7 +4,7 @@
    o JS continuou válido, os ids continuaram únicos, e a página inteira sumiu,
    porque tudo o que vinha depois virou filho de um bloco display:none. */
 const fs=require('fs');
-const arq=process.argv[2]||'/home/user/suplive.processos/index.html';
+const arq=process.argv[2]||require('path').join(__dirname,'..','index.html');
 const h=fs.readFileSync(arq,'utf8');
 
 /* Fora de <script> e <style>, senão string com "</div>" vira tag. */
