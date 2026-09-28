@@ -28,7 +28,7 @@ export const ROTULO_PRIORIDADE: Record<Prioridade, string> = {
 }
 
 /* As sete áreas da Central de Tarefas, na ordem e com os nomes do sistema
-   atual (ATV_AREAS no index.html). "vendas" aparece como Canceladas: é o
+   antigo (ATV_AREAS no index.html, hoje no histórico do Git). "vendas" aparece como Canceladas: é o
    id que o sistema atual grava, e mudar o id quebraria a importação. */
 export const AREAS = ["diarias", "atendimentos", "vendas", "anuncios", "financeiro", "marketplaces", "devolucoes"] as const
 export type Area = (typeof AREAS)[number]

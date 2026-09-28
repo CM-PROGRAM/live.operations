@@ -3,9 +3,9 @@ import {
   MessageCircleIcon, ShieldIcon, ShoppingBagIcon, TruckIcon, type LucideIcon,
 } from "lucide-react"
 
-/* Os módulos do LiveOps. `href` = já migrado para o sistema novo; os
-   outros abrem o sistema atual, que segue no ar durante a migração —
-   um módulo por vez, sem dia de virada em que tudo muda junto. */
+/* Os módulos do LiveOps. `href` = já existe no sistema novo; os outros
+   aparecem como "em breve" até serem construídos (o sistema antigo foi
+   desligado em 28/09/2026). */
 export type Modulo = { titulo: string; icone: LucideIcon; permissao: string; href?: string }
 
 export const MODULOS: Modulo[] = [
@@ -20,6 +20,3 @@ export const MODULOS: Modulo[] = [
   { titulo: "WhatsLive", icone: MessageCircleIcon, permissao: "whatsapp" },
   { titulo: "Administrador", icone: ShieldIcon, permissao: "admin" },
 ]
-
-export const SISTEMA_ATUAL_URL =
-  process.env.NEXT_PUBLIC_SISTEMA_ATUAL_URL || "https://cm-program.github.io/live.operations/"

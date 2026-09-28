@@ -1,14 +1,14 @@
-# LiveOps — o sistema novo (Next.js + Neon)
+# LiveOps — Next.js + Neon
 
-É a versão do LiveOps que substitui, **um módulo por vez**, o `index.html`
-da raiz. Os dois rodam juntos durante a migração: o que já foi migrado abre
-aqui, e o resto continua no sistema atual, com link na barra lateral.
+O sistema de operações da Suplelive. Substitui o sistema antigo (um
+`index.html` único sobre a Cloudflare), desligado em 28/09/2026. O código
+antigo continua no histórico do Git para consulta ao reconstruir cada módulo.
 
 | Módulo | Situação |
 |---|---|
-| Login | ✅ migrado — as mesmas senhas do cofre do worker |
-| Central de Tarefas | ✅ migrado |
-| Todos os outros | no sistema atual (`index.html`) |
+| Login | ✅ pronto |
+| Central de Tarefas (quadro Kanban por área) | ✅ pronto |
+| Vendas, Canceladas, Devoluções, Atendimentos, Estoque, Compras, Anúncios, WhatsLive, Administrador | em breve — o esquema planejado está em `db/esquema-completo.sql` |
 
 ## Como está organizado
 
@@ -18,7 +18,8 @@ não se misturam:
 ```
 web/
 ├── db/migracoes/        o esquema, em SQL puro, aplicado em ordem
-├── scripts/             migrar, criar usuários, importar do D1
+├── db/esquema-completo.sql  o banco inteiro planejado, módulo a módulo
+├── scripts/             aplicar migrações, criar usuário e senha
 ├── testes/              node:test — rodam contra um Postgres de verdade
 └── src/
     ├── backend/         SÓ servidor ("server-only"): banco, login, regras
@@ -48,15 +49,14 @@ regras do servidor. Se alguém tentar importar o backend numa tela, o
 
 Toda rota confere sessão e permissão no servidor (`src/backend/http.ts`).
 
-## O que mudou em relação ao sistema atual, e por quê
+## Por que ele é feito assim
 
-- **Não existe mais "pacote de estado" entre navegadores.** Cada mudança é
-  uma chamada à API que grava uma linha no banco. Foi o pacote que causou os
-  três apagões de 01/09 e a instabilidade de setembro (o cache do navegador
-  sobrescrevendo a nuvem).
-- **A auditoria é feita pelo servidor**, na mesma transação da mudança, e não
-  mais por um diff de estado no navegador — que encheu o D1 de 741 mil
-  "excluído" falsos.
+O sistema antigo perdeu dados várias vezes pelo mesmo motivo: o estado
+inteiro viajava entre os navegadores e o último a gravar vencia. Aqui:
+
+- **Cada ação é uma chamada à API que grava uma linha no banco.** Não
+  existe cópia do estado no navegador que possa sobrescrever a nuvem.
+- **A auditoria é gravada pelo servidor**, na mesma transação da mudança.
 - **Excluir é lógico** (`excluido_em`): some da tela, fica no banco, com
   quem excluiu e quando.
 - **Sessão no banco**, com o cookie guardando só um segredo aleatório (o
@@ -64,28 +64,15 @@ Toda rota confere sessão e permissão no servidor (`src/backend/http.ts`).
 
 ## Publicar (Vercel + Neon)
 
-1. **Neon** — criar um projeto (região `aws-sa-east-1`, São Paulo) e copiar a
-   *connection string* com **pooling** (host com `-pooler`).
-2. **Esquema e usuários**, do seu computador, dentro de `web/`:
-   ```bash
-   npm install
-   export DATABASE_URL="postgres://...-pooler.../neondb?sslmode=require"
-   npm run db:migrar
-   npm run db:usuarios
-   ```
-3. **Trazer senhas e tarefas do D1** (só lê o D1, não altera nada lá; pode
-   repetir quantas vezes quiser):
-   ```bash
-   export CF_ACCOUNT_ID="..."    # Cloudflare, barra lateral de qualquer página
-   export CF_API_TOKEN="..."     # token com permissão D1 → Read
-   npm run db:importar
-   ```
-4. **Vercel** — *Add New → Project* → este repositório → **Root Directory:
-   `web`**. Em *Environment Variables*, `DATABASE_URL` com a mesma string
-   do passo 1. *Deploy*.
-
-O `index.html` da raiz continua sendo publicado pelo GitHub Pages como
-sempre; nada nesta pasta muda o sistema atual.
+- **Banco:** projeto `liveops` no Neon (São Paulo), plano grátis. As
+  migrações de `db/migracoes/` já estão aplicadas.
+- **Vercel:** *Add New → Project* → este repositório → **Root Directory:
+  `web`** → variável `DATABASE_URL` com a *connection string* **pooled** do
+  Neon (host com `-pooler`) → *Deploy*. Depois disso, todo push no `main`
+  publica sozinho.
+- **Migração nova:** `DATABASE_URL=... npm run db:migrar`.
+- **Senha de alguém:** `DATABASE_URL=... npm run db:usuarios -- <chave>`
+  (pede a senha no terminal).
 
 ## Desenvolver
 

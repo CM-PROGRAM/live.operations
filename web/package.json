@@ -10,7 +10,6 @@
     "typecheck": "tsc --noEmit",
     "db:migrar": "tsx scripts/migrar.ts",
     "db:usuarios": "tsx scripts/usuarios.ts",
-    "db:importar": "tsx scripts/importar-d1.ts",
     "test": "tsx --conditions=react-server --test testes/*.test.ts"
   },
   "dependencies": {

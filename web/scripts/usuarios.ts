@@ -13,13 +13,10 @@ import { createInterface } from "node:readline/promises"
 import { Client } from "pg"
 import { criarHash } from "../src/backend/auth/senha"
 
-// A mesma base do patchUsers do sistema atual (index.html)
+/* O dono do sistema. Os outros usuários do sistema antigo foram removidos
+   a pedido dele em 28/09/2026; quem entrar depois é cadastrado pelo master. */
 const BASE = [
-  { chave: "cmandrade", nome: "CM Andrade", email: "cmandrade@suplelive.com.br", master: true,  cor: "#e8c25a", iniciais: "CM", perms: ["whatsapp", "plataformas", "baixas", "envios", "anuncios", "devolucoes", "atendimentos", "tarefas", "admin"] },
-  // Gustavo é #ffffff no sistema atual: branco some no tema claro do layout novo
-  { chave: "gustavo",   nome: "Gustavo",    email: "gustavo@suplelive.com.br",   master: false, cor: "#64748b", iniciais: "G",  perms: ["plataformas", "envios", "tarefas", "base", "integracoes"] },
-  { chave: "matheusm",  nome: "Matheus M",  email: "contato@suplelive.com.br",   master: false, cor: "#3b82f6", iniciais: "MM", perms: ["whatsapp", "tarefas", "cnpjs", "integracoes"] },
-  { chave: "carlosred", nome: "Carlos Red", email: "carlos@suplelive.com.br",    master: false, cor: "#ef4444", iniciais: "CR", perms: ["whatsapp", "devolucoes", "tarefas", "cnpjs"] },
+  { chave: "cmandrade", nome: "CM Andrade", email: "cmandrade@suplelive.com.br", master: true, cor: "#e8c25a", iniciais: "CM", perms: ["whatsapp", "plataformas", "baixas", "envios", "anuncios", "devolucoes", "atendimentos", "tarefas", "admin"] },
 ]
 
 async function main() {

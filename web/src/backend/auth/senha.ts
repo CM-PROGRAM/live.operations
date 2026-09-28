@@ -3,8 +3,9 @@ import { promisify } from "node:util"
 
 const pbkdf2Async = promisify(pbkdf2)
 
-/* A MESMA conta do worker (cloudflare/worker-imagens/worker.js,
-   _hashSenha): PBKDF2-SHA256, 32 bytes, sal e resultado em base64url.
+/* A MESMA conta do worker do sistema antigo (_hashSenha em
+   cloudflare/worker-imagens/worker.js, removido em 28/09/2026 e ainda no
+   histórico do Git): PBKDF2-SHA256, 32 bytes, sal e resultado em base64url.
    Precisa ser idêntica bit a bit — é o que deixa as senhas do cofre
    atual valerem aqui sem ninguém redefinir a sua. */
 export const VOLTAS_PADRAO = 150_000
