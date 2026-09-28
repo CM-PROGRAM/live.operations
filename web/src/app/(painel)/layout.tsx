@@ -11,7 +11,9 @@ export default async function LayoutPainel({ children }: { children: React.React
   return (
     <SidebarProvider defaultOpen={aberta}>
       <BarraLateral usuario={{ nome: u.nome, email: u.email, cor: u.cor, iniciais: u.iniciais, master: u.master, permissoes: u.permissoes }} />
-      <SidebarInset>
+      {/* min-w-0: sem ele o conteúdo não encolhe ao lado da barra lateral, e
+          a tabela empurrava a página para fora da tela abaixo de 1440 px */}
+      <SidebarInset className="min-w-0">
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
