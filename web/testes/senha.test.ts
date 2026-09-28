@@ -3,8 +3,9 @@ import assert from "node:assert/strict"
 import { calcularHash, conferirSenha, criarHash } from "../src/backend/auth/senha"
 
 /* Cópia fiel de _hashSenha e dos conversores base64url do worker
-   (cloudflare/worker-imagens/worker.js). Se um dia os dois divergirem,
-   as senhas importadas do cofre param de valer — este teste é o alarme. */
+   antigo (cloudflare/worker-imagens/worker.js, hoje só no histórico do
+   Git). A senha do master veio de lá: se o cálculo daqui mudar, ela para
+   de valer — este teste é o alarme. */
 function b64urlBytes(s: string) {
   s = s.replace(/-/g, "+").replace(/_/g, "/")
   while (s.length % 4) s += "="

@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { ExternalLinkIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, ChevronsUpDownIcon } from "lucide-react"
+import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -13,7 +13,7 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail, useSidebar,
 } from "@/components/ui/sidebar"
-import { MODULOS, SISTEMA_ATUAL_URL } from "@/frontend/layout/modulos"
+import { MODULOS } from "@/frontend/layout/modulos"
 
 export type UsuarioDaTela = { nome: string; email: string; cor: string; iniciais: string; master: boolean; permissoes: string[] }
 
@@ -58,16 +58,13 @@ export function BarraLateral({ usuario }: { usuario: UsuarioDaTela }) {
         </SidebarGroup>
         {antigos.length > 0 && (
           <SidebarGroup>
-            <SidebarGroupLabel>No sistema atual</SidebarGroupLabel>
+            <SidebarGroupLabel>Em breve</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {antigos.map((m) => (
                   <SidebarMenuItem key={m.titulo}>
-                    <SidebarMenuButton asChild tooltip={`${m.titulo} (sistema atual)`} className="text-muted-foreground">
-                      <a href={SISTEMA_ATUAL_URL} target="_blank" rel="noopener">
-                        <m.icone /><span>{m.titulo}</span>
-                        <ExternalLinkIcon className="ml-auto size-3 opacity-60" />
-                      </a>
+                    <SidebarMenuButton disabled aria-disabled tooltip={`${m.titulo} (em breve)`} className="text-muted-foreground">
+                      <m.icone /><span>{m.titulo}</span>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
