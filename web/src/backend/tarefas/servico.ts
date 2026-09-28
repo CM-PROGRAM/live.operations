@@ -3,6 +3,7 @@ import type { PoolClient } from "pg"
 import { consultar, emTransacao } from "@/backend/db"
 import type { Usuario } from "@/backend/auth/sessao"
 import type {
+  Area,
   EdicaoTarefa,
   FiltroStatus,
   FiltroTarefas,
@@ -28,7 +29,7 @@ const SELECT_RESUMO = `
            WHERE c.entidade = 'tarefa' AND c.entidade_id = t.id AND c.excluido_em IS NULL) AS comentarios,
          ${iso("t.criado_em")} AS criado_em, ${iso("t.concluido_em")} AS concluido_em,
          (SELECT nome FROM usuarios WHERE id = t.concluido_por) AS concluido_por,
-         t.origem
+         t.origem, t.area
     FROM tarefas t`
 
 function condicaoStatus(s: FiltroStatus): string {
@@ -37,9 +38,25 @@ function condicaoStatus(s: FiltroStatus): string {
   return `t.status = '${s}'` // s vem de um enum validado, nunca do usuário cru
 }
 
-export async function listarTarefas(f: FiltroTarefas, limite = 300): Promise<TarefaResumo[]> {
+/* No quadro, o que já acabou aparece só se acabou há pouco: a coluna de
+   concluídas é para conferir o trabalho recente, não um arquivo de anos
+   (a Central antiga escondia pelo mesmo motivo). */
+export const DIAS_CONCLUIDAS_NO_QUADRO = 14
+
+export async function listarTarefas(
+  f: FiltroTarefas,
+  opcoes: { limite?: number; quadro?: boolean } = {}
+): Promise<TarefaResumo[]> {
+  const limite = opcoes.limite ?? 300
   const valores: unknown[] = []
   const onde = ["t.excluido_em IS NULL", condicaoStatus(f.status)]
+  if (opcoes.quadro) {
+    onde.push(`(t.status IN ('aberta','andamento') OR t.concluido_em > now() - interval '${DIAS_CONCLUIDAS_NO_QUADRO} days')`)
+  }
+  if (f.area) {
+    valores.push(f.area)
+    onde.push(`t.area = $${valores.length}`)
+  }
   if (f.responsavel) {
     valores.push(f.responsavel)
     onde.push(`EXISTS (SELECT 1 FROM tarefa_responsaveis tr JOIN usuarios u ON u.id = tr.usuario_id
@@ -63,13 +80,17 @@ export async function listarTarefas(f: FiltroTarefas, limite = 300): Promise<Tar
   )
 }
 
-export async function contarPorStatus(responsavel?: string): Promise<Record<FiltroStatus, number>> {
+export async function contarPorStatus(responsavel?: string, area?: Area): Promise<Record<FiltroStatus, number>> {
   const valores: unknown[] = []
   let filtro = ""
   if (responsavel) {
     valores.push(responsavel)
-    filtro = `AND EXISTS (SELECT 1 FROM tarefa_responsaveis tr JOIN usuarios u ON u.id = tr.usuario_id
-                           WHERE tr.tarefa_id = t.id AND u.chave = $1)`
+    filtro += ` AND EXISTS (SELECT 1 FROM tarefa_responsaveis tr JOIN usuarios u ON u.id = tr.usuario_id
+                             WHERE tr.tarefa_id = t.id AND u.chave = $${valores.length})`
+  }
+  if (area) {
+    valores.push(area)
+    filtro += ` AND t.area = $${valores.length}`
   }
   const [r] = await consultar<Record<FiltroStatus, number>>(
     `SELECT count(*)::int AS todas,
@@ -82,6 +103,16 @@ export async function contarPorStatus(responsavel?: string): Promise<Record<Filt
     valores
   )
   return r
+}
+
+// O que está em aberto em cada área — o número que a equipe olha para
+// decidir por onde começar o dia
+export async function abertasPorArea(): Promise<Partial<Record<Area, number>>> {
+  const linhas = await consultar<{ area: Area; n: number }>(
+    `SELECT area, count(*)::int AS n FROM tarefas
+      WHERE excluido_em IS NULL AND status IN ('aberta','andamento') GROUP BY area`
+  )
+  return Object.fromEntries(linhas.map((l) => [l.area, l.n]))
 }
 
 export async function obterTarefa(id: number): Promise<TarefaDetalhe | null> {
@@ -133,9 +164,9 @@ export async function criarTarefa(dados: NovaTarefa, autor: Usuario): Promise<nu
   return emTransacao(async (c) => {
     const ids = await idsDosUsuarios(c, dados.responsaveis)
     const r = await c.query<{ id: number }>(
-      `INSERT INTO tarefas (titulo, descricao, prioridade, vencimento, responsavel_id, origem, criado_por)
-       VALUES ($1, NULLIF($2, ''), $3, $4, $5, 'manual', $6) RETURNING id::int AS id`,
-      [dados.titulo, dados.descricao, dados.prioridade, dados.vencimento ?? null, ids[0], autor.id]
+      `INSERT INTO tarefas (titulo, descricao, prioridade, vencimento, responsavel_id, origem, criado_por, area)
+       VALUES ($1, NULLIF($2, ''), $3, $4, $5, 'manual', $6, $7) RETURNING id::int AS id`,
+      [dados.titulo, dados.descricao, dados.prioridade, dados.vencimento ?? null, ids[0], autor.id, dados.area]
     )
     const id = r.rows[0].id
     await c.query(

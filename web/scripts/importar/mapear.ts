@@ -20,6 +20,7 @@ export type TarefaMapeada = {
   concluido_em: Date | null
   origem: string
   origem_ref: string | null
+  area: string
   comentarios: { texto: string; autorNome: string | null; em: Date | null }[]
   legado: Record<string, unknown>
 }
@@ -58,6 +59,24 @@ const ORIGENS: [campo: string, origem: string][] = [
   ["origemDevolucaoId", "devolucao"],
   ["vendaPedidoId", "venda"],
 ]
+
+/* A área da Central de Tarefas, com a regra de _atvArea do index.html, na
+   mesma ordem: marca explícita, origem, e o título das famílias que só
+   nascem em Anúncios. */
+const AREAS_VALIDAS = ["diarias", "atendimentos", "vendas", "anuncios", "financeiro", "marketplaces", "devolucoes"]
+const TITULOS_ANUNCIOS = ["Integração", "Exclusão Integração", "Imagem", "Entrada Produto", "Atualização Catálogo", "Atualização de Catálogo"]
+export function areaDa(t: TarefaLegada): string {
+  const marcada = texto(t.areaTarefa)
+  if (marcada && AREAS_VALIDAS.includes(marcada)) return marcada
+  if (texto(t.origemAteId)) return "atendimentos"
+  if (texto(t.rotinaMkt)) return "marketplaces"
+  if (texto(t.vendaPedidoId)) return "financeiro"
+  if (texto(t.origemCancNfId)) return "devolucoes"
+  if (texto(t.origemCancId)) return "vendas"
+  if (["origemIntegId", "origemExIntId", "origemImgId", "origemEntradaId", "origemAtuCatId"].some((c) => texto(t[c]))) return "anuncios"
+  if (TITULOS_ANUNCIOS.includes(String(t.titulo ?? "").trim())) return "anuncios"
+  return "diarias"
+}
 
 // Campos que viraram coluna — o resto vai inteiro para `legado`
 const PROMOVIDOS = new Set([
@@ -121,6 +140,7 @@ export function mapearTarefa(t: TarefaLegada, chavesValidas: Set<string>): Taref
     concluido_em,
     origem,
     origem_ref: campoOrigem ? texto(t[campoOrigem]) : null,
+    area: areaDa(t),
     comentarios,
     legado,
   }

@@ -77,18 +77,18 @@ async function main() {
       try {
         const r = await neon.query<{ id: string; nova: boolean }>(
           `INSERT INTO tarefas (legado_id, titulo, descricao, prioridade, status, pendencia, vencimento, prazo_horas,
-                                responsavel_id, criado_por, criado_em, concluido_por, concluido_em, origem, origem_ref, legado)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,COALESCE($11, now()),$12,$13,$14,$15,$16)
+                                responsavel_id, criado_por, criado_em, concluido_por, concluido_em, origem, origem_ref, legado, area)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,COALESCE($11, now()),$12,$13,$14,$15,$16,$17)
            ON CONFLICT (legado_id) DO UPDATE SET titulo = EXCLUDED.titulo, descricao = EXCLUDED.descricao,
              prioridade = EXCLUDED.prioridade, status = EXCLUDED.status, pendencia = EXCLUDED.pendencia,
              vencimento = EXCLUDED.vencimento, prazo_horas = EXCLUDED.prazo_horas,
              responsavel_id = EXCLUDED.responsavel_id, concluido_por = EXCLUDED.concluido_por,
              concluido_em = EXCLUDED.concluido_em, origem = EXCLUDED.origem, origem_ref = EXCLUDED.origem_ref,
-             legado = EXCLUDED.legado, atualizado_em = now()
+             legado = EXCLUDED.legado, area = EXCLUDED.area, atualizado_em = now()
            RETURNING id, (xmax = 0) AS nova`,
           [t.legado_id, t.titulo, t.descricao, t.prioridade, t.status, t.pendencia, t.vencimento, t.prazo_horas,
            idDe(t.responsaveis[0] ?? null), idDe(t.criado_por), t.criado_em, idDe(t.concluido_por), t.concluido_em,
-           t.origem, t.origem_ref, JSON.stringify(t.legado)]
+           t.origem, t.origem_ref, JSON.stringify(t.legado), t.area]
         )
         const { id, nova } = r.rows[0]
         await neon.query("DELETE FROM tarefa_responsaveis WHERE tarefa_id = $1", [id])

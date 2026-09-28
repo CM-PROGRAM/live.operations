@@ -8,8 +8,9 @@ export const GET = rota("tarefas", async (_u, req) => {
     status: p.get("status") ?? undefined,
     responsavel: p.get("responsavel") || undefined,
     busca: p.get("busca") || undefined,
+    area: p.get("area") || undefined,
   })
-  const [tarefas, contagem] = await Promise.all([listarTarefas(filtro), contarPorStatus(filtro.responsavel)])
+  const [tarefas, contagem] = await Promise.all([listarTarefas(filtro), contarPorStatus(filtro.responsavel, filtro.area)])
   return Response.json({ tarefas, contagem })
 })
 

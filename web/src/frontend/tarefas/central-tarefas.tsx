@@ -1,46 +1,43 @@
 "use client"
 
-import { useEffect, useState, useTransition } from "react"
+import { useEffect, useMemo, useState, useTransition } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import {
-  CheckCircle2Icon, CircleDotIcon, ClockAlertIcon, ListTodoIcon, MessageSquareIcon, MoreHorizontalIcon,
-  PauseCircleIcon, RotateCcwIcon, SearchIcon, Trash2Icon,
-} from "lucide-react"
+import { SearchIcon } from "lucide-react"
 import { toast } from "sonner"
-import { Button } from "@/components/ui/button"
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
-import { FILTROS_STATUS, ROTULO_STATUS, type FiltroStatus, type FiltroTarefas, type TarefaResumo } from "@/comum/tarefas"
+import {
+  COLUNAS, INFO_AREA, ROTULO_COLUNA, colunaDa,
+  type Area, type Coluna, type FiltroTarefas, type TarefaResumo,
+} from "@/comum/tarefas"
 import { chamarApi } from "@/frontend/api"
-import { dataCurta, Responsaveis, SeloPrioridade, SeloStatus } from "@/frontend/tarefas/pecas"
-import { NovaTarefaBotao } from "@/frontend/tarefas/nova-tarefa"
+import { CartaoTarefa } from "@/frontend/tarefas/cartao-tarefa"
 import { DetalheTarefa } from "@/frontend/tarefas/detalhe-tarefa"
+import { NovaTarefaBotao } from "@/frontend/tarefas/nova-tarefa"
 import { PendenciaDialogo } from "@/frontend/tarefas/pendencia-dialogo"
 
 type Pessoa = { chave: string; nome: string; cor: string; iniciais: string }
 type Props = {
   tarefas: TarefaResumo[]
-  contagem: Record<FiltroStatus, number>
   pessoas: Pessoa[]
   filtro: FiltroTarefas
   eu: string
+  areas: Area[]                       // as que esta pessoa pode ver
+  abertasPorArea: Partial<Record<Area, number>>
+  diasConcluidas: number
 }
 
-const CARTOES: { status: FiltroStatus; icone: typeof ListTodoIcon; cor: string }[] = [
-  { status: "aberta", icone: ListTodoIcon, cor: "text-status-aberta" },
-  { status: "andamento", icone: PauseCircleIcon, cor: "text-status-andamento" },
-  { status: "atrasada", icone: ClockAlertIcon, cor: "text-status-atrasada" },
-  { status: "concluida", icone: CheckCircle2Icon, cor: "text-status-concluida" },
-]
+// A cor de cada coluna é a do estado que ela representa
+const COR_COLUNA: Record<Coluna, string> = {
+  aberta: "bg-status-aberta",
+  atrasada: "bg-status-atrasada",
+  andamento: "bg-status-andamento",
+  concluida: "bg-status-concluida",
+  finalizada: "bg-status-finalizada",
+}
 
-export function CentralTarefas({ tarefas, contagem, pessoas, filtro, eu }: Props) {
+export function CentralTarefas({ tarefas, pessoas, filtro, eu, areas, abertasPorArea, diasConcluidas }: Props) {
   const router = useRouter()
   const caminho = usePathname()
   const params = useSearchParams()
@@ -48,11 +45,16 @@ export function CentralTarefas({ tarefas, contagem, pessoas, filtro, eu }: Props
   const [aberta, setAberta] = useState<number | null>(null)
   const [pendenciaDe, setPendenciaDe] = useState<TarefaResumo | null>(null)
   const [busca, setBusca] = useState(filtro.busca ?? "")
+  const [arrastando, setArrastando] = useState<number | null>(null)
+  const [sobre, setSobre] = useState<Coluna | null>(null)
+  // Movimento otimista: o cartão muda de coluna na hora; se o servidor
+  // recusar, ele volta e a pessoa vê o motivo
+  const [movidas, setMovidas] = useState<Record<number, TarefaResumo["status"]>>({})
 
   function filtrar(mudanca: Record<string, string | undefined>) {
     const p = new URLSearchParams(params.toString())
     for (const [k, v] of Object.entries(mudanca)) {
-      if (!v || v === "todas" || v === "todos") p.delete(k)
+      if (!v || v === "todos" || v === "todas") p.delete(k)
       else p.set(k, v)
     }
     iniciar(() => router.replace(`${caminho}${p.size ? "?" + p : ""}`, { scroll: false }))
@@ -66,18 +68,39 @@ export function CentralTarefas({ tarefas, contagem, pessoas, filtro, eu }: Props
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busca])
 
-  async function mudarStatus(t: TarefaResumo, status: TarefaResumo["status"], rotulo: string) {
+  const colunas = useMemo(() => {
+    const porColuna: Record<Coluna, TarefaResumo[]> = { aberta: [], atrasada: [], andamento: [], concluida: [], finalizada: [] }
+    for (const t0 of tarefas) {
+      const status = movidas[t0.id] ?? t0.status
+      const feita = status === "concluida" || status === "finalizada"
+      // Concluir tira do atraso; qualquer outro movimento não mexe no prazo
+      const t = { ...t0, status, atrasada: feita ? false : t0.atrasada }
+      porColuna[colunaDa(t)].push(t)
+    }
+    return porColuna
+  }, [tarefas, movidas])
+
+  async function mover(t: TarefaResumo, destino: Coluna) {
+    if (destino === "atrasada") {
+      toast.info("Atrasada não é uma etapa: a tarefa vai para lá sozinha quando o prazo passa.")
+      return
+    }
+    if (destino === "andamento") { setPendenciaDe(t); return }   // pede o motivo antes
+    if (destino === colunaDa(t) || destino === t.status) return
+    setMovidas((m) => ({ ...m, [t.id]: destino }))
     try {
-      await chamarApi(`/api/tarefas/${t.id}`, "PATCH", { status })
-      toast.success(`${rotulo}: ${t.titulo}`)
+      await chamarApi(`/api/tarefas/${t.id}`, "PATCH", { status: destino })
+      toast.success(`${ROTULO_COLUNA[destino]}: ${t.titulo}`)
       router.refresh()
     } catch (e) {
       toast.error((e as Error).message)
+    } finally {
+      setMovidas((m) => { const n = { ...m }; delete n[t.id]; return n })
     }
   }
 
   async function excluir(t: TarefaResumo) {
-    if (!confirm(`Excluir a tarefa "${t.titulo}"?\n\nEla sai da tela, mas fica guardada com o registro de quem excluiu.`)) return
+    if (!window.confirm(`Excluir a tarefa "${t.titulo}"?\n\nEla sai do quadro, mas fica guardada com o registro de quem excluiu.`)) return
     try {
       await chamarApi(`/api/tarefas/${t.id}`, "DELETE")
       toast.success("Tarefa excluída")
@@ -87,135 +110,119 @@ export function CentralTarefas({ tarefas, contagem, pessoas, filtro, eu }: Props
     }
   }
 
+  const totalAbertas = Object.values(abertasPorArea).reduce((a, b) => a + (b ?? 0), 0)
+
   return (
-    <>
+    <div className="flex min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Central de Tarefas</h1>
-          <p className="text-sm text-muted-foreground">O que cada um tem para fazer, e o que já foi feito.</p>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight text-balance">
+            {filtro.area ? INFO_AREA[filtro.area].rotulo : "Central de Tarefas"}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            {filtro.area ? INFO_AREA[filtro.area].descricao : "Todas as áreas. Arraste um cartão para mudar a etapa."}
+          </p>
         </div>
-        <NovaTarefaBotao pessoas={pessoas} eu={eu} />
+        <NovaTarefaBotao pessoas={pessoas} eu={eu} area={filtro.area ?? "diarias"} areas={areas} />
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {CARTOES.map(({ status, icone: Icone, cor }) => (
-          <button key={status} type="button" onClick={() => filtrar({ status })} className="text-left">
-            <Card className={cn("gap-2 py-4 transition-colors hover:bg-accent/50", filtro.status === status && "ring-2 ring-ring")}>
-              <CardHeader className="px-4">
-                <CardDescription className="flex items-center gap-2">
-                  <Icone className={cn("size-4", cor)} />
-                  {ROTULO_STATUS[status]}
-                </CardDescription>
-                <CardTitle className="text-3xl tabular-nums">{contagem[status]}</CardTitle>
-              </CardHeader>
-            </Card>
-          </button>
+      {/* Áreas: o mesmo recorte da Central de Tarefas atual */}
+      <nav aria-label="Áreas" className="-mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1">
+        <BotaoArea ativo={!filtro.area} rotulo="Todas" n={totalAbertas} onClick={() => filtrar({ area: undefined })} />
+        {areas.map((a) => (
+          <BotaoArea key={a} ativo={filtro.area === a} rotulo={INFO_AREA[a].rotulo} n={abertasPorArea[a] ?? 0} onClick={() => filtrar({ area: a })} />
         ))}
-      </div>
+      </nav>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <Tabs value={filtro.status} onValueChange={(v) => filtrar({ status: v })} className="overflow-x-auto">
-          <TabsList>
-            {FILTROS_STATUS.map((s) => (
-              <TabsTrigger key={s} value={s} className="gap-1.5">
-                {ROTULO_STATUS[s]}
-                <span className="rounded bg-muted px-1.5 text-xs tabular-nums text-muted-foreground">{contagem[s]}</span>
-              </TabsTrigger>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Select value={filtro.responsavel ?? "todos"} onValueChange={(v) => filtrar({ responsavel: v })}>
+          <SelectTrigger className="w-full bg-card sm:w-48" aria-label="Responsável"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="todos">Todos os responsáveis</SelectItem>
+            <SelectItem value={eu}>Minhas tarefas</SelectItem>
+            {pessoas.filter((p) => p.chave !== eu).map((p) => (
+              <SelectItem key={p.chave} value={p.chave}>{p.nome}</SelectItem>
             ))}
-          </TabsList>
-        </Tabs>
-        <div className="flex gap-2">
-          <Select value={filtro.responsavel ?? "todos"} onValueChange={(v) => filtrar({ responsavel: v })}>
-            <SelectTrigger className="w-44"><SelectValue placeholder="Responsável" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todos">Todos</SelectItem>
-              <SelectItem value={eu}>Minhas tarefas</SelectItem>
-              {pessoas.filter((p) => p.chave !== eu).map((p) => (
-                <SelectItem key={p.chave} value={p.chave}>{p.nome}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <div className="relative flex-1 md:w-64">
-            <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar tarefa…" className="pl-8" aria-label="Buscar tarefa" />
-          </div>
+          </SelectContent>
+        </Select>
+        <div className="relative sm:w-72">
+          <SearchIcon className="absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar tarefa…" className="bg-card pl-8" aria-label="Buscar tarefa" />
         </div>
       </div>
 
-      <Card className={cn("overflow-hidden py-0 transition-opacity", carregando && "opacity-60")}>
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/50 hover:bg-muted/50">
-              <TableHead className="pl-4">Tarefa</TableHead>
-              <TableHead className="hidden md:table-cell">Responsáveis</TableHead>
-              <TableHead className="hidden sm:table-cell">Prioridade</TableHead>
-              <TableHead className="hidden sm:table-cell">Vence</TableHead>
-              <TableHead className="hidden sm:table-cell">Status</TableHead>
-              <TableHead className="w-10"><span className="sr-only">Ações</span></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tarefas.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
-                  Nenhuma tarefa neste filtro.
-                </TableCell>
-              </TableRow>
-            )}
-            {tarefas.map((t) => {
-              const feita = t.status === "concluida" || t.status === "finalizada"
-              return (
-                <TableRow key={t.id} className="cursor-pointer" onClick={() => setAberta(t.id)}>
-                  <TableCell className="max-w-0 pl-4 md:w-[45%]">
-                    <div className={cn("truncate font-medium", feita && "text-muted-foreground line-through decoration-1")}>{t.titulo}</div>
-                    <div className="flex items-center gap-2 truncate text-xs text-muted-foreground">
-                      {t.comentarios > 0 && (
-                        <span className="flex shrink-0 items-center gap-0.5"><MessageSquareIcon className="size-3" />{t.comentarios}</span>
-                      )}
-                      <span className="truncate">{t.status === "andamento" && t.pendencia ? `Pendência: ${t.pendencia}` : t.descricao}</span>
-                    </div>
-                    {/* No celular, status e prazo descem para cá e o título fica com a largura toda */}
-                    <div className="mt-1.5 flex items-center gap-2 sm:hidden">
-                      <SeloStatus status={t.status} atrasada={t.atrasada} />
-                      <span className={cn("text-xs tabular-nums", t.atrasada ? "font-medium text-status-atrasada" : "text-muted-foreground")}>
-                        {t.vencimento && `vence ${dataCurta(t.vencimento)}`}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden md:table-cell"><Responsaveis lista={t.responsaveis} /></TableCell>
-                  <TableCell className="hidden sm:table-cell"><SeloPrioridade prioridade={t.prioridade} /></TableCell>
-                  <TableCell className={cn("hidden tabular-nums sm:table-cell", t.atrasada && "font-medium text-status-atrasada")}>{dataCurta(t.vencimento)}</TableCell>
-                  <TableCell className="hidden sm:table-cell"><SeloStatus status={t.status} atrasada={t.atrasada} /></TableCell>
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="size-8" aria-label={`Ações de ${t.titulo}`}>
-                          <MoreHorizontalIcon />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {!feita && <DropdownMenuItem onClick={() => mudarStatus(t, "concluida", "Concluída")}><CheckCircle2Icon />Concluir</DropdownMenuItem>}
-                        {!feita && t.status !== "andamento" && <DropdownMenuItem onClick={() => setPendenciaDe(t)}><PauseCircleIcon />Marcar pendência</DropdownMenuItem>}
-                        {t.status === "andamento" && <DropdownMenuItem onClick={() => mudarStatus(t, "aberta", "Pendência resolvida")}><CircleDotIcon />Resolver pendência</DropdownMenuItem>}
-                        {t.status === "concluida" && <DropdownMenuItem onClick={() => mudarStatus(t, "finalizada", "Finalizada")}><CheckCircle2Icon />Finalizar</DropdownMenuItem>}
-                        {feita && <DropdownMenuItem onClick={() => mudarStatus(t, "aberta", "Reaberta")}><RotateCcwIcon />Reabrir</DropdownMenuItem>}
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem variant="destructive" onClick={() => excluir(t)}><Trash2Icon />Excluir</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              )
-            })}
-          </TableBody>
-        </Table>
-      </Card>
-      {tarefas.length >= 300 && (
-        <p className="text-center text-xs text-muted-foreground">Mostrando as 300 primeiras. Use os filtros para achar o resto.</p>
-      )}
+      {/* O quadro. No celular as colunas deslizam para o lado, uma por tela */}
+      <div className={cn("-mx-4 overflow-x-auto px-4 pb-2 transition-opacity md:-mx-6 md:px-6", carregando && "opacity-60")}>
+        <div className="grid snap-x snap-mandatory auto-cols-[minmax(17rem,85vw)] grid-flow-col gap-3 sm:auto-cols-[18rem] xl:auto-cols-fr">
+          {COLUNAS.map((c) => {
+            const lista = colunas[c]
+            const podeSoltar = c !== "atrasada"
+            return (
+              <section
+                key={c}
+                aria-label={ROTULO_COLUNA[c]}
+                onDragOver={(e) => { if (arrastando !== null && podeSoltar) { e.preventDefault(); setSobre(c) } }}
+                onDragLeave={() => setSobre((s) => (s === c ? null : s))}
+                onDrop={(e) => {
+                  e.preventDefault(); setSobre(null)
+                  const t = tarefas.find((x) => x.id === Number(e.dataTransfer.getData("text/plain")))
+                  if (t) void mover({ ...t, status: movidas[t.id] ?? t.status }, c)
+                }}
+                className={cn(
+                  "flex min-h-40 snap-start flex-col rounded-xl bg-coluna p-2 transition-colors",
+                  sobre === c && "bg-primary/10 ring-2 ring-primary/40",
+                  arrastando !== null && !podeSoltar && "opacity-60",
+                )}
+              >
+                <header className="flex items-center gap-2 px-1.5 pt-1 pb-2.5">
+                  <span className={cn("size-2 rounded-full", COR_COLUNA[c])} aria-hidden />
+                  <h2 className="text-sm font-semibold">{ROTULO_COLUNA[c]}</h2>
+                  <span className="rounded-full bg-background px-2 text-xs font-medium tabular-nums text-muted-foreground">{lista.length}</span>
+                </header>
+                <div className="flex flex-1 flex-col gap-2">
+                  {lista.map((t) => (
+                    <CartaoTarefa
+                      key={t.id}
+                      t={t}
+                      mostrarArea={!filtro.area}
+                      onAbrir={() => setAberta(t.id)}
+                      onMover={mover}
+                      onExcluir={() => excluir(t)}
+                      arrastando={arrastando === t.id}
+                      onArrastar={setArrastando}
+                    />
+                  ))}
+                  {lista.length === 0 && (
+                    <p className="rounded-lg border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                      {c === "atrasada" ? "Nada atrasado." : c === "concluida" || c === "finalizada" ? `Nada nos últimos ${diasConcluidas} dias.` : "Nenhuma tarefa aqui."}
+                    </p>
+                  )}
+                </div>
+              </section>
+            )
+          })}
+        </div>
+      </div>
 
       <DetalheTarefa key={aberta ?? "fechado"} id={aberta} pessoas={pessoas} onFechar={() => setAberta(null)} />
       <PendenciaDialogo tarefa={pendenciaDe} onFechar={() => setPendenciaDe(null)} />
-    </>
+    </div>
+  )
+}
+
+function BotaoArea({ ativo, rotulo, n, onClick }: { ativo: boolean; rotulo: string; n: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={ativo}
+      className={cn(
+        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3.5 py-1.5 text-sm transition-colors",
+        ativo ? "border-primary bg-primary text-primary-foreground shadow-sm" : "bg-card hover:border-primary/40 hover:bg-accent",
+      )}
+    >
+      {rotulo}
+      <span className={cn("rounded-full px-1.5 text-xs tabular-nums", ativo ? "bg-primary-foreground/20" : "bg-muted text-muted-foreground")}>{n}</span>
+    </button>
   )
 }
