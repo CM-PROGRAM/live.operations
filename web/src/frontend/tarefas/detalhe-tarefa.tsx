@@ -9,7 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Textarea } from "@/components/ui/textarea"
-import { ROTULO_PRIORIDADE, ROTULO_STATUS, type TarefaDetalhe } from "@/comum/tarefas"
+import { INFO_AREA, ROTULO_PRIORIDADE, ROTULO_STATUS, type TarefaDetalhe } from "@/comum/tarefas"
 import { chamarApi } from "@/frontend/api"
 import { EscolherPessoas } from "@/frontend/tarefas/escolher-pessoas"
 import { dataCurta, dataHora, SeloPrioridade, SeloStatus } from "@/frontend/tarefas/pecas"
@@ -109,6 +109,7 @@ export function DetalheTarefa({ id, pessoas, onFechar }: { id: number | null; pe
             {t.descricao && <p className="whitespace-pre-wrap text-muted-foreground">{t.descricao}</p>}
 
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+              <Campo rotulo="Área">{INFO_AREA[t.area].rotulo}</Campo>
               <Campo rotulo="Vencimento">{dataCurta(t.vencimento)}</Campo>
               <Campo rotulo="Criada em">{dataHora(t.criado_em)}</Campo>
               {t.concluido_em && <Campo rotulo="Concluída em">{dataHora(t.concluido_em)}</Campo>}

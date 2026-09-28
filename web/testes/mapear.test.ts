@@ -55,3 +55,16 @@ test("concluída só com concluidoTs em milissegundos", () => {
   const t = mapearTarefa({ id: "atv_1", titulo: "x", status: "finalizada", concluidoTs: 1788186199814, responsavel: "cmandrade" }, chaves)
   assert.equal(t.concluido_em?.getTime(), 1788186199814)
 })
+
+test("área segue a regra do sistema atual, na mesma ordem", async () => {
+  const { areaDa } = await import("../scripts/importar/mapear")
+  assert.equal(areaDa({ id: "a", areaTarefa: "financeiro", origemAteId: "ate_1" }), "financeiro") // marca explícita vence
+  assert.equal(areaDa({ id: "a", areaTarefa: "inventada", origemAteId: "ate_1" }), "atendimentos")
+  assert.equal(areaDa({ id: "a", rotinaMkt: "2026-09-03" }), "marketplaces")
+  assert.equal(areaDa({ id: "a", vendaPedidoId: "ped_1" }), "financeiro")
+  assert.equal(areaDa({ id: "a", origemCancNfId: "cancnf_1", origemCancId: "canc_1" }), "devolucoes") // NF vem antes
+  assert.equal(areaDa({ id: "a", origemCancId: "canc_1" }), "vendas")
+  assert.equal(areaDa({ id: "a", origemImgId: "img_1" }), "anuncios")
+  assert.equal(areaDa({ id: "a", titulo: "  Integração " }), "anuncios")
+  assert.equal(areaDa({ id: "a", titulo: "Ligar para fornecedor" }), "diarias")
+})
