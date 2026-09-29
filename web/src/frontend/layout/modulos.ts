@@ -3,7 +3,7 @@ import {
   MessageCircleIcon, ShieldIcon, ShoppingBagIcon, TruckIcon, type LucideIcon,
 } from "lucide-react"
 
-/* Os módulos do LiveOps. `href` = já existe no sistema novo; os outros
+/* Os módulos do Live Operations. `href` = já existe no sistema novo; os outros
    aparecem como "em breve" até serem construídos (o sistema antigo foi
    desligado em 28/09/2026). */
 export type Modulo = { titulo: string; icone: LucideIcon; permissao: string; href?: string }

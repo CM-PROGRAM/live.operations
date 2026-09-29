@@ -1,9 +1,9 @@
 "use client"
 
-import Image from "next/image"
+import { useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { LogOutIcon, MonitorIcon, MoonIcon, SunIcon, ChevronsUpDownIcon } from "lucide-react"
+import { KeyRoundIcon, LogOutIcon, MonitorIcon, MoonIcon, SunIcon, ChevronsUpDownIcon } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -13,7 +13,9 @@ import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarRail, useSidebar,
 } from "@/components/ui/sidebar"
+import { AlterarSenha } from "@/frontend/auth/alterar-senha"
 import { MODULOS } from "@/frontend/layout/modulos"
+import { Monograma, NomeDaMarca } from "@/frontend/marca"
 
 export type UsuarioDaTela = { nome: string; email: string; cor: string; iniciais: string; master: boolean; permissoes: string[] }
 
@@ -30,9 +32,9 @@ export function BarraLateral({ usuario }: { usuario: UsuarioDaTela }) {
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <Link href="/tarefas">
-                <Image src="/logo.png" alt="" width={32} height={32} className="rounded-md" />
+                <Monograma />
                 <div className="grid flex-1 text-left leading-tight">
-                  <span className="font-semibold">LiveOps</span>
+                  <NomeDaMarca />
                   <span className="text-xs text-muted-foreground">Suplelive</span>
                 </div>
               </Link>
@@ -86,6 +88,7 @@ function MenuDoUsuario({ usuario }: { usuario: UsuarioDaTela }) {
   const router = useRouter()
   const { isMobile } = useSidebar()
   const { setTheme } = useTheme()
+  const [trocandoSenha, setTrocandoSenha] = useState(false)
 
   async function sair() {
     await fetch("/api/auth/sair", { method: "POST" }).catch(() => {})
@@ -117,9 +120,11 @@ function MenuDoUsuario({ usuario }: { usuario: UsuarioDaTela }) {
             <DropdownMenuItem onClick={() => setTheme("dark")}><MoonIcon />Escuro</DropdownMenuItem>
             <DropdownMenuItem onClick={() => setTheme("system")}><MonitorIcon />Igual ao sistema</DropdownMenuItem>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setTrocandoSenha(true)}><KeyRoundIcon />Alterar minha senha</DropdownMenuItem>
             <DropdownMenuItem onClick={sair}><LogOutIcon />Sair</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <AlterarSenha aberto={trocandoSenha} aoMudar={setTrocandoSenha} />
       </SidebarMenuItem>
     </SidebarMenu>
   )

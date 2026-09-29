@@ -1,7 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Tema do shadcn/ui (neutral, new-york v4) com o azul-aço do LiveOps
+/* Tema do shadcn/ui (neutral, new-york v4) com o azul-aço do Live Operations
    (#3d5a94) no lugar do preto como cor principal. */
 
 @custom-variant dark (&:is(.dark *));

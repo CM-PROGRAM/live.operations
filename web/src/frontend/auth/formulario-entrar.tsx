@@ -1,10 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Loader2Icon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
@@ -35,28 +35,29 @@ export function FormularioEntrar() {
   }
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-xl">Entrar</CardTitle>
-        <CardDescription>Use o seu e-mail da Suplelive e a mesma senha do sistema atual.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <div className="grid gap-6">
+      <div className="grid gap-1.5">
+        <h2 className="text-2xl font-semibold tracking-tight">Entrar</h2>
+        <p className="text-sm text-muted-foreground">Use o seu e-mail da Suplelive e a sua senha.</p>
+      </div>
         <form onSubmit={enviar} className="grid gap-4">
           <div className="grid gap-2">
             <Label htmlFor="usuario">E-mail</Label>
             <Input id="usuario" name="usuario" type="text" autoComplete="username" placeholder="voce@suplelive.com.br" required autoFocus />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="senha">Senha</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="senha">Senha</Label>
+              <Link href="/esqueci" className="text-sm text-primary underline-offset-4 hover:underline">Esqueci minha senha</Link>
+            </div>
             <Input id="senha" name="senha" type="password" autoComplete="current-password" required />
           </div>
           {erro && <p role="alert" className="text-sm text-destructive">{erro}</p>}
-          <Button type="submit" disabled={enviando} className="w-full">
+          <Button type="submit" disabled={enviando} className="h-10 w-full">
             {enviando && <Loader2Icon className="animate-spin" />}
             Entrar
           </Button>
         </form>
-      </CardContent>
-    </Card>
+    </div>
   )
 }

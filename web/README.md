@@ -1,4 +1,4 @@
-# LiveOps — Next.js + Neon
+# Live Operations — Next.js + Neon
 
 O sistema de operações da Suplelive. Substitui o sistema antigo (um
 `index.html` único sobre a Cloudflare), desligado em 28/09/2026. O código
@@ -42,6 +42,9 @@ regras do servidor. Se alguém tentar importar o backend numa tela, o
 |---|---|
 | `POST /api/auth/entrar` | `{usuario, senha}` → cookie de sessão (12h) |
 | `POST /api/auth/sair` | encerra a sessão |
+| `POST /api/auth/senha` | `{atual, nova, confirmacao}` — troca a própria senha (encerra as outras sessões) |
+| `POST /api/auth/esqueci` | `{email}` → manda por e-mail um link de redefinição (1 hora, uso único) |
+| `POST /api/auth/redefinir` | `{token, nova, confirmacao}` — cria a senha nova e encerra todas as sessões |
 | `GET /api/tarefas?status=&responsavel=&busca=` | lista + contagem por status |
 | `POST /api/tarefas` | cria |
 | `GET/PATCH/DELETE /api/tarefas/:id` | detalhe, edição, exclusão (lógica) |
@@ -70,6 +73,9 @@ inteiro viajava entre os navegadores e o último a gravar vencia. Aqui:
   `web`** → variável `DATABASE_URL` com a *connection string* **pooled** do
   Neon (host com `-pooler`) → *Deploy*. Depois disso, todo push no `main`
   publica sozinho.
+- **E-mail (link de "Esqueci minha senha"):** variáveis `RESEND_API_KEY`,
+  `APP_URL` (o endereço público) e, com domínio verificado no Resend,
+  `EMAIL_REMETENTE`. Sem elas o pedido é aceito mas o e-mail não sai.
 - **Migração nova:** `DATABASE_URL=... npm run db:migrar`.
 - **Senha de alguém:** `DATABASE_URL=... npm run db:usuarios -- <chave>`
   (pede a senha no terminal).

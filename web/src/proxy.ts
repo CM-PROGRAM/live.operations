@@ -5,8 +5,9 @@ import { NextResponse, type NextRequest } from "next/server"
    usuarioAtual() (src/backend/auth/sessao.ts), perto do dado. */
 export function proxy(req: NextRequest) {
   const temCookie = req.cookies.has("liveops_sessao")
-  const naTelaDeEntrar = req.nextUrl.pathname === "/entrar"
-  if (!temCookie && !naTelaDeEntrar) return NextResponse.redirect(new URL("/entrar", req.nextUrl))
+  // As telas de quem ainda não entrou: login e recuperação de senha
+  const publica = ["/entrar", "/esqueci", "/redefinir"].includes(req.nextUrl.pathname)
+  if (!temCookie && !publica) return NextResponse.redirect(new URL("/entrar", req.nextUrl))
   return NextResponse.next()
 }
 

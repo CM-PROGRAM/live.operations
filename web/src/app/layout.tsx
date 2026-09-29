@@ -7,9 +7,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: { default: "LiveOps", template: "%s · LiveOps" },
+  title: { default: "Live Operations", template: "%s · Live Operations" },
   description: "Operações da Suplelive",
-  icons: { icon: "/logo.png" },
 }
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

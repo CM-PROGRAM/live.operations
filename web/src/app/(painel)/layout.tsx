@@ -17,7 +17,7 @@ export default async function LayoutPainel({ children }: { children: React.React
         <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-          <span className="text-sm text-muted-foreground">LiveOps</span>
+          <span className="text-sm text-muted-foreground">Live Operations</span>
         </header>
         <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">{children}</div>
       </SidebarInset>

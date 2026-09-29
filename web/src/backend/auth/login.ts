@@ -8,7 +8,7 @@ import { criarSessao } from "@/backend/auth/sessao"
    força bruta inviável, que é o objetivo. */
 const TETO_POR_MINUTO = 8
 const ritmo = new Map<string, { janela: number; n: number }>()
-function passouDoTeto(id: string) {
+export function passouDoTeto(id: string) {
   const janela = Math.floor(Date.now() / 60_000)
   const r = ritmo.get(id)
   if (!r || r.janela !== janela) {
