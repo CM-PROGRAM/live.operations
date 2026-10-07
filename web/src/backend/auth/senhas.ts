@@ -2,7 +2,7 @@ import "server-only"
 import { createHash, randomBytes } from "node:crypto"
 import { consultar, emTransacao } from "@/backend/db"
 import { enviarEmail } from "@/backend/email"
-import { conferirSenha, criarHash } from "@/backend/auth/senha"
+import { conferirSenha, definirSenha } from "@/backend/auth/senha"
 import type { Usuario } from "@/backend/auth/sessao"
 
 const hash = (t: string) => createHash("sha256").update(t).digest("hex")
@@ -10,27 +10,14 @@ const VALIDADE_MINUTOS = 60
 
 export class ErroDeSenha extends Error {}
 
-async function gravarSenha(c: { query: (q: string, v: unknown[]) => Promise<unknown> }, usuarioId: number, nova: string, por: number | null) {
-  const { sal, hash: h, voltas } = await criarHash(nova)
-  await c.query(
-    `INSERT INTO senhas (usuario_id, sal, hash, iteracoes, atualizado_por) VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (usuario_id) DO UPDATE SET sal = EXCLUDED.sal, hash = EXCLUDED.hash,
-       iteracoes = EXCLUDED.iteracoes, atualizado_em = now(), atualizado_por = EXCLUDED.atualizado_por`,
-    [usuarioId, sal, h, voltas, por]
-  )
-}
-
 /* Trocar a própria senha, logado. Pede a atual: uma sessão esquecida
    aberta num computador não basta para tomar a conta de alguém. As outras
    sessões da pessoa são encerradas; a desta tela continua. */
 export async function trocarSenha(u: Usuario, atual: string, nova: string, tokenSessaoAtual: string | undefined) {
-  const [s] = await consultar<{ sal: string; hash: string; iteracoes: number }>(
-    "SELECT sal, hash, iteracoes FROM senhas WHERE usuario_id = $1", [u.id]
-  )
-  if (!s || !(await conferirSenha(atual, s))) throw new ErroDeSenha("A senha atual não confere.")
+  if (!(await conferirSenha(u.id, atual))) throw new ErroDeSenha("A senha atual não confere.")
   if (atual === nova) throw new ErroDeSenha("A nova senha precisa ser diferente da atual.")
   await emTransacao(async (c) => {
-    await gravarSenha(c, u.id, nova, u.id)
+    await definirSenha(c, u.id, nova, u.id)
     await c.query(
       "UPDATE sessoes SET revogada_em = now() WHERE usuario_id = $1 AND revogada_em IS NULL AND token_hash <> $2",
       [u.id, tokenSessaoAtual ? hash(tokenSessaoAtual) : ""]
@@ -84,7 +71,7 @@ export async function redefinirComToken(token: string, nova: string) {
     )
     const pedido = r.rows[0]
     if (!pedido) throw new ErroDeSenha("Este link expirou ou já foi usado. Peça um novo em \"Esqueci minha senha\".")
-    await gravarSenha(c, pedido.usuario_id, nova, null)
+    await definirSenha(c, pedido.usuario_id, nova, null)
     // O link morre, os outros pedidos abertos também, e todas as sessões saem
     await c.query("UPDATE redefinicoes_senha SET usado_em = now() WHERE usuario_id = $1 AND usado_em IS NULL", [pedido.usuario_id])
     await c.query("UPDATE sessoes SET revogada_em = now() WHERE usuario_id = $1 AND revogada_em IS NULL", [pedido.usuario_id])

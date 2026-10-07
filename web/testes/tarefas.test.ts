@@ -46,8 +46,10 @@ test("criar, concluir, reabrir: tudo auditado com autor", opcoes, async () => {
 })
 
 test("editar sem mudar nada não gera auditoria", opcoes, async () => {
-  const id = await s.criarTarefa({ titulo: "X", descricao: "", prioridade: "normal", vencimento: "2026-10-01", responsaveis: ["ana"], area: "diarias" }, autor)
-  await s.editarTarefa(id, { titulo: "X", prioridade: "normal", vencimento: "2026-10-01", responsaveis: ["ana"] }, autor)
+  // Uma data sempre futura: com data fixa o teste vira "atrasada" sozinho
+  const daquiAUmMes = new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)
+  const id = await s.criarTarefa({ titulo: "X", descricao: "", prioridade: "normal", vencimento: daquiAUmMes, responsaveis: ["ana"], area: "diarias" }, autor)
+  await s.editarTarefa(id, { titulo: "X", prioridade: "normal", vencimento: daquiAUmMes, responsaveis: ["ana"] }, autor)
   assert.equal((await s.obterTarefa(id))!.historico.length, 1)
 })
 

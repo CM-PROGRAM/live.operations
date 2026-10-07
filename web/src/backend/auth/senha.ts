@@ -1,31 +1,38 @@
-import { pbkdf2, randomBytes, timingSafeEqual } from "node:crypto"
-import { promisify } from "node:util"
+import "server-only"
+import type { ClientBase } from "pg"
+import { consultar } from "@/backend/db"
 
-const pbkdf2Async = promisify(pbkdf2)
+/* As senhas são bcrypt (custo 10) calculado pelo próprio Postgres, com a
+   extensão pgcrypto. A conta é lenta de propósito — é ela que torna
+   inviável adivinhar senhas a partir de um banco vazado — e feita no
+   banco ela não pesa no servidor do site, que no plano grátis da
+   Cloudflare tem 10 ms de processamento por pedido.
 
-/* PBKDF2-SHA256, 32 bytes, sal e resultado em base64url. As voltas ficam
-   gravadas em cada senha: dá para subir o padrão depois sem invalidar as
-   senhas já criadas. */
-export const VOLTAS_PADRAO = 150_000
+   O sal é sorteado a cada senha e fica dentro do próprio hash
+   ($2a$10$<sal><hash>), então senhas iguais nunca têm hash igual. */
+export const CUSTO_BCRYPT = 10
 
-export async function calcularHash(senha: string, sal: string, voltas: number): Promise<string> {
-  const bits = await pbkdf2Async(senha, Buffer.from(sal, "base64url"), voltas, 32, "sha256")
-  return bits.toString("base64url")
+// Gravar (ou trocar) a senha de alguém. A senha vai ao banco por conexão
+// cifrada e só o hash fica gravado.
+export async function definirSenha(c: ClientBase, usuarioId: number, senha: string, por: number | null) {
+  await c.query(
+    `INSERT INTO senhas (usuario_id, hash, atualizado_por)
+     VALUES ($1, crypt($2, gen_salt('bf', ${CUSTO_BCRYPT})), $3)
+     ON CONFLICT (usuario_id) DO UPDATE SET hash = EXCLUDED.hash,
+       atualizado_em = now(), atualizado_por = EXCLUDED.atualizado_por`,
+    [usuarioId, senha, por]
+  )
 }
 
-export async function criarHash(senha: string) {
-  const sal = randomBytes(16).toString("base64url")
-  const hash = await calcularHash(senha, sal, VOLTAS_PADRAO)
-  return { sal, hash, voltas: VOLTAS_PADRAO }
+export async function conferirSenha(usuarioId: number, senha: string): Promise<boolean> {
+  const [r] = await consultar<{ confere: boolean }>(
+    "SELECT hash = crypt($2, hash) AS confere FROM senhas WHERE usuario_id = $1",
+    [usuarioId, senha]
+  )
+  return r?.confere === true
 }
 
-export async function conferirSenha(
-  senha: string,
-  guardado: { sal: string; hash: string; iteracoes: number }
-): Promise<boolean> {
-  const calculado = Buffer.from(await calcularHash(senha, guardado.sal, guardado.iteracoes))
-  const esperado = Buffer.from(guardado.hash)
-  // Mesmo tempo para qualquer entrada: comparar com === vazaria, pelo
-  // relógio, quantos caracteres iniciais estavam certos.
-  return calculado.length === esperado.length && timingSafeEqual(calculado, esperado)
-}
+/* Hash de uma senha que ninguém tem. Quando a conta procurada não existe,
+   o login confere contra ele mesmo assim: a resposta leva o mesmo tempo
+   e o relógio não entrega quais e-mails têm conta. */
+export const HASH_DE_NINGUEM = "$2a$10$vss7DnC/JdO6xjvr1IY.ZOQRz5xQNIychrMhUnDBbKSCAl4M2Lv2C"
