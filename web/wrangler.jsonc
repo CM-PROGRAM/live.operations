@@ -8,5 +8,8 @@
   // manda como script para o navegador (o do tema) quebram lá
   "keep_names": false,
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  // Endereço público, usado no link do e-mail de "Esqueci minha senha".
+  // Os segredos (DATABASE_URL, RESEND_API_KEY) ficam só na Cloudflare.
+  "vars": { "APP_URL": "https://live-operations.carlosmagnoav94.workers.dev" }
 }
