@@ -11,7 +11,6 @@
    que o master concedeu pela tela. */
 import { createInterface } from "node:readline/promises"
 import { Client } from "pg"
-import { criarHash } from "../src/backend/auth/senha"
 
 /* O dono do sistema. Quem entrar depois é cadastrado pelo master. */
 const BASE = [
@@ -46,14 +45,13 @@ async function main() {
       senha = await rl.question(`Nova senha para ${chave}: `)
       rl.close()
     }
-    if (!senha || senha.length < 6) throw new Error("senha curta demais (mínimo 6)")
-    const { sal, hash, voltas } = await criarHash(senha)
+    if (!senha || senha.length < 8) throw new Error("senha curta demais (mínimo 8)")
+    // bcrypt feito pelo Postgres, como em src/backend/auth/senha.ts
     const r = await c.query(
-      `INSERT INTO senhas (usuario_id, sal, hash, iteracoes)
-       SELECT id, $2, $3, $4 FROM usuarios WHERE chave = $1
-       ON CONFLICT (usuario_id) DO UPDATE SET sal = EXCLUDED.sal, hash = EXCLUDED.hash,
-         iteracoes = EXCLUDED.iteracoes, atualizado_em = now()`,
-      [chave, sal, hash, voltas]
+      `INSERT INTO senhas (usuario_id, hash)
+       SELECT id, crypt($2, gen_salt('bf', 10)) FROM usuarios WHERE chave = $1
+       ON CONFLICT (usuario_id) DO UPDATE SET hash = EXCLUDED.hash, atualizado_em = now()`,
+      [chave, senha]
     )
     if (!r.rowCount) throw new Error(`usuário ${chave} não existe`)
     console.log(`senha de ${chave} definida`)

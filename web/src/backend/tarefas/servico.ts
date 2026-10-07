@@ -1,5 +1,5 @@
 import "server-only"
-import type { PoolClient } from "pg"
+import type { ClientBase } from "pg"
 import { consultar, emTransacao } from "@/backend/db"
 import type { Usuario } from "@/backend/auth/sessao"
 import type {
@@ -137,7 +137,7 @@ export async function obterTarefa(id: number): Promise<TarefaDetalhe | null> {
   return { ...t, comentariosLista, historico }
 }
 
-async function idsDosUsuarios(c: PoolClient, chaves: string[]): Promise<number[]> {
+async function idsDosUsuarios(c: ClientBase, chaves: string[]): Promise<number[]> {
   const r = await c.query<{ id: number }>(
     "SELECT id::int AS id FROM usuarios WHERE chave = ANY($1) AND ativo",
     [chaves]
@@ -147,7 +147,7 @@ async function idsDosUsuarios(c: PoolClient, chaves: string[]): Promise<number[]
 }
 
 async function auditar(
-  c: PoolClient, tarefaId: number, evento: string, autor: Usuario,
+  c: ClientBase, tarefaId: number, evento: string, autor: Usuario,
   campo: string | null = null, de: unknown = null, para: unknown = null
 ) {
   const txt = (v: unknown) => (v === null || v === undefined ? null : Array.isArray(v) ? v.join(", ") : String(v))

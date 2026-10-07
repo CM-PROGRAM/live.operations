@@ -1,49 +1,59 @@
-import { test } from "node:test"
+/* Senhas contra um Postgres de verdade (TESTE_DATABASE_URL): o hash é
+   feito pelo banco, então não há o que testar sem ele. */
+import { after, before, test } from "node:test"
 import assert from "node:assert/strict"
-import { calcularHash, conferirSenha, criarHash } from "../src/backend/auth/senha"
 
-/* O mesmo cálculo feito pela Web Crypto, independente do node:crypto.
-   Se o de src/backend/auth/senha.ts mudar sem querer, as senhas gravadas
-   param de valer — este teste é o alarme. */
-function b64urlBytes(s: string) {
-  s = s.replace(/-/g, "+").replace(/_/g, "/")
-  while (s.length % 4) s += "="
-  const bin = atob(s)
-  const out = new Uint8Array(bin.length)
-  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
-  return out
-}
-function b64urlDeBytes(buf: ArrayBuffer) {
-  let s = ""
-  const b = new Uint8Array(buf)
-  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i])
-  return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "")
-}
-async function hashDeReferencia(senha: string, sal: string, voltas: number) {
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(String(senha)), { name: "PBKDF2" }, false, ["deriveBits"])
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", salt: b64urlBytes(sal), iterations: voltas, hash: "SHA-256" }, base, 256)
-  return b64urlDeBytes(bits)
-}
+const url = process.env.TESTE_DATABASE_URL
+const opcoes = { skip: url ? false : "sem TESTE_DATABASE_URL" }
+process.env.DATABASE_URL = url
 
-test("o hash é idêntico ao de referência, inclusive com acento", async () => {
-  const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer)
-  for (const senha of ["abc123", "Suplelive@2026", "ação-çé"]) {
-    for (const voltas of [8000, 150000]) {
-      assert.equal(await calcularHash(senha, sal, voltas), await hashDeReferencia(senha, sal, voltas))
-    }
-  }
+let s: typeof import("../src/backend/auth/senha")
+let db: typeof import("../src/backend/db")
+let id = 0
+
+before(async () => {
+  if (!url) return
+  s = await import("../src/backend/auth/senha")
+  db = await import("../src/backend/db")
+  await db.consultar(
+    `INSERT INTO usuarios (chave, nome, email, iniciais) VALUES ('senha-teste', 'Senha', 'senha@exemplo.com', 'SE')
+     ON CONFLICT (chave) DO NOTHING`
+  )
+  ;[{ id }] = await db.consultar<{ id: number }>("SELECT id::int AS id FROM usuarios WHERE chave = 'senha-teste'")
 })
 
-test("senha gravada pela referência é aceita aqui; senha errada não", async () => {
-  const sal = b64urlDeBytes(crypto.getRandomValues(new Uint8Array(16)).buffer)
-  const guardado = { sal, hash: await hashDeReferencia("minhaSenha", sal, 60000), iteracoes: 60000 }
-  assert.equal(await conferirSenha("minhaSenha", guardado), true)
-  assert.equal(await conferirSenha("minhasenha", guardado), false)
-  assert.equal(await conferirSenha("", guardado), false)
+const gravar = (senha: string) => db.emTransacao((c) => s.definirSenha(c, id, senha, null))
+
+test("a senha certa entra; errada, maiúscula trocada ou vazia não", opcoes, async () => {
+  await gravar("minhaSenha çã 1")
+  assert.equal(await s.conferirSenha(id, "minhaSenha çã 1"), true)
+  assert.equal(await s.conferirSenha(id, "minhasenha çã 1"), false)
+  assert.equal(await s.conferirSenha(id, ""), false)
 })
 
-test("criarHash usa sal novo a cada vez", async () => {
-  const a = await criarHash("x"), b = await criarHash("x")
-  assert.notEqual(a.sal, b.sal)
-  assert.equal(await conferirSenha("x", { ...a, iteracoes: a.voltas }), true)
+test("só o hash bcrypt fica no banco, com sal novo a cada vez", opcoes, async () => {
+  await gravar("igual123")
+  const [a] = await db.consultar<{ hash: string }>("SELECT hash FROM senhas WHERE usuario_id = $1", [id])
+  await gravar("igual123")
+  const [b] = await db.consultar<{ hash: string }>("SELECT hash FROM senhas WHERE usuario_id = $1", [id])
+  assert.match(a.hash, new RegExp(`^\\$2a\\$${s.CUSTO_BCRYPT}\\$`))
+  assert.ok(!a.hash.includes("igual123"))
+  assert.notEqual(a.hash, b.hash)
+  assert.equal(await s.conferirSenha(id, "igual123"), true)
+})
+
+test("o hash de ninguém é bcrypt válido e não confere com nada óbvio", opcoes, async () => {
+  const [r] = await db.consultar<{ ok: boolean }>("SELECT crypt('', $1) = $1 AS ok", [s.HASH_DE_NINGUEM])
+  assert.equal(r.ok, false)
+  assert.match(s.HASH_DE_NINGUEM, /^\$2a\$10\$.{53}$/)
+})
+
+test("usuário sem senha não confere", opcoes, async () => {
+  assert.equal(await s.conferirSenha(-1, "qualquer"), false)
+})
+
+after(async () => {
+  if (!url) return
+  await db.consultar("DELETE FROM usuarios WHERE chave = 'senha-teste'")
+  await db.encerrarConexoes()
 })

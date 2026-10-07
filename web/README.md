@@ -22,7 +22,7 @@ web/
 ├── testes/              node:test — rodam contra um Postgres de verdade
 └── src/
     ├── backend/         SÓ servidor ("server-only"): banco, login, regras
-    │   ├── auth/        senha (PBKDF2), sessão, login, redefinição
+    │   ├── auth/        senha (bcrypt no Postgres), sessão, login, redefinição
     │   └── tarefas/     o serviço de tarefas, com auditoria na transação
     ├── comum/           o contrato entre os dois lados (tipos + validação zod)
     ├── frontend/        SÓ tela: componentes React da aplicação
@@ -63,20 +63,31 @@ Para nada se perder nem ser sobrescrito:
 - **Sessão no banco**, com o cookie guardando só um segredo aleatório (o
   banco guarda o hash dele). Sair revoga de verdade.
 
-## Publicar (Vercel + Neon)
+## Publicar (Cloudflare Workers + Neon)
 
-- **Banco:** projeto `liveops` no Neon (São Paulo), plano grátis. As
-  migrações de `db/migracoes/` já estão aplicadas.
-- **Vercel:** *Add New → Project* → este repositório → **Root Directory:
-  `web`** → variável `DATABASE_URL` com a *connection string* **pooled** do
-  Neon (host com `-pooler`) → *Deploy*. Depois disso, todo push no `main`
-  publica sozinho.
-- **E-mail (link de "Esqueci minha senha"):** variáveis `RESEND_API_KEY`,
-  `APP_URL` (o endereço público) e, com domínio verificado no Resend,
-  `EMAIL_REMETENTE`. Sem elas o pedido é aceito mas o e-mail não sai.
-- **Migração nova:** `DATABASE_URL=... npm run db:migrar`.
+O site roda num Worker da Cloudflare (plano grátis), pelo adaptador
+OpenNext; o banco é Postgres no Neon (plano grátis).
+
+- **Banco:** projeto `liveops` no Neon (São Paulo). Migração nova:
+  `DATABASE_URL=... npm run db:migrar`.
+- **Worker:** *Workers & Pages → Create → Import a repository* → este
+  repositório, com **Root directory** `web`, **Build command**
+  `npx opennextjs-cloudflare build` e **Deploy command** `npx wrangler deploy`.
+  Depois disso, todo push no `main` publica sozinho.
+- **Segredos do Worker** (*Settings → Variables and Secrets*, tipo Secret):
+  `DATABASE_URL` com a *connection string* **pooled** do Neon (host com
+  `-pooler`), e `RESEND_API_KEY` para o e-mail de "Esqueci minha senha".
+  Opcionais: `APP_URL` (endereço público usado no link do e-mail; sem ele
+  vale o endereço do próprio pedido) e `EMAIL_REMETENTE` (precisa de
+  domínio verificado no Resend).
 - **Senha de alguém:** `DATABASE_URL=... npm run db:usuarios -- <chave>`
   (pede a senha no terminal).
+
+**Limites do plano grátis que moldam o código:** 10 ms de processamento
+por pedido — por isso o hash de senha (bcrypt) é feito pelo Postgres, não
+pelo Worker — e uma conexão de banco não pode passar de um pedido para
+outro, por isso `src/backend/db.ts` abre uma por consulta quando roda lá.
+O Worker inteiro tem de caber em 3 MB comprimido (hoje: ~2,5 MB).
 
 ## Desenvolver
 
@@ -85,6 +96,8 @@ cp .env.example .env.local     # e preencha DATABASE_URL
 npm run dev                    # http://localhost:3000
 npm test                       # precisa de TESTE_DATABASE_URL (um Postgres descartável)
 npm run lint && npm run typecheck
+npm run cf:preview             # o build da Cloudflare rodando local (wrangler dev);
+                               # variáveis em .dev.vars, como DATABASE_URL=...
 ```
 
 Os testes que tocam banco são **pulados** sem `TESTE_DATABASE_URL` — nunca

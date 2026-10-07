@@ -1,6 +1,6 @@
 import "server-only"
 import { consultar } from "@/backend/db"
-import { conferirSenha } from "@/backend/auth/senha"
+import { HASH_DE_NINGUEM } from "@/backend/auth/senha"
 import { criarSessao } from "@/backend/auth/sessao"
 
 /* Teto de tentativas por conta e por IP, na memória da instância. Não é
@@ -29,13 +29,15 @@ export async function entrar(identificador: string, senha: string, ip: string): 
   if (passouDoTeto("ip:" + ip) || passouDoTeto("conta:" + id)) {
     return { ok: false, erro: "Muitas tentativas. Espere um minuto e tente de novo." }
   }
-  const [linha] = await consultar<{ id: number; sal: string; hash: string; iteracoes: number }>(
-    `SELECT u.id::int AS id, s.sal, s.hash, s.iteracoes
+  const [linha] = await consultar<{ id: number; confere: boolean }>(
+    `SELECT u.id::int AS id, s.hash = crypt($2, s.hash) AS confere
        FROM usuarios u JOIN senhas s ON s.usuario_id = u.id
       WHERE u.ativo AND (u.email = $1 OR u.chave = $1)`,
-    [id]
+    [id, senha]
   )
-  if (!linha || !(await conferirSenha(senha, linha))) {
+  // Conta inexistente gasta o mesmo tempo de uma senha errada
+  if (!linha) await consultar("SELECT crypt($1, $2)", [senha, HASH_DE_NINGUEM])
+  if (!linha?.confere) {
     return { ok: false, erro: "E-mail ou senha incorretos." }
   }
   await criarSessao(linha.id)

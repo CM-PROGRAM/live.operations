@@ -3,9 +3,9 @@ import { pedirRedefinicao } from "@/backend/auth/senhas"
 import { PedidoDeRedefinicao } from "@/comum/senha"
 
 /* O link do e-mail aponta para APP_URL quando ela existe. Sem ela, usa o
-   endereço que o navegador chamou — mas só o da Vercel, que confere o
-   Host; nunca um cabeçalho que qualquer um pode forjar para desviar o
-   link para outro site. */
+   endereço do próprio pedido, que a Cloudflare só entrega ao Worker para
+   os domínios ligados a ele; nunca um cabeçalho como X-Forwarded-Host,
+   que qualquer um pode forjar para desviar o link para outro site. */
 function urlBase(req: Request) {
   return (process.env.APP_URL || new URL(req.url).origin).replace(/\/$/, "")
 }
