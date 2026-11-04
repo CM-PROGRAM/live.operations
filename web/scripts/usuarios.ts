@@ -14,7 +14,7 @@ import { Client } from "pg"
 
 /* O dono do sistema. Quem entrar depois é cadastrado pelo master. */
 const BASE = [
-  { chave: "cmandrade", nome: "CM Andrade", email: "cmandrade@suplelive.com.br", master: true, cor: "#e8c25a", iniciais: "CM", perms: ["whatsapp", "plataformas", "baixas", "envios", "anuncios", "devolucoes", "atendimentos", "tarefas", "admin"] },
+  { chave: "cmandrade", nome: "CM Andrade", email: "carlosmagnoav94@gmail.com", master: true, cor: "#e8c25a", iniciais: "CM", perms: ["whatsapp", "plataformas", "baixas", "envios", "anuncios", "devolucoes", "atendimentos", "tarefas", "admin"] },
 ]
 
 async function main() {
